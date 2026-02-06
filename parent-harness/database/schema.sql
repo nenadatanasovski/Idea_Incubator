@@ -400,41 +400,192 @@ CREATE TABLE IF NOT EXISTS qa_audits (
 );
 
 -- ============================================
--- VERIFICATION TABLES
+-- TEST SYSTEM TABLES
 -- ============================================
 
--- Every test step writes events here for audit trail
-CREATE TABLE IF NOT EXISTS verification_events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp TEXT DEFAULT (datetime('now')),
-    phase INTEGER NOT NULL,
-    task_number INTEGER NOT NULL,
-    step_name TEXT NOT NULL,
-    status TEXT NOT NULL CHECK(status IN ('started', 'completed', 'failed')),
-    exit_code INTEGER,
-    duration_ms INTEGER,
-    output TEXT,
-    error_message TEXT,
-    session_id TEXT
+-- Test suite definitions
+CREATE TABLE IF NOT EXISTS test_suites (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    type TEXT NOT NULL CHECK(type IN ('unit', 'integration', 'e2e', 'verification', 'lint', 'typecheck')),
+    source TEXT NOT NULL CHECK(source IN ('code', 'phases', 'task_agent', 'planning_agent')),
+    file_path TEXT,
+    phase INTEGER,
+    enabled INTEGER DEFAULT 1,
+    created_by TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
 );
 
--- Track complete verification runs
-CREATE TABLE IF NOT EXISTS verification_runs (
+-- Test cases within suites
+CREATE TABLE IF NOT EXISTS test_cases (
     id TEXT PRIMARY KEY,
-    phase INTEGER NOT NULL,
+    suite_id TEXT NOT NULL REFERENCES test_suites(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT,
+    priority TEXT CHECK(priority IN ('P0', 'P1', 'P2', 'P3', 'P4')) DEFAULT 'P2',
+    timeout_ms INTEGER DEFAULT 30000,
+    retry_limit INTEGER DEFAULT 5,
+    depends_on TEXT,  -- JSON array of test_case IDs
+    tags TEXT,  -- JSON array
+    enabled INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Steps within test cases
+CREATE TABLE IF NOT EXISTS test_steps (
+    id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL REFERENCES test_cases(id) ON DELETE CASCADE,
+    sequence INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    command TEXT,
+    expected_exit_code INTEGER DEFAULT 0,
+    expected_output_contains TEXT,
+    timeout_ms INTEGER DEFAULT 10000,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Assertions within steps
+CREATE TABLE IF NOT EXISTS test_assertions (
+    id TEXT PRIMARY KEY,
+    step_id TEXT NOT NULL REFERENCES test_steps(id) ON DELETE CASCADE,
+    sequence INTEGER NOT NULL,
+    assertion_type TEXT NOT NULL CHECK(assertion_type IN ('equals', 'contains', 'matches', 'exists', 'truthy')),
+    target TEXT NOT NULL,
+    expected_value TEXT,
+    error_message TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Test run executions
+CREATE TABLE IF NOT EXISTS test_runs (
+    id TEXT PRIMARY KEY,
+    trigger TEXT NOT NULL CHECK(trigger IN ('manual', 'cron', 'task_completion', 'phase_gate', 'ci')),
+    triggered_by TEXT,
     started_at TEXT DEFAULT (datetime('now')),
     completed_at TEXT,
-    status TEXT CHECK(status IN ('running', 'passed', 'failed')),
-    events_expected INTEGER DEFAULT 0,
-    events_found INTEGER DEFAULT 0,
-    missing_steps TEXT,  -- JSON array
+    status TEXT CHECK(status IN ('running', 'passed', 'failed', 'partial')),
+    suites_run INTEGER DEFAULT 0,
+    suites_passed INTEGER DEFAULT 0,
+    suites_failed INTEGER DEFAULT 0,
+    total_duration_ms INTEGER,
     session_id TEXT
 );
 
-CREATE INDEX IF NOT EXISTS idx_verif_events_phase ON verification_events(phase);
-CREATE INDEX IF NOT EXISTS idx_verif_events_step ON verification_events(step_name);
-CREATE INDEX IF NOT EXISTS idx_verif_events_status ON verification_events(status);
-CREATE INDEX IF NOT EXISTS idx_verif_runs_phase ON verification_runs(phase);
+-- Suite results within runs
+CREATE TABLE IF NOT EXISTS test_suite_results (
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES test_runs(id) ON DELETE CASCADE,
+    suite_id TEXT NOT NULL REFERENCES test_suites(id),
+    status TEXT CHECK(status IN ('running', 'passed', 'failed', 'skipped')),
+    started_at TEXT DEFAULT (datetime('now')),
+    completed_at TEXT,
+    cases_run INTEGER DEFAULT 0,
+    cases_passed INTEGER DEFAULT 0,
+    cases_failed INTEGER DEFAULT 0,
+    duration_ms INTEGER,
+    retry_count INTEGER DEFAULT 0,
+    fix_attempts TEXT  -- JSON array of fix session IDs
+);
+
+-- Case results within suite results
+CREATE TABLE IF NOT EXISTS test_case_results (
+    id TEXT PRIMARY KEY,
+    suite_result_id TEXT NOT NULL REFERENCES test_suite_results(id) ON DELETE CASCADE,
+    case_id TEXT NOT NULL REFERENCES test_cases(id),
+    status TEXT CHECK(status IN ('running', 'passed', 'failed', 'skipped', 'fixing')),
+    started_at TEXT DEFAULT (datetime('now')),
+    completed_at TEXT,
+    steps_run INTEGER DEFAULT 0,
+    steps_passed INTEGER DEFAULT 0,
+    steps_failed INTEGER DEFAULT 0,
+    duration_ms INTEGER,
+    retry_count INTEGER DEFAULT 0,
+    error_message TEXT,
+    stack_trace TEXT,
+    fix_session_id TEXT
+);
+
+-- Step results within case results
+CREATE TABLE IF NOT EXISTS test_step_results (
+    id TEXT PRIMARY KEY,
+    case_result_id TEXT NOT NULL REFERENCES test_case_results(id) ON DELETE CASCADE,
+    step_id TEXT NOT NULL REFERENCES test_steps(id),
+    status TEXT CHECK(status IN ('running', 'passed', 'failed', 'skipped')),
+    started_at TEXT DEFAULT (datetime('now')),
+    completed_at TEXT,
+    actual_exit_code INTEGER,
+    actual_output TEXT,
+    full_output_path TEXT,
+    duration_ms INTEGER,
+    assertions_run INTEGER DEFAULT 0,
+    assertions_passed INTEGER DEFAULT 0,
+    assertions_failed INTEGER DEFAULT 0,
+    screenshots TEXT  -- JSON array of paths
+);
+
+-- Assertion results within step results
+CREATE TABLE IF NOT EXISTS test_assertion_results (
+    id TEXT PRIMARY KEY,
+    step_result_id TEXT NOT NULL REFERENCES test_step_results(id) ON DELETE CASCADE,
+    assertion_id TEXT NOT NULL REFERENCES test_assertions(id),
+    status TEXT CHECK(status IN ('passed', 'failed')),
+    actual_value TEXT,
+    expected_value TEXT,
+    error_message TEXT,
+    timestamp TEXT DEFAULT (datetime('now'))
+);
+
+-- Task to test linking
+CREATE TABLE IF NOT EXISTS task_test_links (
+    id TEXT PRIMARY KEY,
+    task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    test_case_id TEXT NOT NULL REFERENCES test_cases(id) ON DELETE CASCADE,
+    link_type TEXT NOT NULL CHECK(link_type IN ('pass_criteria', 'acceptance', 'regression', 'smoke')),
+    required_for_completion INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(task_id, test_case_id)
+);
+
+-- Test dependencies (test A depends on test B)
+CREATE TABLE IF NOT EXISTS test_dependencies (
+    id TEXT PRIMARY KEY,
+    test_case_id TEXT NOT NULL REFERENCES test_cases(id) ON DELETE CASCADE,
+    depends_on_test_id TEXT NOT NULL REFERENCES test_cases(id) ON DELETE CASCADE,
+    dependency_type TEXT NOT NULL CHECK(dependency_type IN ('must_pass', 'should_pass', 'blocks')),
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(test_case_id, depends_on_test_id)
+);
+
+-- Fix attempts for failing tests
+CREATE TABLE IF NOT EXISTS test_fix_attempts (
+    id TEXT PRIMARY KEY,
+    case_result_id TEXT NOT NULL REFERENCES test_case_results(id) ON DELETE CASCADE,
+    agent_id TEXT NOT NULL,
+    session_id TEXT,
+    started_at TEXT DEFAULT (datetime('now')),
+    completed_at TEXT,
+    status TEXT CHECK(status IN ('attempting', 'fixed', 'failed', 'escalated')),
+    analysis TEXT,
+    fix_description TEXT,
+    files_modified TEXT,  -- JSON array
+    commits TEXT,  -- JSON array
+    retry_after_fix INTEGER DEFAULT 0
+);
+
+-- Indexes for test system
+CREATE INDEX IF NOT EXISTS idx_test_suites_type ON test_suites(type);
+CREATE INDEX IF NOT EXISTS idx_test_suites_source ON test_suites(source);
+CREATE INDEX IF NOT EXISTS idx_test_cases_suite ON test_cases(suite_id);
+CREATE INDEX IF NOT EXISTS idx_test_steps_case ON test_steps(case_id);
+CREATE INDEX IF NOT EXISTS idx_test_runs_status ON test_runs(status);
+CREATE INDEX IF NOT EXISTS idx_test_runs_trigger ON test_runs(trigger);
+CREATE INDEX IF NOT EXISTS idx_suite_results_run ON test_suite_results(run_id);
+CREATE INDEX IF NOT EXISTS idx_suite_results_status ON test_suite_results(status);
+CREATE INDEX IF NOT EXISTS idx_case_results_status ON test_case_results(status);
+CREATE INDEX IF NOT EXISTS idx_step_results_status ON test_step_results(status);
+CREATE INDEX IF NOT EXISTS idx_task_test_links_task ON task_test_links(task_id);
+CREATE INDEX IF NOT EXISTS idx_fix_attempts_status ON test_fix_attempts(status);
 
 -- ============================================
 -- INDEXES

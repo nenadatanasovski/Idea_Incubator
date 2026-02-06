@@ -2,37 +2,57 @@
 
 Each phase has explicit pass criteria and verification scripts. **No phase starts until the previous phase passes all criteria.**
 
-## Verification Event Pattern
+## Test System
 
-Every test step writes events to `verification_events` table:
+See `TEST_SYSTEM.md` for complete specification.
+
+### Core Concept: Self-Healing Loop
+
+Tests don't just record pass/fail - they trigger automatic fixes:
 
 ```
-1. BEFORE step: write_event(phase, task, step, "started")
-2. EXECUTE step
-3. AFTER step: write_event(phase, task, step, "completed" | "failed")
-4. VALIDATION: query DB to confirm all events exist
+Test fails → Agent analyzes → Fixes code → Retry → Repeat until pass
 ```
 
-**Example:**
-```sql
--- Step writes these:
-INSERT INTO verification_events (phase, task_number, step_name, status) 
-VALUES (1, 1, 'npm_build', 'started');
+### Test Recording Pattern
 
-INSERT INTO verification_events (phase, task_number, step_name, status, exit_code) 
-VALUES (1, 1, 'npm_build', 'completed', 0);
+Every test writes to the test system tables:
 
--- Validation checks:
-SELECT COUNT(*) FROM verification_events 
-WHERE phase = 1 AND step_name = 'npm_build' AND status = 'completed';
--- Must return 1, otherwise test failed
+```
+1. Create test_run record
+2. For each suite → test_suite_results
+3. For each case → test_case_results  
+4. For each step → test_step_results
+5. For each assertion → test_assertion_results
+6. If failed → trigger fix loop via test_fix_attempts
 ```
 
-**Why this matters:**
-- Proves each step actually ran (not just exit code)
-- Creates audit trail
-- Easy debugging (query which step is missing)
-- Next agent can see exactly what passed/failed
+### Test Types
+
+| Type | Runner | Purpose |
+|------|--------|---------|
+| unit | Jest/Vitest | Isolated function tests |
+| integration | Jest | API/service tests |
+| e2e | Playwright | Browser automation |
+| verification | Bash | Phase gate checks |
+| lint | ESLint | Code quality |
+| typecheck | tsc | Type safety |
+
+### Self-Healing
+
+When a test fails:
+1. Agent analyzes failure (error message, stack trace)
+2. Agent attempts fix (edit code, add missing files, etc.)
+3. Fix recorded in `test_fix_attempts`
+4. Test re-runs
+5. If still failing, retry up to `retry_limit` (default 5)
+6. If all retries exhausted → escalate to human
+
+### Retention
+
+- **Last 2 weeks** of test results kept
+- Older results pruned automatically
+- Fix attempts kept until test passes
 
 ---
 

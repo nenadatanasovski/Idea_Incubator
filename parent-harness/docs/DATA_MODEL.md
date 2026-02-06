@@ -348,39 +348,201 @@ Planning Agent's periodic evaluations.
 | recommendations | TEXT | JSON array |
 | trigger | TEXT | cron/manual/post_completion |
 
-## Verification Tables
+## Test System Tables
 
-### verification_events
-Audit log for every verification step. Tests write events before/after each step.
+See `TEST_SYSTEM.md` for full specification.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INTEGER PK | Auto-increment |
-| timestamp | TEXT | ISO timestamp |
-| phase | INTEGER | Phase number (1-16) |
-| task_number | INTEGER | Task within phase |
-| step_name | TEXT | e.g., "npm_build", "typecheck", "route_test" |
-| status | TEXT | started/completed/failed |
-| exit_code | INTEGER | Command exit code (if applicable) |
-| duration_ms | INTEGER | Time taken |
-| output | TEXT | Stdout/stderr snippet |
-| error_message | TEXT | Error details if failed |
-| session_id | TEXT | Which agent session ran this |
-
-### verification_runs
-Track complete verification runs.
+### test_suites
+Test suite definitions.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | id | TEXT PK | UUID |
-| phase | INTEGER | Phase being verified |
+| name | TEXT | Suite name |
+| description | TEXT | What it tests |
+| type | TEXT | unit/integration/e2e/verification/lint/typecheck |
+| source | TEXT | code/phases/task_agent/planning_agent |
+| file_path | TEXT | For code-based tests |
+| phase | INTEGER | For verification tests |
+| enabled | INTEGER | Boolean |
+| created_by | TEXT | agent_id or 'human' |
+| created_at | TEXT | ISO timestamp |
+
+### test_cases
+Individual test cases within suites.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| suite_id | TEXT | FK to test_suites |
+| name | TEXT | Test name |
+| description | TEXT | What it checks |
+| priority | TEXT | P0-P4 |
+| timeout_ms | INTEGER | Max execution time |
+| retry_limit | INTEGER | Max fix attempts (default 5) |
+| depends_on | TEXT | JSON array of test_case IDs |
+| tags | TEXT | JSON array |
+| enabled | INTEGER | Boolean |
+| created_at | TEXT | ISO timestamp |
+
+### test_steps
+Steps within a test case.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| case_id | TEXT | FK to test_cases |
+| sequence | INTEGER | Order within case |
+| name | TEXT | Step name |
+| command | TEXT | What to execute |
+| expected_exit_code | INTEGER | Expected result |
+| expected_output_contains | TEXT | String to find in output |
+| timeout_ms | INTEGER | Step timeout |
+| created_at | TEXT | ISO timestamp |
+
+### test_assertions
+Assertions within steps.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| step_id | TEXT | FK to test_steps |
+| sequence | INTEGER | Order within step |
+| assertion_type | TEXT | equals/contains/matches/exists/truthy |
+| target | TEXT | What to check |
+| expected_value | TEXT | Expected result |
+| error_message | TEXT | Message on failure |
+| created_at | TEXT | ISO timestamp |
+
+### test_runs
+Complete test run executions.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| trigger | TEXT | manual/cron/task_completion/phase_gate/ci |
+| triggered_by | TEXT | agent_id or 'human' |
 | started_at | TEXT | ISO timestamp |
 | completed_at | TEXT | ISO timestamp |
-| status | TEXT | running/passed/failed |
-| events_expected | INTEGER | How many steps expected |
-| events_found | INTEGER | How many completed events found |
-| missing_steps | TEXT | JSON array of missing step names |
-| session_id | TEXT | Which session ran verification |
+| status | TEXT | running/passed/failed/partial |
+| suites_run | INTEGER | Count |
+| suites_passed | INTEGER | Count |
+| suites_failed | INTEGER | Count |
+| total_duration_ms | INTEGER | Total time |
+| session_id | TEXT | Which agent session |
+
+### test_suite_results
+Per-suite results within a run.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| run_id | TEXT | FK to test_runs |
+| suite_id | TEXT | FK to test_suites |
+| status | TEXT | running/passed/failed/skipped |
+| started_at | TEXT | ISO timestamp |
+| completed_at | TEXT | ISO timestamp |
+| cases_run | INTEGER | Count |
+| cases_passed | INTEGER | Count |
+| cases_failed | INTEGER | Count |
+| duration_ms | INTEGER | Time |
+| retry_count | INTEGER | Fix retries |
+| fix_attempts | TEXT | JSON array of fix session IDs |
+
+### test_case_results
+Per-case results.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| suite_result_id | TEXT | FK to test_suite_results |
+| case_id | TEXT | FK to test_cases |
+| status | TEXT | running/passed/failed/skipped/fixing |
+| started_at | TEXT | ISO timestamp |
+| completed_at | TEXT | ISO timestamp |
+| steps_run | INTEGER | Count |
+| steps_passed | INTEGER | Count |
+| steps_failed | INTEGER | Count |
+| duration_ms | INTEGER | Time |
+| retry_count | INTEGER | Fix retries |
+| error_message | TEXT | Failure message |
+| stack_trace | TEXT | Full trace |
+| fix_session_id | TEXT | FK to agent_sessions if being fixed |
+
+### test_step_results
+Per-step results.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| case_result_id | TEXT | FK to test_case_results |
+| step_id | TEXT | FK to test_steps |
+| status | TEXT | running/passed/failed/skipped |
+| started_at | TEXT | ISO timestamp |
+| completed_at | TEXT | ISO timestamp |
+| actual_exit_code | INTEGER | What actually happened |
+| actual_output | TEXT | Truncated output |
+| full_output_path | TEXT | File path for full log |
+| duration_ms | INTEGER | Time |
+| assertions_run | INTEGER | Count |
+| assertions_passed | INTEGER | Count |
+| assertions_failed | INTEGER | Count |
+| screenshots | TEXT | JSON array of paths (E2E) |
+
+### test_assertion_results
+Per-assertion results.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| step_result_id | TEXT | FK to test_step_results |
+| assertion_id | TEXT | FK to test_assertions |
+| status | TEXT | passed/failed |
+| actual_value | TEXT | What was found |
+| expected_value | TEXT | What was expected |
+| error_message | TEXT | Failure message |
+| timestamp | TEXT | ISO timestamp |
+
+### task_test_links
+Link tasks to their tests.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| task_id | TEXT | FK to tasks |
+| test_case_id | TEXT | FK to test_cases |
+| link_type | TEXT | pass_criteria/acceptance/regression/smoke |
+| required_for_completion | INTEGER | Boolean |
+| created_at | TEXT | ISO timestamp |
+
+### test_dependencies
+Dependencies between tests.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| test_case_id | TEXT | FK to test_cases |
+| depends_on_test_id | TEXT | FK to test_cases |
+| dependency_type | TEXT | must_pass/should_pass/blocks |
+| created_at | TEXT | ISO timestamp |
+
+### test_fix_attempts
+Track agent fix attempts for failing tests.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | TEXT PK | UUID |
+| case_result_id | TEXT | FK to test_case_results |
+| agent_id | TEXT | Which agent is fixing |
+| session_id | TEXT | FK to agent_sessions |
+| started_at | TEXT | ISO timestamp |
+| completed_at | TEXT | ISO timestamp |
+| status | TEXT | attempting/fixed/failed/escalated |
+| analysis | TEXT | What agent found wrong |
+| fix_description | TEXT | What was changed |
+| files_modified | TEXT | JSON array |
+| commits | TEXT | JSON array |
+| retry_after_fix | INTEGER | Boolean - did it pass? |
 
 ## Observability Tables
 
