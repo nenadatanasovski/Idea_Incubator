@@ -28,8 +28,8 @@ INSERT OR IGNORE INTO retention_policies (id, table_name, retention_days, max_ro
 VALUES ('policy-task-failure-history', 'task_failure_history', 90, NULL, 1);
 
 -- Add index for cleanup queries (if not exists)
-CREATE INDEX IF NOT EXISTS idx_task_execution_log_created ON task_execution_log(created_at);
-CREATE INDEX IF NOT EXISTS idx_agent_heartbeats_created ON agent_heartbeats(created_at);
+-- Note: task_execution_log table doesn't exist; agent_heartbeats uses recorded_at not created_at
+CREATE INDEX IF NOT EXISTS idx_agent_heartbeats_recorded ON agent_heartbeats(recorded_at);
 
 -- Create cleanup_log table to track cleanup operations
 CREATE TABLE IF NOT EXISTS cleanup_log (

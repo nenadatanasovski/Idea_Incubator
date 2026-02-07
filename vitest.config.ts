@@ -10,6 +10,12 @@ export default defineConfig({
       reporter: ["text", "json", "html"],
       exclude: ["tests/**", "spikes/**", "node_modules/**", "dist/**"],
     },
+    globalSetup: ["tests/globalSetup.ts"],
     setupFiles: ["tests/setup.ts"],
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
+    },
   },
 });

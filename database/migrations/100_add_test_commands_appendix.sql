@@ -50,14 +50,14 @@ CREATE TABLE task_appendices (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- Step 4: Copy data from old table
+-- Step 4: Copy data from old table (title is new column, default to NULL)
 INSERT INTO task_appendices (
   id, task_id, appendix_type, content_type, content,
-  reference_id, reference_table, title, position, created_at, updated_at
+  reference_id, reference_table, position, created_at, updated_at
 )
 SELECT
   id, task_id, appendix_type, content_type, content,
-  reference_id, reference_table, title, position, created_at, updated_at
+  reference_id, reference_table, position, created_at, updated_at
 FROM task_appendices_old;
 
 -- Step 5: Drop the old table

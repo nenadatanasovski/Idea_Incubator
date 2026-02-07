@@ -39,6 +39,9 @@ FROM task_relationships;
 -- Step 3: Drop old table
 DROP TABLE IF EXISTS task_relationships;
 
+-- Step 3.5: Drop dependent views before rename
+DROP VIEW IF EXISTS task_component_analysis;
+
 -- Step 4: Rename new table
 ALTER TABLE task_relationships_new RENAME TO task_relationships;
 
@@ -46,3 +49,18 @@ ALTER TABLE task_relationships_new RENAME TO task_relationships;
 CREATE INDEX IF NOT EXISTS idx_task_rel_source ON task_relationships(source_task_id);
 CREATE INDEX IF NOT EXISTS idx_task_rel_target ON task_relationships(target_task_id);
 CREATE INDEX IF NOT EXISTS idx_task_rel_type ON task_relationships(relationship_type);
+
+-- Step 6: Recreate the view that was dropped
+CREATE VIEW IF NOT EXISTS task_component_analysis AS
+SELECT
+    t.id AS task_id,
+    t.display_id,
+    t.title,
+    t.category,
+    NULL AS primary_component,
+    GROUP_CONCAT(tc.component_type, ', ') AS all_components,
+    COUNT(tc.component_type) AS component_count,
+    AVG(tc.confidence) AS avg_confidence
+FROM tasks t
+LEFT JOIN task_components tc ON t.id = tc.task_id
+GROUP BY t.id;

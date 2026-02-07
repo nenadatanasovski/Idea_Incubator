@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS spec_sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_spec_sessions_idea_id ON spec_sessions(idea_id);
-CREATE INDEX IF NOT EXISTS idx_spec_sessions_session_id ON spec_sessions(session_id);
+-- Note: session_id column may not exist if spec_sessions was created by migration 129
+-- with a different schema. Skip this index creation.
 
 -- Track pending questions
 CREATE TABLE IF NOT EXISTS spec_questions (

@@ -26,6 +26,9 @@ ALTER TABLE transcript_entries ADD COLUMN page_url TEXT;
 ALTER TABLE transcript_entries ADD COLUMN webhook_url TEXT;
 ALTER TABLE transcript_entries ADD COLUMN webhook_method TEXT;
 
+-- Source type for multi-source support
+ALTER TABLE transcript_entries ADD COLUMN source TEXT;
+
 -- Cross-source correlation
 ALTER TABLE transcript_entries ADD COLUMN correlation_id TEXT;
 

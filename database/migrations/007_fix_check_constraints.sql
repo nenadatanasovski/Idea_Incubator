@@ -4,7 +4,8 @@
 -- SQLite doesn't support ALTER TABLE to modify constraints directly
 -- We need to recreate the table without the constraints
 
--- Drop the index first
+-- Drop the dependent view and index first
+DROP VIEW IF EXISTS idea_with_profile;
 DROP INDEX IF EXISTS idx_profiles_slug;
 
 -- Create new table without CHECK constraints
@@ -85,3 +86,30 @@ ALTER TABLE user_profiles_new RENAME TO user_profiles;
 
 -- Recreate index
 CREATE INDEX idx_profiles_slug ON user_profiles(slug);
+
+-- Recreate the view that was dropped
+CREATE VIEW IF NOT EXISTS idea_with_profile AS
+SELECT
+    i.id as idea_id,
+    i.slug as idea_slug,
+    i.title as idea_title,
+    p.id as profile_id,
+    p.name as profile_name,
+    p.primary_goals,
+    p.success_definition,
+    p.technical_skills,
+    p.professional_experience,
+    p.domain_expertise,
+    p.industry_connections,
+    p.employment_status,
+    p.weekly_hours_available,
+    p.financial_runway_months,
+    p.risk_tolerance,
+    ip.goals_override,
+    ip.passion_notes,
+    ip.relevant_skills,
+    ip.relevant_network,
+    ip.time_commitment
+FROM ideas i
+LEFT JOIN idea_profiles ip ON i.id = ip.idea_id
+LEFT JOIN user_profiles p ON ip.profile_id = p.id;

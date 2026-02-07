@@ -128,13 +128,14 @@ CREATE INDEX IF NOT EXISTS idx_agent_heartbeats_agent ON agent_heartbeats(agent_
 CREATE INDEX IF NOT EXISTS idx_agent_heartbeats_time ON agent_heartbeats(recorded_at);
 
 -- View for task component analysis
+-- Note: t.component_type removed since column was never added to tasks table
 CREATE VIEW IF NOT EXISTS task_component_analysis AS
 SELECT
     t.id AS task_id,
     t.display_id,
     t.title,
     t.category,
-    t.component_type AS primary_component,
+    NULL AS primary_component,
     GROUP_CONCAT(tc.component_type, ', ') AS all_components,
     COUNT(tc.component_type) AS component_count,
     AVG(tc.confidence) AS avg_confidence

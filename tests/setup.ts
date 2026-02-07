@@ -1,7 +1,20 @@
 import { beforeAll, afterAll, vi } from "vitest";
+import { updateConfig } from "../config/index.js";
+import * as path from "path";
 
-// Global test setup
-beforeAll(() => {
+// Configure test database path - must match tests/globalSetup.ts
+const testDbPath = path.resolve(process.cwd(), "database/test.db");
+updateConfig({
+  paths: {
+    ideas: "./ideas",
+    database: testDbPath,
+    templates: "./templates",
+    taxonomy: "./taxonomy",
+  },
+} as any);
+
+// Global test setup (per test file)
+beforeAll(async () => {
   // Set up test environment variables
   process.env.NODE_ENV = "test";
 

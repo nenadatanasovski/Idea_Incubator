@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
-import { getDb, closeDb } from "../../database/db.js";
+import { getDb } from "../../database/db.js";
 import {
   mapSessionRowToSession,
   mapMessageRowToMessage,
@@ -20,7 +20,7 @@ describe("Database Schema", () => {
   });
 
   afterAll(async () => {
-    await closeDb();
+    // Don't close/save DB - shared singleton used by other test files
   });
 
   describe("ideation_sessions table", () => {
