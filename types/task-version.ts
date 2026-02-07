@@ -36,7 +36,7 @@ export interface VersionDiff {
   fromVersion: number;
   toVersion: number;
 
-  changes: Record<string, { from: unknown; to: unknown }>;
+  changes: Array<{ field: string; from: unknown; to: unknown }>;
 }
 
 /**

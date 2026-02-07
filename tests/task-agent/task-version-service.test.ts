@@ -202,8 +202,8 @@ describe("TaskVersionService", () => {
       const diff = await taskVersionService.diff(testTaskId, 1, 2);
 
       expect(diff.changes).toBeDefined();
-      expect(diff.changes.title).toBeDefined();
-      expect(diff.changes.priority).toBeDefined();
+      expect(diff.changes.some((c) => c.field === "title")).toBe(true);
+      expect(diff.changes.some((c) => c.field === "priority")).toBe(true);
     });
   });
 
@@ -256,7 +256,7 @@ describe("TaskVersionService", () => {
       const preview = await taskVersionService.previewRestore(testTaskId, 1);
 
       expect(preview.changes).toBeDefined();
-      expect(Object.keys(preview.changes).length).toBeGreaterThan(0);
+      expect(preview.changes.length).toBeGreaterThan(0);
     });
   });
 });

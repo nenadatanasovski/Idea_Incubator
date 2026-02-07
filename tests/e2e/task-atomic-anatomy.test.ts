@@ -810,8 +810,8 @@ describe("8.4 Versioning and Rollback", () => {
     // Compare versions
     const diff = await taskVersionService.compareVersions(taskId, 1, 3);
     expect(diff.changes).toBeDefined();
-    expect(diff.changes.title).toBeDefined();
-    expect(diff.changes.description).toBeDefined();
+    expect(diff.changes.some((c) => c.field === "title")).toBe(true);
+    expect(diff.changes.some((c) => c.field === "description")).toBe(true);
   });
 
   it("should support rollback to previous version", async () => {
