@@ -48,18 +48,6 @@ async function createTestTask(status: string = "pending"): Promise<string> {
   return taskId;
 }
 
-// Create test task list
-async function createTestTaskList(): Promise<string> {
-  const listId = uuidv4();
-  await run(
-    `INSERT INTO task_lists_v2 (id, name, created_at, updated_at)
-     VALUES (?, ?, datetime('now'), datetime('now'))`,
-    [listId, `${TEST_PREFIX}List`],
-  );
-  await saveDb();
-  return listId;
-}
-
 // Cleanup test data
 async function cleanupTestData(): Promise<void> {
   await run(

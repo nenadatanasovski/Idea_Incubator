@@ -11,5 +11,6 @@ export {
   notifyAdmin,
   notifyAgent,
   notify,
+  sendToBot,
   default,
 } from './direct-telegram.js';

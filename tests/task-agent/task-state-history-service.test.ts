@@ -287,7 +287,7 @@ describe("TaskStateHistoryService", () => {
     });
   });
 
-  describe.skip("hasBeenInStatus", () => {
+  describe("hasBeenInStatus", () => {
     it("should return true if task has been in status", async () => {
       await recordTransition({
         taskId: testTaskId,

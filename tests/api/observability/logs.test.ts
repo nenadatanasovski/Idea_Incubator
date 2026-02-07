@@ -70,7 +70,7 @@ describe("GET /api/observability/logs/message-bus", () => {
 
   it("filters by severity level", async () => {
     const { mockQuery } = getMocks();
-    mockQuery.mockImplementation((sql: string, params: unknown[]) => {
+    mockQuery.mockImplementation((sql: string) => {
       if (sql.includes("FROM message_bus_log")) {
         if (sql.includes("COUNT(*)")) {
           return Promise.resolve([{ count: 1 }]);

@@ -84,17 +84,6 @@ function hasType(content: string, typeName: string): boolean {
   return new RegExp(`type\\s+${typeName}\\s*=`).test(content);
 }
 
-function hasExport(content: string, exportName: string): boolean {
-  // Check for direct export or re-export
-  return (
-    new RegExp(`export\\s+(interface|type|enum|const)\\s+${exportName}`).test(
-      content,
-    ) ||
-    new RegExp(`export\\s*\\{[^}]*${exportName}[^}]*\\}`).test(content) ||
-    new RegExp(`export\\s+\\*\\s+from`).test(content)
-  );
-}
-
 function hasGenericType(content: string, typeName: string): boolean {
   return new RegExp(`(interface|type)\\s+${typeName}\\s*<`).test(content);
 }

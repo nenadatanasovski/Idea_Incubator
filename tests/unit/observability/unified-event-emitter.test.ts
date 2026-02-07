@@ -14,16 +14,11 @@ vi.mock("../../../database/db.js", () => ({
 }));
 
 // Import after mocking
-import UnifiedEventEmitter, {
+import {
   eventEmitter,
   resetSequence,
   type EventContext,
   type EventPayload,
-  type AgentContext,
-  type TelegramContext,
-  type ScriptContext,
-  type UserContext,
-  type IdeationContext,
 } from "../../../server/services/observability/unified-event-emitter.js";
 import { run } from "../../../database/db.js";
 

@@ -106,7 +106,7 @@ export function getPendingTasks(): Task[] {
 /**
  * Create a new task
  */
-export function createTask(input: CreateTaskInput): Task {
+export function createTask(input: CreateTaskInput & { wave_number?: number }): Task {
   const id = uuidv4();
   const passCriteria = input.pass_criteria ? JSON.stringify(input.pass_criteria) : null;
   const taskListId = input.task_list_id ?? null;  // Allow NULL for FK
@@ -115,9 +115,9 @@ export function createTask(input: CreateTaskInput): Task {
   run(`
     INSERT INTO tasks (
       id, display_id, title, description, category, 
-      priority, task_list_id, parent_task_id, pass_criteria, status, retry_count
+      priority, task_list_id, parent_task_id, pass_criteria, status, retry_count, wave_number
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
   `, [
     id,
     input.display_id,
@@ -129,6 +129,7 @@ export function createTask(input: CreateTaskInput): Task {
     input.parent_task_id ?? null,
     passCriteria,
     status,
+    input.wave_number ?? null,
   ]);
 
   return getTask(id)!;

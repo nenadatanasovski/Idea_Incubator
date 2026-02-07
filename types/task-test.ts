@@ -225,6 +225,8 @@ export interface AcceptanceCriterion {
 export interface AcceptanceCriteriaResult {
   taskId: string;
   passed: boolean;
+  allPassing: boolean;
+  missingLevels: TestLevel[];
   criteria: AcceptanceCriterion[];
   checkedAt: string;
 }
@@ -250,6 +252,38 @@ export interface AcceptanceCriterionResult {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Input for recording a validation result
+ */
+export interface RecordResultInput {
+  taskId: string;
+  overallPassed: boolean;
+  totalDuration: number;
+  levels: {
+    level: TestLevel;
+    passed: boolean;
+    duration: number;
+    errorMessage?: string;
+  }[];
+}
+
+/**
+ * Recorded result (persisted validation result with ID)
+ */
+export interface RecordedResult {
+  id: string;
+  taskId: string;
+  overallPassed: boolean;
+  totalDuration: number;
+  levels: {
+    level: TestLevel;
+    passed: boolean;
+    duration: number;
+    errorMessage?: string;
+  }[];
+  createdAt: string;
 }
 
 /**

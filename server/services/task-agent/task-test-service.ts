@@ -24,6 +24,8 @@ import {
   AcceptanceCriterionResultRow,
   mapAcceptanceCriterionResultRow,
   VerifiedByType,
+  RecordResultInput,
+  RecordedResult,
 } from "../../../types/task-test.js";
 import type { AppendixMetadata } from "../../../types/task-appendix.js";
 
@@ -59,6 +61,38 @@ export class TaskTestService {
       DEFAULT_TEST_CONFIGS[2],
       DEFAULT_TEST_CONFIGS[3],
     ];
+  }
+
+  /**
+   * Record a validation result directly (without running commands)
+   */
+  async recordResult(input: RecordResultInput): Promise<RecordedResult> {
+    const id = uuidv4();
+    const now = new Date().toISOString();
+
+    // Save each level result to the database
+    for (const levelResult of input.levels) {
+      await this.saveResult({
+        taskId: input.taskId,
+        testLevel: levelResult.level,
+        testName: `Level ${levelResult.level} test`,
+        command: "",
+        exitCode: levelResult.passed ? 0 : 1,
+        stdout: undefined,
+        stderr: levelResult.errorMessage,
+        durationMs: levelResult.duration,
+        passed: levelResult.passed,
+      });
+    }
+
+    return {
+      id,
+      taskId: input.taskId,
+      overallPassed: input.overallPassed,
+      totalDuration: input.totalDuration,
+      levels: input.levels,
+      createdAt: now,
+    };
   }
 
   /**
@@ -290,9 +324,25 @@ export class TaskTestService {
       });
     }
 
+    // Determine which configured test levels have results
+    const configs = await this.getTestConfig(taskId);
+    const coveredLevels = new Set<TestLevel>();
+    if (testResults) {
+      for (const levelResult of testResults.levels) {
+        coveredLevels.add(levelResult.level);
+      }
+    }
+    const missingLevels: TestLevel[] = configs
+      .map((c) => c.level)
+      .filter((level) => !coveredLevels.has(level));
+
+    const allPassing = testsPass && criteria.every((c) => c.met) && missingLevels.length === 0;
+
     return {
       taskId,
       passed: testsPass && criteria.every((c) => c.met),
+      allPassing,
+      missingLevels,
       criteria,
       checkedAt: new Date().toISOString(),
     };

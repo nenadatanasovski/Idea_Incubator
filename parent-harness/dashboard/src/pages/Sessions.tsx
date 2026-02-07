@@ -1,9 +1,22 @@
+import { useEffect } from 'react'
 import { Layout } from '../components/Layout'
 import { useSessions, type Session } from '../hooks/useSessions'
+import { useWebSocket } from '../hooks/useWebSocket'
 import { AgentSessionsView } from '../components/AgentSessionsView'
 
 export function Sessions() {
-  const { sessions, loading, error } = useSessions()
+  const { sessions, loading, error, refetch } = useSessions()
+  const { connected, subscribe } = useWebSocket()
+
+  // Real-time session updates via WebSocket
+  useEffect(() => {
+    const unsubscribe = subscribe((message) => {
+      if (message.type.startsWith('session:')) {
+        refetch()
+      }
+    })
+    return unsubscribe
+  }, [subscribe, refetch])
 
   // Generate mock sessions for demo if none exist
   const displaySessions = sessions.length > 0 ? sessions : generateMockSessions()
@@ -16,10 +29,13 @@ export function Sessions() {
             <h1 className="text-2xl font-bold text-white">Agent Sessions</h1>
             <p className="text-gray-400">View agent session history, iterations, and logs</p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">
-              Auto-refresh every 5s
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
+              <span className="text-xs text-gray-500">
+                {connected ? 'Live' : 'Connecting...'}
+              </span>
+            </div>
             {loading && (
               <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
             )}
@@ -32,15 +48,17 @@ export function Sessions() {
           </div>
         )}
 
-        {/* Enhanced Agent Sessions View with iterations and lineage */}
+        {/* Full-width Agent Sessions View with iterations and lineage */}
         <AgentSessionsView sessions={displaySessions} />
 
         <div className="text-gray-500 text-sm flex items-center gap-4">
           <span>Total sessions: {displaySessions.length}</span>
-          <span>•</span>
+          <span>|</span>
           <span>Running: {displaySessions.filter(s => s.status === 'running').length}</span>
-          <span>•</span>
+          <span>|</span>
           <span>Completed: {displaySessions.filter(s => s.status === 'completed').length}</span>
+          <span>|</span>
+          <span>Failed: {displaySessions.filter(s => s.status === 'failed').length}</span>
         </div>
       </div>
     </Layout>
@@ -50,7 +68,7 @@ export function Sessions() {
 // Generate mock sessions for demonstration
 function generateMockSessions(): Session[] {
   const now = new Date()
-  
+
   return [
     {
       id: 'session-001-abc123',

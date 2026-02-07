@@ -193,35 +193,42 @@ async function createFixTask(
   originalTask: tasks.Task,
   failedChecks: QACheck[]
 ): Promise<string | undefined> {
-  // Generate fix task display ID
-  const allTasks = tasks.getTasks({});
-  const lastTask = allTasks[allTasks.length - 1];
-  const lastNum = lastTask?.display_id 
-    ? parseInt(lastTask.display_id.replace('TASK-', ''), 10) 
-    : 0;
-  const displayId = `TASK-${String(lastNum + 1).padStart(3, '0')}`;
+  try {
+    // Generate unique fix task display ID using timestamp to avoid collisions
+    const timestamp = Date.now().toString(36).slice(-4).toUpperCase();
+    const displayId = `FIX-${originalTask.display_id}-${timestamp}`;
 
-  const failureDetails = failedChecks
-    .map(c => `- ${c.name}: ${c.error || 'Failed'}`)
-    .join('\n');
+    const failureDetails = failedChecks
+      .map(c => `- ${c.name}: ${c.error || 'Failed'}`)
+      .join('\n');
 
-  const fixTask = tasks.createTask({
-    display_id: displayId,
-    title: `Fix: ${originalTask.title}`,
-    description: `QA verification failed for ${originalTask.display_id}.\n\nFailed checks:\n${failureDetails}\n\nOriginal task: ${originalTask.description || originalTask.title}`,
-    category: 'bug',
-    priority: originalTask.priority,
-    task_list_id: originalTask.task_list_id,
-    pass_criteria: ['All tests pass', 'Build succeeds', 'TypeScript compiles'],
-  });
+    const fixTask = tasks.createTask({
+      display_id: displayId,
+      title: `Fix: ${originalTask.title}`,
+      description: `QA verification failed for ${originalTask.display_id}.\n\nFailed checks:\n${failureDetails}\n\nOriginal task: ${originalTask.description || originalTask.title}`,
+      category: 'bug',
+      priority: originalTask.priority,
+      task_list_id: originalTask.task_list_id,
+      pass_criteria: ['All tests pass', 'Build succeeds', 'TypeScript compiles'],
+    });
 
-  // Add dependency on original task
-  if (fixTask) {
-    // Link to original
-    events.taskAssigned(fixTask.id, 'system', `Fix task created for ${originalTask.display_id}`);
+    // Add dependency on original task
+    if (fixTask) {
+      // Link to original
+      events.taskAssigned(fixTask.id, 'system', `Fix task created for ${originalTask.display_id}`);
+    }
+
+    return fixTask?.id;
+  } catch (err) {
+    // Handle UNIQUE constraint errors gracefully
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    if (errorMsg.includes('UNIQUE constraint')) {
+      console.warn(`⚠️ Fix task already exists for ${originalTask.display_id}, skipping`);
+      return undefined;
+    }
+    console.error(`❌ Failed to create fix task for ${originalTask.display_id}:`, errorMsg);
+    return undefined;
   }
-
-  return fixTask?.id;
 }
 
 /**

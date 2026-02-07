@@ -219,6 +219,18 @@ export class TaskStateHistoryService {
     );
     return rows.map(mapTaskStateHistoryRow);
   }
+
+  /**
+   * Check if a task has ever been in a specific status
+   */
+  async hasBeenInStatus(taskId: string, status: TaskStatus): Promise<boolean> {
+    const result = await getOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM task_state_history
+       WHERE task_id = ? AND (to_status = ? OR from_status = ?)`,
+      [taskId, status, status],
+    );
+    return (result?.count || 0) > 0;
+  }
 }
 
 // Export singleton instance

@@ -13,7 +13,7 @@ export const config = {
   },
 
   // Evaluator mode: 'v1' (sequential generalist) or 'v2' (parallel specialists)
-  evaluatorMode: "v2" as const,
+  evaluatorMode: "v2" as "v1" | "v2",
 
   // Red team mode: 'core' (3 personas) or 'extended' (6 personas)
   redTeamMode: "extended" as "core" | "extended",

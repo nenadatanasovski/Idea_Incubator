@@ -23,13 +23,14 @@ import { Task } from "../../../types/task-agent.js";
 export class TaskVersionService {
   /**
    * Create a new version (called automatically on task changes)
-   * Supports two signatures:
+   * Supports three signatures:
    * 1. createVersion(taskId, changedFields[], reason?, userId?)
    * 2. createVersion(taskId, { title?, description?, category?, changedBy, changeReason })
+   * 3. createVersion(taskId, reason, userId) - for simple version creation
    */
   async createVersion(
     taskId: string,
-    changedFieldsOrUpdate: string[] | {
+    changedFieldsOrUpdateOrReason?: string[] | string | {
       title?: string;
       description?: string;
       category?: string;
@@ -40,10 +41,16 @@ export class TaskVersionService {
     userId: string = "system",
   ): Promise<TaskVersion> {
     // Detect which signature is being used
-    const isUpdateObject = !Array.isArray(changedFieldsOrUpdate) && typeof changedFieldsOrUpdate === 'object';
+    const isUpdateObject =
+      changedFieldsOrUpdateOrReason &&
+      !Array.isArray(changedFieldsOrUpdateOrReason) &&
+      typeof changedFieldsOrUpdateOrReason === 'object';
+
+    const isSimpleString =
+      typeof changedFieldsOrUpdateOrReason === 'string';
 
     let changedFields: string[] = [];
-    let actualReason = reason;
+    let actualReason: string | null = reason || null;
     let actualUserId = userId;
 
     // Get current task state
@@ -57,8 +64,8 @@ export class TaskVersionService {
     }
 
     if (isUpdateObject) {
-      // New signature: apply updates to task
-      const updates = changedFieldsOrUpdate as {
+      // Signature 2: apply updates to task
+      const updates = changedFieldsOrUpdateOrReason as {
         title?: string;
         description?: string;
         category?: string;
@@ -97,9 +104,13 @@ export class TaskVersionService {
 
       actualReason = updates.changeReason || null;
       actualUserId = updates.changedBy || 'system';
-    } else {
-      // Original signature
-      changedFields = changedFieldsOrUpdate as string[];
+    } else if (isSimpleString) {
+      // Signature 3: simple reason + userId
+      actualReason = changedFieldsOrUpdateOrReason;
+      actualUserId = reason || 'system'; // reason parameter becomes userId in this case
+    } else if (Array.isArray(changedFieldsOrUpdateOrReason)) {
+      // Signature 1: array of changed fields
+      changedFields = changedFieldsOrUpdateOrReason;
     }
 
     // Get next version number
@@ -124,7 +135,7 @@ export class TaskVersionService {
         nextVersion,
         JSON.stringify(updatedTask || task),
         JSON.stringify(changedFields),
-        actualReason || null,
+        actualReason,
         0, // not a checkpoint
         null,
         actualUserId,
@@ -195,19 +206,19 @@ export class TaskVersionService {
       throw new Error(`Version not found for task ${taskId}`);
     }
 
-    // Build changes as object with field names as keys
-    const changes: Record<string, { from: unknown; to: unknown }> = {};
-    const allFields = new Set([
+    // Build changes as array with field property
+    const changes: Array<{ field: string; from: unknown; to: unknown }> = [];
+    const allFields = Array.from(new Set([
       ...Object.keys(from.snapshot),
       ...Object.keys(to.snapshot),
-    ]);
+    ]));
 
     for (const field of allFields) {
       const fromValue = from.snapshot[field];
       const toValue = to.snapshot[field];
 
       if (JSON.stringify(fromValue) !== JSON.stringify(toValue)) {
-        changes[field] = { from: fromValue, to: toValue };
+        changes.push({ field, from: fromValue, to: toValue });
       }
     }
 

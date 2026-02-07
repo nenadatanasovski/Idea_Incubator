@@ -13,13 +13,12 @@ import { v4 as uuidv4 } from "uuid";
 // Service imports
 import evaluationQueueManager from "../../server/services/task-agent/evaluation-queue-manager";
 import taskCreationService from "../../server/services/task-agent/task-creation-service";
-import taskAnalysisPipeline from "../../server/services/task-agent/task-analysis-pipeline";
 import autoGroupingEngine from "../../server/services/task-agent/auto-grouping-engine";
 import parallelismCalculator from "../../server/services/task-agent/parallelism-calculator";
 import buildAgentOrchestrator from "../../server/services/task-agent/build-agent-orchestrator";
 import circularDependencyPrevention from "../../server/services/task-agent/circular-dependency-prevention";
 import fileConflictDetector from "../../server/services/task-agent/file-conflict-detector";
-import { query, run, getOne, saveDb } from "../../database/db";
+import { run, saveDb } from "../../database/db";
 
 // Test utilities
 async function cleanupTestData(prefix: string = "TEST-") {
@@ -143,13 +142,13 @@ describe("Parallel Task Execution E2E", () => {
       );
 
       // Create 2 independent tasks
-      const task1 = await taskCreationService.createTaskInList(
+      await taskCreationService.createTaskInList(
         "E2E-PAR2 Task 1 - Independent",
         taskListId,
         { category: "test" },
       );
 
-      const task2 = await taskCreationService.createTaskInList(
+      await taskCreationService.createTaskInList(
         "E2E-PAR2 Task 2 - Independent",
         taskListId,
         { category: "test" },
@@ -442,7 +441,7 @@ describe("Integration: Full Workflow", () => {
     expect(stats.totalQueued).toBeGreaterThanOrEqual(3);
 
     // Step 3: Get grouping suggestions
-    const suggestions = await autoGroupingEngine.analyzeTasks();
+    await autoGroupingEngine.analyzeTasks();
     // Suggestions may or may not be generated depending on scoring
 
     // Step 4: Create a task list and move tasks

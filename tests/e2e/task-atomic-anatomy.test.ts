@@ -676,12 +676,12 @@ describe("8.3 Cascade Propagation", () => {
     );
 
     // Check if dependent tasks should be blocked
-    const task2Row = (await getOne(`SELECT status FROM tasks WHERE id = ?`, [
+    await getOne(`SELECT status FROM tasks WHERE id = ?`, [
       task2Id,
-    ])) as any;
-    const task3Row = (await getOne(`SELECT status FROM tasks WHERE id = ?`, [
+    ]) as any;
+    await getOne(`SELECT status FROM tasks WHERE id = ?`, [
       task3Id,
-    ])) as any;
+    ]) as any;
 
     // Tasks with unmet dependencies should be blockable
     // The actual blocking happens during execution, but we can check the dependency chain

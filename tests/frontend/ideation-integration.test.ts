@@ -3,7 +3,7 @@
 // Integration tests for the Ideation Agent frontend components
 // =============================================================================
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   ideationReducer,
   initialState,

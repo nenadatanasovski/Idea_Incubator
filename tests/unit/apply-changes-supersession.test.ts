@@ -5,7 +5,7 @@
  * supersession when applying graph changes.
  */
 
-import { describe, test, expect, vi, beforeEach } from "vitest";
+import { describe, test, expect } from "vitest";
 
 describe("Apply-Changes Endpoint - Supersession", () => {
   describe("Request Schema Validation", () => {

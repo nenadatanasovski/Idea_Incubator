@@ -1,7 +1,7 @@
 /**
  * Tests for Phase 7: Extended Red Team Personas
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   CORE_PERSONAS,
   EXTENDED_PERSONAS,
@@ -9,9 +9,6 @@ import {
   PERSONAS,
   PERSONA_DEFINITIONS,
   getActivePersonas,
-  type RedTeamPersona,
-  type CorePersona,
-  type ExtendedPersona,
 } from "../../../agents/redteam.js";
 import { getConfig, updateConfig, resetConfig } from "../../../config/index.js";
 

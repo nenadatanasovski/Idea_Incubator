@@ -1,9 +1,6 @@
-import { describe, it, expect, vi, beforeEach as _beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { getQuestionBank } from "../../agents/development.js";
-import {
-  createMockAnthropicClient,
-  mockDevelopmentResponse,
-} from "../mocks/anthropic.js";
+import { mockDevelopmentResponse } from "../mocks/anthropic.js";
 
 describe("Development Agent", () => {
   describe("Question Bank", () => {

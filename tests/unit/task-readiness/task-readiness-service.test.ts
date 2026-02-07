@@ -27,14 +27,6 @@ describe("TaskReadinessService", () => {
   describe("calculateReadiness", () => {
     it("should return readiness score between 0 and 100", async () => {
       // This is a structural test - actual DB integration tested in integration tests
-      const mockTask = {
-        id: "test-task-1",
-        title: "Test task",
-        description: "A test task",
-        effort: "small",
-        status: "pending",
-      };
-
       // The service would calculate based on atomicity rules
       // We test the structure and bounds here
       expect(service).toBeDefined();

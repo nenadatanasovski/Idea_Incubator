@@ -40,7 +40,7 @@ describe("PRDService", () => {
     it("should create a new PRD", async () => {
       const prd = await createTestPRD({
         title: `${TEST_PREFIX}Test PRD`,
-        description: "A test PRD description",
+        problemStatement: "A test PRD problem statement",
       });
 
       expect(prd).toBeDefined();

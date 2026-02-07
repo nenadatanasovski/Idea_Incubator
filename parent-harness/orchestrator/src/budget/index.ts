@@ -10,7 +10,24 @@
 
 import { run, query, getOne } from '../db/index.js';
 import { notify } from '../telegram/index.js';
+import { events } from '../db/events.js';
 import { v4 as uuidv4 } from 'uuid';
+
+// Track which thresholds have been alerted (reset daily)
+const alertedThresholds = {
+  daily: new Set<number>(),
+  lastResetDate: new Date().toISOString().split('T')[0],
+};
+
+function resetAlertedThresholdsIfNewDay(): void {
+  const today = new Date().toISOString().split('T')[0];
+  if (alertedThresholds.lastResetDate !== today) {
+    alertedThresholds.daily.clear();
+    alertedThresholds.lastResetDate = today;
+    // Emit budget reset event
+    events.budgetReset();
+  }
+}
 
 // Model pricing (per 1M tokens)
 export const MODEL_PRICING: Record<string, { input: number; output: number }> = {
@@ -285,30 +302,55 @@ export function isWithinBudget(): { daily: boolean; monthly: boolean; dailyRemai
  * Check budget and send warnings
  */
 export async function checkBudgetWarnings(): Promise<void> {
+  // Reset threshold tracking if new day
+  resetAlertedThresholdsIfNewDay();
+  
   const config = getBudgetConfig();
   const daily = getDailyUsage();
   const monthly = getMonthlyUsage();
 
   const dailyPercent = (daily.totalCostUsd / config.dailyLimitUsd) * 100;
   const monthlyPercent = (monthly.totalCostUsd / config.monthlyLimitUsd) * 100;
-
-  // Daily warning
-  if (dailyPercent >= config.warningThresholdPercent && dailyPercent < 100) {
-    await notify.systemStatus(0, 0, 0); // Would use custom notification
-    console.warn(`⚠️ Daily budget at ${dailyPercent.toFixed(1)}% ($${daily.totalCostUsd.toFixed(2)}/$${config.dailyLimitUsd})`);
+  
+  // Get token counts for events
+  const dailyTokens = daily.totalInputTokens + daily.totalOutputTokens;
+  
+  // Use token-based thresholds from harness config (imported via config module)
+  // Fallback thresholds: 50%, 80%, 100%
+  const thresholds = [50, 80, 100];
+  
+  // Check each threshold
+  for (const threshold of thresholds) {
+    if (dailyPercent >= threshold && !alertedThresholds.daily.has(threshold)) {
+      alertedThresholds.daily.add(threshold);
+      
+      if (threshold >= 100) {
+        // Budget exceeded
+        events.budgetExceeded(dailyTokens, Math.round(dailyTokens / (dailyPercent / 100)));
+        console.error(`🛑 Daily budget exceeded! ${dailyPercent.toFixed(1)}%`);
+        
+        // Telegram notification via system alert
+        try {
+          await notify.forwardError('budget', `🛑 Daily budget EXCEEDED: ${dailyPercent.toFixed(1)}% used`);
+        } catch { /* ignore */ }
+      } else {
+        // Warning threshold
+        events.budgetWarning(threshold, dailyPercent, dailyTokens, Math.round(dailyTokens / (dailyPercent / 100)));
+        console.warn(`⚠️ Daily budget at ${dailyPercent.toFixed(1)}% (${threshold}% threshold)`);
+        
+        // Telegram notification for high thresholds
+        if (threshold >= 80) {
+          try {
+            await notify.forwardError('budget', `⚠️ Daily budget at ${dailyPercent.toFixed(1)}%`);
+          } catch { /* ignore */ }
+        }
+      }
+    }
   }
 
-  // Monthly warning
-  if (monthlyPercent >= config.warningThresholdPercent && monthlyPercent < 100) {
-    console.warn(`⚠️ Monthly budget at ${monthlyPercent.toFixed(1)}% ($${monthly.totalCostUsd.toFixed(2)}/$${config.monthlyLimitUsd})`);
-  }
-
-  // Budget exceeded
-  if (dailyPercent >= 100) {
-    console.error(`🛑 Daily budget exceeded! $${daily.totalCostUsd.toFixed(2)}/$${config.dailyLimitUsd}`);
-  }
-  if (monthlyPercent >= 100) {
-    console.error(`🛑 Monthly budget exceeded! $${monthly.totalCostUsd.toFixed(2)}/$${config.monthlyLimitUsd}`);
+  // Monthly warning (just log, don't emit event for simplicity)
+  if (monthlyPercent >= 80) {
+    console.warn(`⚠️ Monthly budget at ${monthlyPercent.toFixed(1)}%`);
   }
 }
 

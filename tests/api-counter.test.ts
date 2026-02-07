@@ -2,7 +2,7 @@
  * API Counter Tests
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 describe("API Counter", () => {
   describe("recordApiCall", () => {
@@ -207,7 +207,6 @@ describe("Stats Routes Types", () => {
   });
 
   it("should have StatsSummary interface", async () => {
-    const types = await import("../types/api-stats.js");
     // Verify the types exist by using them
     const mockSummary: any = {
       totalCalls: 100,

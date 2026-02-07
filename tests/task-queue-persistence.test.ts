@@ -13,6 +13,44 @@ import * as path from "path";
 import * as fs from "fs";
 import * as os from "os";
 
+// Database row types
+interface TaskQueueRow {
+  id: string;
+  task_list_path: string;
+  task_id: string;
+  priority: string;
+  section: string | null;
+  description: string;
+  dependencies: string | null;
+  status: string;
+  assigned_agent: string | null;
+  position: number;
+  attempts: number;
+  last_error: string | null;
+  queued_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ExecutorStateRow {
+  id: string;
+  task_list_path: string;
+  status: string;
+  config_json: string | null;
+  total_tasks: number;
+  completed_tasks: number;
+  failed_tasks: number;
+  skipped_tasks: number;
+  current_task_id: string | null;
+  started_at: string | null;
+  paused_at: string | null;
+  stopped_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 describe("Task Queue Persistence", () => {
   let executor: TaskExecutor;
   let testTaskListPath: string;
@@ -66,7 +104,7 @@ describe("Task Queue Persistence", () => {
     await executor.loadTaskList(testTaskListPath);
 
     // Check that queue was persisted - tasks sorted by priority (P1 first)
-    const queueItems = await query(
+    const queueItems = await query<TaskQueueRow>(
       "SELECT * FROM task_queue WHERE task_list_path = ? ORDER BY position ASC",
       [testTaskListPath],
     );
@@ -104,7 +142,7 @@ describe("Task Queue Persistence", () => {
     await executor.loadTaskList(testTaskListPath);
 
     // Check executor state was persisted
-    const executorState = await query(
+    const executorState = await query<ExecutorStateRow>(
       "SELECT * FROM executor_state WHERE task_list_path = ?",
       [testTaskListPath],
     );
@@ -135,7 +173,7 @@ describe("Task Queue Persistence", () => {
     );
 
     // Check that queue status was updated
-    const queueItem = await query(
+    const queueItem = await query<TaskQueueRow>(
       "SELECT * FROM task_queue WHERE task_list_path = ? AND task_id = ?",
       [testTaskListPath, "TST-001"],
     );
@@ -147,7 +185,7 @@ describe("Task Queue Persistence", () => {
   it("should maintain priority order in persisted queue", async () => {
     await executor.loadTaskList(testTaskListPath);
 
-    const queueItems = await query(
+    const queueItems = await query<TaskQueueRow>(
       "SELECT * FROM task_queue WHERE task_list_path = ? ORDER BY position ASC",
       [testTaskListPath],
     );
@@ -163,7 +201,7 @@ describe("Task Queue Persistence", () => {
     await executor.start();
     await executor.pause();
 
-    const executorState = await query(
+    const executorState = await query<ExecutorStateRow>(
       "SELECT * FROM executor_state WHERE task_list_path = ?",
       [testTaskListPath],
     );
@@ -177,7 +215,7 @@ describe("Task Queue Persistence", () => {
 
     await executor.skipTask("TST-002");
 
-    const queueItem = await query(
+    const queueItem = await query<TaskQueueRow>(
       "SELECT * FROM task_queue WHERE task_list_path = ? AND task_id = ?",
       [testTaskListPath, "TST-002"],
     );
@@ -194,7 +232,7 @@ describe("Task Queue Persistence", () => {
     // Then requeue it
     await executor.requeueTask("TST-002");
 
-    const queueItem = await query(
+    const queueItem = await query<TaskQueueRow>(
       "SELECT * FROM task_queue WHERE task_list_path = ? AND task_id = ?",
       [testTaskListPath, "TST-002"],
     );

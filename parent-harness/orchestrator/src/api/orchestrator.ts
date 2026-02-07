@@ -14,21 +14,24 @@ const router = Router();
  * GET /api/orchestrator/status
  * Get current orchestrator status
  */
-router.get('/status', (_req, res) => {
+router.get('/status', async (_req, res) => {
+  const { isOrchestratorRunning } = await import('../orchestrator/index.js');
+
   const allAgents = agents.getAgents();
   const workingAgents = allAgents.filter(a => a.status === 'working');
   const idleAgents = allAgents.filter(a => a.status === 'idle');
   const stuckAgents = allAgents.filter(a => a.status === 'stuck');
-  
+
   const pendingTasks = tasks.getTasks({ status: 'pending' });
   const inProgressTasks = tasks.getTasks({ status: 'in_progress' });
   const pendingVerifyTasks = tasks.getTasks({ status: 'pending_verification' });
-  
+
   const recentSessions = sessions.getSessions({ limit: 10 });
   const recentEvents = getEvents({ limit: 20 });
-  
+
   res.json({
     status: 'operational',
+    running: isOrchestratorRunning(),
     timestamp: new Date().toISOString(),
     agents: {
       total: allAgents.length,
@@ -61,6 +64,44 @@ router.get('/status', (_req, res) => {
       createdAt: e.created_at,
     })),
   });
+});
+
+/**
+ * POST /api/orchestrator/pause
+ * Pause the orchestrator tick loop
+ */
+router.post('/pause', async (_req, res) => {
+  try {
+    const { stopOrchestrator, isOrchestratorRunning } = await import('../orchestrator/index.js');
+
+    if (!isOrchestratorRunning()) {
+      return res.json({ success: true, running: false, message: 'Already paused' });
+    }
+
+    stopOrchestrator();
+    res.json({ success: true, running: false, message: 'Orchestrator paused' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+/**
+ * POST /api/orchestrator/resume
+ * Resume the orchestrator tick loop
+ */
+router.post('/resume', async (_req, res) => {
+  try {
+    const { startOrchestrator, isOrchestratorRunning } = await import('../orchestrator/index.js');
+
+    if (isOrchestratorRunning()) {
+      return res.json({ success: true, running: true, message: 'Already running' });
+    }
+
+    startOrchestrator();
+    res.json({ success: true, running: true, message: 'Orchestrator resumed' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
+  }
 });
 
 /**
@@ -167,6 +208,18 @@ router.get('/summary', (_req, res) => {
   summary += `• ${pendingVerifyTasks.length} awaiting QA\n`;
   
   res.type('text/html').send(summary);
+});
+
+/**
+ * POST /api/orchestrator/shutdown
+ * Gracefully shut down the entire server process
+ */
+router.post('/shutdown', async (_req, res) => {
+  const { stopOrchestrator } = await import('../orchestrator/index.js');
+  stopOrchestrator();
+  res.json({ success: true, message: 'Shutting down' });
+  // Give the response time to flush, then exit
+  setTimeout(() => process.exit(0), 500);
 });
 
 export { router as orchestratorRouter };

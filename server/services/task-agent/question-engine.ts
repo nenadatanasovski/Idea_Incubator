@@ -23,6 +23,11 @@ export type QuestionCategory =
   | "context";
 
 /**
+ * Question importance level - derived from priority
+ */
+export type QuestionImportance = "required" | "important" | "optional";
+
+/**
  * Question entity
  */
 export interface Question {
@@ -30,7 +35,10 @@ export interface Question {
   category: QuestionCategory;
   text: string;
   priority: number; // 1-10, higher = more important
+  importance: QuestionImportance; // derived from priority
   targetField?: string; // Which task field this helps clarify
+  answer?: string;
+  answeredAt?: string;
 }
 
 /**
@@ -70,6 +78,26 @@ export interface CompletenessScore {
   score: number; // 0-100
   byCategory: Record<QuestionCategory, number>;
   isComplete: boolean;
+}
+
+/**
+ * Completion status for question tracking
+ */
+export interface CompletionStatus {
+  totalQuestions: number;
+  answeredQuestions: number;
+  requiredAnswered: number;
+  requiredTotal: number;
+  isComplete: boolean;
+}
+
+/**
+ * Derive importance from priority value
+ */
+function importanceFromPriority(priority: number): QuestionImportance {
+  if (priority >= 8) return "required";
+  if (priority >= 6) return "important";
+  return "optional";
 }
 
 /**
@@ -179,6 +207,7 @@ export class QuestionEngine {
           category,
           text: template.text,
           priority: template.priority,
+          importance: importanceFromPriority(template.priority),
           targetField: template.targetField,
         });
       }
@@ -188,11 +217,29 @@ export class QuestionEngine {
     questions.sort((a, b) => b.priority - a.priority);
 
     // Limit if requested
-    if (maxQuestions) {
-      return questions.slice(0, maxQuestions);
-    }
+    const result = maxQuestions ? questions.slice(0, maxQuestions) : questions;
 
-    return questions;
+    // Persist questions to task_questions table
+    for (const q of result) {
+      await run(
+        `INSERT OR IGNORE INTO task_questions (id, task_id, category, text, priority, importance, target_field, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          q.id,
+          task.id,
+          q.category,
+          q.text,
+          q.priority,
+          q.importance,
+          q.targetField || null,
+          new Date().toISOString(),
+          new Date().toISOString(),
+        ],
+      );
+    }
+    await saveDb();
+
+    return result;
   }
 
   /**
@@ -343,7 +390,7 @@ export class QuestionEngine {
    * Process an answer and extract useful information
    */
   async processAnswer(
-    taskId: string,
+    _taskId: string,
     questionId: string,
     answer: string,
   ): Promise<ProcessedAnswer> {
@@ -458,6 +505,105 @@ export class QuestionEngine {
       "acceptance",
       "context",
     ];
+  }
+
+  /**
+   * Answer a question
+   */
+  async answerQuestion(
+    taskId: string,
+    questionId: string,
+    answer: string,
+  ): Promise<void> {
+    const now = new Date().toISOString();
+
+    await run(
+      `UPDATE task_questions SET answer = ?, answered_at = ?, updated_at = ? WHERE id = ? AND task_id = ?`,
+      [answer, now, now, questionId, taskId],
+    );
+
+    await saveDb();
+  }
+
+  /**
+   * Get questions for a task
+   */
+  async getQuestions(taskId: string): Promise<Question[]> {
+    const rows = await query<{
+      id: string;
+      category: QuestionCategory;
+      text: string;
+      priority: number;
+      importance: string;
+      target_field: string | null;
+      answer: string | null;
+      answered_at: string | null;
+    }>(
+      `SELECT id, category, text, priority, importance, target_field, answer, answered_at FROM task_questions WHERE task_id = ? AND skipped = 0`,
+      [taskId],
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      category: row.category,
+      text: row.text,
+      priority: row.priority,
+      importance: (row.importance || importanceFromPriority(row.priority)) as QuestionImportance,
+      targetField: row.target_field || undefined,
+      answer: row.answer || undefined,
+      answeredAt: row.answered_at || undefined,
+    }));
+  }
+
+  /**
+   * Check if all required questions are answered
+   */
+  async areRequiredQuestionsAnswered(taskId: string): Promise<boolean> {
+    const unansweredRequired = await query<{ count: number }>(
+      `SELECT COUNT(*) as count FROM task_questions WHERE task_id = ? AND importance = 'required' AND answer IS NULL AND skipped = 0`,
+      [taskId],
+    );
+
+    return unansweredRequired[0]?.count === 0;
+  }
+
+  /**
+   * Skip a question (marks it as skipped so it won't appear in getQuestions)
+   */
+  async skipQuestion(taskId: string, questionId: string): Promise<void> {
+    const now = new Date().toISOString();
+    await run(
+      `UPDATE task_questions SET skipped = 1, updated_at = ? WHERE id = ? AND task_id = ?`,
+      [now, questionId, taskId],
+    );
+    await saveDb();
+  }
+
+  /**
+   * Get completion status for a task's questions
+   */
+  async getCompletionStatus(taskId: string): Promise<CompletionStatus> {
+    const rows = await query<{
+      importance: string;
+      answer: string | null;
+    }>(
+      `SELECT importance, answer FROM task_questions WHERE task_id = ? AND skipped = 0`,
+      [taskId],
+    );
+
+    const totalQuestions = rows.length;
+    const answeredQuestions = rows.filter((r) => r.answer !== null).length;
+    const requiredRows = rows.filter((r) => r.importance === "required");
+    const requiredTotal = requiredRows.length;
+    const requiredAnswered = requiredRows.filter((r) => r.answer !== null).length;
+
+    return {
+      totalQuestions,
+      answeredQuestions,
+      requiredAnswered,
+      requiredTotal,
+      isComplete: requiredTotal === 0 || requiredAnswered >= requiredTotal,
+    };
   }
 }
 

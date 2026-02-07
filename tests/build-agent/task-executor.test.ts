@@ -5,8 +5,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   TaskExecutor,
-  TaskState,
-  ExecutionResult,
   createTaskExecutor,
   CodeGeneratorInterface,
   FileWriterInterface,

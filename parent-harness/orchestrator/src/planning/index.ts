@@ -10,6 +10,7 @@ import * as tasks from '../db/tasks.js';
 import * as spawner from '../spawner/index.js';
 import { notify } from '../telegram/index.js';
 import { v4 as uuidv4 } from 'uuid';
+import * as planCache from './plan-cache.js';
 
 const CODEBASE_ROOT = process.env.CODEBASE_ROOT || '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
 
@@ -520,7 +521,7 @@ export async function runDailyPlanning(taskListId: string): Promise<PlanningSess
   const prompt = buildPlanningPrompt();
   
   const result = await spawner.spawnWithPrompt(prompt, {
-    model: 'sonnet',
+    model: 'haiku',
     timeout: 600, // 10 minutes for thorough analysis
     label: 'planning',
   });
@@ -613,11 +614,35 @@ export function analyzePerformance(): {
 
 /**
  * Run STRATEGIC planning - creates high-level plan for clarification
+ * 
+ * Checks for cached approved plan first to avoid redundant token usage.
  */
 export async function runStrategicPlanning(taskListId: string): Promise<{
   session: PlanningSession;
   plan: ReturnType<typeof parseStrategicPlan>;
+  fromCache?: boolean;
 }> {
+  // Check for cached approved plan first
+  const cached = planCache.loadPlanFromCache();
+  if (cached && cached.taskListId === taskListId) {
+    console.log('✅ Using cached approved plan - skipping strategic planning agent');
+    
+    // Create a session record for tracking
+    const session = createPlanningSession('initial', { taskListId, type: 'strategic', fromCache: true });
+    completePlanningSession(
+      session.id,
+      JSON.stringify(cached),
+      cached.phases.map(p => p.name),
+      []
+    );
+    
+    return { 
+      session: getPlanningSession(session.id)!, 
+      plan: cached,
+      fromCache: true,
+    };
+  }
+
   console.log('🧠 Starting STRATEGIC planning agent...');
   
   const session = createPlanningSession('initial', { taskListId, type: 'strategic' });
@@ -633,7 +658,7 @@ export async function runStrategicPlanning(taskListId: string): Promise<{
   const prompt = buildStrategicPlanningPrompt();
   
   const result = await spawner.spawnWithPrompt(prompt, {
-    model: 'sonnet',
+    model: 'haiku',
     timeout: 900, // 15 minutes for strategic analysis
     label: 'strategic-planning',
   });
@@ -666,6 +691,24 @@ export async function runStrategicPlanning(taskListId: string): Promise<{
 }
 
 /**
+ * Cache an approved plan (call after human approval)
+ */
+export function cacheApprovedPlan(
+  plan: ReturnType<typeof parseStrategicPlan>,
+  taskListId: string
+): void {
+  if (!plan) return;
+  planCache.savePlanToCache(plan, taskListId);
+}
+
+/**
+ * Clear the plan cache (force fresh planning)
+ */
+export function clearPlanCache(): void {
+  planCache.clearPlanCache();
+}
+
+/**
  * Run TACTICAL planning - breaks approved plan into atomic tasks
  */
 export async function runTacticalPlanning(
@@ -688,7 +731,7 @@ export async function runTacticalPlanning(
   const prompt = buildTacticalPlanningPrompt(approvedPlan);
   
   const result = await spawner.spawnWithPrompt(prompt, {
-    model: 'sonnet',
+    model: 'haiku',
     timeout: 600,
     label: 'tactical-planning',
   });
@@ -752,4 +795,6 @@ export default {
   runStrategicPlanning,
   runTacticalPlanning,
   parseStrategicPlan,
+  cacheApprovedPlan,
+  clearPlanCache,
 };

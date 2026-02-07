@@ -1,4 +1,19 @@
 import 'dotenv/config';
+
+// ============ GLOBAL ERROR HANDLERS ============
+// Prevent crashes from unhandled errors
+process.on('uncaughtException', (error) => {
+  console.error('❌ [UNCAUGHT] Unhandled exception (not crashing):', error.message);
+  console.error(error.stack);
+  // Log to file for later analysis
+  // Don't exit - let the harness continue running
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ [UNHANDLED] Promise rejection (not crashing):', reason);
+  // Don't exit - let the harness continue running
+});
+
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
@@ -16,6 +31,7 @@ import { configRouter } from './api/config.js';
 import { orchestratorRouter } from './api/orchestrator.js';
 import { gitRouter } from './api/git.js';
 import { budgetRouter } from './api/budget.js';
+import { crownRouter } from './api/crown.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { initWebSocket } from './websocket.js';
 import { startOrchestrator } from './orchestrator/index.js';
@@ -57,6 +73,7 @@ app.use('/api/config', configRouter);
 app.use('/api/orchestrator', orchestratorRouter);
 app.use('/api/git', gitRouter);
 app.use('/api/budget', budgetRouter);
+app.use('/api/crown', crownRouter);
 
 // Error handling
 app.use(notFoundHandler);

@@ -11,7 +11,7 @@
  * 7. 404 handling
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect } from "vitest";
 
 // Import URL utilities for testing
 import {

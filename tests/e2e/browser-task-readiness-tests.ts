@@ -305,7 +305,7 @@ async function testExecuteButtonDisabledWhenNotReady(
   }
 }
 
-async function testReadinessAPIEndpoint(page: Page): Promise<void> {
+async function testReadinessAPIEndpoint(_page: Page): Promise<void> {
   // Get a task ID from the database
   const taskListsResponse = await fetch(`${API_BASE}/pipeline/task-lists`);
   const taskLists = await taskListsResponse.json();

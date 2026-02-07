@@ -10,7 +10,6 @@ import {
   createTestApp,
   resetMocks,
   seedTranscriptData,
-  getMocks,
 } from "../__utils__/test-server";
 import type { Express } from "express";
 

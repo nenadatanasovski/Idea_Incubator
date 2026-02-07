@@ -29,7 +29,7 @@ function createTestTask(attrs: {
     category: "feature",
     priority: "P2",
     effort: "medium",
-    queue: "backlog",
+    queue: null,
     phase: 0,
     position: 0,
     owner: "human",
@@ -40,6 +40,8 @@ function createTestTask(attrs: {
 
 // Cleanup test data
 async function cleanupTestData(): Promise<void> {
+  await run(`DELETE FROM task_questions WHERE task_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`);
+  await run(`DELETE FROM task_questions WHERE task_id NOT IN (SELECT id FROM tasks) AND task_id LIKE '%-%-%-%-%'`);
   await run(`DELETE FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%'`);
   await saveDb();
 }
@@ -93,11 +95,6 @@ describe("QuestionEngine", () => {
       const questions = await questionEngine.generateQuestions(task);
 
       // Questions should have priority values (1-10)
-      const highPriorityQuestions = questions.filter(
-        (q) => q.priority >= 7,
-      );
-
-      // Should have some high priority questions
       expect(questions.length).toBeGreaterThan(0);
       expect(questions.every(q => q.priority >= 1 && q.priority <= 10)).toBe(true);
     });
@@ -155,11 +152,7 @@ describe("QuestionEngine", () => {
     });
   });
 
-  // NOTE: These methods don't exist in current implementation
-  // answerQuestion → processAnswer/applyAnswers
-  // skipQuestion → not implemented
-  // getCompletionStatus → getCompletenessScore (takes Task, not taskId)
-  describe.skip("answerQuestion", () => {
+  describe("answerQuestion", () => {
     it("should record answer for a question", async () => {
       const task = createTestTask({
         title: "Test task for answers",
@@ -169,12 +162,12 @@ describe("QuestionEngine", () => {
       const question = questions[0];
 
       await questionEngine.answerQuestion(
-        taskId,
+        task.id,
         question.id,
         "This is my answer",
       );
 
-      const updatedQuestions = await questionEngine.getQuestions(taskId);
+      const updatedQuestions = await questionEngine.getQuestions(task.id);
       const answeredQuestion = updatedQuestions.find(
         (q) => q.id === question.id,
       );
@@ -184,7 +177,7 @@ describe("QuestionEngine", () => {
     });
   });
 
-  describe.skip("skipQuestion", () => {
+  describe("skipQuestion", () => {
     it("should remove skipped question", async () => {
       const task = createTestTask({
         title: "Test task for skipping",
@@ -198,7 +191,7 @@ describe("QuestionEngine", () => {
       if (optionalQuestion) {
         await questionEngine.skipQuestion(task.id, optionalQuestion.id);
 
-        const updatedQuestions = await questionEngine.getQuestions(taskId);
+        const updatedQuestions = await questionEngine.getQuestions(task.id);
         const skippedQuestion = updatedQuestions.find(
           (q) => q.id === optionalQuestion.id,
         );
@@ -208,7 +201,7 @@ describe("QuestionEngine", () => {
     });
   });
 
-  describe.skip("getCompletionStatus", () => {
+  describe("getCompletionStatus", () => {
     it("should return completion status", async () => {
       const task = createTestTask({
         title: "Status check task",
@@ -239,7 +232,7 @@ describe("QuestionEngine", () => {
     });
   });
 
-  describe.skip("areRequiredQuestionsAnswered", () => {
+  describe("areRequiredQuestionsAnswered", () => {
     it("should return false when required questions unanswered", async () => {
       const task = createTestTask({
         title: "Required questions check",
@@ -247,7 +240,7 @@ describe("QuestionEngine", () => {
 
       await questionEngine.generateQuestions(task);
       const allAnswered =
-        await questionEngine.areRequiredQuestionsAnswered(taskId);
+        await questionEngine.areRequiredQuestionsAnswered(task.id);
 
       expect(allAnswered).toBe(false);
     });
@@ -268,7 +261,7 @@ describe("QuestionEngine", () => {
       }
 
       const allAnswered =
-        await questionEngine.areRequiredQuestionsAnswered(taskId);
+        await questionEngine.areRequiredQuestionsAnswered(task.id);
 
       expect(allAnswered).toBe(true);
     });

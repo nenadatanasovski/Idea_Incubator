@@ -91,3 +91,46 @@ clarificationRouter.get('/task/:taskId', (req, res) => {
   const requests = clarification.getTaskClarifications(req.params.taskId);
   res.json(requests);
 });
+
+/**
+ * GET /api/clarification/pending-approval
+ * Get the pending strategic plan approval
+ */
+clarificationRouter.get('/pending-approval', (_req, res) => {
+  const pending = clarification.getPendingApproval();
+  if (!pending) {
+    return res.json({ hasPending: false });
+  }
+  res.json({ hasPending: true, ...pending });
+});
+
+/**
+ * POST /api/clarification/respond
+ * Respond to pending strategic plan approval
+ * Body: { action: "approve" | "reject", feedback?: string }
+ */
+clarificationRouter.post('/respond', (req, res) => {
+  const { action, feedback } = req.body;
+
+  if (!action || !['approve', 'reject', 'feedback'].includes(action)) {
+    return res.status(400).json({ 
+      error: 'Invalid action. Use: approve, reject, or feedback',
+      status: 400 
+    });
+  }
+
+  const result = clarification.handleApprovalResponse(
+    `/${action}`,
+    feedback || '',
+    'api'
+  );
+
+  if (!result.handled) {
+    return res.status(404).json({ 
+      error: 'No pending approval found',
+      status: 404 
+    });
+  }
+
+  res.json({ success: true, message: result.message });
+});

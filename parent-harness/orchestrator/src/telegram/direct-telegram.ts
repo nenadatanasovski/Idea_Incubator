@@ -18,9 +18,10 @@ const BOT_TOKENS: Record<string, string> = {
   build: process.env.TELEGRAM_BOT_BUILD || '8258850025:AAFQUFfaIgC0N1a5GZykcBEJE-sLJrc9lpA',
   spec: process.env.TELEGRAM_BOT_SPEC || '8293978861:AAHNCRkaEn1xnanYekLNU1jTZcES7HX0k2A',
   validation: process.env.TELEGRAM_BOT_VALIDATION || '8497591949:AAFqIpnUdIQors9v5pzFRNGPqv0gQ2ZkWx4',
-  sia: process.env.TELEGRAM_BOT_SIA || '8366604835:AAG2xGWqVoc4gDTenPxGk9SfNbGg_wFvRGc',
+  sia: process.env.TELEGRAM_BOT_SIA || '8209489629:AAF-TRcCdxrw5lIU6UJS8ogWc94iVN-cQ1Y',
   planning: process.env.TELEGRAM_BOT_PLANNING || '8567955026:AAHTA8GNPBheu7m59d6TZue6Y-65fnbbH5w',
   clarification: process.env.TELEGRAM_BOT_CLARIFICATION || '8136650121:AAGjQQV3JS9HS-00A11IL6uqLFeSdV9s-Mw',
+  human: process.env.TELEGRAM_HUMAN_SIM_BOT_TOKEN || '8537180647:AAEb6zO11b4sGkwaYglpLmX9Qcb1W57Yahg',
 };
 
 // Map agent types to their bot
@@ -40,6 +41,57 @@ const AGENT_BOT_MAP: Record<string, string> = {
 
 // Admin chat ID
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID || '8397599412';
+
+// Rate limiting: Track recent messages to prevent spam
+const recentMessages = new Map<string, number>(); // hash -> timestamp
+const RATE_LIMIT_MS = 60000; // Don't repeat same message within 60s
+const MAX_MESSAGES_PER_MINUTE = 10; // Max messages per minute per chat
+const chatMessageCounts = new Map<string, { count: number; resetAt: number }>();
+
+/**
+ * Check if message is rate limited
+ */
+function isRateLimited(chatId: string, text: string): boolean {
+  const now = Date.now();
+  
+  // Check for exact duplicate message
+  const hash = `${chatId}:${text.slice(0, 100)}`;
+  const lastSent = recentMessages.get(hash);
+  if (lastSent && now - lastSent < RATE_LIMIT_MS) {
+    console.log('📱 Rate limited: duplicate message within 60s');
+    return true;
+  }
+  
+  // Check per-chat rate limit
+  const chatLimit = chatMessageCounts.get(chatId);
+  if (chatLimit) {
+    if (now > chatLimit.resetAt) {
+      // Reset counter
+      chatMessageCounts.set(chatId, { count: 1, resetAt: now + 60000 });
+    } else if (chatLimit.count >= MAX_MESSAGES_PER_MINUTE) {
+      console.log('📱 Rate limited: too many messages this minute');
+      return true;
+    } else {
+      chatLimit.count++;
+    }
+  } else {
+    chatMessageCounts.set(chatId, { count: 1, resetAt: now + 60000 });
+  }
+  
+  // Mark message as sent
+  recentMessages.set(hash, now);
+  
+  // Cleanup old entries
+  if (recentMessages.size > 1000) {
+    for (const [key, time] of recentMessages) {
+      if (now - time > RATE_LIMIT_MS * 2) {
+        recentMessages.delete(key);
+      }
+    }
+  }
+  
+  return false;
+}
 
 /**
  * Make HTTPS POST with IPv4 forced (avoids timeout issues)
@@ -123,7 +175,7 @@ function getBotToken(agentType: string): string {
 }
 
 /**
- * Send a message via a specific bot
+ * Send a message via a specific bot (with rate limiting)
  */
 async function sendTelegramMessage(
   botToken: string,
@@ -132,6 +184,11 @@ async function sendTelegramMessage(
   parseMode: 'HTML' | 'Markdown' = 'Markdown'
 ): Promise<boolean> {
   if (!botToken || !chatId) return false;
+  
+  // Check rate limit
+  if (isRateLimited(chatId, text)) {
+    return false;
+  }
 
   const result = await httpsPostIPv4(
     `https://api.telegram.org/bot${botToken}/sendMessage`,
@@ -144,7 +201,8 @@ async function sendTelegramMessage(
   );
 
   if (!result.ok) {
-    console.warn(`❌ Telegram: ${result.error}`);
+    const errorDesc = result.error || (result as any).description || JSON.stringify(result);
+    console.warn(`❌ Telegram send failed: ${errorDesc}`);
     return false;
   }
   return true;
@@ -234,7 +292,10 @@ export const notify = {
   },
 
   agentError: async (agentIdOrType: string, error: string) => {
+    // Send to agent's own bot
     await notifyAgent(agentIdOrType, `🔴 *Error*\n${error.slice(0, 300)}`);
+    // Also forward to monitor bot for centralized error tracking
+    await notifyAgent('monitor', `🔴 *${agentIdOrType} Error*\n${error.slice(0, 300)}`);
   },
 
   sessionStarted: async (agentIdOrType: string, taskDisplayId: string) => {
@@ -244,12 +305,12 @@ export const notify = {
   sessionIteration: async () => { /* Don't spam */ },
 
   waveStarted: async (waveNumber: number, taskCount: number) => {
-    await notifyAdmin(`🌊 *Wave ${waveNumber}* started with ${taskCount} tasks`);
+    await notifyAgent('orchestrator', `🌊 *Wave ${waveNumber}* started with ${taskCount} tasks`);
   },
 
   waveCompleted: async (waveNumber: number, passed: number, failed: number) => {
     const icon = failed > 0 ? '⚠️' : '✅';
-    await notifyAdmin(`${icon} *Wave ${waveNumber}* complete: ${passed} passed, ${failed} failed`);
+    await notifyAgent('orchestrator', `${icon} *Wave ${waveNumber}* complete: ${passed} passed, ${failed} failed`);
   },
 
   systemStatus: async (workingCount: number, idleCount: number, pendingTasks: number) => {
@@ -330,6 +391,92 @@ Please provide clarification or type /skip to proceed without.`;
   taskRejected: async (taskId: string, reason: string) => {
     await notifyAgent('planning', `❌ *Task Rejected*\n\`${taskId}\`\nReason: ${reason}`);
   },
+
+  strategicPlanReady: async (phaseCount: number) => {
+    await notifyAgent('clarification', `🧠 *Strategic Plan Ready*\n${phaseCount} phases proposed. Check your messages for approval.`);
+  },
+
+  // Forward any error to monitor bot for centralized tracking
+  forwardError: async (source: string, error: string) => {
+    await notifyAgent('monitor', `🚨 *${source}*\n${error.slice(0, 500)}`);
+  },
 };
 
-export default { initTelegram, sendMessage, notifyAdmin, notifyAgent, notify };
+/**
+ * Split long message into chunks that fit Telegram's 4096 char limit
+ */
+function chunkMessage(message: string, maxLen = 4000): string[] {
+  if (message.length <= maxLen) return [message];
+  
+  const chunks: string[] = [];
+  let remaining = message;
+  let partNum = 1;
+  
+  while (remaining.length > 0) {
+    let chunk = remaining.slice(0, maxLen);
+    
+    // Try to break at newline for cleaner splits
+    if (remaining.length > maxLen) {
+      const lastNewline = chunk.lastIndexOf('\n');
+      if (lastNewline > maxLen * 0.5) {
+        chunk = chunk.slice(0, lastNewline);
+      }
+    }
+    
+    const totalParts = Math.ceil(message.length / maxLen);
+    chunks.push(`[${partNum}/${totalParts}]\n${chunk}`);
+    remaining = remaining.slice(chunk.length);
+    partNum++;
+  }
+  
+  return chunks;
+}
+
+/**
+ * Send message to a specific bot type (auto-chunks long messages)
+ */
+export async function sendToBot(botType: string, message: string, parseMode?: 'HTML' | 'Markdown'): Promise<boolean> {
+  const botKey = botType.toLowerCase().replace('_agent', '').replace('agent', '');
+  const token = BOT_TOKENS[botKey];
+  
+  if (!token) {
+    console.error(`❌ Unknown bot type: ${botType}`);
+    return false;
+  }
+
+  // Chunk message if too long
+  const chunks = chunkMessage(message);
+  console.log(`📤 Sending ${chunks.length} message(s) to ${botType} bot`);
+
+  for (const chunk of chunks) {
+    // Send without parse_mode for plain text
+    if (!parseMode) {
+      if (!token || !ADMIN_CHAT_ID) return false;
+      const result = await httpsPostIPv4(
+        `https://api.telegram.org/bot${token}/sendMessage`,
+        {
+          chat_id: ADMIN_CHAT_ID,
+          text: chunk,
+          disable_web_page_preview: true,
+        }
+      );
+      if (!result.ok) {
+        const errorDesc = result.error || (result as any).description || JSON.stringify(result);
+        console.warn(`❌ Telegram send failed: ${errorDesc}`);
+        return false;
+      }
+    } else {
+      const success = await sendTelegramMessage(token, ADMIN_CHAT_ID, chunk, parseMode);
+      if (!success) return false;
+    }
+    
+    // Small delay between chunks to avoid rate limiting
+    if (chunks.length > 1) {
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
+  
+  return true;
+}
+
+export default { initTelegram, sendMessage, notifyAdmin, notifyAgent, notify, sendToBot };

@@ -7,11 +7,15 @@ import * as spawner from '../spawner/index.js';
 import * as planning from '../planning/index.js';
 import * as qa from '../qa/index.js';
 import * as selfImprovement from '../self-improvement/index.js';
+import * as clarification from '../clarification/index.js';
+import * as waves from '../waves/index.js';
+import * as crown from '../crown/index.js';
+import { notify } from '../telegram/index.js';
 
 // Configuration
 const TICK_INTERVAL_MS = 30_000; // 30 seconds
 const STUCK_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
-const PLANNING_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 hours
+const PLANNING_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours (was 2 hours - reduced to save tokens)
 const QA_EVERY_N_TICKS = 10; // Run QA every 10th tick
 const MAX_RETRIES = 5;
 
@@ -23,6 +27,13 @@ const RUN_QA = process.env.HARNESS_RUN_QA !== 'false'; // Enabled by default
 let tickCount = 0;
 let planningCount = 0;
 let isRunning = false;
+
+/**
+ * Check if the orchestrator tick loop is running
+ */
+export function isOrchestratorRunning(): boolean {
+  return isRunning;
+}
 
 /**
  * Main orchestration loop
@@ -61,34 +72,145 @@ export async function startOrchestrator(): Promise<void> {
 
   // Schedule planning analysis (every 2 hours)
   if (RUN_PLANNING) {
-    // Run initial planning IMMEDIATELY on startup
-    console.log('📊 Running initial planning analysis...');
-    runPlanning().catch(err => console.error('Initial planning error:', err));
+    // Check if there are already pending tasks - skip initial planning if so
+    const existingTasks = tasks.getTasks({ status: 'pending' });
+    const inProgressTasks = tasks.getTasks({ status: 'in_progress' });
     
-    // Then schedule recurring planning
+    if (existingTasks.length > 0 || inProgressTasks.length > 0) {
+      console.log(`📊 Skipping initial planning - ${existingTasks.length} pending, ${inProgressTasks.length} in progress`);
+    } else {
+      console.log('📊 Running initial planning analysis...');
+      runPlanning().catch(err => console.error('Initial planning error:', err));
+    }
+    
+    // Then schedule recurring planning (only if no pending tasks)
     setInterval(async () => {
       if (isRunning) {
-        await runPlanning();
+        const pending = tasks.getTasks({ status: 'pending' });
+        const inProg = tasks.getTasks({ status: 'in_progress' });
+        if (pending.length === 0 && inProg.length === 0) {
+          await runPlanning();
+        } else {
+          console.log(`📊 Skipping scheduled planning - ${pending.length} pending, ${inProg.length} in progress`);
+        }
       }
     }, PLANNING_INTERVAL_MS);
   }
+
+  // Start Crown Agent (SIA monitoring system)
+  crown.startCrown();
 }
 
 /**
- * Run planning analysis
+ * Run FULL planning pipeline:
+ * 1. Strategic Planning → High-level vision & phases
+ * 2. Clarification → Human approval via Telegram
+ * 3. Tactical Planning → Atomic tasks with waves
+ * 4. Wave Execution → Parallel execution
  */
 async function runPlanning(): Promise<void> {
   planningCount++;
   console.log(`📊 Planning cycle #${planningCount} starting...`);
   
   try {
-    // Get or create default task list
     const taskListId = 'default-task-list';
     
+    // ============ PHASE 1: STRATEGIC PLANNING ============
+    console.log('🧠 Phase 1: Strategic Planning...');
+    const { session: stratSession, plan } = await planning.runStrategicPlanning(taskListId);
+    
+    if (!plan) {
+      console.error('❌ Strategic planning failed - no plan generated');
+      await notify.agentError('planning', 'Strategic planning failed').catch(() => {});
+      return;
+    }
+
+    console.log(`✅ Strategic plan created: ${plan.phases.length} phases`);
+    
+    // ============ PHASE 2: CLARIFICATION (Human approval) ============
+    console.log('🤝 Phase 2: Requesting human approval via Telegram...');
+    await notify.planningComplete(plan.phases.length).catch(() => {});
+    
+    const { approved, feedback } = await clarification.requestPlanApproval(
+      stratSession.id,
+      plan,
+      taskListId
+    );
+
+    if (!approved) {
+      console.log(`📝 Plan not approved: ${feedback}`);
+      
+      if (feedback && feedback !== 'Plan rejected' && feedback !== 'Approval timed out after 30 minutes') {
+        // Feedback provided - could loop back to strategic planning with feedback
+        // For now, just log and exit
+        console.log('💡 Feedback received. Manual re-planning required.');
+        await notify.agentError('clarification', `Plan needs revision: ${feedback}`).catch(() => {});
+      }
+      return;
+    }
+
+    console.log('✅ Plan approved by human!');
+    
+    // Cache the approved plan for future restarts
+    planning.cacheApprovedPlan(plan, taskListId);
+    console.log('💾 Approved plan cached for future sessions');
+    
+    // ============ PHASE 3: TACTICAL PLANNING (Task decomposition) ============
+    console.log('🔧 Phase 3: Tactical Planning - Creating atomic tasks...');
+    
+    // Format approved plan for tactical agent
+    const approvedPlanText = `
+## Vision: ${plan.visionSummary}
+
+## Phases:
+${plan.phases.map((p, i) => `
+### Phase ${i + 1}: ${p.name}
+- Goal: ${p.goal}
+- Priority: ${p.priority}
+- Deliverables: ${p.deliverables.join(', ')}
+`).join('\n')}
+`;
+
+    const { tasks: atomicTasks } = await planning.runTacticalPlanning(taskListId, approvedPlanText);
+    
+    if (atomicTasks.length === 0) {
+      console.error('❌ Tactical planning failed - no tasks generated');
+      return;
+    }
+
+    const maxWave = Math.max(...atomicTasks.map(t => t.wave));
+    console.log(`✅ Created ${atomicTasks.length} atomic tasks across ${maxWave} waves`);
+
+    // ============ PHASE 4: WAVE EXECUTION ============
+    console.log('🌊 Phase 4: Starting wave execution...');
+    
+    // Create wave run
+    const waveRun = waves.planWaves(taskListId);
+    waves.startWaveRun(waveRun.id);
+    
+    console.log(`🌊 Wave execution started: Run ID ${waveRun.id}`);
+    await notify.waveStarted?.(1, atomicTasks.filter(t => t.wave === 1).length).catch(() => {});
+
+    events.planningCompleted(planningCount, atomicTasks.length);
+    console.log(`📊 Planning cycle #${planningCount} complete`);
+    
+  } catch (error) {
+    console.error('❌ Planning error:', error);
+    events.planningCompleted(planningCount, 0);
+  }
+}
+
+/**
+ * Run LEGACY planning (just tactical - for backward compat)
+ */
+async function runLegacyPlanning(): Promise<void> {
+  planningCount++;
+  console.log(`📊 Legacy planning cycle #${planningCount} starting...`);
+  
+  try {
+    const taskListId = 'default-task-list';
     const session = await planning.runDailyPlanning(taskListId);
-    
     events.planningCompleted(planningCount, session.tasks_created ? JSON.parse(session.tasks_created).length : 0);
-    
     console.log(`📊 Planning cycle #${planningCount} complete`);
   } catch (error) {
     console.error('❌ Planning error:', error);
@@ -128,7 +250,10 @@ async function tick(): Promise<void> {
       }
     }
 
-    // 4. Assign pending tasks to idle agents
+    // 4. Check wave completion and advance to next wave
+    await checkWaveProgress();
+
+    // 5. Assign pending tasks to idle agents
     await assignTasks();
 
     // 4. Log tick event
@@ -143,6 +268,28 @@ async function tick(): Promise<void> {
   } catch (error) {
     console.error('❌ Tick error:', error);
     events.cronTick(tickCount, 0, 0);
+  }
+}
+
+/**
+ * Check wave progress and advance to next wave if current is complete
+ */
+async function checkWaveProgress(): Promise<void> {
+  const activeRuns = waves.getWaveRuns().filter(r => r.status === 'running');
+  
+  for (const run of activeRuns) {
+    const completed = waves.checkWaveCompletion(run.id);
+    if (completed) {
+      const updatedRun = waves.getWaveRun(run.id);
+      if (updatedRun?.status === 'completed') {
+        console.log(`🏁 Wave run ${run.id} completed all waves!`);
+        await notify.waveCompleted?.(updatedRun.total_waves, updatedRun.total_waves, 0).catch(() => {});
+      } else if (updatedRun) {
+        console.log(`🌊 Advanced to wave ${updatedRun.current_wave + 1}`);
+        const nextWaveTasks = tasks.getTasks({}).filter(t => t.wave_number === updatedRun.current_wave + 1);
+        await notify.waveStarted?.(updatedRun.current_wave + 1, nextWaveTasks.length).catch(() => {});
+      }
+    }
   }
 }
 

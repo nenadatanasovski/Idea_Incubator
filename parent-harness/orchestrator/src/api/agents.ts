@@ -1,7 +1,45 @@
 import { Router } from 'express';
 import * as agents from '../db/agents.js';
+import { getAgentMetadata, getAllAgentMetadata, type AgentMetadata } from '../agents/metadata.js';
 
 export const agentsRouter = Router();
+
+/**
+ * GET /api/agents/metadata
+ * Get metadata for all agent types (roles, tools, telegram config)
+ */
+agentsRouter.get('/metadata', (_req, res) => {
+  const metadata = getAllAgentMetadata();
+  res.json(metadata);
+});
+
+/**
+ * GET /api/agents/metadata/:id
+ * Get metadata for a specific agent type
+ */
+agentsRouter.get('/metadata/:id', (req, res) => {
+  const metadata = getAgentMetadata(req.params.id);
+  if (!metadata) {
+    return res.status(404).json({ error: 'Agent metadata not found', status: 404 });
+  }
+  res.json(metadata);
+});
+
+/**
+ * GET /api/agents/detailed
+ * Get all agents with their metadata merged
+ */
+agentsRouter.get('/detailed', (_req, res) => {
+  const allAgents = agents.getAgents();
+  const detailed = allAgents.map(agent => {
+    const metadata = getAgentMetadata(agent.type) || getAgentMetadata(agent.id);
+    return {
+      ...agent,
+      metadata: metadata || null,
+    };
+  });
+  res.json(detailed);
+});
 
 /**
  * GET /api/agents

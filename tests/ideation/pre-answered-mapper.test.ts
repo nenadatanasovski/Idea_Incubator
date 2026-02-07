@@ -2,8 +2,7 @@ import { describe, test, expect } from "vitest";
 import {
   generatePreAnsweredQuestions,
   generateDevelopmentHandoff,
-  IdeationSignals,
-  PreAnsweredQuestion,
+  type IdeationSignals,
 } from "../../agents/ideation/pre-answered-mapper.js";
 
 // ============================================================================

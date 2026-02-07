@@ -15,7 +15,6 @@ import * as tasks from '../../src/db/tasks.js';
 import * as sessions from '../../src/db/sessions.js';
 import { events as eventHelpers, getEvents } from '../../src/db/events.js';
 import { notify, initTelegram } from '../../src/telegram/index.js';
-import * as qa from '../../src/qa/index.js';
 import { checkOpenClawHealth, buildAgentPrompt } from '../../src/spawner/openclaw-spawner.js';
 
 // Test results tracking

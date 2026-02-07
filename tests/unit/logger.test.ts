@@ -5,7 +5,6 @@ import {
   logInfo,
   logWarning,
   logError,
-  getLoggerConfig,
 } from "../../utils/logger.js";
 
 describe("Logger", () => {

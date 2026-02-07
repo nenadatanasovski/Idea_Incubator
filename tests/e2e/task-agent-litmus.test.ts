@@ -17,7 +17,7 @@ import parallelismCalculator from "../../server/services/task-agent/parallelism-
 import circularDependencyPrevention from "../../server/services/task-agent/circular-dependency-prevention";
 import buildAgentOrchestrator from "../../server/services/task-agent/build-agent-orchestrator";
 import fileConflictDetector from "../../server/services/task-agent/file-conflict-detector";
-import { query, run, getOne, saveDb } from "../../database/db";
+import { run, saveDb } from "../../database/db";
 
 // Test configuration
 const CONFIG = {

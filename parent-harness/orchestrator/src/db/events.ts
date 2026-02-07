@@ -243,6 +243,82 @@ export const events = {
       severity: 'info',
       metadata: { filePath, linesChanged },
     }),
+
+  // Budget events
+  budgetWarning: (threshold: number, currentPercent: number, tokensUsed: number, tokensLimit: number) =>
+    createEvent({
+      type: 'budget:warning',
+      message: `⚠️ Budget ${threshold}% threshold reached (${currentPercent.toFixed(1)}% used: ${tokensUsed.toLocaleString()} / ${tokensLimit.toLocaleString()} tokens)`,
+      agentId: 'system',
+      severity: 'warning',
+      metadata: { threshold, currentPercent, tokensUsed, tokensLimit },
+    }),
+
+  budgetExceeded: (tokensUsed: number, tokensLimit: number) =>
+    createEvent({
+      type: 'budget:exceeded',
+      message: `🚫 Daily budget EXCEEDED (${tokensUsed.toLocaleString()} / ${tokensLimit.toLocaleString()} tokens)`,
+      agentId: 'system',
+      severity: 'error',
+      metadata: { tokensUsed, tokensLimit },
+    }),
+
+  budgetSpawnBlocked: (taskId: string, taskTitle: string, reason: string) =>
+    createEvent({
+      type: 'budget:spawn_blocked',
+      message: `🛑 Spawn blocked for ${taskTitle}: ${reason}`,
+      agentId: 'system',
+      taskId,
+      severity: 'error',
+      metadata: { reason },
+    }),
+
+  budgetReset: () =>
+    createEvent({
+      type: 'budget:reset',
+      message: `🔄 Daily budget reset`,
+      agentId: 'system',
+      severity: 'info',
+    }),
+
+  // Config events
+  configChanged: (section: string, field: string, oldValue: unknown, newValue: unknown, source: string) =>
+    createEvent({
+      type: 'config:changed',
+      message: `⚙️ Config changed: ${section}.${field} = ${JSON.stringify(newValue)} (was: ${JSON.stringify(oldValue)})`,
+      agentId: source,
+      severity: 'info',
+      metadata: { section, field, oldValue, newValue },
+    }),
+
+  // Retry events  
+  retryExhausted: (taskId: string, taskTitle: string, attempts: number) =>
+    createEvent({
+      type: 'retry:exhausted',
+      message: `❌ Task blocked after ${attempts} failed attempts: ${taskTitle}`,
+      agentId: 'system',
+      taskId,
+      severity: 'error',
+      metadata: { attempts },
+    }),
+
+  // Circuit breaker events
+  circuitOpened: (agentType: string, failureCount: number, windowMinutes: number) =>
+    createEvent({
+      type: 'circuit:opened',
+      message: `🔴 Circuit breaker OPEN for ${agentType}: ${failureCount} failures in ${windowMinutes}min`,
+      agentId: agentType,
+      severity: 'error',
+      metadata: { failureCount, windowMinutes },
+    }),
+
+  circuitClosed: (agentType: string) =>
+    createEvent({
+      type: 'circuit:closed',
+      message: `🟢 Circuit breaker CLOSED for ${agentType}: resuming normal operation`,
+      agentId: agentType,
+      severity: 'info',
+    }),
 };
 
 export default {

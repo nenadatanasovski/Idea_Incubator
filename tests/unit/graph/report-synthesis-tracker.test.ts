@@ -2,10 +2,7 @@
  * Tests for ReportSynthesisTracker service
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import {
-  ReportSynthesisTracker,
-  type ReportSynthesisJob,
-} from "../../../server/services/graph/report-synthesis-tracker.js";
+import { ReportSynthesisTracker } from "../../../server/services/graph/report-synthesis-tracker.js";
 
 describe("ReportSynthesisTracker", () => {
   let tracker: ReportSynthesisTracker;

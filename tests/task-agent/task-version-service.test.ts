@@ -185,7 +185,7 @@ describe("TaskVersionService", () => {
     });
   });
 
-  describe.skip("diff", () => {
+  describe("diff", () => {
     it("should calculate diff between versions", async () => {
       await createVersionHelper(testTaskId, "v1", "system");
 
@@ -207,7 +207,7 @@ describe("TaskVersionService", () => {
     });
   });
 
-  describe.skip("restore", () => {
+  describe("restore", () => {
     it("should restore task to a previous version", async () => {
       await createVersionHelper(testTaskId, "v1", "system");
 
@@ -236,11 +236,11 @@ describe("TaskVersionService", () => {
       // Check new version was created
       const versions = await taskVersionService.getVersions(testTaskId);
       expect(versions.length).toBe(3);
-      expect(versions[0].changeReason).toContain("Restored");
+      expect(versions[versions.length - 1].changeReason).toContain("Restored");
     });
   });
 
-  describe.skip("previewRestore", () => {
+  describe("previewRestore", () => {
     it("should show what would change on restore", async () => {
       await createVersionHelper(testTaskId, "v1", "system");
 

@@ -1,11 +1,9 @@
-import { describe, test, expect, beforeAll, afterAll, afterEach } from "vitest";
-import { getDb, saveDb, closeDb } from "../../database/db.js";
+import { describe, test, expect, beforeAll, afterAll } from "vitest";
+import { getDb, closeDb } from "../../database/db.js";
 import {
   mapSessionRowToSession,
-  mapSessionToRow,
   mapMessageRowToMessage,
   mapCandidateRowToCandidate,
-  mapRiskRowToRisk,
 } from "../../utils/ideation-mappers.js";
 import {
   createDefaultSelfDiscoveryState,

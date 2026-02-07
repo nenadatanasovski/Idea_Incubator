@@ -51,35 +51,77 @@ export type AnthropicClient = {
  */
 function createPiAiClient(): AnthropicClient {
   const apiKey = getEnvApiKey("anthropic");
-  
+
   return {
     messages: {
       create: async (params) => {
         // Get the model from pi-ai registry
-        const model = getModel("anthropic", params.model);
+        // We need to dynamically get the model, but getModel has strict typing
+        // Use a type assertion to work with dynamic model strings
+        type AnthropicModels = "claude-3-5-sonnet-20241022" | "claude-3-5-haiku-20241022" | "claude-3-opus-20240229";
+        const model = getModel("anthropic", (params.model || "claude-3-5-sonnet-20241022") as AnthropicModels);
         if (!model) {
           throw new Error(`Model not found: ${params.model}`);
         }
-        
-        // Build context in pi-ai format
-        const context = {
-          system: params.system,
-          messages: params.messages.map(m => ({
-            role: m.role as "user" | "assistant",
-            content: [{ type: "text" as const, text: m.content }]
-          }))
+
+        // Build context in pi-ai format with proper Message types
+        // Import the Message types to ensure compatibility
+        type PiAiMessage = import("@mariozechner/pi-ai").Message;
+        type PiAiUserMessage = import("@mariozechner/pi-ai").UserMessage;
+        type PiAiAssistantMessage = import("@mariozechner/pi-ai").AssistantMessage;
+
+        const messages: PiAiMessage[] = params.messages.map(m => {
+          if (m.role === "user") {
+            const userMsg: PiAiUserMessage = {
+              role: "user" as const,
+              content: [{ type: "text" as const, text: m.content }],
+              timestamp: Date.now()
+            };
+            return userMsg;
+          } else {
+            // For assistant messages in the input, we need a full AssistantMessage
+            const assistantMsg: PiAiAssistantMessage = {
+              role: "assistant" as const,
+              content: [{ type: "text" as const, text: m.content }],
+              api: model.api,
+              provider: model.provider,
+              model: model.id,
+              usage: {
+                input: 0,
+                output: 0,
+                cacheRead: 0,
+                cacheWrite: 0,
+                totalTokens: 0,
+                cost: {
+                  input: 0,
+                  output: 0,
+                  cacheRead: 0,
+                  cacheWrite: 0,
+                  total: 0
+                }
+              },
+              stopReason: "stop" as const,
+              timestamp: Date.now()
+            };
+            return assistantMsg;
+          }
+        });
+
+        const context: import("@mariozechner/pi-ai").Context = {
+          systemPrompt: params.system,
+          messages: messages
         };
-        
+
         const content: Array<{ type: "text"; text: string }> = [];
         let stopReason = "end_turn";
         let inputTokens = 0;
         let outputTokens = 0;
-        
-        const response = streamAnthropic(model, context, { 
-          apiKey: apiKey!, 
-          maxTokens: params.max_tokens 
+
+        const response = streamAnthropic(model, context, {
+          apiKey: apiKey!,
+          maxTokens: params.max_tokens
         });
-        
+
         let text = "";
         for await (const chunk of response) {
           if (chunk.type === "text_delta" && chunk.delta) {
@@ -93,11 +135,11 @@ function createPiAiClient(): AnthropicClient {
             }
           }
         }
-        
+
         if (text) {
           content.push({ type: "text", text });
         }
-        
+
         return {
           content,
           model: params.model,

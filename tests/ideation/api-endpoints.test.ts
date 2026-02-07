@@ -1,5 +1,4 @@
 import { describe, test, expect, beforeEach, vi } from "vitest";
-import express from "express";
 import type { Request, Response } from "express";
 
 // Mock all dependencies before importing the router

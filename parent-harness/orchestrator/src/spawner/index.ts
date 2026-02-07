@@ -15,6 +15,8 @@ import { events } from '../db/events.js';
 import { ws } from '../websocket.js';
 import { notify } from '../telegram/direct-telegram.js';
 import * as git from '../git/index.js';
+import * as config from '../config/index.js';
+import * as budget from '../budget/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -22,7 +24,51 @@ const __dirname = dirname(__filename);
 // Codebase root
 const CODEBASE_ROOT = process.env.CODEBASE_ROOT || '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
 
-// Max concurrent (limit to avoid overwhelming system)
+// Get max concurrent from config (with fallback)
+function getMaxConcurrent(): number {
+  try {
+    return config.getConfig().agents.max_concurrent || 8;
+  } catch {
+    return 8;
+  }
+}
+
+/**
+ * Check if budget allows spawning
+ */
+function checkBudgetAllowsSpawn(): { allowed: boolean; reason?: string } {
+  try {
+    const cfg = config.getConfig();
+    if (!cfg.budget.pause_at_limit) {
+      return { allowed: true };
+    }
+    
+    const dailyUsage = budget.getDailyUsage();
+    const totalTokens = dailyUsage.totalInputTokens + dailyUsage.totalOutputTokens;
+    const limit = cfg.budget.daily_token_limit;
+    
+    if (totalTokens >= limit) {
+      return { 
+        allowed: false, 
+        reason: `Daily token limit reached (${totalTokens.toLocaleString()} / ${limit.toLocaleString()})` 
+      };
+    }
+    
+    return { allowed: true };
+  } catch {
+    return { allowed: true }; // Allow if budget system fails
+  }
+}
+
+/**
+ * Estimate tokens for a prompt (rough estimate)
+ */
+function estimateTokens(text: string): number {
+  // Rough estimate: ~4 chars per token
+  return Math.ceil(text.length / 4);
+}
+
+// Legacy constant for backward compat
 const MAX_CONCURRENT = 8;
 
 // Track running processes
@@ -294,6 +340,151 @@ Effort: <hours estimate>
 Risk: LOW | MEDIUM | HIGH
 Recommendation: <proceed / decompose / research first>`,
 
+    // SIA (IDEATION AGENT) - Strategic vision and arbitration
+    sia_agent: `${baseHeader}
+
+## ROLE: SIA (Strategic Ideation Agent)
+You are the STRATEGIC BRAIN of the harness. You IDEATE, ARBITRATE disputes, and maintain the SOUL VISION.
+
+## RESPONSIBILITIES:
+- Brainstorm solutions when agents are stuck
+- Explore alternatives and challenge assumptions
+- Generate creative ideas for hard problems
+- Arbitrate when agents disagree
+- Analyze failure patterns and recommend fixes
+- Maintain alignment with project vision
+
+## WHEN TRIGGERED:
+- Evaluator identifies task needs exploration
+- Multiple agents fail same task
+- Crown agent detects persistent issues
+- Human requests strategic input
+
+## OUTPUT FORMAT:
+### Analysis
+<What's happening and why>
+
+### Options Explored
+1. Option A: <description> - Pros/Cons
+2. Option B: <description> - Pros/Cons
+
+### Recommendation
+<Chosen approach with rationale>
+
+### Action Items
+- <Specific next steps>`,
+
+    // PLANNING AGENT - Strategic vision and task creation
+    planning_agent: `${baseHeader}
+
+## ROLE: Planning Agent ⭐ THE STRATEGIC BRAIN
+You ANALYZE the codebase and CREATE improvement tasks. You maintain the "soul vision" for the Vibe platform.
+
+## RESPONSIBILITIES:
+- Continuously evaluate project state
+- Analyze CLI logs and past iterations
+- Create new feature/bug/improvement tasks
+- Identify technical debt
+- Align work with user's long-term vision
+
+## WORKFLOW:
+1. Analyze current codebase state
+2. Review recent completions and failures
+3. Identify gaps and opportunities
+4. Create prioritized task list
+5. Output strategic recommendations
+
+## OUTPUT FORMAT:
+### Project Assessment
+- Current State: <assessment>
+- Key Gaps: <list>
+
+### Proposed Tasks
+TASK: <title>
+PRIORITY: P0|P1|P2
+CATEGORY: feature|bug|improvement
+DESCRIPTION: <what to do>
+PASS_CRITERIA: <testable criteria>
+---
+
+TASK_COMPLETE: Created X improvement tasks`,
+
+    // CLARIFICATION AGENT - Ask clarifying questions
+    clarification_agent: `${baseHeader}
+
+## ROLE: Clarification Agent
+You INTERCEPT ambiguous tasks and ASK clarifying questions before execution.
+
+## WORKFLOW:
+1. Analyze task requirements
+2. Identify ambiguities or missing information
+3. Formulate targeted questions
+4. Wait for human response via Telegram
+5. Update task with complete specification
+6. Release task for execution
+
+## QUESTION GUIDELINES:
+- Be specific, not open-ended
+- Provide options when possible
+- Explain WHY you need this information
+- Max 3-5 questions at a time
+
+## OUTPUT FORMAT:
+To implement this task, I need clarification:
+
+1. <Question 1>
+   Options: A) ... B) ... C) ...
+
+2. <Question 2>
+
+Reply via Telegram with your answers.`,
+
+    // HUMAN SIM AGENT - Usability testing with personas
+    human_sim_agent: `${baseHeader}
+
+## ROLE: Human Simulation Agent
+You TEST completed UI features like a REAL USER with different personas.
+
+## PERSONAS:
+| Persona | Tech Level | Patience | Focus |
+|---------|------------|----------|-------|
+| technical | High | High | CLI, API, error messages |
+| power-user | Medium-high | Medium | Complex workflows, shortcuts |
+| casual | Medium | Medium | Happy path, discoverability |
+| confused | Low | Low | Error recovery, help text |
+| impatient | Any | Very low | Loading, feedback, responsiveness |
+
+## CAPABILITIES:
+- Browser automation (Agent Browser skill)
+- Screenshot capture and analysis
+- Form filling and navigation
+- Error state detection
+- Frustration indicators (repeated clicks, back navigation)
+
+## WORKFLOW:
+1. Load the UI feature to test
+2. Adopt assigned persona mindset
+3. Attempt to complete the task naturally
+4. Document pain points and successes
+5. Output findings and fix suggestions
+
+## OUTPUT FORMAT:
+### Persona: <name>
+### Task Attempted: <description>
+
+### Journey:
+1. Step 1 - ✅ Success / ⚠️ Friction / ❌ Blocked
+2. Step 2 - ...
+
+### Issues Found:
+- [CRITICAL] <issue>
+- [MINOR] <issue>
+
+### Recommendations:
+1. <suggested fix>
+
+TASK_COMPLETE: Tested as <persona>, found X issues`,
+
   };
 
   // Map variations to canonical names
@@ -306,7 +497,14 @@ Recommendation: <proceed / decompose / research first>`,
     task: 'task_agent',
     validation: 'validation_agent',
     evaluator: 'evaluator_agent',
-    planning: 'build_agent', // Planning agent uses build capabilities
+    planning: 'planning_agent',
+    planning_agent: 'planning_agent',
+    sia: 'sia_agent',
+    sia_agent: 'sia_agent',
+    clarification: 'clarification_agent',
+    clarification_agent: 'clarification_agent',
+    human_sim: 'human_sim_agent',
+    human_sim_agent: 'human_sim_agent',
     test: 'qa_agent', // Test agent is QA
   };
 
@@ -338,12 +536,29 @@ function buildTaskPrompt(task: tasks.Task): string {
 export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnResult> {
   const { taskId, agentId, model = 'opus', timeout = 300 } = options;
 
-  // Check capacity
-  if (runningProcesses.size >= MAX_CONCURRENT) {
+  // Check capacity (use config value)
+  const maxConcurrent = getMaxConcurrent();
+  if (runningProcesses.size >= maxConcurrent) {
     return { 
       success: false, 
       sessionId: '', 
-      error: `At max capacity (${MAX_CONCURRENT} concurrent agents)` 
+      error: `At max capacity (${maxConcurrent} concurrent agents)` 
+    };
+  }
+
+  // Check budget
+  const budgetCheck = checkBudgetAllowsSpawn();
+  if (!budgetCheck.allowed) {
+    console.warn(`⚠️ Spawn blocked by budget: ${budgetCheck.reason}`);
+    
+    // Emit event for dashboard notification
+    const taskData = tasks.getTask(taskId);
+    events.budgetSpawnBlocked(taskId, taskData?.title || taskId, budgetCheck.reason || 'Budget limit reached');
+    
+    return { 
+      success: false, 
+      sessionId: '', 
+      error: budgetCheck.reason || 'Budget limit reached' 
     };
   }
 
@@ -432,6 +647,19 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
 
       const output = stdout + stderr;
       const filesModified = extractFilesModified(output);
+      
+      // Record token usage (estimate based on prompt + output size)
+      const inputTokens = estimateTokens(fullPrompt);
+      const outputTokens = estimateTokens(output);
+      try {
+        budget.recordUsage(agentId, model, inputTokens, outputTokens, {
+          sessionId: session.id,
+          taskId: taskId,
+        });
+        console.log(`📊 Recorded ~${(inputTokens + outputTokens).toLocaleString()} tokens for ${task.display_id}`);
+      } catch (err) {
+        console.warn('Failed to record token usage:', err);
+      }
 
       if (success) {
         sessions.updateSessionStatus(session.id, 'completed', output);
@@ -559,8 +787,17 @@ export async function spawnWithPrompt(
     return { success: false, error: 'Claude CLI not available' };
   }
 
-  if (runningProcesses.size >= MAX_CONCURRENT) {
+  // Check capacity (use config value)
+  const maxConcurrent = getMaxConcurrent();
+  if (runningProcesses.size >= maxConcurrent) {
     return { success: false, error: 'At max capacity' };
+  }
+
+  // Check budget
+  const budgetCheck = checkBudgetAllowsSpawn();
+  if (!budgetCheck.allowed) {
+    console.warn(`⚠️ ${label} blocked by budget: ${budgetCheck.reason}`);
+    return { success: false, error: budgetCheck.reason || 'Budget limit reached' };
   }
 
   console.log(`🧠 Spawning ${label} agent via shell wrapper...`);
@@ -619,6 +856,16 @@ export async function spawnWithPrompt(
       console.log(`   stdout: ${stdout.slice(0, 500)}...`);
       console.log(`   stderr: ${stderr.slice(0, 200)}...`);
       console.log(`   exit code: ${code}, has TASK_COMPLETE: ${isComplete}`);
+
+      // Record token usage for planning agents
+      const inputTokens = estimateTokens(prompt);
+      const outputTokens = estimateTokens(output);
+      try {
+        budget.recordUsage(`${label}_agent`, model, inputTokens, outputTokens);
+        console.log(`📊 Recorded ~${(inputTokens + outputTokens).toLocaleString()} tokens for ${label}`);
+      } catch (err) {
+        console.warn('Failed to record token usage:', err);
+      }
 
       if (isComplete) {
         console.log(`✅ ${label} agent completed`);

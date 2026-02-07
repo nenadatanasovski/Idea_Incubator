@@ -23,7 +23,7 @@ describe("git-integration", () => {
   const mockExecSuccess = (stdout: string = "", stderr: string = "") => {
     mockExec.mockImplementation(
       (
-        cmd: string,
+        _cmd: string,
         opts: unknown,
         callback?: (
           err: Error | null,
@@ -41,7 +41,7 @@ describe("git-integration", () => {
   const mockExecError = (error: Error) => {
     mockExec.mockImplementation(
       (
-        cmd: string,
+        _cmd: string,
         opts: unknown,
         callback?: (
           err: Error | null,

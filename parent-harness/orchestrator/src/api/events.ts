@@ -61,3 +61,63 @@ eventsRouter.post('/', (req, res) => {
 
   res.status(201).json(event);
 });
+
+// Track read notification IDs in memory (simple approach - could move to DB)
+const readNotificationIds = new Set<number>();
+
+/**
+ * GET /api/events/notifications
+ * Get notification-worthy events (warnings and errors from last 24h)
+ */
+eventsRouter.get('/notifications', (req, res) => {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  
+  // Get warning and error events
+  const warnings = events.getEvents({ severity: 'warning', since, limit: 50 });
+  const errors = events.getEvents({ severity: 'error', since, limit: 50 });
+  
+  // Combine and sort by timestamp desc
+  const all = [...warnings, ...errors].sort((a, b) => 
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  ).slice(0, 50);
+  
+  // Add read status
+  const notifications = all.map(e => ({
+    id: e.id,
+    type: e.type,
+    message: e.message,
+    severity: e.severity,
+    timestamp: e.created_at,
+    agentId: e.agent_id,
+    taskId: e.task_id,
+    read: readNotificationIds.has(e.id),
+  }));
+  
+  res.json({
+    notifications,
+    unreadCount: notifications.filter(n => !n.read).length,
+  });
+});
+
+/**
+ * POST /api/events/notifications/:id/read
+ * Mark a notification as read
+ */
+eventsRouter.post('/notifications/:id/read', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  readNotificationIds.add(id);
+  res.json({ success: true });
+});
+
+/**
+ * POST /api/events/notifications/read-all
+ * Mark all notifications as read
+ */
+eventsRouter.post('/notifications/read-all', (req, res) => {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const warnings = events.getEvents({ severity: 'warning', since, limit: 100 });
+  const errors = events.getEvents({ severity: 'error', since, limit: 100 });
+  
+  [...warnings, ...errors].forEach(e => readNotificationIds.add(e.id));
+  res.json({ success: true });
+});
