@@ -1,8 +1,41 @@
-import type { ReactNode } from 'react'
+import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { NotificationCenter } from './NotificationCenter'
 import { BudgetIndicator } from './BudgetIndicator'
 import { ServerToggle } from './ServerToggle'
+
+const API_BASE = 'http://localhost:3333/api'
+
+function BlockedTasksIndicator() {
+  const [blockedCount, setBlockedCount] = useState(0)
+
+  const fetchBlocked = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/tasks?status=blocked`)
+      if (res.ok) {
+        const data = await res.json()
+        setBlockedCount(Array.isArray(data) ? data.length : data.tasks?.length ?? 0)
+      }
+    } catch (err) {
+      console.error('Failed to fetch blocked tasks:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchBlocked()
+    const interval = setInterval(fetchBlocked, 30000)
+    return () => clearInterval(interval)
+  }, [fetchBlocked])
+
+  if (blockedCount === 0) return null
+
+  return (
+    <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-900/50 border border-orange-700 rounded-lg">
+      <span className="text-orange-400">🚫</span>
+      <span className="text-sm font-medium text-orange-300">{blockedCount} blocked</span>
+    </div>
+  )
+}
 
 function NavLinks() {
   const location = useLocation()
@@ -50,6 +83,7 @@ export function Layout({ children }: LayoutProps) {
         <div className="flex items-center gap-4">
           <NotificationCenter />
           <BudgetIndicator />
+          <BlockedTasksIndicator />
           <ServerToggle />
           <h1 className="text-xl font-semibold text-blue-400">Parent Harness</h1>
         </div>

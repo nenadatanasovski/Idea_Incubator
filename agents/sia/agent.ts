@@ -13,7 +13,7 @@ import {
   DbSiaAttempt,
   DbSiaTaskMemory,
 } from "../../types/sia-agent.js";
-import { query, run, getOne, insert, update, saveDb } from "../../database/db.js";
+import { query, getOne, insert, update, saveDb } from "../../database/db.js";
 import {
   DecompositionTechnique,
   PromptRestructureTechnique,

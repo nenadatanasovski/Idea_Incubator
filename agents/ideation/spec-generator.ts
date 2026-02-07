@@ -397,7 +397,7 @@ export async function generateSpec(
 
   // Save to database
   const savedSpec = await saveSpec(spec, userId);
-  const sections = await saveSpecSections(specId, parsed);
+  const _sections = await saveSpecSections(specId, parsed);
 
   // Calculate section confidences
   const sectionConfidences: Record<SpecSectionType, number> = {

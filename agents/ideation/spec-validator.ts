@@ -6,7 +6,7 @@
  */
 
 import { blockExtractor, MemoryBlock, MemoryLink } from "./block-extractor.js";
-import { GraphType, graphTypes } from "../../schema/index.js";
+import { GraphType } from "../../schema/index.js";
 
 // ============================================================================
 // TYPES
@@ -233,7 +233,7 @@ export class SpecValidator {
 
   private checkNoBlockingCycles(
     blocks: MemoryBlock[],
-    links: MemoryLink[],
+    _links: MemoryLink[],
   ): CheckResult {
     // Find blocks that are part of blocking cycles
     const cycleBlocks = blocks.filter(

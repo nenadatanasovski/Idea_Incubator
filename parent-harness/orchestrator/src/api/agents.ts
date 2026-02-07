@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as agents from '../db/agents.js';
-import { getAgentMetadata, getAllAgentMetadata, type AgentMetadata } from '../agents/metadata.js';
+import { getAgentMetadata, getAllAgentMetadata } from '../agents/metadata.js';
 
 export const agentsRouter = Router();
 

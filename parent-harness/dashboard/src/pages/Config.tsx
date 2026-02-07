@@ -13,6 +13,7 @@ interface HarnessConfig {
     model_fallback: string[]
     timeout_minutes: number
     max_concurrent: number
+    max_per_type: Record<string, number>
     max_output_tokens: number
     enabled: boolean
   }
@@ -294,11 +295,6 @@ export function Config() {
                   <option value="haiku">Haiku</option>
                 </select>
               </ConfigField>
-              <ConfigField label="Fallback Chain">
-                <div className="text-xs text-gray-400 font-mono bg-gray-800 px-2 py-1 rounded">
-                  {config.agents.model_fallback?.join(' → ') || 'opus → sonnet → haiku'}
-                </div>
-              </ConfigField>
               <ConfigField label="Max Concurrent">
                 <input
                   type="number"
@@ -336,6 +332,22 @@ export function Config() {
                   onChange={(v) => updateConfig('agents', 'enabled', v)}
                 />
               </ConfigField>
+            </ConfigSection>
+
+            {/* Model Fallback Chain */}
+            <ConfigSection title="🔄 Model Fallback" description="Order of models to try when rate-limited">
+              <FallbackChainEditor
+                chain={config.agents.model_fallback || ['opus', 'sonnet', 'haiku']}
+                onChange={(chain) => updateConfig('agents', 'model_fallback', chain)}
+              />
+            </ConfigSection>
+
+            {/* Per-Agent-Type Concurrency */}
+            <ConfigSection title="⚙️ Per-Type Limits" description="Max concurrent agents per type">
+              <PerTypeLimitsEditor
+                limits={config.agents.max_per_type || {}}
+                onChange={(limits) => updateConfig('agents', 'max_per_type', limits)}
+              />
             </ConfigSection>
 
             {/* Budget Section */}

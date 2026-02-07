@@ -1513,7 +1513,7 @@ export class AgentOrchestrator {
    * Handle idea type classification flow at session start.
    * Returns a response if in classification flow, null to continue normal processing.
    */
-  private async handleIdeaTypeClassification(
+  private async _handleIdeaTypeClassification(
     session: IdeationSession,
     userMessage: string,
     messages: IdeationMessage[],

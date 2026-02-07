@@ -220,7 +220,7 @@ export class TaskTestService {
     let overallPassed = true;
     let totalDuration = 0;
 
-    for (const [level, levelResults] of byLevel) {
+    for (const [level, levelResults] of Array.from(byLevel.entries())) {
       const latest = levelResults[0]; // Results are ordered by created_at DESC
       const passed = latest.passed;
       if (!passed) overallPassed = false;
