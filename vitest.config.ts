@@ -5,6 +5,12 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    exclude: [
+      "tests/integration/**",
+      "tests/e2e/**",
+      "node_modules/**",
+      "dist/**",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
@@ -16,6 +22,14 @@ export default defineConfig({
       threads: {
         singleThread: true,
       },
+      forks: {
+        singleFork: true,
+      },
+    },
+  },
+  server: {
+    watch: {
+      ignored: ["**/.venv/**", "**/node_modules/**", "**/.git/**"],
     },
   },
 });
