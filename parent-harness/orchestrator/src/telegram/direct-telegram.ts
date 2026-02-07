@@ -377,6 +377,11 @@ export const notify = {
     await notifyAdmin(`📊 *Status*\nAgents: ${workingCount} working, ${idleCount} idle\nPending: ${pendingTasks}`);
   },
 
+  toolUse: async (agentIdOrType: string, toolName: string, details?: Record<string, unknown>) => {
+    const detailStr = details ? `\n${JSON.stringify(details).slice(0, 200)}` : '';
+    await notifyAgent(agentIdOrType, `🔧 *Tool Use*\n${toolName}${detailStr}`);
+  },
+
   fileEdit: async (agentIdOrType: string, filePath: string, linesChanged: number) => {
     const fileName = filePath.split('/').pop() || filePath;
     await notifyAgent(agentIdOrType, `✏️ *File Edit*\n${fileName} (${linesChanged} lines)`);
