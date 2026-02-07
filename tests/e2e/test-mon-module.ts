@@ -73,7 +73,7 @@ async function testMON001() {
   // Test 2: Can register an agent
   agent.registerAgent("test-agent-1", "spec", "session-1");
   const state = agent.getAgentState("test-agent-1");
-  const agentRegistered = state !== undefined && state.agentType === "spec";
+  const agentRegistered = state != null && state.agentType === "spec";
   results.push({
     test: "MON-001.2: Agent registration",
     passed: agentRegistered,
@@ -136,7 +136,7 @@ async function testMON002() {
   await new Promise((r) => setTimeout(r, 10));
   const agentState = agent.getAgentState("hub-agent-1");
   const agentReadyHandled =
-    agentState !== undefined && agentState.agentType === "build";
+    agentState != null && agentState.agentType === "build";
   results.push({
     test: "MON-002.2: Agent ready event",
     passed: agentReadyHandled,

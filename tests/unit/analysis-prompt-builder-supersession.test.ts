@@ -27,6 +27,7 @@ describe("Analysis Prompt Builder - Supersession", () => {
           metadata: {
             insightType: "decision",
             title: "Switch to Vue.js",
+            createdAt: new Date().toISOString(),
             supersedes: {
               insightId: "insight_react",
               reason: "Simpler learning curve for the team",
@@ -65,6 +66,7 @@ describe("Analysis Prompt Builder - Supersession", () => {
           metadata: {
             insightType: "fact",
             title: "Regular Insight",
+            createdAt: new Date().toISOString(),
           },
         },
       ];

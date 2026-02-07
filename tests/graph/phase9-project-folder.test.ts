@@ -62,6 +62,9 @@ describe("Phase 9: Project Folder & Spec Output", () => {
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z",
         userId: "test-user",
+        successCriteria: [],
+        constraints: [],
+        outOfScope: [],
       };
 
       const mockSections = [
@@ -123,6 +126,9 @@ describe("Phase 9: Project Folder & Spec Output", () => {
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z",
         userId: "test-user",
+        successCriteria: [],
+        constraints: [],
+        outOfScope: [],
       };
 
       await saveSpecToFile({
@@ -148,7 +154,9 @@ describe("Phase 9: Project Folder & Spec Output", () => {
   describe("T9.5: Project Folder API Types", () => {
     it("should define FileNode interface correctly", async () => {
       // Import types from component (may fail in test env without frontend build)
+      // @ts-ignore JSX not configured in root tsconfig
       const module = await import(
+        // @ts-ignore JSX not configured in root tsconfig
         "../../frontend/src/components/ideation/ProjectFilesPanel.js"
       ).catch(() => null);
 

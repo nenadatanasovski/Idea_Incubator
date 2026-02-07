@@ -98,16 +98,16 @@ async function validateCOM() {
   try {
     const delivery =
       await import("../../server/communication/question-delivery");
-    const hasClass = typeof delivery._QuestionDelivery === "function";
-    const hasTypes = delivery._Question !== undefined || true; // Type won't exist at runtime
+    const hasClass = typeof delivery.QuestionDelivery === "function";
+    const hasTypes = (delivery as Record<string, unknown>).Question !== undefined || true; // Type won't exist at runtime
     log(
       "COM-006",
-      "_Question delivery with inline buttons",
+      "Question delivery with inline buttons",
       hasClass,
-      hasClass ? "_QuestionDelivery class" : "Missing",
+      hasClass ? "QuestionDelivery class" : "Missing",
     );
   } catch (e) {
-    log("COM-006", "_Question delivery", false, String(e));
+    log("COM-006", "Question delivery", false, String(e));
   }
 
   // COM-007: Answer processor
@@ -457,7 +457,7 @@ async function validateQUE() {
       await import("../../server/communication/answer-processor");
     const hasClass = typeof processor.AnswerProcessor === "function";
     const proto = processor.AnswerProcessor.prototype;
-    const hasRegister = typeof proto.register_Question === "function";
+    const hasRegister = typeof proto.registerQuestion === "function";
     // Answer processing uses processButtonAnswer and processTextAnswer
     const hasProcessButton = typeof proto.processButtonAnswer === "function";
     const hasProcessText = typeof proto.processTextAnswer === "function";
@@ -513,8 +513,8 @@ async function validateNTF() {
     log(
       "NTF-002",
       "Telegram question delivery",
-      typeof delivery._QuestionDelivery === "function",
-      "_QuestionDelivery class",
+      typeof delivery.QuestionDelivery === "function",
+      "QuestionDelivery class",
     );
     log(
       "NTF-003",

@@ -10,6 +10,7 @@
  */
 
 import puppeteer, { Browser, Page } from "puppeteer";
+// @ts-expect-error Module may not exist yet; tests require a running browser environment
 import { browserTestScenarios } from "./browser-schema-tests";
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";

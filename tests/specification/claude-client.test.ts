@@ -64,6 +64,7 @@ describe("claude-client", () => {
         source: "knowledge_base",
       },
     ],
+    requirements: [],
     tokenEstimate: 1000,
   };
 

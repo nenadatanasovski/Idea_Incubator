@@ -289,6 +289,7 @@ export interface TaskListParallelism {
   totalTasks: number;
   totalWaves: number;
   maxWave: number;
+  maxParallelism: number;
   parallelOpportunities: number;
   waves: ExecutionWave[];
 }

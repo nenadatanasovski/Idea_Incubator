@@ -7,6 +7,7 @@
  * Run: npx ts-node tests/e2e/task-agent-litmus.ts
  */
 
+// @ts-expect-error better-sqlite3 types not installed; this is a standalone script
 import Database from "better-sqlite3";
 import { randomUUID } from "crypto";
 import * as readline from "readline";

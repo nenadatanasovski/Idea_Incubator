@@ -187,7 +187,10 @@ describe("PreAnsweredQuestionsMapper", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {
           constraints: {
+            location: { fixed: false, target: null },
             timeHoursPerWeek: 45,
+            capital: null,
+            riskTolerance: null,
           },
         },
         marketDiscovery: {},
@@ -207,7 +210,10 @@ describe("PreAnsweredQuestionsMapper", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {
           constraints: {
+            location: { fixed: false, target: null },
             timeHoursPerWeek: 15,
+            capital: null,
+            riskTolerance: null,
           },
         },
         marketDiscovery: {},
@@ -227,7 +233,10 @@ describe("PreAnsweredQuestionsMapper", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {
           constraints: {
+            location: { fixed: false, target: null },
             timeHoursPerWeek: 5,
+            capital: null,
+            riskTolerance: null,
           },
         },
         marketDiscovery: {},
@@ -314,7 +323,10 @@ describe("PreAnsweredQuestionsMapper", () => {
       const signals: IdeationSignals = {
         selfDiscovery: {
           constraints: {
+            location: { fixed: false, target: null },
+            timeHoursPerWeek: null,
             capital: "bootstrap",
+            riskTolerance: null,
           },
         },
         marketDiscovery: {},

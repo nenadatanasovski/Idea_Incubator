@@ -500,7 +500,7 @@ describe("Phase 9: Copy Link", () => {
       ];
 
       for (const entity of entities) {
-        const url = buildObservabilityUrl(entity.type, entity.params);
+        const url = buildObservabilityUrl(entity.type, entity.params as unknown as Record<string, string | number>);
         const parsed = parseEntityFromUrl(url);
         expect(parsed.executionId).toBe(TEST_EXECUTION_ID);
         expect(parsed.entityType).toBe(entity.type);

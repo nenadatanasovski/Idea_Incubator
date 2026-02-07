@@ -6,7 +6,7 @@
  */
 
 // Use environment variable or default to localhost
-const MEMORY_API_BASE = import.meta.env.VITE_MEMORY_API_URL || 'http://localhost:8000/api/v1';
+const MEMORY_API_BASE = (import.meta as any).env?.VITE_MEMORY_API_URL || 'http://localhost:8000/api/v1';
 
 // Types matching the FastAPI Pydantic models
 export type BlockType = 

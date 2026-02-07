@@ -8,9 +8,10 @@ import {
 } from "../../utils/logger.js";
 
 describe("Logger", () => {
-  let consoleSpy: ReturnType<typeof vi.spyOn>;
-  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let consoleSpy: any;
+  let consoleWarnSpy: any;
+  let consoleErrorSpy: any;
 
   beforeEach(() => {
     consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -67,7 +68,7 @@ describe("Logger", () => {
     expect(consoleSpy).toHaveBeenCalled();
     const callArgs = consoleSpy.mock.calls[0];
     expect(
-      callArgs.some((arg) => typeof arg === "string" && arg.includes("value")),
+      callArgs.some((arg: unknown) => typeof arg === "string" && arg.includes("value")),
     ).toBe(true);
   });
 });

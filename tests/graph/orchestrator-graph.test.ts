@@ -24,8 +24,10 @@ vi.mock("../../agents/ideation/block-extractor.js", () => ({
 vi.mock("../../agents/ideation/graph-analysis-subagent.js", () => ({
   graphAnalysisSubagent: {
     runAnalysis: vi.fn().mockResolvedValue({
+      taskId: "mock_task",
+      taskType: "cascade-detection",
       success: true,
-      result: { supersessionChains: [], conflicts: [] },
+      duration: 0,
     }),
   },
 }));
@@ -96,7 +98,7 @@ vi.mock("../../agents/ideation/artifact-store.js", () => ({
 }));
 
 // Import after mocks
-import { blockExtractor } from "../../agents/ideation/block-extractor.js";
+import { blockExtractor, ExtractionResult } from "../../agents/ideation/block-extractor.js";
 import { graphAnalysisSubagent } from "../../agents/ideation/graph-analysis-subagent.js";
 
 describe("AgentOrchestrator - Graph Integration", () => {
@@ -121,11 +123,13 @@ describe("AgentOrchestrator - Graph Integration", () => {
         blocks: [
           {
             id: "block_1",
-            type: "content",
+            type: "knowledge",
             content: "Market size is $50B",
             sessionId: "session_123",
             status: "active",
             confidence: 0.8,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           },
         ],
         links: [],
@@ -133,47 +137,54 @@ describe("AgentOrchestrator - Graph Integration", () => {
       });
 
       await blockExtractor.extractFromMessage(
-        "The market size is approximately $50B",
+        { id: "msg_456", sessionId: "session_123", role: "assistant", content: "The market size is approximately $50B", buttonsShown: null, buttonClicked: null, formShown: null, formResponse: null, webSearchResults: null, tokenCount: 0, createdAt: new Date() } as any,
         "session_123",
-        "msg_456",
         [],
       );
 
       expect(mockExtract).toHaveBeenCalledWith(
-        "The market size is approximately $50B",
+        expect.objectContaining({ id: "msg_456", content: "The market size is approximately $50B" }),
         "session_123",
-        "msg_456",
         [],
       );
     });
 
     it("should return extracted blocks with proper structure", async () => {
       const mockExtract = vi.mocked(blockExtractor.extractFromMessage);
-      const expectedResult = {
+      const now = new Date().toISOString();
+      const expectedResult: ExtractionResult = {
         blocks: [
           {
             id: "block_1",
-            type: "content" as const,
+            type: "knowledge",
             content: "Target market: B2B SaaS",
             sessionId: "session_123",
-            status: "active" as const,
+            status: "active",
             confidence: 0.85,
+            createdAt: now,
+            updatedAt: now,
           },
           {
             id: "block_2",
-            type: "assumption" as const,
+            type: "assumption",
             content: "Users will pay for premium features",
             sessionId: "session_123",
-            status: "active" as const,
+            status: "active",
             confidence: 0.6,
+            createdAt: now,
+            updatedAt: now,
           },
         ],
         links: [
           {
             id: "link_1",
+            sessionId: "session_123",
             sourceBlockId: "block_1",
             targetBlockId: "block_2",
-            linkType: "requires" as const,
+            linkType: "requires",
+            status: "active",
+            createdAt: now,
+            updatedAt: now,
           },
         ],
         warnings: [],
@@ -182,14 +193,13 @@ describe("AgentOrchestrator - Graph Integration", () => {
       mockExtract.mockResolvedValue(expectedResult);
 
       const result = await blockExtractor.extractFromMessage(
-        "Test message",
+        { id: "msg_456", sessionId: "session_123", role: "assistant", content: "Test message", buttonsShown: null, buttonClicked: null, formShown: null, formResponse: null, webSearchResults: null, tokenCount: 0, createdAt: new Date() } as any,
         "session_123",
-        "msg_456",
         [],
       );
 
       expect(result.blocks).toHaveLength(2);
-      expect(result.blocks[0].type).toBe("content");
+      expect(result.blocks[0].type).toBe("knowledge");
       expect(result.blocks[1].type).toBe("assumption");
       expect(result.links).toHaveLength(1);
       expect(result.links[0].linkType).toBe("requires");
@@ -200,21 +210,26 @@ describe("AgentOrchestrator - Graph Integration", () => {
     it("should call graphAnalysisSubagent.runAnalysis for cascade detection", async () => {
       const mockAnalysis = vi.mocked(graphAnalysisSubagent.runAnalysis);
       mockAnalysis.mockResolvedValue({
+        taskId: "test_task_1",
+        taskType: "cascade-detection",
         success: true,
-        result: {
-          supersessionChains: [
+        duration: 100,
+        cascadeResult: {
+          affectedBlocks: [
             {
-              sourceBlock: "block_1",
-              supersededBlocks: ["block_old_1"],
+              blockId: "block_old_1",
+              reason: "Depends on changed block",
+              suggestedAction: "review",
+              propagationLevel: 1,
             },
           ],
-          conflicts: [],
+          propagationDepth: 1,
         },
       });
 
       await graphAnalysisSubagent.runAnalysis(
-        "session_123",
         "cascade-detection",
+        "session_123",
         {
           newBlockIds: ["block_1", "block_2"],
           detectSupersession: true,
@@ -223,8 +238,8 @@ describe("AgentOrchestrator - Graph Integration", () => {
       );
 
       expect(mockAnalysis).toHaveBeenCalledWith(
-        "session_123",
         "cascade-detection",
+        "session_123",
         {
           newBlockIds: ["block_1", "block_2"],
           detectSupersession: true,
@@ -236,34 +251,39 @@ describe("AgentOrchestrator - Graph Integration", () => {
     it("should handle cascade detection with supersession chains", async () => {
       const mockAnalysis = vi.mocked(graphAnalysisSubagent.runAnalysis);
       mockAnalysis.mockResolvedValue({
+        taskId: "test_task_2",
+        taskType: "cascade-detection",
         success: true,
-        result: {
-          supersessionChains: [
+        duration: 150,
+        cascadeResult: {
+          affectedBlocks: [
             {
-              sourceBlock: "block_new",
-              supersededBlocks: ["block_old_1", "block_old_2"],
+              blockId: "block_old_1",
               reason: "Updated market size data",
+              suggestedAction: "review",
+              propagationLevel: 1,
+            },
+            {
+              blockId: "block_old_2",
+              reason: "Updated market size data",
+              suggestedAction: "review",
+              propagationLevel: 1,
             },
           ],
-          conflicts: [],
+          propagationDepth: 1,
         },
       });
 
       const result = await graphAnalysisSubagent.runAnalysis(
-        "session_123",
         "cascade-detection",
+        "session_123",
         { newBlockIds: ["block_new"] },
       );
 
       expect(result.success).toBe(true);
-      const cascadeResult = result.result as {
-        supersessionChains: Array<{
-          sourceBlock: string;
-          supersededBlocks: string[];
-        }>;
-      };
-      expect(cascadeResult.supersessionChains).toHaveLength(1);
-      expect(cascadeResult.supersessionChains[0].supersededBlocks).toContain(
+      expect(result.cascadeResult).toBeDefined();
+      expect(result.cascadeResult!.affectedBlocks).toHaveLength(2);
+      expect(result.cascadeResult!.affectedBlocks[0].blockId).toBe(
         "block_old_1",
       );
     });
@@ -271,48 +291,51 @@ describe("AgentOrchestrator - Graph Integration", () => {
     it("should handle cascade detection with conflicts", async () => {
       const mockAnalysis = vi.mocked(graphAnalysisSubagent.runAnalysis);
       mockAnalysis.mockResolvedValue({
+        taskId: "test_task_3",
+        taskType: "contradiction-scan",
         success: true,
-        result: {
-          supersessionChains: [],
-          conflicts: [
+        duration: 120,
+        contradictionResult: {
+          contradictions: [
             {
-              block1: "block_a",
-              block2: "block_b",
-              conflictType: "contradicts",
+              blockAId: "block_a",
+              blockBId: "block_b",
+              contradictionType: "direct",
               description: "Market size estimates differ significantly",
+              severity: "high",
             },
           ],
         },
       });
 
       const result = await graphAnalysisSubagent.runAnalysis(
+        "contradiction-scan",
         "session_123",
-        "cascade-detection",
         { newBlockIds: ["block_a"] },
       );
 
       expect(result.success).toBe(true);
-      const cascadeResult = result.result as {
-        conflicts: Array<{ block1: string; block2: string }>;
-      };
-      expect(cascadeResult.conflicts).toHaveLength(1);
+      expect(result.contradictionResult).toBeDefined();
+      expect(result.contradictionResult!.contradictions).toHaveLength(1);
     });
 
     it("should handle failed cascade detection gracefully", async () => {
       const mockAnalysis = vi.mocked(graphAnalysisSubagent.runAnalysis);
       mockAnalysis.mockResolvedValue({
+        taskId: "test_task_4",
+        taskType: "cascade-detection",
         success: false,
-        error: "Analysis failed due to invalid block IDs",
+        duration: 50,
       });
 
       const result = await graphAnalysisSubagent.runAnalysis(
-        "session_123",
         "cascade-detection",
+        "session_123",
         { newBlockIds: ["invalid_block"] },
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      expect(result.cascadeResult).toBeUndefined();
     });
   });
 
@@ -336,11 +359,13 @@ describe("AgentOrchestrator - Graph Integration", () => {
         blocks: [
           {
             id: "block_1",
-            type: "content",
+            type: "knowledge",
             content: "Test content",
             sessionId: "session_123",
             status: "active",
             confidence: 0.3,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           },
         ],
         links: [],
@@ -351,9 +376,8 @@ describe("AgentOrchestrator - Graph Integration", () => {
       });
 
       const result = await blockExtractor.extractFromMessage(
-        "Test message",
+        { id: "msg_456", content: "Test message" } as any,
         "session_123",
-        "msg_456",
         [],
       );
 
@@ -365,19 +389,22 @@ describe("AgentOrchestrator - Graph Integration", () => {
 
   describe("Duplicate Detection", () => {
     it("should pass existing blocks for duplicate detection", async () => {
+      const now = new Date().toISOString();
       const existingBlocks = [
         {
           id: "existing_1",
-          type: "content" as const,
+          type: "knowledge" as const,
           content: "Market size is $50B",
           sessionId: "session_123",
           status: "active" as const,
           confidence: 0.9,
+          createdAt: now,
+          updatedAt: now,
         },
       ];
 
       const mockGetBlocks = vi.mocked(blockExtractor.getBlocksForSession);
-      mockGetBlocks.mockResolvedValue(existingBlocks);
+      mockGetBlocks.mockResolvedValue(existingBlocks as any);
 
       const mockExtract = vi.mocked(blockExtractor.extractFromMessage);
       mockExtract.mockResolvedValue({
@@ -390,17 +417,15 @@ describe("AgentOrchestrator - Graph Integration", () => {
       expect(blocks).toEqual(existingBlocks);
 
       await blockExtractor.extractFromMessage(
-        "The market size is $50B",
+        { id: "msg_456", content: "The market size is $50B" } as any,
         "session_123",
-        "msg_456",
-        existingBlocks,
+        existingBlocks as any,
       );
 
       expect(mockExtract).toHaveBeenCalledWith(
-        expect.any(String),
+        expect.objectContaining({ id: "msg_456" }),
         "session_123",
-        "msg_456",
-        existingBlocks,
+        expect.any(Array),
       );
     });
   });

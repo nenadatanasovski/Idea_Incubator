@@ -175,6 +175,7 @@ describe("WebSearchService", () => {
               source: "a.com",
             },
           ],
+          synthesis: "",
           timestamp: "",
         },
         {
@@ -187,6 +188,7 @@ describe("WebSearchService", () => {
               source: "b.com",
             },
           ],
+          synthesis: "",
           timestamp: "",
         },
       ]);
@@ -206,6 +208,7 @@ describe("WebSearchService", () => {
               source: "a.com",
             },
           ],
+          synthesis: "",
           timestamp: "",
         },
       ]);
@@ -225,6 +228,7 @@ describe("WebSearchService", () => {
               source: "a.com",
             },
           ],
+          synthesis: "",
           timestamp: "",
         },
       ]);
@@ -244,6 +248,7 @@ describe("WebSearchService", () => {
               source: "a.com",
             },
           ],
+          synthesis: "",
           timestamp: "",
         },
       ]);

@@ -382,6 +382,7 @@ describe("Row Mappers", () => {
         token_count: 1000,
         message_count: 5,
         current_phase: "exploring",
+        title: null,
       };
 
       const session = mapSessionRowToSession(row);
@@ -411,6 +412,7 @@ describe("Row Mappers", () => {
         token_count: 5000,
         message_count: 20,
         current_phase: "refining",
+        title: "Test Session",
       };
 
       const session = mapSessionRowToSession(row);

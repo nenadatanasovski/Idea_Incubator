@@ -34,7 +34,7 @@ async function validateExports() {
     );
 
     // Verify MonitoringAgent has expected methods (by checking prototype)
-    const proto = monitoringModule.MonitoringAgent.prototype;
+    const proto = monitoringModule.MonitoringAgent.prototype as any;
     const methods = [
       "start",
       "stop",
@@ -45,7 +45,7 @@ async function validateExports() {
       "detectIssue",
     ];
     for (const method of methods) {
-      const hasMethod = typeof proto[method] === "function";
+      const hasMethod = typeof (proto as unknown as Record<string, unknown>)[method] === "function";
       results.push({ test: `MON-001: ${method} method`, passed: hasMethod });
       console.log(
         hasMethod
@@ -159,7 +159,7 @@ async function validateExports() {
     }
 
     // Verify ResponseEscalator methods
-    const proto = escalatorModule.ResponseEscalator.prototype;
+    const proto = escalatorModule.ResponseEscalator.prototype as any;
     const methods = [
       "handleIssue",
       "resolveIssue",
@@ -168,7 +168,7 @@ async function validateExports() {
       "stopAll",
     ];
     for (const method of methods) {
-      const hasMethod = typeof proto[method] === "function";
+      const hasMethod = typeof (proto as unknown as Record<string, unknown>)[method] === "function";
       results.push({ test: `MON-006: ${method} method`, passed: hasMethod });
       console.log(
         hasMethod
@@ -225,7 +225,7 @@ async function validateExports() {
       "getStatus",
     ];
     for (const method of methods) {
-      const hasMethod = typeof proto[method] === "function";
+      const hasMethod = typeof (proto as unknown as Record<string, unknown>)[method] === "function";
       results.push({ test: `MON-003: ${method} method`, passed: hasMethod });
       console.log(
         hasMethod
@@ -294,7 +294,7 @@ async function validateExports() {
       "getStatus",
     ];
     for (const method of methods) {
-      const hasMethod = typeof proto[method] === "function";
+      const hasMethod = typeof (proto as unknown as Record<string, unknown>)[method] === "function";
       results.push({ test: `MON-004: ${method} method`, passed: hasMethod });
       console.log(
         hasMethod
@@ -367,7 +367,7 @@ async function validateExports() {
       "cleanup",
     ];
     for (const method of methods) {
-      const hasMethod = typeof proto[method] === "function";
+      const hasMethod = typeof (proto as unknown as Record<string, unknown>)[method] === "function";
       results.push({ test: `MON-007: ${method} method`, passed: hasMethod });
       console.log(
         hasMethod
@@ -438,7 +438,7 @@ async function validateExports() {
       "getStatus",
     ];
     for (const method of methods) {
-      const hasMethod = typeof proto[method] === "function";
+      const hasMethod = typeof (proto as unknown as Record<string, unknown>)[method] === "function";
       results.push({ test: `MON-010: ${method} method`, passed: hasMethod });
       console.log(
         hasMethod

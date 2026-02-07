@@ -22,7 +22,7 @@ export const testExecutions = [
     runNumber: 2,
     status: "running",
     startedAt: "2026-01-16T10:00:00.000Z",
-    completedAt: null,
+    completedAt: undefined,
     sessionId: "session-002",
   },
   {
@@ -40,8 +40,8 @@ export const testExecutions = [
     runNumber: 2,
     status: "active",
     startedAt: "2026-01-17T08:00:00.000Z",
-    completedAt: null,
-    sessionId: null,
+    completedAt: undefined,
+    sessionId: undefined,
   },
   {
     id: "test-exec-blocked",
@@ -49,7 +49,7 @@ export const testExecutions = [
     runNumber: 1,
     status: "running",
     startedAt: "2026-01-17T07:00:00.000Z",
-    completedAt: null,
+    completedAt: undefined,
     sessionId: "session-blocked",
   },
 ];
@@ -61,7 +61,7 @@ export const emptyExecution = {
   status: "completed",
   startedAt: "2026-01-15T10:00:00.000Z",
   completedAt: "2026-01-15T10:01:00.000Z",
-  sessionId: null,
+  sessionId: undefined,
 };
 
 // === Transcript Fixtures ===

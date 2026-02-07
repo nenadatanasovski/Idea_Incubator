@@ -394,6 +394,7 @@ export async function getTaskListParallelism(
     totalTasks: taskCount?.count || 0,
     totalWaves: waves.length,
     maxWave: waves.length,
+    maxParallelism: waves.reduce((max, w) => Math.max(max, w.tasks.length), 0),
     parallelOpportunities,
     waves,
   };

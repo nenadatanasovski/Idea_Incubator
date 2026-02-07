@@ -95,30 +95,19 @@ describe("8.1 PRD → Task Extraction → Execution", () => {
         targetUsers: "All application users",
         functionalDescription:
           "Implement secure user authentication with login/logout",
-        successCriteria: JSON.stringify([
-          {
-            description: "Users can log in with email/password",
-            metric: "success_rate",
-            target: "99%",
-            verified: false,
-          },
-          {
-            description: "Session persists across page reloads",
-            metric: "session_duration",
-            target: "24h",
-            verified: false,
-          },
-        ]),
-        constraints: JSON.stringify([
+        successCriteria: [
+          "Users can log in with email/password",
+          "Session persists across page reloads",
+        ],
+        constraints: [
           "Must use JWT tokens",
           "Must support OAuth2",
-        ]),
-        outOfScope: JSON.stringify([
+        ],
+        outOfScope: [
           "Social login",
           "Two-factor authentication",
-        ]),
-        status: "draft",
-      },
+        ],
+      } as Parameters<typeof prdService.create>[0],
       "test-user",
     );
 
@@ -239,7 +228,6 @@ describe("8.1 PRD → Task Extraction → Execution", () => {
       {
         title: `${TEST_PREFIX}MVP Feature Set`,
         problemStatement: "Need to deliver core MVP features",
-        status: "draft",
       },
       "test-user",
     );
@@ -874,14 +862,14 @@ describe("8.4 Versioning and Rollback", () => {
     await taskStateHistoryService.record(
       taskId,
       "in_progress",
-      "validating",
+      "evaluating",
       "agent-1",
       "agent",
       "Code complete",
     );
     await taskStateHistoryService.record(
       taskId,
-      "validating",
+      "evaluating",
       "failed",
       "validator",
       "system",
@@ -898,14 +886,14 @@ describe("8.4 Versioning and Rollback", () => {
     await taskStateHistoryService.record(
       taskId,
       "in_progress",
-      "validating",
+      "evaluating",
       "agent-1",
       "agent",
       "Fixed issue",
     );
     await taskStateHistoryService.record(
       taskId,
-      "validating",
+      "evaluating",
       "completed",
       "validator",
       "system",
@@ -962,7 +950,7 @@ describe("8.4 Versioning and Rollback", () => {
 
     // Get latest version
     const latest = await taskVersionService.getLatestVersion(taskId);
-    expect(latest.version).toBe(2);
+    expect(latest!.version).toBe(2);
   });
 
   it("should support appendix versioning", async () => {
@@ -970,16 +958,15 @@ describe("8.4 Versioning and Rollback", () => {
     const appendix1 = await taskAppendixService.create({
       taskId,
       appendixType: "code_context",
-      contentType: "inline",
       content: "// Original code context",
-      title: "Code Context v1",
-    });
+      metadata: { title: "Code Context v1", contentType: "inline" },
+    } as Parameters<typeof taskAppendixService.create>[0]);
 
     // Update the appendix
     const appendix2 = await taskAppendixService.update(appendix1.id, {
       content: "// Updated code context with new information",
-      title: "Code Context v2",
-    });
+      metadata: { title: "Code Context v2" },
+    } as Parameters<typeof taskAppendixService.update>[1]);
 
     expect(appendix2.id).toBe(appendix1.id);
     expect(appendix2.content).toContain("Updated");
@@ -1011,7 +998,6 @@ describe("Integration: Full Task System Workflow", () => {
       {
         title: `${TEST_PREFIX}Integration Test PRD`,
         problemStatement: "Test problem",
-        status: "draft",
       },
       "test-user",
     );

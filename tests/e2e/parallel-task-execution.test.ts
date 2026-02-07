@@ -104,10 +104,10 @@ describe("Parallel Task Execution E2E", () => {
       const tasks = [
         {
           title: "E2E-GROUP Create database schema for users",
-          category: "infrastructure",
+          category: "infrastructure" as const,
         },
-        { title: "E2E-GROUP Create user types", category: "task" },
-        { title: "E2E-GROUP Create user API routes", category: "feature" },
+        { title: "E2E-GROUP Create user types", category: "task" as const },
+        { title: "E2E-GROUP Create user API routes", category: "feature" as const },
       ];
 
       const createdTasks = [];

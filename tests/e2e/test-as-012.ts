@@ -25,7 +25,7 @@ async function runTest() {
     createIdeaFolder,
     renameIdeaFolder,
     parseFrontmatter,
-    _loadArtifact,
+    loadArtifact,
   } = await import("../../agents/ideation/unified-artifact-store.js");
 
   const testUserSlug = "test-user-as012";
@@ -121,7 +121,7 @@ async function runTest() {
     }
 
     // 7. Check relationships.json was updated (if needed)
-    const _relationshipsPath = path.join(
+    const relationshipsPath = path.join(
       newPath,
       ".metadata",
       "relationships.json",
