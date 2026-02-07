@@ -281,7 +281,7 @@ export class TaskGenerator {
    */
   private generateServiceTasks(
     brief: ParsedBrief,
-    requirements: AnalyzedRequirements,
+    _requirements: AnalyzedRequirements,
     existingTasks: AtomicTask[],
   ): AtomicTask[] {
     const tasks: AtomicTask[] = [];
@@ -318,7 +318,7 @@ export class TaskGenerator {
    */
   private generateApiTasks(
     brief: ParsedBrief,
-    requirements: AnalyzedRequirements,
+    _requirements: AnalyzedRequirements,
     existingTasks: AtomicTask[],
   ): AtomicTask[] {
     const tasks: AtomicTask[] = [];
@@ -467,7 +467,7 @@ export class TaskGenerator {
     file: string;
     action: TaskAction;
   }): { command: string; expected: string } {
-    const { phase, file, action } = params;
+    const { phase, file, action: _action } = params;
 
     switch (phase) {
       case "database":

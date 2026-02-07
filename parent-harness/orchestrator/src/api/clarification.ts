@@ -21,7 +21,7 @@ clarificationRouter.get('/:id', (req, res) => {
   if (!request) {
     return res.status(404).json({ error: 'Clarification not found', status: 404 });
   }
-  res.json(request);
+  return res.json(request);
 });
 
 /**
@@ -44,7 +44,7 @@ clarificationRouter.post('/', async (req, res) => {
     expiresInHours,
   });
 
-  res.status(201).json(request);
+  return res.status(201).json(request);
 });
 
 /**
@@ -64,7 +64,7 @@ clarificationRouter.post('/:id/answer', async (req, res) => {
     return res.status(404).json({ error: 'Clarification not found or already answered', status: 404 });
   }
 
-  res.json(request);
+  return res.json(request);
 });
 
 /**
@@ -80,7 +80,7 @@ clarificationRouter.post('/:id/skip', async (req, res) => {
     return res.status(404).json({ error: 'Clarification not found or already handled', status: 404 });
   }
 
-  res.json(request);
+  return res.json(request);
 });
 
 /**
@@ -101,7 +101,7 @@ clarificationRouter.get('/pending-approval', (_req, res) => {
   if (!pending) {
     return res.json({ hasPending: false });
   }
-  res.json({ hasPending: true, ...pending });
+  return res.json({ hasPending: true, ...pending });
 });
 
 /**
@@ -113,9 +113,9 @@ clarificationRouter.post('/respond', (req, res) => {
   const { action, feedback } = req.body;
 
   if (!action || !['approve', 'reject', 'feedback'].includes(action)) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       error: 'Invalid action. Use: approve, reject, or feedback',
-      status: 400 
+      status: 400
     });
   }
 
@@ -126,11 +126,11 @@ clarificationRouter.post('/respond', (req, res) => {
   );
 
   if (!result.handled) {
-    return res.status(404).json({ 
+    return res.status(404).json({
       error: 'No pending approval found',
-      status: 404 
+      status: 404
     });
   }
 
-  res.json({ success: true, message: result.message });
+  return res.json({ success: true, message: result.message });
 });

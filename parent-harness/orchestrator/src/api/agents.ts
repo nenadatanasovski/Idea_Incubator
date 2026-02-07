@@ -22,7 +22,7 @@ agentsRouter.get('/metadata/:id', (req, res) => {
   if (!metadata) {
     return res.status(404).json({ error: 'Agent metadata not found', status: 404 });
   }
-  res.json(metadata);
+  return res.json(metadata);
 });
 
 /**
@@ -59,7 +59,7 @@ agentsRouter.get('/:id', (req, res) => {
   if (!agent) {
     return res.status(404).json({ error: 'Agent not found', status: 404 });
   }
-  res.json(agent);
+  return res.json(agent);
 });
 
 /**
@@ -79,7 +79,7 @@ agentsRouter.patch('/:id', (req, res) => {
   }
 
   const updated = agents.getAgent(req.params.id);
-  res.json(updated);
+  return res.json(updated);
 });
 
 /**
@@ -93,5 +93,5 @@ agentsRouter.post('/:id/heartbeat', (req, res) => {
   }
 
   agents.updateHeartbeat(req.params.id);
-  res.json({ success: true });
+  return res.json({ success: true });
 });

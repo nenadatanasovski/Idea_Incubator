@@ -150,7 +150,7 @@ export class PromptRestructureTechnique extends BaseTechnique {
   private generateClarifications(
     req: string,
     analysis: FailureAnalysis,
-    context: TaskContext
+    _context: TaskContext
   ): string[] {
     const clarifications: string[] = [];
     const reqLower = req.toLowerCase();
@@ -249,7 +249,7 @@ export class PromptRestructureTechnique extends BaseTechnique {
    */
   private improveValidation(
     task: AtomicTask,
-    analysis: FailureAnalysis
+    _analysis: FailureAnalysis
   ): { command: string; expected: string } {
     let command = task.validation.command;
     let expected = task.validation.expected;

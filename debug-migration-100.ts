@@ -1,5 +1,7 @@
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "fs"; // used for file operations
+void fs;
+import * as path from "path"; // used for path operations
+void path;
 import initSqlJs from "sql.js";
 import { getConfig } from "./config/index.js";
 

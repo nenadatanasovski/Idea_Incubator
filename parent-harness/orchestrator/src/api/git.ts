@@ -65,14 +65,14 @@ router.post('/commit', async (req, res) => {
 
   try {
     const commit = await git.commit(message, { taskId, sessionId, agentId });
-    
+
     if (!commit) {
       return res.json({ success: false, message: 'No changes to commit' });
     }
 
-    res.json({ success: true, commit });
+    return res.json({ success: true, commit });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : String(error),
     });
@@ -110,9 +110,9 @@ router.post('/branch', async (req, res) => {
 
   try {
     const success = await git.createBranch(name);
-    res.json({ success, branch: name });
+    return res.json({ success, branch: name });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : String(error),
     });

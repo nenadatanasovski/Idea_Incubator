@@ -941,6 +941,7 @@ export function emitSubAgentResult(
 export interface BlockCreatedPayload {
   id: string;
   type?: string;
+  title?: string | null;
   content?: string;
   properties?: Record<string, unknown>;
   status?: string;

@@ -44,7 +44,7 @@ memoryRouter.post('/:agentId', (req, res) => {
     expiresIn,
   });
 
-  res.status(201).json(entry);
+  return res.status(201).json(entry);
 });
 
 /**

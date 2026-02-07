@@ -159,6 +159,10 @@ export interface CollectedSource {
     insightType?: InsightType;
     sourceContext?: string;
     synthesized?: boolean;
+    supersedes?: {
+      insightId: string;
+      reason: string;
+    };
   };
   weight: number; // Source reliability weight (0.0-1.0)
 }

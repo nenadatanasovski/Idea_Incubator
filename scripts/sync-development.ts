@@ -67,7 +67,7 @@ function parseQAPairs(content: string): QAPair[] {
   }
   
   // Pattern 2: Table format | Question | Answer | ... |
-  const tablePattern = /\|\s*(.+?)\s*\|\s*(.+?)\s*\|(?:\s*(.+?)\s*\|)?(?:\s*(.+?)\s*\|)?/g;
+  const _tablePattern = /\|\s*(.+?)\s*\|\s*(.+?)\s*\|(?:\s*(.+?)\s*\|)?(?:\s*(.+?)\s*\|)?/g;
   const lines = content.split("\n");
   let inTable = false;
   let isHeaderRow = true;
@@ -253,7 +253,7 @@ async function syncToSQLite(data: DevelopmentData): Promise<number> {
   // Get idea ID from database if not in frontmatter
   let ideaId = data.ideaId;
   if (!ideaId) {
-    const ideas = query<{ id: string }>(
+    const ideas = await query<{ id: string }>(
       "SELECT id FROM ideas WHERE slug = ?",
       [data.ideaSlug]
     );

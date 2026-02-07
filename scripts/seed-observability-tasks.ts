@@ -8,7 +8,7 @@
  */
 
 import { v4 as uuidv4 } from "uuid";
-import { run, getOne, all, saveDb } from "../database/db.js";
+import { run, getOne, query as all, saveDb } from "../database/db.js";
 
 interface TaskToCreate {
   id: string;

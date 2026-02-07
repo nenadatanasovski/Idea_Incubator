@@ -75,7 +75,7 @@ export async function runQuery<T = unknown>(
     const result = await session.run(cypher, params);
     return result.records.map(record => {
       const obj: Record<string, unknown> = {};
-      record.keys.forEach(key => {
+      (record.keys as string[]).forEach((key: string) => {
         obj[key] = record.get(key);
       });
       return obj as T;

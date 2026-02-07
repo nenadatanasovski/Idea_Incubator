@@ -107,14 +107,14 @@ import { run as dbRun, getOne as dbGetOne, query as dbQuery } from "../database/
 // Database adapter for orchestrator (matches expected interface)
 const dbAdapter = {
   async run(sql: string, params?: unknown[]) {
-    await dbRun(sql, params);
+    await dbRun(sql, params as (string | number | boolean | null)[]);
     return { lastID: 0, changes: 0 }; // Not used by orchestrator
   },
   async get<T>(sql: string, params?: unknown[]) {
-    return dbGetOne<T>(sql, params);
+    return dbGetOne<T>(sql, params as (string | number | boolean | null)[]);
   },
   async all<T>(sql: string, params?: unknown[]) {
-    return dbQuery<T>(sql, params);
+    return dbQuery<T>(sql, params as (string | number | boolean | null)[]);
   }
 };
 

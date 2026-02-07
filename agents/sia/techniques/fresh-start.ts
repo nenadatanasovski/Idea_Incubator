@@ -35,7 +35,7 @@ export class FreshStartTechnique extends BaseTechnique {
   
   async apply(
     task: AtomicTask,
-    context: TaskContext,
+    _context: TaskContext,
     analysis: FailureAnalysis
   ): Promise<SIAResult> {
     // Create a fresh version of the task with minimal context
@@ -49,7 +49,7 @@ export class FreshStartTechnique extends BaseTechnique {
    */
   private createFreshTask(
     task: AtomicTask,
-    analysis: FailureAnalysis
+    _analysis: FailureAnalysis
   ): AtomicTask {
     // Simplify requirements to core essentials
     const essentialRequirements = this.extractEssentialRequirements(task.requirements);
@@ -190,7 +190,7 @@ export class ContextPruningTechnique extends BaseTechnique {
    */
   private pruneTask(
     task: AtomicTask,
-    context: TaskContext,
+    _context: TaskContext,
     analysis: FailureAnalysis
   ): AtomicTask {
     // Keep requirements that aren't related to errors

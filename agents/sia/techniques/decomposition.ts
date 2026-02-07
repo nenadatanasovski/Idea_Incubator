@@ -33,7 +33,7 @@ export class DecompositionTechnique extends BaseTechnique {
   
   async apply(
     task: AtomicTask,
-    context: TaskContext,
+    _context: TaskContext,
     analysis: FailureAnalysis
   ): Promise<SIAResult> {
     // Analyze the task to identify natural decomposition points
@@ -72,7 +72,7 @@ export class DecompositionTechnique extends BaseTechnique {
    */
   private analyzeDecomposition(
     task: AtomicTask,
-    analysis: FailureAnalysis
+    _analysis: FailureAnalysis
   ): SubtaskPlan[] {
     const plans: SubtaskPlan[] = [];
     
@@ -200,7 +200,7 @@ export class DecompositionTechnique extends BaseTechnique {
       test: ["test", "verify", "validate", "check", "assert"],
     };
     
-    for (const [groupName, keywords] of Object.entries(keywordGroups)) {
+    for (const [_groupName, keywords] of Object.entries(keywordGroups)) {
       const group: string[] = [];
       
       requirements.forEach((req, index) => {

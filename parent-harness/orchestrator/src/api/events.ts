@@ -32,7 +32,7 @@ eventsRouter.get('/:id', (req, res) => {
   if (!event) {
     return res.status(404).json({ error: 'Event not found', status: 404 });
   }
-  res.json(event);
+  return res.json(event);
 });
 
 /**
@@ -59,7 +59,7 @@ eventsRouter.post('/', (req, res) => {
     metadata,
   });
 
-  res.status(201).json(event);
+  return res.status(201).json(event);
 });
 
 // Track read notification IDs in memory (simple approach - could move to DB)
@@ -69,7 +69,7 @@ const readNotificationIds = new Set<number>();
  * GET /api/events/notifications
  * Get notification-worthy events (warnings and errors from last 24h)
  */
-eventsRouter.get('/notifications', (req, res) => {
+eventsRouter.get('/notifications', (_req, res) => {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   
   // Get warning and error events
@@ -113,7 +113,7 @@ eventsRouter.post('/notifications/:id/read', (req, res) => {
  * POST /api/events/notifications/read-all
  * Mark all notifications as read
  */
-eventsRouter.post('/notifications/read-all', (req, res) => {
+eventsRouter.post('/notifications/read-all', (_req, res) => {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const warnings = events.getEvents({ severity: 'warning', since, limit: 100 });
   const errors = events.getEvents({ severity: 'error', since, limit: 100 });

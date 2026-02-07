@@ -290,7 +290,7 @@ export class SIAAgent extends EventEmitter {
    */
   private suggestApproaches(
     issueType: FailureAnalysis["issueType"],
-    errorPatterns: string[],
+    _errorPatterns: string[],
     memory: TaskMemory
   ): string[] {
     const approaches: string[] = [];

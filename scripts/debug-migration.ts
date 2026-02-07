@@ -1,6 +1,5 @@
-import { getDb, exec, query, saveDb, closeDb } from '../database/db.js';
-import * as fs from 'fs';
-import * as path from 'path';
+import { getDb, exec, query, closeDb } from '../database/db.js';
+void getDb;
 
 async function testMigration() {
   try {

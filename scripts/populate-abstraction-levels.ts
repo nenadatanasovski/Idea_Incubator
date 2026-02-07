@@ -72,7 +72,7 @@ function classifyAbstractionLevel(
 
   // 2. Graph membership refinement
   const hasProblem = graphMemberships.includes("problem");
-  const hasSolution = graphMemberships.includes("solution");
+  const _hasSolution = graphMemberships.includes("solution");
   const hasSpec = graphMemberships.includes("spec");
   const hasBusiness = graphMemberships.includes("business");
   const hasMarket = graphMemberships.includes("market");

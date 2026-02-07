@@ -2,7 +2,7 @@ import { getDb, exec, query, closeDb } from '../database/db.js';
 
 async function test() {
   try {
-    const db = await getDb();
+    const _db = await getDb();
     console.log('DB connected');
     
     // Check if task_appendices exists

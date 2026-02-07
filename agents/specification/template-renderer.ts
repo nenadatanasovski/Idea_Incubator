@@ -199,7 +199,7 @@ export class TemplateRenderer {
   private renderPlaceholders(
     content: string,
     data: Record<string, unknown>,
-    warnings: string[],
+    _warnings: string[],
   ): string {
     return content.replace(/\{\{(\w+)\}\}/g, (match, key) => {
       if (key in data) {
@@ -228,7 +228,7 @@ export class TemplateRenderer {
   private renderNestedPlaceholders(
     content: string,
     data: Record<string, unknown>,
-    warnings: string[],
+    _warnings: string[],
   ): string {
     return content.replace(/\{\{(\w+(?:\.\w+)+)\}\}/g, (match, path) => {
       const value = this.getNestedValue(data, path);

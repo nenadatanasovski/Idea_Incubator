@@ -3,7 +3,7 @@
 ## Overview
 
 **Status**: RESOLVED - No code changes required
-**Task**: FIX-TASK-013-HI8C
+**Tasks**: FIX-TASK-013-HI8C, FIX-TASK-013-G1R2
 **Original claim**: `answerQuestion()` and `areRequiredQuestionsAnswered()` methods missing from QuestionEngine
 
 Investigation revealed both methods were already fully implemented. The original failure was caused by the verification harness running `npm run typecheck` from a context where the script was not available (possibly a different working directory or npm workspace resolution issue).
@@ -82,6 +82,19 @@ However, `package.json` contains `"typecheck": "tsc --noEmit"` at line 41. The f
 - `types/task-agent.ts` - Task type definition
 - `uuid` - ID generation
 - `vitest` - Test framework
+
+## Verification History
+
+### FIX-TASK-013-G1R2 (Feb 7, 2026)
+
+Retry verification confirmed identical findings to previous attempt:
+
+- **QuestionEngine TypeScript errors**: 0 (verified via `npx tsc --noEmit 2>&1 | grep question-engine`)
+- **QuestionEngine tests**: 13/13 passing (verified via `npx vitest run tests/task-agent/question-engine.test.ts`)
+- **Pre-existing codebase TS errors**: ~505 lines across unrelated files (none in question-engine)
+- **Pre-existing test failures**: 28 test files failing (integration tests requiring running server, plus other unrelated services)
+
+All three methods (`answerQuestion`, `areRequiredQuestionsAnswered`, `getQuestions`) were already implemented before this task was created. The `Question` interface includes the `importance` property at line 38. No code changes were necessary.
 
 ## Open Questions
 

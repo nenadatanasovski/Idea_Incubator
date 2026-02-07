@@ -90,8 +90,8 @@ router.post('/record', (req, res) => {
   const { agentId, model, inputTokens, outputTokens, sessionId, taskId } = req.body;
 
   if (!agentId || !model || inputTokens === undefined || outputTokens === undefined) {
-    return res.status(400).json({ 
-      error: 'agentId, model, inputTokens, and outputTokens are required' 
+    return res.status(400).json({
+      error: 'agentId, model, inputTokens, and outputTokens are required'
     });
   }
 
@@ -100,7 +100,7 @@ router.post('/record', (req, res) => {
     taskId,
   });
 
-  res.json(usage);
+  return res.json(usage);
 });
 
 /**

@@ -10,7 +10,7 @@
  *   --limit      Maximum number of blocks to process (default: 100)
  */
 
-import { query, run, saveDb, getDb } from "../database/db.js";
+import { query, run, saveDb } from "../database/db.js";
 import { runMigrations } from "../database/migrate.js";
 import { client as anthropicClient } from "../utils/anthropic-client.js";
 

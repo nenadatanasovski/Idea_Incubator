@@ -37,19 +37,19 @@ configRouter.get('/', (_req, res) => {
  */
 configRouter.patch('/', (req, res) => {
   const updates = req.body;
-  
+
   // Validate
   const validation = config.validateConfig(updates);
   if (!validation.valid) {
-    return res.status(400).json({ 
-      error: 'Invalid configuration', 
-      details: validation.errors 
+    return res.status(400).json({
+      error: 'Invalid configuration',
+      details: validation.errors
     });
   }
-  
+
   const newConfig = config.updateConfig(updates);
-  res.json({ 
-    success: true, 
+  return res.json({
+    success: true,
     config: newConfig,
     message: 'Configuration updated. Some changes may require restart.',
   });
@@ -116,7 +116,7 @@ configRouter.get('/stats', (_req, res) => {
 configRouter.get('/budget', (_req, res) => {
   const dailyUsage = budget.getDailyUsage();
   const monthlyUsage = budget.getMonthlyUsage();
-  const budgetConfig = budget.getBudgetConfig();
+  const _budgetConfig = budget.getBudgetConfig();
   const cfg = config.getConfig();
   
   const dailyLimit = cfg.budget.daily_token_limit;
@@ -214,7 +214,7 @@ configRouter.post('/planning/daily', async (req, res) => {
   }
 
   const session = await planning.runDailyPlanning(taskListId);
-  res.json(session);
+  return res.json(session);
 });
 
 /**
