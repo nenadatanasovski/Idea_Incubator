@@ -28,6 +28,34 @@ export class TaskVersionService {
    * 2. createVersion(taskId, { title?, description?, category?, changedBy, changeReason })
    * 3. createVersion(taskId, reason, userId) - for simple version creation
    */
+  // Overload 1: Array of changed fields with optional reason and userId
+  async createVersion(
+    taskId: string,
+    changedFields: string[],
+    reason?: string,
+    userId?: string,
+  ): Promise<TaskVersion>;
+
+  // Overload 2: Update object with optional fields
+  async createVersion(
+    taskId: string,
+    update: {
+      title?: string;
+      description?: string;
+      category?: string;
+      changedBy?: string;
+      changeReason?: string;
+    },
+  ): Promise<TaskVersion>;
+
+  // Overload 3: Simple reason and userId
+  async createVersion(
+    taskId: string,
+    reason: string,
+    userId: string,
+  ): Promise<TaskVersion>;
+
+  // Implementation signature
   async createVersion(
     taskId: string,
     changedFieldsOrUpdateOrReason?: string[] | string | {
