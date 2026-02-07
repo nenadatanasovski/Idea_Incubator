@@ -558,4 +558,162 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   )
 }
 
+const AVAILABLE_MODELS = ['opus', 'sonnet', 'haiku']
+
+function FallbackChainEditor({ chain, onChange }: { chain: string[]; onChange: (chain: string[]) => void }) {
+  const moveUp = (index: number) => {
+    if (index === 0) return
+    const newChain = [...chain]
+    ;[newChain[index - 1], newChain[index]] = [newChain[index], newChain[index - 1]]
+    onChange(newChain)
+  }
+
+  const moveDown = (index: number) => {
+    if (index >= chain.length - 1) return
+    const newChain = [...chain]
+    ;[newChain[index], newChain[index + 1]] = [newChain[index + 1], newChain[index]]
+    onChange(newChain)
+  }
+
+  const toggleModel = (model: string) => {
+    if (chain.includes(model)) {
+      if (chain.length <= 1) return // Keep at least one
+      onChange(chain.filter(m => m !== model))
+    } else {
+      onChange([...chain, model])
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="text-xs text-gray-400 mb-2">Drag order determines fallback priority</div>
+      <div className="space-y-2">
+        {chain.map((model, index) => (
+          <div key={model} className="flex items-center gap-2 bg-gray-700 rounded px-3 py-2">
+            <span className="text-xs text-gray-500 w-4">{index + 1}.</span>
+            <span className="flex-1 text-sm font-medium capitalize">{model}</span>
+            <button
+              onClick={() => moveUp(index)}
+              disabled={index === 0}
+              className="p-1 hover:bg-gray-600 rounded disabled:opacity-30"
+              title="Move up"
+            >
+              ↑
+            </button>
+            <button
+              onClick={() => moveDown(index)}
+              disabled={index >= chain.length - 1}
+              className="p-1 hover:bg-gray-600 rounded disabled:opacity-30"
+              title="Move down"
+            >
+              ↓
+            </button>
+            <button
+              onClick={() => toggleModel(model)}
+              disabled={chain.length <= 1}
+              className="p-1 hover:bg-red-700 rounded text-red-400 disabled:opacity-30"
+              title="Remove"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+      
+      {/* Add missing models */}
+      {AVAILABLE_MODELS.filter(m => !chain.includes(m)).length > 0 && (
+        <div className="pt-2 border-t border-gray-700">
+          <div className="text-xs text-gray-500 mb-2">Add to chain:</div>
+          <div className="flex gap-2 flex-wrap">
+            {AVAILABLE_MODELS.filter(m => !chain.includes(m)).map(model => (
+              <button
+                key={model}
+                onClick={() => toggleModel(model)}
+                className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs capitalize"
+              >
+                + {model}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const AGENT_TYPES = ['build', 'planning', 'qa', 'review', 'research', 'deploy']
+
+function PerTypeLimitsEditor({ limits, onChange }: { limits: Record<string, number>; onChange: (limits: Record<string, number>) => void }) {
+  const updateLimit = (type: string, value: number) => {
+    onChange({ ...limits, [type]: value })
+  }
+
+  const removeLimit = (type: string) => {
+    const newLimits = { ...limits }
+    delete newLimits[type]
+    onChange(newLimits)
+  }
+
+  const [newType, setNewType] = useState('')
+
+  const addType = () => {
+    if (!newType || limits[newType] !== undefined) return
+    onChange({ ...limits, [newType]: 2 })
+    setNewType('')
+  }
+
+  return (
+    <div className="space-y-3">
+      {Object.entries(limits).length === 0 ? (
+        <div className="text-xs text-gray-500 italic">No per-type limits configured (using global max)</div>
+      ) : (
+        <div className="space-y-2">
+          {Object.entries(limits).map(([type, limit]) => (
+            <div key={type} className="flex items-center gap-2">
+              <span className="text-sm text-gray-300 w-20 truncate capitalize">{type}</span>
+              <input
+                type="number"
+                min="1"
+                max="10"
+                value={limit}
+                onChange={(e) => updateLimit(type, parseInt(e.target.value) || 1)}
+                className="w-16 bg-gray-700 rounded px-2 py-1 text-sm text-center"
+              />
+              <button
+                onClick={() => removeLimit(type)}
+                className="p-1 hover:bg-red-700 rounded text-red-400 text-xs"
+                title="Remove"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="pt-2 border-t border-gray-700">
+        <div className="flex gap-2">
+          <select
+            value={newType}
+            onChange={(e) => setNewType(e.target.value)}
+            className="flex-1 bg-gray-700 rounded px-2 py-1 text-sm"
+          >
+            <option value="">Add type limit...</option>
+            {AGENT_TYPES.filter(t => limits[t] === undefined).map(type => (
+              <option key={type} value={type} className="capitalize">{type}</option>
+            ))}
+          </select>
+          <button
+            onClick={addType}
+            disabled={!newType}
+            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-sm disabled:opacity-50"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default Config
