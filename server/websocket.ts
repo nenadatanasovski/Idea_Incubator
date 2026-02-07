@@ -1756,6 +1756,9 @@ export type TaskExecutorEventType =
   | "task:resumed" // Task resumed after user input
   | "task:claimed" // Task claimed by an agent
   | "task:released" // Task released back to queue
+  | "task:progress" // Task execution progress update
+  | "task:timeout" // Task execution timed out
+  | "task:error" // Task execution error
   | "tasklist:loaded" // Task list loaded
   | "question:answered" // Question answered
   | "question:expired"; // Question expired

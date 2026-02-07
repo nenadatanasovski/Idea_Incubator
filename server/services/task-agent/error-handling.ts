@@ -502,14 +502,12 @@ async function spawnSIAAnalysis(
   // Query knowledge base for similar gotchas
   const similarGotchas = await queryKnowledge({
     type: "gotcha",
-    searchText: errorKeywords.join(" "),
     limit: 5,
   });
 
   // Query for relevant patterns
   const relevantPatterns = await queryKnowledge({
     type: "pattern",
-    searchText: context.filePath || context.taskTitle,
     limit: 3,
   });
 
@@ -518,12 +516,12 @@ async function spawnSIAAnalysis(
     ...similarGotchas.map((g) => ({
       type: "gotcha",
       content: g.content,
-      confidence: g.confidenceScore || 0.5,
+      confidence: g.confidence || 0.5,
     })),
     ...relevantPatterns.map((p) => ({
       type: "pattern",
       content: p.content,
-      confidence: p.confidenceScore || 0.5,
+      confidence: p.confidence || 0.5,
     })),
   ];
 

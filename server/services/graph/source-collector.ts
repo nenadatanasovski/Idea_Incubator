@@ -313,7 +313,7 @@ export async function collectConversationInsights(
   }
 
   // Start synthesis and track the promise
-  const synthesisPromise = doSynthesis(sessionId, limit, latestMessage);
+  const synthesisPromise = doSynthesis(sessionId, limit, latestMessage ?? undefined);
   synthesisInProgress.set(sessionId, synthesisPromise);
 
   try {

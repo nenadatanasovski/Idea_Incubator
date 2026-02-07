@@ -382,9 +382,9 @@ export async function getWorkflowHistory(
     version: row.version,
     changesJson: row.changes_json,
     snapshotJson: row.snapshot_json,
-    createdAt: row.created_at,
-    createdBy: row.created_by,
-  })) as SpecHistory[];
+    changedAt: row.created_at,
+    changedBy: row.created_by,
+  })) as unknown as SpecHistory[];
 }
 
 export default {

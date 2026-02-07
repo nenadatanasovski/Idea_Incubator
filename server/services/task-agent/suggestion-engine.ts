@@ -369,7 +369,7 @@ Type /queue to see pending tasks or /suggest for grouping ideas.`,
     try {
       const agents = await buildAgentOrchestrator.getActiveAgents();
       const blockedAgents = agents.filter(
-        (a) => a.status === "blocked" || a.status === "waiting",
+        (a) => (a.status as string) === "blocked" || (a.status as string) === "waiting",
       );
 
       if (blockedAgents.length > 0) {
@@ -382,7 +382,7 @@ Type /queue to see pending tasks or /suggest for grouping ideas.`,
 Agent \`${agent.id.slice(0, 8)}\` is waiting for input.
 
 📋 *Task:* ${agent.taskId || "Unknown"}
-⏱️ *Blocked since:* ${agent.createdAt}
+⏱️ *Blocked since:* ${agent.spawnedAt}
 
 Please review and provide guidance.`,
           buttons: [
@@ -456,10 +456,10 @@ Nice work! What's next?`,
         return null; // At capacity
       }
 
-      // Query for task lists that are ready to execute (sync query)
-      const readyLists = query<{ id: string; name: string; total_tasks: number }>(
-        `SELECT id, name, total_tasks FROM task_lists_v2 
-         WHERE status = 'ready' 
+      // Query for task lists that are ready to execute
+      const readyLists = await query<{ id: string; name: string; total_tasks: number }>(
+        `SELECT id, name, total_tasks FROM task_lists_v2
+         WHERE status = 'ready'
          AND total_tasks > 0
          ORDER BY created_at ASC
          LIMIT 1`,
@@ -505,14 +505,14 @@ Nice work! What's next?`,
       }
 
       // Find ready lists that could run in parallel
-      const readyLists = query<{
+      const readyLists = await query<{
         id: string;
         name: string;
         total_tasks: number;
         project_id: string | null;
       }>(
-        `SELECT id, name, total_tasks, project_id FROM task_lists_v2 
-         WHERE status = 'ready' 
+        `SELECT id, name, total_tasks, project_id FROM task_lists_v2
+         WHERE status = 'ready'
          AND total_tasks > 0
          ORDER BY created_at ASC
          LIMIT 3`,

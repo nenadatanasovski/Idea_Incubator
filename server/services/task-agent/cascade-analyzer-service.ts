@@ -12,7 +12,7 @@ import {
   CascadeTrigger,
   CascadeSuggestedAction,
 } from "../../../types/cascade.js";
-import { TaskImpact, ImpactConflict } from "../../../types/task-impact.js";
+import { TaskImpact, ImpactConflict, ImpactType, ImpactOperation, ImpactSource } from "../../../types/task-impact.js";
 import { TaskImpactRow } from "../../../types/task-impact.js";
 
 /**
@@ -456,13 +456,13 @@ export class CascadeAnalyzerService {
       impacts: impacts.map((i) => ({
         id: i.id,
         taskId: i.task_id,
-        impactType: i.impact_type,
-        operation: i.operation,
+        impactType: i.impact_type as ImpactType,
+        operation: i.operation as ImpactOperation,
         targetPath: i.target_path,
-        targetName: i.target_name,
-        targetSignature: i.target_signature,
+        targetName: i.target_name ?? undefined,
+        targetSignature: i.target_signature ?? undefined,
         confidence: i.confidence,
-        source: i.source,
+        source: i.source as ImpactSource,
         createdAt: i.created_at,
         updatedAt: i.updated_at,
       })),

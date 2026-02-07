@@ -25,6 +25,27 @@ import {
   TaskResultCollector,
 } from "./task-result-collector.js";
 
+interface TaskResult {
+  success: boolean;
+  output?: string;
+  error?: string;
+}
+
+interface ExecutorStateRow {
+  id: string;
+  completed_tasks: number;
+  failed_tasks: number;
+  skipped_tasks: number;
+  task_list_path: string;
+}
+
+interface QueueItemRow {
+  task_id: string;
+  status: string;
+  position: number;
+  task_list_path: string;
+}
+
 export interface ExecutionConfig {
   taskListPath: string;
   autoStart: boolean;
@@ -231,7 +252,7 @@ export class TaskExecutor extends EventEmitter {
    */
   private async restoreQueueFromDatabase(filePath: string): Promise<boolean> {
     try {
-      const queueItems = await query(
+      const queueItems = await query<QueueItemRow>(
         `
         SELECT * FROM task_queue
         WHERE task_list_path = ? AND status = 'queued'
@@ -245,7 +266,7 @@ export class TaskExecutor extends EventEmitter {
       }
 
       // Restore executor state
-      const executorState = await getOne(
+      const executorState = await getOne<ExecutorStateRow>(
         `
         SELECT * FROM executor_state WHERE task_list_path = ?
       `,
@@ -531,7 +552,7 @@ export class TaskExecutor extends EventEmitter {
 
     // Start progress reporting interval
     const progressInterval = setInterval(() => {
-      const elapsedMs = Date.now() - new Date(execution.startedAt).getTime();
+      const elapsedMs = Date.now() - new Date(execution.startedAt || Date.now()).getTime();
       emitTaskExecutorEvent("task:progress", {
         taskId: task.id,
         executionId,
