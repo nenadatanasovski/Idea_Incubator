@@ -105,6 +105,12 @@ export const ws = {
   // Test events
   testRunStarted: (run: unknown) => broadcast('test:started', run),
   testRunCompleted: (run: unknown) => broadcast('test:completed', run),
+
+  // Budget events
+  budgetUpdated: (budget: unknown) => broadcast('budget:updated', budget),
+
+  // Telegram events
+  telegramMessage: (message: unknown) => broadcast('telegram:message', message),
 };
 
 export default { initWebSocket, broadcast, ws };

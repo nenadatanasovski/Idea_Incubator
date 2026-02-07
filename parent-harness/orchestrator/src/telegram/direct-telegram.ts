@@ -6,6 +6,8 @@
  */
 
 import https from 'https';
+import { logTelegramMessage } from '../db/telegram.js';
+import { ws } from '../websocket.js';
 
 // Bot tokens per agent type
 const BOT_TOKENS: Record<string, string> = {
@@ -174,14 +176,41 @@ function getBotToken(agentType: string): string {
   return BOT_TOKENS[botKey] || BOT_TOKENS.system;
 }
 
+// Context for message logging
+interface MessageContext {
+  messageType?: string;
+  taskId?: string;
+  taskDisplayId?: string;
+  agentId?: string;
+  sessionId?: string;
+}
+
+// Current context (set before sending messages)
+let currentContext: MessageContext = {};
+
 /**
- * Send a message via a specific bot (with rate limiting)
+ * Set context for the next message(s) to be sent
+ */
+export function setMessageContext(ctx: MessageContext): void {
+  currentContext = ctx;
+}
+
+/**
+ * Clear message context
+ */
+export function clearMessageContext(): void {
+  currentContext = {};
+}
+
+/**
+ * Send a message via a specific bot (with rate limiting and logging)
  */
 async function sendTelegramMessage(
   botToken: string,
   chatId: string,
   text: string,
-  parseMode: 'HTML' | 'Markdown' = 'Markdown'
+  parseMode: 'HTML' | 'Markdown' = 'Markdown',
+  botType: string = 'system'
 ): Promise<boolean> {
   if (!botToken || !chatId) return false;
   
@@ -205,6 +234,28 @@ async function sendTelegramMessage(
     console.warn(`❌ Telegram send failed: ${errorDesc}`);
     return false;
   }
+  
+  // Log to database
+  try {
+    const telegramMessageId = (result.result as any)?.message_id;
+    const logged = logTelegramMessage({
+      botType,
+      chatId,
+      messageType: currentContext.messageType || 'general',
+      messageText: text,
+      taskId: currentContext.taskId,
+      taskDisplayId: currentContext.taskDisplayId,
+      agentId: currentContext.agentId || botType,
+      sessionId: currentContext.sessionId,
+      telegramMessageId,
+    });
+    
+    // Broadcast via WebSocket
+    ws.telegramMessage(logged);
+  } catch (err) {
+    console.warn('Failed to log telegram message:', err);
+  }
+  
   return true;
 }
 
@@ -260,8 +311,9 @@ export async function notifyAdmin(message: string): Promise<boolean> {
  * Send notification from an agent's dedicated bot
  */
 export async function notifyAgent(agentIdOrType: string, message: string): Promise<boolean> {
+  const botKey = AGENT_BOT_MAP[agentIdOrType] || 'system';
   const token = getBotToken(agentIdOrType);
-  return sendTelegramMessage(token, ADMIN_CHAT_ID, message);
+  return sendTelegramMessage(token, ADMIN_CHAT_ID, message, 'Markdown', botKey);
 }
 
 /**
@@ -269,21 +321,29 @@ export async function notifyAgent(agentIdOrType: string, message: string): Promi
  */
 export const notify = {
   taskAssigned: async (agentIdOrType: string, taskDisplayId: string, taskTitle: string) => {
+    setMessageContext({ messageType: 'task_assigned', taskDisplayId, agentId: agentIdOrType });
     await notifyAgent(agentIdOrType, `📋 *Task Assigned*\n\`${taskDisplayId}\`\n${taskTitle}`);
+    clearMessageContext();
   },
 
   taskCompleted: async (agentIdOrType: string, taskDisplayId: string, taskTitle: string, summary?: string) => {
+    setMessageContext({ messageType: 'task_completed', taskDisplayId, agentId: agentIdOrType });
     let msg = `✅ *Task Completed*\n\`${taskDisplayId}\`\n${taskTitle}`;
     if (summary) msg += `\n\n${summary.slice(0, 500)}`;
     await notifyAgent(agentIdOrType, msg);
+    clearMessageContext();
   },
 
   taskFailed: async (agentIdOrType: string, taskDisplayId: string, error: string) => {
+    setMessageContext({ messageType: 'task_failed', taskDisplayId, agentId: agentIdOrType });
     await notifyAgent(agentIdOrType, `❌ *Task Failed*\n\`${taskDisplayId}\`\n${error.slice(0, 300)}`);
+    clearMessageContext();
   },
 
   agentSpawned: async (agentIdOrType: string, taskDisplayId: string) => {
+    setMessageContext({ messageType: 'agent_spawned', taskDisplayId, agentId: agentIdOrType });
     await notifyAgent(agentIdOrType, `🚀 *Agent Spawned*\nWorking on: \`${taskDisplayId}\``);
+    clearMessageContext();
   },
 
   agentOutput: async (agentIdOrType: string, taskDisplayId: string, output: string) => {
@@ -479,4 +539,161 @@ export async function sendToBot(botType: string, message: string, parseMode?: 'H
   return true;
 }
 
-export default { initTelegram, sendMessage, notifyAdmin, notifyAgent, notify, sendToBot };
+/**
+ * Get webhook info for a specific bot
+ */
+export async function getWebhookInfo(botToken: string): Promise<{
+  url: string;
+  has_custom_certificate: boolean;
+  pending_update_count: number;
+  last_error_date?: number;
+  last_error_message?: string;
+  max_connections?: number;
+  allowed_updates?: string[];
+} | null> {
+  const result = await httpsGetIPv4(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
+  if (result.ok && result.result) {
+    return result.result as any;
+  }
+  return null;
+}
+
+/**
+ * Get bot info (getMe)
+ */
+export async function getBotInfo(botToken: string): Promise<{
+  id: number;
+  is_bot: boolean;
+  first_name: string;
+  username: string;
+  can_join_groups: boolean;
+  can_read_all_group_messages: boolean;
+  supports_inline_queries: boolean;
+} | null> {
+  const result = await httpsGetIPv4(`https://api.telegram.org/bot${botToken}/getMe`);
+  if (result.ok && result.result) {
+    return result.result as any;
+  }
+  return null;
+}
+
+/**
+ * Get status of all bots (username, webhook info)
+ */
+export async function getAllBotsStatus(): Promise<Array<{
+  type: string;
+  username: string | null;
+  webhookUrl: string | null;
+  webhookActive: boolean;
+  pendingUpdates: number;
+  lastError: string | null;
+  lastErrorDate: string | null;
+}>> {
+  const statuses = [];
+  
+  for (const [type, token] of Object.entries(BOT_TOKENS)) {
+    if (!token) continue;
+    
+    const [botInfo, webhookInfo] = await Promise.all([
+      getBotInfo(token),
+      getWebhookInfo(token),
+    ]);
+    
+    statuses.push({
+      type,
+      username: botInfo?.username ? `@${botInfo.username}` : null,
+      webhookUrl: webhookInfo?.url || null,
+      webhookActive: !!webhookInfo?.url,
+      pendingUpdates: webhookInfo?.pending_update_count || 0,
+      lastError: webhookInfo?.last_error_message || null,
+      lastErrorDate: webhookInfo?.last_error_date 
+        ? new Date(webhookInfo.last_error_date * 1000).toISOString() 
+        : null,
+    });
+  }
+  
+  return statuses;
+}
+
+// Webhook secret for verification
+const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || 'harness-webhook-secret-2026';
+
+/**
+ * Set webhook for a specific bot
+ */
+export async function setWebhook(botToken: string, webhookUrl: string): Promise<boolean> {
+  const result = await httpsPostIPv4(
+    `https://api.telegram.org/bot${botToken}/setWebhook`,
+    {
+      url: webhookUrl,
+      secret_token: WEBHOOK_SECRET,
+      allowed_updates: ['message', 'callback_query'],
+      drop_pending_updates: false,
+    }
+  );
+  
+  if (!result.ok) {
+    console.error(`❌ Failed to set webhook: ${result.error || JSON.stringify(result)}`);
+    return false;
+  }
+  
+  console.log(`✅ Webhook set for ${webhookUrl}`);
+  return true;
+}
+
+/**
+ * Delete webhook for a specific bot (revert to polling)
+ */
+export async function deleteWebhook(botToken: string): Promise<boolean> {
+  const result = await httpsPostIPv4(
+    `https://api.telegram.org/bot${botToken}/deleteWebhook`,
+    { drop_pending_updates: false }
+  );
+  
+  return result.ok === true;
+}
+
+/**
+ * Set webhooks for all bots
+ * @param baseUrl - Base URL of the server (e.g., https://abc123.ngrok.io)
+ */
+export async function setAllWebhooks(baseUrl: string): Promise<{ success: string[]; failed: string[] }> {
+  const success: string[] = [];
+  const failed: string[] = [];
+  
+  // Ensure base URL doesn't end with /
+  const base = baseUrl.replace(/\/$/, '');
+  
+  for (const [botType, token] of Object.entries(BOT_TOKENS)) {
+    if (!token) continue;
+    
+    const webhookUrl = `${base}/webhook/${botType}`;
+    const ok = await setWebhook(token, webhookUrl);
+    
+    if (ok) {
+      success.push(botType);
+      console.log(`📱 Webhook set for ${botType}: ${webhookUrl}`);
+    } else {
+      failed.push(botType);
+      console.error(`❌ Failed to set webhook for ${botType}`);
+    }
+  }
+  
+  return { success, failed };
+}
+
+/**
+ * Delete webhooks for all bots (revert to polling)
+ */
+export async function deleteAllWebhooks(): Promise<void> {
+  for (const [botType, token] of Object.entries(BOT_TOKENS)) {
+    if (!token) continue;
+    
+    const ok = await deleteWebhook(token);
+    if (ok) {
+      console.log(`📱 Webhook deleted for ${botType}`);
+    }
+  }
+}
+
+export default { initTelegram, sendMessage, notifyAdmin, notifyAgent, notify, sendToBot, getAllBotsStatus, setAllWebhooks, deleteAllWebhooks };

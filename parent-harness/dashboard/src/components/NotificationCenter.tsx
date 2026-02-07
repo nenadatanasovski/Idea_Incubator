@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { formatDate } from '../utils/format'
 
 interface Notification {
   id: number
@@ -80,15 +81,14 @@ export function NotificationCenter() {
   }
 
   const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp)
     const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
+    const diffMs = now.getTime() - new Date(timestamp).getTime()
     const diffMins = Math.floor(diffMs / 60000)
-    
+
     if (diffMins < 1) return 'just now'
     if (diffMins < 60) return `${diffMins}m ago`
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`
-    return date.toLocaleDateString()
+    return formatDate(timestamp)
   }
 
   return (

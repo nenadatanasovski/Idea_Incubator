@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Layout } from '../components/Layout'
+import { formatDate } from '../utils/format'
 
 interface AgentMetadata {
   id: string
@@ -87,15 +88,14 @@ export function Agents() {
 
   const formatTime = (timestamp: string | null) => {
     if (!timestamp) return 'Never'
-    const date = new Date(timestamp)
     const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
+    const diffMs = now.getTime() - new Date(timestamp).getTime()
     const diffMins = Math.floor(diffMs / 60000)
-    
+
     if (diffMins < 1) return 'Just now'
     if (diffMins < 60) return `${diffMins}m ago`
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`
-    return date.toLocaleDateString()
+    return formatDate(timestamp)
   }
 
   if (loading) {

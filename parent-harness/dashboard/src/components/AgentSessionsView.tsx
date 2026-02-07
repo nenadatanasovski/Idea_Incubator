@@ -8,6 +8,7 @@ import { useState, useMemo } from 'react';
 import type { Session } from '../hooks/useSessions';
 import { LogFileModal } from './LogFileModal';
 import type { AgentSessionStatus, LoopIteration } from '../types/pipeline';
+import { formatDateTimeShort, sydneyTimestamp } from '../utils/format';
 
 interface AgentSessionsViewProps {
   sessions: Session[];
@@ -180,7 +181,7 @@ export function AgentSessionsView({ sessions, className = '' }: AgentSessionsVie
                 <th className="min-w-[90px] px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Tasks
                 </th>
-                <th className="min-w-[80px] px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="min-w-[130px] px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Started
                 </th>
               </tr>
@@ -244,11 +245,12 @@ export function AgentSessionsView({ sessions, className = '' }: AgentSessionsVie
 
 // Generate mock log content
 function generateMockLogContent(session: Session, iteration: number): string {
-  return `[${new Date().toISOString()}] [INFO] Session ${session.id} - Iteration ${iteration}
-[${new Date().toISOString()}] [INFO] Starting task execution...
-[${new Date().toISOString()}] [TASK] Processing tasks from queue
-[${new Date().toISOString()}] [SUCCESS] ✓ Task completed successfully
-[${new Date().toISOString()}] [INFO] Iteration ${iteration} finished`;
+  const ts = sydneyTimestamp();
+  return `[${ts}] [INFO] Session ${session.id} - Iteration ${iteration}
+[${ts}] [INFO] Starting task execution...
+[${ts}] [TASK] Processing tasks from queue
+[${ts}] [SUCCESS] ✓ Task completed successfully
+[${ts}] [INFO] Iteration ${iteration} finished`;
 }
 
 // Stat Badge Component
@@ -367,8 +369,8 @@ function SessionRow({
             )}
           </div>
         </td>
-        <td className="min-w-[80px] px-4 py-3 text-sm text-gray-500">
-          {new Date(session.started_at).toLocaleTimeString()}
+        <td className="min-w-[130px] px-4 py-3 text-sm text-gray-500">
+          {formatDateTimeShort(session.started_at)}
         </td>
       </tr>
 
@@ -495,7 +497,7 @@ function IterationCard({ iteration, isLatest, onViewLog }: IterationCardProps) {
         {/* Time and duration */}
         <div className="flex items-center justify-between text-xs text-gray-400">
           <span className="flex items-center gap-1">
-            🕐 {new Date(iteration.startedAt).toLocaleTimeString()}
+            🕐 {formatDateTimeShort(iteration.startedAt)}
           </span>
           {iteration.duration && (
             <span>{Math.round(iteration.duration / 1000)}s</span>

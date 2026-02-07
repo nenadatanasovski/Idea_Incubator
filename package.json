@@ -38,6 +38,7 @@
     "test:obs:all": "npm run test:obs:api && npm run test:obs:ui && npm run test:obs:services && npm run test:obs:integration && npm run test:obs:python",
     "test:task": "tsx scripts/run-task-tests.ts",
     "test:task:obs-all": "tsx scripts/run-task-tests.ts TU-OBS-INF-001 && tsx scripts/run-task-tests.ts TU-OBS-INF-002 && tsx scripts/run-task-tests.ts TU-OBS-TST-001 && tsx scripts/run-task-tests.ts TU-OBS-FEA-007",
+    "typecheck": "tsc --noEmit",
     "build": "tsc",
     "spike:sdk": "tsx spikes/spike-0.1-agent-sdk.ts",
     "spike:parallel": "tsx spikes/spike-0.2-parallel.ts",

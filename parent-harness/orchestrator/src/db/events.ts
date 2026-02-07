@@ -319,6 +319,24 @@ export const events = {
       agentId: agentType,
       severity: 'info',
     }),
+
+  // System/Stability events
+  systemError: (source: string, error: string) =>
+    createEvent({
+      type: 'system:error',
+      message: `🚨 System error in ${source}: ${error}`,
+      agentId: source,
+      severity: 'error',
+      metadata: { source },
+    }),
+
+  systemRecovery: (source: string, message: string) =>
+    createEvent({
+      type: 'system:recovery',
+      message: `✅ System recovery: ${message}`,
+      agentId: source,
+      severity: 'info',
+    }),
 };
 
 export default {

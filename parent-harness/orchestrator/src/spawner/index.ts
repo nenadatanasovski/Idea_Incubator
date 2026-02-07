@@ -17,6 +17,7 @@ import { notify } from '../telegram/direct-telegram.js';
 import * as git from '../git/index.js';
 import * as config from '../config/index.js';
 import * as budget from '../budget/index.js';
+import { shouldAllowSpawn as checkBuildHealth, initBuildHealth, getBuildHealth } from '../build-health/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -546,19 +547,34 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
     };
   }
 
+  // Get task data (needed for multiple checks)
+  const taskData = tasks.getTask(taskId);
+
   // Check budget
   const budgetCheck = checkBudgetAllowsSpawn();
   if (!budgetCheck.allowed) {
     console.warn(`⚠️ Spawn blocked by budget: ${budgetCheck.reason}`);
     
     // Emit event for dashboard notification
-    const taskData = tasks.getTask(taskId);
     events.budgetSpawnBlocked(taskId, taskData?.title || taskId, budgetCheck.reason || 'Budget limit reached');
     
     return { 
       success: false, 
       sessionId: '', 
       error: budgetCheck.reason || 'Budget limit reached' 
+    };
+  }
+
+  // Check build health (don't spawn if codebase is broken)
+  const buildHealthCheck = checkBuildHealth(taskData?.category ?? undefined, taskData?.priority ?? undefined);
+  if (!buildHealthCheck.allowed) {
+    console.warn(`⚠️ Spawn blocked by build health: ${buildHealthCheck.reason}`);
+    
+    // Don't emit an event for every block - just log it
+    return { 
+      success: false, 
+      sessionId: '', 
+      error: buildHealthCheck.reason || 'Build health gate blocked spawn' 
     };
   }
 
@@ -569,8 +585,6 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
   if (!claudeAvailable) {
     return { success: false, sessionId: '', error: 'Claude CLI not available' };
   }
-
-  const taskData = tasks.getTask(taskId);
   const agentData = agents.getAgent(agentId);
   if (!taskData || !agentData) {
     return { success: false, sessionId: '', error: 'Task or agent not found' };

@@ -109,6 +109,18 @@ export function updateHeartbeat(id: string): void {
 }
 
 /**
+ * Clear agent heartbeat (for stale agent cleanup)
+ */
+export function clearHeartbeat(id: string): void {
+  run(`
+    UPDATE agents 
+    SET last_heartbeat = NULL,
+        updated_at = datetime('now')
+    WHERE id = ?
+  `, [id]);
+}
+
+/**
  * Increment tasks completed counter
  */
 export function incrementTasksCompleted(id: string): void {
@@ -174,6 +186,7 @@ export default {
   getWorkingAgents,
   updateAgentStatus,
   updateHeartbeat,
+  clearHeartbeat,
   incrementTasksCompleted,
   incrementTasksFailed,
   createAgent,

@@ -12,6 +12,7 @@ function NavLinks() {
     { path: '/agents', label: '🤖 Agents' },
     { path: '/tasks', label: 'Tasks' },
     { path: '/sessions', label: 'Sessions' },
+    { path: '/telegram', label: '📱 Telegram' },
     { path: '/config', label: '⚙️ Config' },
   ]
 

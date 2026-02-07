@@ -11,6 +11,8 @@ import * as clarification from '../clarification/index.js';
 import * as waves from '../waves/index.js';
 import * as crown from '../crown/index.js';
 import { notify } from '../telegram/index.js';
+import { recordTick, crashProtect } from '../stability/index.js';
+import { checkAlerts, initAlerts } from '../alerts/index.js';
 
 // Configuration
 const TICK_INTERVAL_MS = 30_000; // 30 seconds
@@ -99,6 +101,9 @@ export async function startOrchestrator(): Promise<void> {
 
   // Start Crown Agent (SIA monitoring system)
   crown.startCrown();
+
+  // Initialize alert engine
+  initAlerts();
 }
 
 /**
@@ -233,30 +238,33 @@ async function tick(): Promise<void> {
   const startTime = Date.now();
 
   try {
-    // 1. Check agent health
-    await checkAgentHealth();
+    // 1. Check agent health (crash-protected)
+    await crashProtect(() => checkAgentHealth(), 'checkAgentHealth');
 
-    // 2. Run QA verification every 10th tick
+    // 2. Run QA verification every 10th tick (crash-protected)
     if (RUN_QA && tickCount % QA_EVERY_N_TICKS === 0) {
       console.log(`🔍 QA cycle triggered (tick #${tickCount})`);
-      await qa.runQACycle();
+      await crashProtect(() => qa.runQACycle(), 'runQACycle');
     }
 
-    // 3. Process failed tasks for retry (every 5th tick)
+    // 3. Process failed tasks for retry (every 5th tick, crash-protected)
     if (tickCount % 5 === 0) {
-      const retried = await selfImprovement.processFailedTasks();
-      if (retried > 0) {
+      const retried = await crashProtect(
+        async () => selfImprovement.processFailedTasks(),
+        'processFailedTasks'
+      );
+      if (retried && retried > 0) {
         console.log(`🔄 Queued ${retried} tasks for retry`);
       }
     }
 
-    // 4. Check wave completion and advance to next wave
-    await checkWaveProgress();
+    // 4. Check wave completion and advance to next wave (crash-protected)
+    await crashProtect(() => checkWaveProgress(), 'checkWaveProgress');
 
-    // 5. Assign pending tasks to idle agents
-    await assignTasks();
+    // 5. Assign pending tasks to idle agents (crash-protected)
+    await crashProtect(() => assignTasks(), 'assignTasks');
 
-    // 4. Log tick event
+    // 6. Log tick event
     const workingAgents = agents.getWorkingAgents();
     const idleAgents = agents.getIdleAgents();
 
@@ -264,6 +272,14 @@ async function tick(): Promise<void> {
 
     const duration = Date.now() - startTime;
     console.log(`⏰ Tick #${tickCount}: ${workingAgents.length} working, ${idleAgents.length} idle (${duration}ms)`);
+
+    // 7. Record successful tick for stability monitoring
+    recordTick(tickCount);
+
+    // 8. Check alerts (every 5th tick to avoid overhead)
+    if (tickCount % 5 === 0) {
+      await crashProtect(() => checkAlerts(), 'checkAlerts');
+    }
 
   } catch (error) {
     console.error('❌ Tick error:', error);
@@ -296,31 +312,128 @@ async function checkWaveProgress(): Promise<void> {
 /**
  * Check agent health and mark stuck agents
  */
+/**
+ * Check agent health and recover from stuck/stale states
+ * 
+ * First Principles:
+ * 1. Stale = Dead: If heartbeat is stale, the agent process is dead
+ * 2. Clean up Dead: Dead agents should be reset to idle
+ * 3. Recover Tasks: Tasks from dead agents should be re-queued
+ * 4. Don't Spam: Only log the error once, not every tick
+ * 5. Grace Period: Give agents a chance before declaring them dead
+ */
 async function checkAgentHealth(): Promise<void> {
   const allAgents = agents.getAgents();
   const now = Date.now();
 
   for (const agent of allAgents) {
-    if (agent.status === 'working' && agent.last_heartbeat) {
-      const lastHeartbeat = new Date(agent.last_heartbeat).getTime();
-      const timeSinceHeartbeat = now - lastHeartbeat;
+    // Skip orchestrator and sia - they don't have heartbeats
+    if (['orchestrator', 'sia'].includes(agent.type)) continue;
 
-      if (timeSinceHeartbeat > STUCK_THRESHOLD_MS) {
-        console.warn(`⚠️ Agent ${agent.id} appears stuck (${Math.floor(timeSinceHeartbeat / 1000)}s since heartbeat)`);
+    const lastHeartbeat = agent.last_heartbeat 
+      ? new Date(agent.last_heartbeat).getTime() 
+      : 0;
+    const timeSinceHeartbeat = now - lastHeartbeat;
+
+    // Case 1: Working agent with stale heartbeat → mark stuck
+    if (agent.status === 'working' && timeSinceHeartbeat > STUCK_THRESHOLD_MS) {
+      console.warn(`⚠️ Agent ${agent.id} appears stuck (${Math.floor(timeSinceHeartbeat / 60000)}min since heartbeat)`);
+      
+      // Mark agent as stuck (but don't log event - we'll handle cleanup below)
+      agents.updateAgentStatus(agent.id, 'stuck', agent.current_task_id, agent.current_session_id);
+      ws.agentStatusChanged(agents.getAgent(agent.id));
+    }
+
+    // Case 2: Stuck agent → clean up and reset
+    if (agent.status === 'stuck') {
+      // Only log once when transitioning to cleanup
+      const stuckForMinutes = Math.floor(timeSinceHeartbeat / 60000);
+      
+      // If stuck for more than 30 minutes, assume dead and clean up
+      if (timeSinceHeartbeat > 30 * 60 * 1000) {
+        console.log(`🧹 Cleaning up dead agent ${agent.id} (stuck for ${stuckForMinutes}min)`);
         
-        // Mark agent as stuck
-        agents.updateAgentStatus(agent.id, 'stuck', agent.current_task_id, agent.current_session_id);
+        // Reset the agent's task to pending
+        if (agent.current_task_id) {
+          const task = tasks.getTask(agent.current_task_id);
+          if (task && task.status === 'in_progress') {
+            console.log(`   ↩️ Re-queuing task ${task.display_id}`);
+            tasks.updateTask(agent.current_task_id, { status: 'pending', assigned_agent_id: undefined });
+          }
+        }
+
+        // Close any open session
+        if (agent.current_session_id) {
+          sessions.updateSessionStatus(agent.current_session_id, 'terminated', undefined, 'Agent stuck - cleaned up');
+        }
+
+        // Reset agent to idle with cleared heartbeat
+        agents.updateAgentStatus(agent.id, 'idle', null, null);
+        agents.clearHeartbeat(agent.id);
         ws.agentStatusChanged(agents.getAgent(agent.id));
 
-        // Log event
-        events.agentError(agent.id, `Agent stuck - no heartbeat for ${Math.floor(timeSinceHeartbeat / 60000)} minutes`);
+        // Log event only once during cleanup
+        events.agentError(agent.id, `Agent cleaned up after being stuck for ${stuckForMinutes} minutes`);
+        events.systemRecovery?.('orchestrator', `Recovered agent ${agent.id} from stuck state`);
       }
+    }
+
+    // Case 3: Idle agent with ancient heartbeat → just clear it (no spam)
+    if (agent.status === 'idle' && lastHeartbeat > 0 && timeSinceHeartbeat > 60 * 60 * 1000) {
+      // Clear stale heartbeat silently - this agent just hasn't been used in a while
+      agents.clearHeartbeat(agent.id);
     }
   }
 }
 
+// Track recent task failures for cooldown (task_id -> last_failed_at timestamp)
+const recentFailures = new Map<string, number>();
+const MIN_RETRY_COOLDOWN_MS = 60_000; // 60 seconds minimum between retries
+const MAX_RETRY_COOLDOWN_MS = 10 * 60_000; // 10 minutes max cooldown
+const COOLDOWN_MULTIPLIER = 2; // Double cooldown each retry
+
+/**
+ * Calculate retry cooldown for a task based on retry count
+ */
+function getRetryCooldown(retryCount: number): number {
+  const baseCooldown = MIN_RETRY_COOLDOWN_MS * Math.pow(COOLDOWN_MULTIPLIER, retryCount);
+  return Math.min(baseCooldown, MAX_RETRY_COOLDOWN_MS);
+}
+
+/**
+ * Check if a task is in cooldown period
+ */
+function isTaskInCooldown(taskId: string, retryCount: number): boolean {
+  const lastFailed = recentFailures.get(taskId);
+  if (!lastFailed) return false;
+  
+  const cooldown = getRetryCooldown(retryCount);
+  const elapsed = Date.now() - lastFailed;
+  
+  if (elapsed < cooldown) {
+    // Still in cooldown
+    return true;
+  }
+  
+  // Cooldown expired, clean up
+  recentFailures.delete(taskId);
+  return false;
+}
+
+/**
+ * Record a task failure for cooldown tracking
+ */
+export function recordTaskFailure(taskId: string): void {
+  recentFailures.set(taskId, Date.now());
+}
+
 /**
  * Assign pending tasks to idle agents
+ * 
+ * First Principles:
+ * 1. Single Assignment: One task, one agent at a time
+ * 2. Cooldown: Failed tasks must wait before retry
+ * 3. Priority: P0 > P1 > P2, etc.
  */
 async function assignTasks(): Promise<void> {
   // Get pending tasks (with no unmet dependencies)
@@ -339,6 +452,14 @@ async function assignTasks(): Promise<void> {
 
   // Assign tasks to agents
   for (const task of sortedTasks) {
+    // Check cooldown for previously failed tasks
+    if (task.retry_count && task.retry_count > 0) {
+      if (isTaskInCooldown(task.id, task.retry_count)) {
+        // Skip this task - still in cooldown
+        continue;
+      }
+    }
+
     // Find suitable agent (prefer build_agent for features, qa_agent for tests, etc.)
     const agent = findSuitableAgent(task, idleAgents);
     if (!agent) continue;
@@ -468,6 +589,9 @@ export async function failTask(taskId: string, agentId: string, error: string): 
   const agent = agents.getAgent(agentId);
   if (!task || !agent) return;
 
+  // Record failure for cooldown tracking
+  recordTaskFailure(taskId);
+
   // Update task
   tasks.failTask(taskId);
 
@@ -487,7 +611,9 @@ export async function failTask(taskId: string, agentId: string, error: string): 
   ws.taskFailed(tasks.getTask(taskId), error);
   ws.agentStatusChanged(agents.getAgent(agentId));
 
-  console.log(`❌ Failed ${task.display_id}: ${error}`);
+  // Log with cooldown info
+  const cooldown = getRetryCooldown(task.retry_count || 0);
+  console.log(`❌ Failed ${task.display_id}: ${error} (cooldown: ${cooldown / 1000}s)`);
 }
 
 /**

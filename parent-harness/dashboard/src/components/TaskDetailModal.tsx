@@ -13,6 +13,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Task } from '../api/types';
 import api from '../api/client';
+import { formatDateTime } from '../utils/format';
 
 interface TaskDetailModalProps {
   taskId: string;
@@ -470,15 +471,6 @@ function HistoryTab({ task }: { task: TaskDetail }) {
   );
 }
 
-// Utilities
-function formatDateTime(dateString: string): string {
-  return new Date(dateString).toLocaleString('en-AU', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+// formatDateTime imported from ../utils/format
 
 export default TaskDetailModal;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 interface BudgetStatus {
   daily: {
@@ -16,22 +16,41 @@ export function BudgetIndicator() {
   const [budget, setBudget] = useState<BudgetStatus | null>(null)
   const [isOpen, setIsOpen] = useState(false)
 
-  useEffect(() => {
-    async function fetchBudget() {
-      try {
-        const res = await fetch(`${API_BASE}/config/budget`)
-        if (res.ok) {
-          setBudget(await res.json())
-        }
-      } catch (err) {
-        console.error('Failed to fetch budget:', err)
+  const fetchBudget = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/config/budget`)
+      if (res.ok) {
+        setBudget(await res.json())
       }
+    } catch (err) {
+      console.error('Failed to fetch budget:', err)
     }
-
-    fetchBudget()
-    const interval = setInterval(fetchBudget, 30000) // Update every 30s
-    return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    fetchBudget()
+    
+    // Poll as fallback
+    const interval = setInterval(fetchBudget, 30000)
+    
+    // WebSocket for real-time updates
+    let ws: WebSocket | null = null
+    try {
+      ws = new WebSocket('ws://localhost:3333/ws')
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        if (data.type === 'budget:updated') {
+          fetchBudget() // Refresh on budget update
+        }
+      }
+      ws.onerror = () => {} // Ignore errors, fallback to polling
+    } catch { /* ignore */ }
+    
+    return () => {
+      clearInterval(interval)
+      ws?.close()
+    }
+  }, [fetchBudget])
 
   if (!budget) return null
 

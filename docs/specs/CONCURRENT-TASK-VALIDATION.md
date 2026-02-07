@@ -4,6 +4,7 @@
 > **Purpose:** Specification for concurrent task creation validation in the parent-harness orchestrator
 > **Status:** Test Infrastructure
 > **Task ID:** `concurrent_1770382500598_4` (and siblings `_0` through `_3`)
+> **Latest Batch:** `concurrent_1770383122675_0` through `concurrent_1770383122675_4` (Feb 7, 2026 execution)
 
 ---
 
@@ -139,11 +140,11 @@ cd parent-harness/orchestrator && npx vitest run tests/e2e/honest-validation.tes
 
 ## 6. Open Questions
 
-| # | Question | Status |
-|---|----------|--------|
-| 1 | Should concurrent tests clean up after themselves? | Open - currently test tasks persist in DB |
-| 2 | Should we test higher concurrency (10+, 50+ tasks)? | Open - current test uses 5 tasks |
-| 3 | Should we add stress testing for concurrent updates (not just creates)? | Open - only creation is tested |
+| # | Question | Status | Resolution |
+|---|----------|--------|------------|
+| 1 | Should concurrent tests clean up after themselves? | Resolved | Yes - test tasks should be cleaned up in afterAll() or via a dedicated cleanup utility. Orphaned test artifacts (25+ found in DB analysis) cause queue pollution and inflate task counts. Recommend `DELETE FROM tasks WHERE display_id LIKE 'concurrent_%' AND category = 'test'` in test teardown. |
+| 2 | Should we test higher concurrency (10+, 50+ tasks)? | Open | Current 5-task batch is adequate for correctness validation. Higher concurrency stress testing should be a separate test case, not a modification of the existing correctness test. |
+| 3 | Should we add stress testing for concurrent updates (not just creates)? | Open | Yes, recommended. Wave-based execution involves concurrent status transitions (pending → in_progress → complete) which should be validated separately. |
 
 ---
 
@@ -154,6 +155,21 @@ cd parent-harness/orchestrator && npx vitest run tests/e2e/honest-validation.tes
 | [PARALLEL-EXECUTION-EXTENSIONS.md](./observability/data-model/PARALLEL-EXECUTION-EXTENSIONS.md) | Parallel execution observability schema |
 | [PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md](./PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md) | Wave-based parallel execution plan |
 | [task-example-reference.md](./task-example-reference.md) | Canonical task format reference |
+
+---
+
+## 7. Retry Failure Analysis
+
+The `concurrent_1770383122675_1` task experienced 4+ retry failures with "Unknown error" and "No approach" in the retry guidance. Root cause analysis:
+
+| Issue | Explanation |
+|-------|-------------|
+| **Ambiguous task title** | "Concurrent Task 1" provides no context about what needs to be done |
+| **Missing description** | The task description contained only retry guidance, not actual requirements |
+| **Agent type mismatch** | Multiple agent types (clarification, qa, task, evaluator, spec) were rotated through, but none had sufficient context to determine what action to take |
+| **Test artifact confusion** | Agents interpreted this as a feature/work task rather than recognizing it as a test validation artifact |
+
+**Recommendation:** Test-generated tasks should include a `category: 'test'` marker and a description field that explicitly states "This is an automated test artifact for concurrent database validation. No agent action required." This would prevent the orchestrator from assigning agents to complete test infrastructure tasks.
 
 ---
 

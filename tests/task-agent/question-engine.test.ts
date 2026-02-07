@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { v4 as uuidv4 } from "uuid";
 import { questionEngine } from "../../server/services/task-agent/question-engine";
-import { run, saveDb } from "../../database/db";
+import { run, exec, saveDb } from "../../database/db";
 
 const TEST_PREFIX = "QUESTION-TEST-";
 
@@ -48,6 +48,75 @@ async function cleanupTestData(): Promise<void> {
 
 describe("QuestionEngine", () => {
   beforeAll(async () => {
+    // Ensure required tables exist for testing
+    await exec(`
+      CREATE TABLE IF NOT EXISTS tasks (
+        id TEXT PRIMARY KEY,
+        display_id TEXT UNIQUE,
+        title TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        status TEXT DEFAULT 'pending',
+        category TEXT DEFAULT 'feature',
+        priority TEXT DEFAULT 'P2',
+        effort TEXT DEFAULT 'medium',
+        queue TEXT,
+        phase INTEGER DEFAULT 0,
+        position INTEGER DEFAULT 0,
+        owner TEXT DEFAULT 'human',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    await exec(`
+      CREATE TABLE IF NOT EXISTS task_questions (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        category TEXT NOT NULL,
+        text TEXT NOT NULL,
+        priority INTEGER NOT NULL DEFAULT 5,
+        importance TEXT NOT NULL DEFAULT 'optional',
+        target_field TEXT,
+        answer TEXT,
+        answered_at TEXT,
+        skipped INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    await exec(`CREATE INDEX IF NOT EXISTS idx_task_questions_task ON task_questions(task_id)`);
+    await exec(`CREATE INDEX IF NOT EXISTS idx_task_questions_task_status ON task_questions(task_id, skipped)`);
+    await exec(`
+      CREATE TABLE IF NOT EXISTS task_relationships (
+        id TEXT PRIMARY KEY,
+        source_task_id TEXT NOT NULL,
+        target_task_id TEXT NOT NULL,
+        relationship_type TEXT NOT NULL,
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    await exec(`
+      CREATE TABLE IF NOT EXISTS task_appendices (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        appendix_type TEXT NOT NULL,
+        content TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    await exec(`
+      CREATE TABLE IF NOT EXISTS task_impacts (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        impact_type TEXT NOT NULL,
+        operation TEXT,
+        target_path TEXT,
+        confidence REAL DEFAULT 0.5,
+        source TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
     await cleanupTestData();
   });
 

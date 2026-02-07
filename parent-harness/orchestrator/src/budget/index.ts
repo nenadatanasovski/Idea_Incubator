@@ -11,6 +11,7 @@
 import { run, query, getOne } from '../db/index.js';
 import { notify } from '../telegram/index.js';
 import { events } from '../db/events.js';
+import { ws } from '../websocket.js';
 import { v4 as uuidv4 } from 'uuid';
 
 // Track which thresholds have been alerted (reset daily)
@@ -148,6 +149,19 @@ export function recordUsage(
 
   // Check budget after recording
   checkBudgetWarnings();
+
+  // Broadcast budget update via WebSocket
+  try {
+    const daily = getDailyUsage();
+    const cfg = getBudgetConfig();
+    const totalTokens = daily.totalInputTokens + daily.totalOutputTokens;
+    ws.budgetUpdated({
+      tokens: totalTokens,
+      limit: cfg.dailyLimitUsd * 20000, // rough token estimate
+      percent: (daily.totalCostUsd / cfg.dailyLimitUsd) * 100,
+      cost_usd: daily.totalCostUsd,
+    });
+  } catch { /* ignore broadcast errors */ }
 
   return {
     id,

@@ -232,7 +232,7 @@ async function main() {
 
   // Ensure acceptance criteria exists
   console.log("📝 Checking acceptance criteria...");
-  const appendixId = await ensureAcceptanceCriteria(
+  await ensureAcceptanceCriteria(
     task.id,
     mapping.acceptanceCriteria,
     mapping.testScope,

@@ -1,18 +1,8 @@
 import 'dotenv/config';
 
-// ============ GLOBAL ERROR HANDLERS ============
-// Prevent crashes from unhandled errors
-process.on('uncaughtException', (error) => {
-  console.error('❌ [UNCAUGHT] Unhandled exception (not crashing):', error.message);
-  console.error(error.stack);
-  // Log to file for later analysis
-  // Don't exit - let the harness continue running
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ [UNHANDLED] Promise rejection (not crashing):', reason);
-  // Don't exit - let the harness continue running
-});
+// ============ STABILITY LAYER (MUST BE FIRST) ============
+import { initStability } from './stability/index.js';
+initStability();
 
 import express from 'express';
 import cors from 'cors';
@@ -32,10 +22,19 @@ import { orchestratorRouter } from './api/orchestrator.js';
 import { gitRouter } from './api/git.js';
 import { budgetRouter } from './api/budget.js';
 import { crownRouter } from './api/crown.js';
+import { telegramRouter } from './api/telegram.js';
+import { webhookRouter } from './api/webhook.js';
+import { stabilityRouter } from './api/stability.js';
+import { buildHealthRouter } from './api/build-health.js';
+import { alertsRouter } from './api/alerts.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
+
+// Import command handlers (registers commands on load)
+import './telegram/commands.js';
 import { initWebSocket } from './websocket.js';
 import { startOrchestrator } from './orchestrator/index.js';
 import { initTelegram } from './telegram/index.js';
+import { initBuildHealth } from './build-health/index.js';
 
 const app = express();
 const PORT = process.env.PORT || 3333;
@@ -48,6 +47,10 @@ initWebSocket(server);
 
 // Initialize Telegram (optional)
 initTelegram();
+
+// Initialize Build Health monitoring
+const CODEBASE_ROOT = process.env.CODEBASE_ROOT || '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
+initBuildHealth(CODEBASE_ROOT);
 
 // Middleware
 app.use(cors());
@@ -74,6 +77,11 @@ app.use('/api/orchestrator', orchestratorRouter);
 app.use('/api/git', gitRouter);
 app.use('/api/budget', budgetRouter);
 app.use('/api/crown', crownRouter);
+app.use('/api/telegram', telegramRouter);
+app.use('/api/stability', stabilityRouter);
+app.use('/api/build-health', buildHealthRouter);
+app.use('/api/alerts', alertsRouter);
+app.use('/webhook', webhookRouter);
 
 // Error handling
 app.use(notFoundHandler);

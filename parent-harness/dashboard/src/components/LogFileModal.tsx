@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import type { LoopIteration, AgentSessionStatus } from '../types/pipeline';
+import { formatTime as formatTimeSydney, sydneyTimestamp } from '../utils/format';
 
 interface LogFileModalProps {
   logFileId: string;
@@ -441,7 +442,7 @@ export function LogFileModal({
                   <span>Use ← → to navigate iterations</span>
                 )}
               </div>
-              <span>{new Date().toLocaleString()}</span>
+              <span>{sydneyTimestamp()}</span>
             </div>
           </div>
         </div>
@@ -453,13 +454,7 @@ export function LogFileModal({
 // Format timestamp for display
 function formatTimestamp(timestamp: string): string {
   try {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    });
+    return formatTimeSydney(timestamp);
   } catch {
     return timestamp.slice(11, 19);
   }
