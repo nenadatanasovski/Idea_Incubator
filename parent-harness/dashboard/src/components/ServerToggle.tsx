@@ -1,14 +1,20 @@
 import { useState, useEffect, useCallback } from 'react'
 
+const API_BASE = 'http://localhost:3333'
+
 export function ServerToggle() {
   const [online, setOnline] = useState(false)
   const [toggling, setToggling] = useState(false)
 
   const checkStatus = useCallback(async () => {
     try {
-      const res = await fetch('/__server/status')
-      const data = await res.json()
-      setOnline(data.online)
+      const res = await fetch(`${API_BASE}/api/orchestrator/status`)
+      if (res.ok) {
+        const data = await res.json()
+        setOnline(data.running === true)
+      } else {
+        setOnline(false)
+      }
     } catch {
       setOnline(false)
     }
@@ -23,14 +29,20 @@ export function ServerToggle() {
   const toggle = async () => {
     setToggling(true)
     try {
-      const endpoint = online ? '/__server/stop' : '/__server/start'
+      // Use pause/resume endpoints from orchestrator API
+      const endpoint = online 
+        ? `${API_BASE}/api/orchestrator/pause`
+        : `${API_BASE}/api/orchestrator/resume`
+      
       await fetch(endpoint, { method: 'POST' })
+      
       // Poll a few times to confirm the state change
       for (let i = 0; i < 4; i++) {
         await new Promise(r => setTimeout(r, 1000))
         await checkStatus()
       }
-    } catch {
+    } catch (err) {
+      console.error('Toggle error:', err)
       await checkStatus()
     } finally {
       setToggling(false)
@@ -48,7 +60,7 @@ export function ServerToggle() {
             ? 'bg-green-900/40 text-green-400 hover:bg-red-900/40 hover:text-red-400'
             : 'bg-gray-700 text-gray-400 hover:bg-green-900/40 hover:text-green-400'
       }`}
-      title={online ? 'Click to stop server' : 'Click to start server'}
+      title={online ? 'Click to pause orchestrator' : 'Click to resume orchestrator'}
     >
       <span className={`w-2 h-2 rounded-full transition-colors ${
         toggling
@@ -58,10 +70,10 @@ export function ServerToggle() {
             : 'bg-red-500'
       }`} />
       {toggling
-        ? (online ? 'Stopping...' : 'Starting...')
+        ? (online ? 'Pausing...' : 'Resuming...')
         : online
-          ? 'Server On'
-          : 'Server Off'
+          ? 'Running'
+          : 'Paused'
       }
     </button>
   )

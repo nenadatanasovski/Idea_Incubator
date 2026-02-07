@@ -1,12 +1,14 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Layout } from '../components/Layout'
 import { useSessions, type Session } from '../hooks/useSessions'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { AgentSessionsView } from '../components/AgentSessionsView'
+import { SessionLogModal } from '../components/SessionLogModal'
 
 export function Sessions() {
   const { sessions, loading, error, refetch } = useSessions()
   const { connected, subscribe } = useWebSocket()
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
 
   // Real-time session updates via WebSocket
   useEffect(() => {
@@ -48,6 +50,68 @@ export function Sessions() {
           </div>
         )}
 
+        {/* Recent Sessions Table */}
+        <div className="bg-gray-800 rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-700">
+            <h2 className="font-semibold">Recent Sessions</h2>
+            <p className="text-xs text-gray-500">Click a row to view logs</p>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-700">
+              <tr>
+                <th className="text-left p-3">ID</th>
+                <th className="text-left p-3">Agent</th>
+                <th className="text-left p-3">Task</th>
+                <th className="text-left p-3">Status</th>
+                <th className="text-left p-3">Started</th>
+                <th className="text-left p-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {displaySessions.slice(0, 20).map((session) => (
+                <tr 
+                  key={session.id}
+                  className="border-t border-gray-700 hover:bg-gray-700/50 cursor-pointer"
+                  onClick={() => setSelectedSessionId(session.id)}
+                >
+                  <td className="p-3 font-mono text-xs text-gray-400">
+                    {session.id.slice(0, 8)}...
+                  </td>
+                  <td className="p-3 text-blue-400">{session.agent_id}</td>
+                  <td className="p-3 text-gray-300">{session.task_id || '-'}</td>
+                  <td className="p-3">
+                    <span className={
+                      session.status === 'completed' ? 'text-green-400' :
+                      session.status === 'failed' ? 'text-red-400' :
+                      session.status === 'running' ? 'text-blue-400' :
+                      'text-gray-400'
+                    }>
+                      {session.status}
+                    </span>
+                  </td>
+                  <td className="p-3 text-gray-500 text-xs">
+                    {new Date(session.started_at).toLocaleString('en-AU', { 
+                      dateStyle: 'short', 
+                      timeStyle: 'short' 
+                    })}
+                  </td>
+                  <td className="p-3">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedSessionId(session.id)
+                      }}
+                      className="px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded text-xs"
+                    >
+                      📋 Logs
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
         {/* Full-width Agent Sessions View with iterations and lineage */}
         <AgentSessionsView sessions={displaySessions} />
 
@@ -60,6 +124,14 @@ export function Sessions() {
           <span>|</span>
           <span>Failed: {displaySessions.filter(s => s.status === 'failed').length}</span>
         </div>
+
+        {/* Session Log Modal */}
+        {selectedSessionId && (
+          <SessionLogModal 
+            sessionId={selectedSessionId} 
+            onClose={() => setSelectedSessionId(null)} 
+          />
+        )}
       </div>
     </Layout>
   )

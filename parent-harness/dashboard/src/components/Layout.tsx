@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { NotificationCenter } from './NotificationCenter'
 import { BudgetIndicator } from './BudgetIndicator'
 import { ServerToggle } from './ServerToggle'
+import { HealthIndicator } from './HealthIndicator'
 
 const API_BASE = 'http://localhost:3333/api'
 
@@ -43,9 +44,14 @@ function NavLinks() {
   const links = [
     { path: '/', label: 'Dashboard' },
     { path: '/agents', label: '🤖 Agents' },
+    { path: '/activity', label: '📊 Activity' },
+    { path: '/waves', label: '🌊 Waves' },
     { path: '/tasks', label: 'Tasks' },
     { path: '/sessions', label: 'Sessions' },
     { path: '/telegram', label: '📱 Telegram' },
+    { path: '/cron', label: '⏰ Cron' },
+    { path: '/events', label: '📡 Events' },
+    { path: '/system', label: '⚡ System' },
     { path: '/config', label: '⚙️ Config' },
   ]
 
@@ -81,6 +87,7 @@ export function Layout({ children }: LayoutProps) {
         className="h-14 bg-gray-800 border-b border-gray-700 flex items-center px-4 justify-between"
       >
         <div className="flex items-center gap-4">
+          <HealthIndicator />
           <NotificationCenter />
           <BudgetIndicator />
           <BlockedTasksIndicator />

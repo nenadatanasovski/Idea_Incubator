@@ -25,7 +25,7 @@
     "schema:check": "drizzle-kit check",
     "questions:load": "tsx questions/loader.ts",
     "questions:load:force": "tsx questions/loader.ts --force",
-    "test": "vitest",
+    "test": "vitest run",
     "test:run": "vitest run",
     "test:unit": "vitest run --exclude 'tests/integration/**'",
     "test:integration": "vitest run --config vitest.integration.config.ts",

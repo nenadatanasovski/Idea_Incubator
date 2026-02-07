@@ -337,6 +337,17 @@ export const events = {
       agentId: source,
       severity: 'info',
     }),
+
+  // Model fallback events
+  modelFallback: (taskId: string, fromModel: string, toModel: string, reason: string) =>
+    createEvent({
+      type: 'model:fallback',
+      message: `⚠️ Model fallback: ${fromModel} → ${toModel} (${reason})`,
+      agentId: 'system',
+      taskId,
+      severity: 'warning',
+      metadata: { fromModel, toModel, reason },
+    }),
 };
 
 export default {

@@ -213,6 +213,9 @@ describe("Ideation API Endpoints", () => {
         handoffCount: 0,
         tokenCount: 0,
         messageCount: 0,
+        title: null,
+        userSlug: null,
+        ideaSlug: null,
       });
 
       vi.mocked(messageStore.add).mockResolvedValue({
@@ -261,6 +264,9 @@ describe("Ideation API Endpoints", () => {
         handoffCount: 0,
         tokenCount: 0,
         messageCount: 0,
+        title: null,
+        userSlug: null,
+        ideaSlug: null,
       });
       vi.mocked(messageStore.add).mockResolvedValue({} as never);
       vi.mocked(sessionManager.update).mockResolvedValue(null);
@@ -316,6 +322,9 @@ describe("Ideation API Endpoints", () => {
         handoffCount: 0,
         tokenCount: 0,
         messageCount: 0,
+        title: null,
+        userSlug: null,
+        ideaSlug: null,
       });
       vi.mocked(getOne).mockResolvedValue({
         id: "profile-123",
@@ -326,10 +335,10 @@ describe("Ideation API Endpoints", () => {
         buttons: null,
         form: null,
         candidateUpdate: null,
-        confidence: 20,
-        viability: 100,
+        risks: [],
         requiresIntervention: false,
         handoffOccurred: false,
+        isQuickAck: false,
       });
       vi.mocked(messageStore.getBySession).mockResolvedValue([]);
       vi.mocked(messageStore.getTotalTokens).mockResolvedValue(100);
@@ -360,6 +369,9 @@ describe("Ideation API Endpoints", () => {
         handoffCount: 0,
         tokenCount: 0,
         messageCount: 0,
+        title: null,
+        userSlug: null,
+        ideaSlug: null,
       });
       vi.mocked(getOne).mockResolvedValue({
         id: "profile-123",
@@ -373,10 +385,10 @@ describe("Ideation API Endpoints", () => {
           title: "Healthcare Platform",
           summary: "A platform",
         },
-        confidence: 50,
-        viability: 80,
+        risks: [],
         requiresIntervention: false,
         handoffOccurred: false,
+        isQuickAck: false,
       });
       vi.mocked(candidateManager.getOrCreateForSession).mockResolvedValue({
         id: "candidate-1",
@@ -448,6 +460,9 @@ describe("Ideation API Endpoints", () => {
         handoffCount: 0,
         tokenCount: 0,
         messageCount: 0,
+        title: null,
+        userSlug: null,
+        ideaSlug: null,
       });
 
       const req = createMockRequest({
@@ -480,6 +495,9 @@ describe("Ideation API Endpoints", () => {
         handoffCount: 0,
         tokenCount: 0,
         messageCount: 0,
+        title: null,
+        userSlug: null,
+        ideaSlug: null,
       });
       vi.mocked(messageStore.getBySession).mockResolvedValue([
         {
@@ -503,10 +521,10 @@ describe("Ideation API Endpoints", () => {
         buttons: null,
         form: null,
         candidateUpdate: null,
-        confidence: 10,
-        viability: 100,
+        risks: [],
         requiresIntervention: false,
         handoffOccurred: false,
+        isQuickAck: false,
       });
       vi.mocked(messageStore.getTotalTokens).mockResolvedValue(100);
       vi.mocked(sessionManager.update).mockResolvedValue(null);
@@ -558,6 +576,9 @@ describe("Ideation API Endpoints", () => {
         handoffCount: 0,
         tokenCount: 0,
         messageCount: 0,
+        title: null,
+        userSlug: null,
+        ideaSlug: null,
       });
       vi.mocked(candidateManager.getActiveForSession).mockResolvedValue(null);
 
@@ -601,6 +622,9 @@ describe("Ideation API Endpoints", () => {
         handoffCount: 0,
         tokenCount: 0,
         messageCount: 0,
+        title: null,
+        userSlug: null,
+        ideaSlug: null,
       });
       vi.mocked(messageStore.getBySession).mockResolvedValue([]);
       vi.mocked(candidateManager.getActiveForSession).mockResolvedValue(null);
@@ -646,6 +670,9 @@ describe("Ideation API Endpoints", () => {
         handoffCount: 0,
         tokenCount: 0,
         messageCount: 0,
+        title: null,
+        userSlug: null,
+        ideaSlug: null,
       });
       vi.mocked(sessionManager.abandon).mockResolvedValue(null);
 
@@ -683,6 +710,9 @@ describe("Ideation API Endpoints", () => {
         handoffCount: 0,
         tokenCount: 0,
         messageCount: 0,
+        title: null,
+        userSlug: null,
+        ideaSlug: null,
       });
 
       const req = createMockRequest({ params: { sessionId: "session-123" } });
@@ -764,6 +794,9 @@ describe("Ideation API Endpoints", () => {
         handoffCount: 0,
         tokenCount: 0,
         messageCount: 0,
+        title: null,
+        userSlug: null,
+        ideaSlug: null,
       });
       vi.mocked(getOne).mockResolvedValue({ id: "profile-123", name: "Test" });
       vi.mocked(messageStore.add).mockResolvedValue({} as never);
@@ -773,10 +806,10 @@ describe("Ideation API Endpoints", () => {
         buttons: null,
         form: null,
         candidateUpdate: null,
-        confidence: 20,
-        viability: 100,
+        risks: [],
         requiresIntervention: false,
         handoffOccurred: false,
+        isQuickAck: false,
       });
 
       const req = createMockRequest({
@@ -839,6 +872,9 @@ describe("Ideation API Endpoints", () => {
         handoffCount: 0,
         tokenCount: 0,
         messageCount: 0,
+        title: null,
+        userSlug: null,
+        ideaSlug: null,
       });
       vi.mocked(candidateManager.getActiveForSession).mockResolvedValue(null);
       vi.mocked(candidateManager.getById).mockResolvedValue(null);
@@ -883,6 +919,9 @@ describe("Ideation API Endpoints", () => {
         handoffCount: 0,
         tokenCount: 0,
         messageCount: 0,
+        title: null,
+        userSlug: null,
+        ideaSlug: null,
       });
       vi.mocked(candidateManager.getActiveForSession).mockResolvedValue(null);
       vi.mocked(sessionManager.abandon).mockResolvedValue(null);
@@ -899,6 +938,9 @@ describe("Ideation API Endpoints", () => {
         handoffCount: 0,
         tokenCount: 0,
         messageCount: 0,
+        title: null,
+        userSlug: null,
+        ideaSlug: null,
       });
       vi.mocked(messageStore.add).mockResolvedValue({} as never);
 

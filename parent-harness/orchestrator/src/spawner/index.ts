@@ -12,6 +12,8 @@ import * as agents from '../db/agents.js';
 import * as sessions from '../db/sessions.js';
 import * as tasks from '../db/tasks.js';
 import { events } from '../db/events.js';
+import * as executions from '../db/executions.js';
+import * as activities from '../db/activities.js';
 import { ws } from '../websocket.js';
 import { notify } from '../telegram/direct-telegram.js';
 import * as git from '../git/index.js';
@@ -69,6 +71,32 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
+/**
+ * Check if error indicates rate limiting
+ */
+function isRateLimitError(output: string): boolean {
+  const rateLimitPatterns = [
+    /rate.?limit/i,
+    /too many requests/i,
+    /429/i,
+    /overloaded/i,
+    /capacity/i,
+    /throttl/i,
+  ];
+  return rateLimitPatterns.some(p => p.test(output));
+}
+
+/**
+ * Get fallback model chain from config
+ */
+function getModelFallbackChain(): string[] {
+  try {
+    return config.getConfig().agents.model_fallback || ['opus', 'sonnet', 'haiku'];
+  } catch {
+    return ['opus', 'sonnet', 'haiku'];
+  }
+}
+
 // Legacy constant for backward compat
 const MAX_CONCURRENT = 8;
 
@@ -105,6 +133,7 @@ interface SpawnOptions {
   agentId: string;
   model?: string;
   timeout?: number;
+  customPrompt?: string; // Override the default task prompt (for SIA investigation)
 }
 
 interface SpawnResult {
@@ -147,21 +176,22 @@ You IMPLEMENT features and FIX bugs. You are the primary code-writing agent.
 1. Read the task and understand requirements
 2. Explore relevant code (find files, read implementations)
 3. Write/Edit code to implement the feature or fix
-4. Run tests: \`npm test\` or specific test file
-5. Run typecheck: \`npm run build\` or \`npx tsc --noEmit\`
-6. Create git commit with descriptive message
-7. Output TASK_COMPLETE with summary
+4. Run typecheck: \`npx tsc --noEmit\` (quick compile check)
+5. Create git commit with descriptive message
+6. Output TASK_COMPLETE with summary
+
+NOTE: Do NOT run \`npm test\` - the QA agent handles all testing after your work is complete.
 
 ## VERBOSE OUTPUT FORMAT:
 10:42:15 ▶ Starting implementation
 10:42:16 🔧 tool:read_file → server/routes/api.ts
 10:42:18 🔧 tool:edit_file → server/routes/api.ts (+15 lines)
-10:42:20 🔧 tool:exec → npm test
-10:42:45 ✅ All tests passed
-10:42:46 🔧 tool:exec → git commit -m "feat: add endpoint"
+10:42:20 🔧 tool:exec → npx tsc --noEmit
+10:42:25 ✅ TypeScript compiles
+10:42:26 🔧 tool:exec → git commit -m "feat: add endpoint"
 
 ## RULES:
-- Always verify changes compile and tests pass
+- Always verify changes compile (tsc --noEmit)
 - Write clean, typed, documented code
 - Don't make unnecessary changes
 - Commit your work with descriptive messages`,
@@ -532,63 +562,14 @@ function buildTaskPrompt(task: tasks.Task): string {
 }
 
 /**
- * Spawn agent using Claude CLI
+ * Internal spawn function (single attempt with specific model)
  */
-export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnResult> {
-  const { taskId, agentId, model = 'opus', timeout = 300 } = options;
-
-  // Check capacity (use config value)
-  const maxConcurrent = getMaxConcurrent();
-  if (runningProcesses.size >= maxConcurrent) {
-    return { 
-      success: false, 
-      sessionId: '', 
-      error: `At max capacity (${maxConcurrent} concurrent agents)` 
-    };
-  }
-
-  // Get task data (needed for multiple checks)
-  const taskData = tasks.getTask(taskId);
-
-  // Check budget
-  const budgetCheck = checkBudgetAllowsSpawn();
-  if (!budgetCheck.allowed) {
-    console.warn(`⚠️ Spawn blocked by budget: ${budgetCheck.reason}`);
-    
-    // Emit event for dashboard notification
-    events.budgetSpawnBlocked(taskId, taskData?.title || taskId, budgetCheck.reason || 'Budget limit reached');
-    
-    return { 
-      success: false, 
-      sessionId: '', 
-      error: budgetCheck.reason || 'Budget limit reached' 
-    };
-  }
-
-  // Check build health (don't spawn if codebase is broken)
-  const buildHealthCheck = checkBuildHealth(taskData?.category ?? undefined, taskData?.priority ?? undefined);
-  if (!buildHealthCheck.allowed) {
-    console.warn(`⚠️ Spawn blocked by build health: ${buildHealthCheck.reason}`);
-    
-    // Don't emit an event for every block - just log it
-    return { 
-      success: false, 
-      sessionId: '', 
-      error: buildHealthCheck.reason || 'Build health gate blocked spawn' 
-    };
-  }
-
-  // Check CLI availability
-  if (!claudeAvailable) {
-    claudeAvailable = await checkClaudeCLI();
-  }
-  if (!claudeAvailable) {
-    return { success: false, sessionId: '', error: 'Claude CLI not available' };
-  }
-  const agentData = agents.getAgent(agentId);
-  if (!taskData || !agentData) {
-    return { success: false, sessionId: '', error: 'Task or agent not found' };
-  }
+async function spawnAgentSessionInternal(
+  options: SpawnOptions & { model: string },
+  taskData: tasks.Task,
+  agentData: NonNullable<ReturnType<typeof agents.getAgent>>
+): Promise<SpawnResult & { isRateLimit?: boolean }> {
+  const { taskId, agentId, model, timeout = 300 } = options;
 
   // Create session
   const session = sessions.createSession(agentId, taskId);
@@ -603,11 +584,32 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
   // Notify agent's dedicated channel
   await notify.agentSpawned(agentData.type, taskData.display_id).catch(() => {});
 
-  const systemPrompt = getSystemPrompt(agentData.type);
-  const taskPrompt = buildTaskPrompt(taskData);
-  const fullPrompt = `${systemPrompt}\n\n---\n\n${taskPrompt}`;
+  // Create execution record
+  let execution: ReturnType<typeof executions.createExecution> | null = null;
+  try {
+    execution = executions.createExecution({
+      task_id: taskId,
+      agent_id: agentId,
+      session_id: session.id,
+    });
+    
+    // Log activity
+    activities.logAgentSpawned(agentId, taskId, session.id);
+  } catch (err) {
+    console.warn('Failed to create execution record:', err);
+  }
 
-  console.log(`🚀 Spawning ${agentData.name} for ${taskData.display_id} via Claude CLI`);
+  // Use customPrompt if provided (for SIA investigation), otherwise build from task
+  let fullPrompt: string;
+  if (options.customPrompt) {
+    fullPrompt = options.customPrompt;
+  } else {
+    const systemPrompt = getSystemPrompt(agentData.type);
+    const taskPrompt = buildTaskPrompt(taskData);
+    fullPrompt = `${systemPrompt}\n\n---\n\n${taskPrompt}`;
+  }
+
+  console.log(`🚀 Spawning ${agentData.name} for ${taskData.display_id} via Claude CLI (model: ${model})`);
 
   // Store refs for use in callbacks
   const task = taskData;
@@ -615,7 +617,6 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
 
   return new Promise((resolve) => {
     // Use shell wrapper to pipe prompt to claude - works with OAuth auth
-    // Exclude ANTHROPIC_AUTH_TOKEN - it forces CLI to use direct API mode which rejects OAuth
     const escapedPrompt = fullPrompt.replace(/'/g, "'\\''");
     const shellCmd = `echo '${escapedPrompt}' | claude --model ${model} --permission-mode bypassPermissions --allowedTools 'Read,Write,Edit,Bash'`;
     
@@ -661,6 +662,7 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
 
       const output = stdout + stderr;
       const filesModified = extractFilesModified(output);
+      const rateLimit = isRateLimitError(output);
       
       // Record token usage (estimate based on prompt + output size)
       const inputTokens = estimateTokens(fullPrompt);
@@ -682,6 +684,24 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
         events.taskCompleted(taskId, agentId, task.title);
         ws.taskCompleted(tasks.getTask(taskId));
 
+        // Update execution record
+        if (execution) {
+          try {
+            executions.completeExecution(
+              execution.id,
+              output,
+              filesModified,
+              inputTokens + outputTokens
+            );
+            activities.logTaskCompleted(agentId, taskId, session.id, {
+              filesModified,
+              tokensUsed: inputTokens + outputTokens,
+            });
+          } catch (err) {
+            console.warn('Failed to update execution record:', err);
+          }
+        }
+
         // Notify agent's channel
         notify.taskCompleted(agent.type, task.display_id, task.title, extractSummary(output)).catch(() => {});
 
@@ -694,16 +714,27 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
         resolve({ success: true, sessionId: session.id, output, filesModified });
       } else {
         sessions.updateSessionStatus(session.id, 'failed', output, errorMsg);
-        tasks.failTask(taskId);
-        agents.incrementTasksFailed(agentId);
-        events.taskFailed(taskId, agentId, task.title, errorMsg || 'Unknown error');
-        ws.taskFailed(tasks.getTask(taskId), errorMsg || 'Unknown error');
+        // Don't fail the task yet if it's a rate limit - caller will retry
+        if (!rateLimit) {
+          tasks.failTask(taskId);
+          agents.incrementTasksFailed(agentId);
+          events.taskFailed(taskId, agentId, task.title, errorMsg || 'Unknown error');
+          ws.taskFailed(tasks.getTask(taskId), errorMsg || 'Unknown error');
+          notify.taskFailed(agent.type, task.display_id, errorMsg || 'Unknown error').catch(() => {});
+        }
 
-        // Notify agent's channel
-        notify.taskFailed(agent.type, task.display_id, errorMsg || 'Unknown error').catch(() => {});
+        // Update execution record for failure
+        if (execution) {
+          try {
+            executions.failExecution(execution.id, errorMsg || 'Unknown error');
+            activities.logTaskFailed(agentId, taskId, session.id, errorMsg || 'Unknown error');
+          } catch (err) {
+            console.warn('Failed to update execution record:', err);
+          }
+        }
 
         console.log(`❌ ${agent.name} failed ${task.display_id}: ${(errorMsg || '').slice(0, 100)}`);
-        resolve({ success: false, sessionId: session.id, error: errorMsg, output, filesModified });
+        resolve({ success: false, sessionId: session.id, error: errorMsg, output, filesModified, isRateLimit: rateLimit });
       }
 
       // Cleanup
@@ -729,6 +760,88 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
       finishSession(false, `Spawn error: ${err.message}`);
     });
   });
+}
+
+/**
+ * Spawn agent using Claude CLI with model fallback on rate limit
+ */
+/**
+ * Spawn agent using Claude CLI with model fallback on rate limit
+ */
+export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnResult> {
+  const { taskId, agentId, model = 'opus', timeout = 300 } = options;
+
+  // Pre-checks (capacity, budget, build health, CLI availability)
+  const maxConcurrent = getMaxConcurrent();
+  if (runningProcesses.size >= maxConcurrent) {
+    return { 
+      success: false, 
+      sessionId: '', 
+      error: `At max capacity (${maxConcurrent} concurrent agents)` 
+    };
+  }
+
+  const taskData = tasks.getTask(taskId);
+  
+  const budgetCheck = checkBudgetAllowsSpawn();
+  if (!budgetCheck.allowed) {
+    console.warn(`⚠️ Spawn blocked by budget: ${budgetCheck.reason}`);
+    events.budgetSpawnBlocked(taskId, taskData?.title || taskId, budgetCheck.reason || 'Budget limit reached');
+    return { success: false, sessionId: '', error: budgetCheck.reason || 'Budget limit reached' };
+  }
+
+  const buildHealthCheck = checkBuildHealth(taskData?.category ?? undefined, taskData?.priority ?? undefined);
+  if (!buildHealthCheck.allowed) {
+    console.warn(`⚠️ Spawn blocked by build health: ${buildHealthCheck.reason}`);
+    return { success: false, sessionId: '', error: buildHealthCheck.reason || 'Build health gate blocked spawn' };
+  }
+
+  if (!claudeAvailable) {
+    claudeAvailable = await checkClaudeCLI();
+  }
+  if (!claudeAvailable) {
+    return { success: false, sessionId: '', error: 'Claude CLI not available' };
+  }
+
+  const agentData = agents.getAgent(agentId);
+  if (!taskData || !agentData) {
+    return { success: false, sessionId: '', error: 'Task or agent not found' };
+  }
+
+  // Get fallback chain and find starting position
+  const fallbackChain = getModelFallbackChain();
+  let startIdx = fallbackChain.indexOf(model);
+  if (startIdx === -1) startIdx = 0;
+
+  // Try each model in the fallback chain
+  for (let i = startIdx; i < fallbackChain.length; i++) {
+    const currentModel = fallbackChain[i];
+    
+    if (i > startIdx) {
+      console.log(`🔄 Falling back from ${fallbackChain[i - 1]} to ${currentModel}`);
+      events.modelFallback(taskId, fallbackChain[i - 1], currentModel, 'rate limit');
+    }
+
+    const result = await spawnAgentSessionInternal(
+      { ...options, model: currentModel },
+      taskData,
+      agentData
+    );
+
+    // If successful or not a rate limit error, return
+    if (result.success || !result.isRateLimit) {
+      return result;
+    }
+
+    console.log(`⚠️ Rate limit hit with ${currentModel}, trying next model...`);
+  }
+
+  // All models exhausted
+  return {
+    success: false,
+    sessionId: '',
+    error: 'All models in fallback chain rate limited',
+  };
 }
 
 function extractFilesModified(output: string): string[] {

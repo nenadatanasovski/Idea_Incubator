@@ -107,10 +107,10 @@ export async function verifyTask(taskId: string): Promise<QAResult> {
   );
   checks.push(buildCheck);
 
-  // 3. Test check
+  // 3. Test check (serialized to prevent CPU exhaustion from parallel vitest workers)
   const testCheck = await runCheck(
     'Tests',
-    'npm test 2>&1 || echo "No test script"',
+    'npm test -- --pool=forks --poolOptions.forks.maxForks=1 2>&1 || echo "No test script"',
     CODEBASE_ROOT
   );
   checks.push(testCheck);
@@ -219,10 +219,13 @@ async function createFixTask(
     }
 
     return fixTask?.id;
-  } catch (err) {
-    // Handle UNIQUE constraint errors gracefully
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    if (errorMsg.includes('UNIQUE constraint')) {
+  } catch (err: unknown) {
+    // Handle UNIQUE constraint errors gracefully (check message AND code)
+    const error = err as { message?: string; code?: string };
+    const errorMsg = error.message || String(err);
+    const errorCode = error.code || '';
+    
+    if (errorMsg.includes('UNIQUE') || errorCode === 'SQLITE_CONSTRAINT_UNIQUE') {
       console.warn(`⚠️ Fix task already exists for ${originalTask.display_id}, skipping`);
       return undefined;
     }
@@ -250,11 +253,16 @@ export async function runQACycle(): Promise<QAResult[]> {
   const results: QAResult[] = [];
 
   for (const task of pendingTasks) {
-    const result = await verifyTask(task.id);
-    results.push(result);
+    try {
+      const result = await verifyTask(task.id);
+      results.push(result);
 
-    // Broadcast update
-    ws.taskUpdated(tasks.getTask(task.id));
+      // Broadcast update
+      ws.taskUpdated(tasks.getTask(task.id));
+    } catch (err) {
+      console.error(`❌ QA verification error for ${task.display_id}:`, err);
+      // Continue with next task instead of crashing the whole cycle
+    }
   }
 
   // Summary

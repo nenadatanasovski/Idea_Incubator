@@ -52,7 +52,7 @@ async function runTests(): Promise<void> {
 
   // Test 2: Creates file at correct path
   try {
-    const _artifact = await saveArtifact(TEST_USER, TEST_IDEA, {
+    const artifact = await saveArtifact(TEST_USER, TEST_IDEA, {
       type: "markdown",
       title: "Test Doc",
       content: "# Test\nContent here",
@@ -91,7 +91,7 @@ async function runTests(): Promise<void> {
       "createdAt",
       "updatedAt",
     ];
-    const missingFields = requiredFields.filter((f) => !metadata[f]);
+    const missingFields = requiredFields.filter((f) => !(metadata as Record<string, unknown>)[f]);
 
     if (missingFields.length === 0) {
       console.log(
@@ -134,7 +134,7 @@ async function runTests(): Promise<void> {
 
     if (fs.existsSync(indexPath)) {
       const cache = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
-      const _artifactCount = Object.keys(cache.artifacts || {}).length;
+      const artifactCount = Object.keys(cache.artifacts || {}).length;
 
       if (artifactCount > 0) {
         console.log(
@@ -155,7 +155,7 @@ async function runTests(): Promise<void> {
   // Test 6: Returns UnifiedArtifact with all fields populated
   try {
     cleanupTestDir();
-    const _artifact = await saveArtifact(TEST_USER, TEST_IDEA, {
+    const artifact = await saveArtifact(TEST_USER, TEST_IDEA, {
       type: "research",
       title: "Market Analysis",
       content: "## Market Research",
@@ -247,7 +247,7 @@ async function runTests(): Promise<void> {
     const filePath = "idempotent-test.md";
 
     // First call
-    const _artifact1 = await saveArtifact(TEST_USER, TEST_IDEA, {
+    const artifact1 = await saveArtifact(TEST_USER, TEST_IDEA, {
       type: "markdown",
       title: "Idempotent Test",
       content: "# Original Content",
@@ -255,7 +255,7 @@ async function runTests(): Promise<void> {
     });
 
     // Second call with same file path
-    const _artifact2 = await saveArtifact(TEST_USER, TEST_IDEA, {
+    const artifact2 = await saveArtifact(TEST_USER, TEST_IDEA, {
       type: "markdown",
       title: "Idempotent Test Updated",
       content: "# Updated Content",

@@ -114,14 +114,14 @@ describe("BlockExtractor", () => {
             text: JSON.stringify({
               blocks: [
                 {
-                  type: "content",
+                  type: "knowledge",
                   content: "Legal tech market is $50B TAM",
                   confidence: 0.85,
                   graph_membership: ["market"],
                   properties: { market_size: 50000000000 },
                 },
                 {
-                  type: "content",
+                  type: "knowledge",
                   content:
                     "AI-powered contract analysis tools can save lawyers 10+ hours per week",
                   confidence: 0.75,
@@ -143,7 +143,10 @@ describe("BlockExtractor", () => {
             }),
           },
         ],
-      });
+        model: "claude-3-5-haiku-latest",
+        stop_reason: "end_turn",
+        usage: { input_tokens: 100, output_tokens: 200 },
+      } as any);
 
       const result = await extractor.extractFromMessage(
         message,
@@ -160,7 +163,7 @@ describe("BlockExtractor", () => {
         {
           id: "block_existing",
           sessionId: "session_001",
-          type: "content",
+          type: "knowledge",
           content: "Legal tech market is $50B TAM",
           properties: null,
           status: "active",
@@ -193,7 +196,7 @@ describe("BlockExtractor", () => {
             text: JSON.stringify({
               blocks: [
                 {
-                  type: "content",
+                  type: "knowledge",
                   content: "Legal tech market is $50B TAM",
                   confidence: 0.85,
                   graph_membership: ["market"],
@@ -203,7 +206,10 @@ describe("BlockExtractor", () => {
             }),
           },
         ],
-      });
+        model: "claude-3-5-haiku-latest",
+        stop_reason: "end_turn",
+        usage: { input_tokens: 100, output_tokens: 200 },
+      } as any);
 
       const result = await extractor.extractFromMessage(
         message,
@@ -314,7 +320,7 @@ describe("BlockExtractor", () => {
         {
           id: "block_1",
           sessionId: "session_001",
-          type: "content",
+          type: "knowledge",
           content: "The market size is $50B",
           properties: null,
           status: "active",
@@ -340,7 +346,7 @@ describe("BlockExtractor", () => {
         {
           id: "block_1",
           sessionId: "session_001",
-          type: "content",
+          type: "knowledge",
           content: "The total addressable market size is $50 billion",
           properties: null,
           status: "active",
@@ -366,7 +372,7 @@ describe("BlockExtractor", () => {
         {
           id: "block_1",
           sessionId: "session_001",
-          type: "content",
+          type: "knowledge",
           content: "The market size is $50B",
           properties: null,
           status: "active",

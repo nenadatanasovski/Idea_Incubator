@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { existsSync, mkdirSync, readFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -56,16 +56,51 @@ export function exec(sql: string): void {
 }
 
 /**
- * Run migrations from schema.sql
+ * Run migrations from schema.sql and migrations folder
  */
 export function migrate(): void {
+  // Run main schema
   const schemaPath = join(__dirname, '../../..', 'database', 'schema.sql');
   if (!existsSync(schemaPath)) {
     throw new Error(`Schema file not found: ${schemaPath}`);
   }
   const schema = readFileSync(schemaPath, 'utf-8');
   db.exec(schema);
-  console.log('✅ Database migrated successfully');
+  console.log('✅ Base schema migrated successfully');
+
+  // Run additional migrations from migrations folder
+  const migrationsDir = join(__dirname, '../../..', 'database', 'migrations');
+  if (existsSync(migrationsDir)) {
+    const migrations = readdirSync(migrationsDir)
+      .filter(f => f.endsWith('.sql'))
+      .sort();
+    
+    for (const migration of migrations) {
+      const migrationPath = join(migrationsDir, migration);
+      const sql = readFileSync(migrationPath, 'utf-8');
+      
+      // Execute each statement separately to handle errors gracefully
+      const statements = sql
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0 && !s.startsWith('--') && !s.startsWith('SELECT CASE'));
+      
+      for (const stmt of statements) {
+        try {
+          db.exec(stmt);
+        } catch (err: unknown) {
+          // Ignore "already exists" errors for idempotency
+          const errMsg = err instanceof Error ? err.message : String(err);
+          if (!errMsg.includes('already exists') && !errMsg.includes('duplicate column')) {
+            console.warn(`⚠️ Migration statement warning: ${errMsg}`);
+          }
+        }
+      }
+      console.log(`✅ Migration applied: ${migration}`);
+    }
+  }
+  
+  console.log('✅ All migrations complete');
 }
 
 /**

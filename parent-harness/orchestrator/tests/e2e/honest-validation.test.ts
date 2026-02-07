@@ -19,6 +19,8 @@ import { checkOpenClawHealth, buildAgentPrompt } from '../../src/spawner/opencla
 
 // Test results tracking
 const results: { name: string; passed: boolean; reason?: string }[] = [];
+// Track task IDs created during tests for cleanup
+const createdTaskIds: string[] = [];
 
 function recordResult(name: string, passed: boolean, reason?: string) {
   results.push({ name, passed, reason });
@@ -33,6 +35,16 @@ beforeAll(() => {
 });
 
 afterAll(() => {
+  // Clean up test tasks so scanners don't try to process them
+  for (const taskId of createdTaskIds) {
+    try {
+      const task = tasks.getTask(taskId);
+      if (task && task.status !== 'completed' && task.status !== 'blocked') {
+        tasks.updateTask(taskId, { status: 'completed' });
+      }
+    } catch { /* ignore cleanup errors */ }
+  }
+
   // Print summary
   console.log('\n📊 TEST SUMMARY');
   console.log('================');
@@ -105,7 +117,8 @@ describe('Database Layer', () => {
         priority: 'P2',
         status: 'pending',
       });
-      
+      createdTaskIds.push(task.id);
+
       expect(task).toBeDefined();
       expect(task.display_id).toBe(taskId);
       
@@ -141,7 +154,8 @@ describe('Database Layer', () => {
         category: 'test',
         priority: 'P2',
       });
-      
+      createdTaskIds.push(task.id);
+
       // Create session
       const session = sessions.createSession(agent.id, task.id);
       
@@ -198,7 +212,8 @@ describe('Agent Status Transitions', () => {
         category: 'test',
         priority: 'P2',
       });
-      
+      createdTaskIds.push(task.id);
+
       // Create session
       const session = sessions.createSession(agent.id, task.id);
       
@@ -233,7 +248,8 @@ describe('Task Flow', () => {
         priority: 'P2',
         status: 'pending',
       });
-      
+      createdTaskIds.push(task.id);
+
       expect(task.status).toBe('pending');
       
       // Assign to agent
@@ -268,7 +284,8 @@ describe('Task Flow', () => {
         priority: 'P2',
         status: 'pending',
       });
-      
+      createdTaskIds.push(task.id);
+
       // Assign
       tasks.assignTask(task.id, 'test_agent_001');
       
@@ -309,7 +326,8 @@ describe('QA Verification', () => {
           'Build succeeds',
         ]),
       });
-      
+      createdTaskIds.push(task.id);
+
       // QA verify function should exist and run
       // Note: This tests the QA infrastructure, not actual test execution
       const verifyTasks = tasks.getTasks({ status: 'pending_verification' });
@@ -425,9 +443,10 @@ describe('Data Integrity', () => {
         category: 'test',
         priority: 'P2',
       });
-      
+      createdTaskIds.push(task.id);
+
       const session = sessions.createSession(agent.id, task.id);
-      
+
       // Create event with all links
       eventHelpers.toolUse(agent.id, session.id, 'test_tool', { test: true });
       
@@ -464,7 +483,8 @@ describe('Concurrent Access', () => {
       const results = await Promise.all(promises);
       expect(results.length).toBe(5);
       expect(results.every(t => t && t.id)).toBe(true);
-      
+      for (const t of results) createdTaskIds.push(t.id);
+
       recordResult('Concurrent task creation', true);
     } catch (e) {
       recordResult('Concurrent task creation', false, String(e));

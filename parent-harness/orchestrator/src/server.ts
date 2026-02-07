@@ -4,6 +4,14 @@ import 'dotenv/config';
 import { initStability } from './stability/index.js';
 initStability();
 
+// ============ DATABASE MIGRATIONS ============
+import { migrate } from './db/index.js';
+try {
+  migrate();
+} catch (err) {
+  console.error('❌ Migration failed:', err);
+}
+
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
@@ -27,6 +35,7 @@ import { webhookRouter } from './api/webhook.js';
 import { stabilityRouter } from './api/stability.js';
 import { buildHealthRouter } from './api/build-health.js';
 import { alertsRouter } from './api/alerts.js';
+import { eventBusRouter } from './api/event-bus.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 
 // Import command handlers (registers commands on load)
@@ -35,6 +44,10 @@ import { initWebSocket } from './websocket.js';
 import { startOrchestrator } from './orchestrator/index.js';
 import { initTelegram } from './telegram/index.js';
 import { initBuildHealth } from './build-health/index.js';
+import { initEventSystem, getEventSystemStatus } from './events/index.js';
+
+// Feature flag for event-driven architecture
+const USE_EVENT_SYSTEM = process.env.HARNESS_EVENT_SYSTEM === 'true';
 
 const app = express();
 const PORT = process.env.PORT || 3333;
@@ -48,9 +61,10 @@ initWebSocket(server);
 // Initialize Telegram (optional)
 initTelegram();
 
-// Initialize Build Health monitoring
-const CODEBASE_ROOT = process.env.CODEBASE_ROOT || '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
-initBuildHealth(CODEBASE_ROOT);
+// Initialize Build Health monitoring - ONLY check orchestrator, not entire codebase
+// Full codebase check was causing 200%+ CPU usage and machine freezes
+const ORCHESTRATOR_ROOT = process.env.CODEBASE_ROOT || '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/parent-harness/orchestrator';
+initBuildHealth(ORCHESTRATOR_ROOT);
 
 // Middleware
 app.use(cors());
@@ -81,11 +95,21 @@ app.use('/api/telegram', telegramRouter);
 app.use('/api/stability', stabilityRouter);
 app.use('/api/build-health', buildHealthRouter);
 app.use('/api/alerts', alertsRouter);
+app.use('/api/event-bus', eventBusRouter);
 app.use('/webhook', webhookRouter);
 
 // Error handling
 app.use(notFoundHandler);
 app.use(errorHandler);
+
+// Event system status endpoint
+app.get('/api/events/system', (_req, res) => {
+  if (USE_EVENT_SYSTEM) {
+    res.json(getEventSystemStatus());
+  } else {
+    res.json({ enabled: false, message: 'Event system disabled. Set HARNESS_EVENT_SYSTEM=true' });
+  }
+});
 
 // Start server
 server.listen(PORT, () => {
@@ -93,8 +117,15 @@ server.listen(PORT, () => {
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`🔌 WebSocket: ws://localhost:${PORT}/ws`);
 
-  // Start orchestration loop
-  startOrchestrator();
+  // Choose orchestration mode
+  if (USE_EVENT_SYSTEM) {
+    console.log(`⚡ Event-driven architecture: ENABLED`);
+    initEventSystem();
+    console.log(`⚡ Event system initialized - scanners and services running`);
+  } else {
+    console.log(`🔄 Legacy tick loop: ENABLED (set HARNESS_EVENT_SYSTEM=true to use events)`);
+    startOrchestrator();
+  }
 });
 
 export default app;

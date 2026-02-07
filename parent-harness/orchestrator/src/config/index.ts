@@ -75,7 +75,7 @@ const DEFAULT_CONFIG: HarnessConfig = {
     model: 'opus',
     model_fallback: ['opus', 'sonnet', 'haiku'],
     timeout_minutes: 5,
-    max_concurrent: 8,
+    max_concurrent: 2,  // Reduced from 8 to prevent resource exhaustion
     max_output_tokens: 16000,
     enabled: true,
   },

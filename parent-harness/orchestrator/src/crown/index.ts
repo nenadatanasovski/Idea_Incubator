@@ -9,6 +9,7 @@ import { query, run, getOne } from '../db/index.js';
 import * as agents from '../db/agents.js';
 import * as sessions from '../db/sessions.js';
 import * as tasks from '../db/tasks.js';
+import { events as dbEvents } from '../db/events.js';
 import { notifyAdmin, sendToBot } from '../telegram/index.js';
 import { spawnAgentSession } from '../spawner/index.js';
 
@@ -42,6 +43,8 @@ interface CrownReport {
 
 let crownInterval: NodeJS.Timeout | null = null;
 let lastReport: CrownReport | null = null;
+let lastReportSentAt: number = 0;
+const REPORT_RATE_LIMIT_MS = 60 * 60 * 1000; // Only send 1 report per hour max
 
 /**
  * Start the Crown monitoring system
@@ -264,6 +267,8 @@ async function handleRepeatedFailures(health: AgentHealth): Promise<string | nul
     const task = tasks.getTask(health.currentTaskId);
     if (task && task.retry_count && task.retry_count >= 3) {
       tasks.updateTask(health.currentTaskId, { status: 'blocked' });
+      // Emit retry exhaustion event for dashboard alerts
+      dbEvents.retryExhausted(health.currentTaskId, task.title || task.display_id, task.retry_count);
       return `🚫 Blocked task ${task.display_id} after ${task.retry_count} retries - needs human review`;
     }
   }
@@ -407,17 +412,22 @@ Output: TASK_COMPLETE: <summary of actions taken>`;
       }
     }
     
-    // Auto-fix: Block tasks with too many retries
-    const blockedTasks = run(`
-      UPDATE tasks 
-      SET status = 'blocked' 
+    // Auto-fix: Block tasks with too many retries and emit events
+    const tasksToBlock = query<{ id: string; title: string; display_id: string; retry_count: number }>(`
+      SELECT id, title, display_id, retry_count FROM tasks 
       WHERE status = 'pending' AND retry_count >= 5
     `);
-    if (blockedTasks.changes > 0) {
-      console.log(`👑 SIA Auto-fix: Blocked ${blockedTasks.changes} tasks with 5+ retries`);
+    
+    if (tasksToBlock.length > 0) {
+      run(`UPDATE tasks SET status = 'blocked' WHERE status = 'pending' AND retry_count >= 5`);
+      // Emit retry exhaustion events for each blocked task
+      for (const task of tasksToBlock) {
+        dbEvents.retryExhausted(task.id, task.title || task.display_id, task.retry_count);
+      }
+      console.log(`👑 SIA Auto-fix: Blocked ${tasksToBlock.length} tasks with 5+ retries`);
     }
     
-    return `SIA analyzed ${healthChecks.length} agents, fixed ${stuckCount} stuck agents, blocked ${blockedTasks.changes} problematic tasks`;
+    return `SIA analyzed ${healthChecks.length} agents, fixed ${stuckCount} stuck agents, blocked ${tasksToBlock.length} problematic tasks`;
     
   } catch (error) {
     console.error('👑 SIA analysis error:', error);
@@ -426,9 +436,19 @@ Output: TASK_COMPLETE: <summary of actions taken>`;
 }
 
 /**
- * Send Crown report to Telegram
+ * Send Crown report to Telegram (rate limited to 1 per hour)
  */
 async function sendCrownReport(report: CrownReport): Promise<void> {
+  const now = Date.now();
+  const timeSinceLastReport = now - lastReportSentAt;
+  
+  // Rate limit: only send 1 report per hour
+  if (timeSinceLastReport < REPORT_RATE_LIMIT_MS) {
+    const minutesRemaining = Math.ceil((REPORT_RATE_LIMIT_MS - timeSinceLastReport) / 60000);
+    console.log(`👑 Crown report rate limited (next report in ${minutesRemaining}min)`);
+    return;
+  }
+  
   let message = `👑 <b>CROWN AGENT REPORT</b>\n`;
   message += `<code>${report.timestamp.toISOString()}</code>\n\n`;
   
@@ -449,6 +469,7 @@ async function sendCrownReport(report: CrownReport): Promise<void> {
   
   // Send via SIA bot (Crown identity)
   await sendToBot('sia', message);
+  lastReportSentAt = now;
 }
 
 /**

@@ -119,11 +119,16 @@ export function createSession(agentId: string, taskId?: string): AgentSession {
 export function updateSessionStatus(
   id: string,
   status: AgentSession['status'],
-  _finalResult?: string,
-  _errorMessage?: string
+  output?: string,
+  errorMessage?: string
 ): void {
   if (status === 'completed' || status === 'failed' || status === 'terminated') {
-    run(`UPDATE agent_sessions SET status = ?, completed_at = datetime('now') WHERE id = ?`, [status, id]);
+    // Save output/error to the session
+    const metadata = output || errorMessage ? JSON.stringify({ output, errorMessage }) : null;
+    run(
+      `UPDATE agent_sessions SET status = ?, completed_at = datetime('now'), output = ?, metadata = ? WHERE id = ?`,
+      [status, output || null, metadata, id]
+    );
   } else {
     run(`UPDATE agent_sessions SET status = ? WHERE id = ?`, [status, id]);
   }

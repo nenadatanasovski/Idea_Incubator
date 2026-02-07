@@ -20,7 +20,7 @@ import { events } from '../db/events.js';
 const execAsync = promisify(exec);
 
 // Configuration
-const BUILD_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const BUILD_CHECK_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes (was 5 - too aggressive)
 const ERROR_THRESHOLD_CRITICAL = 100; // Block all non-fix tasks
 const ERROR_THRESHOLD_WARNING = 50;   // Prioritize fix tasks
 const ERROR_THRESHOLD_HEALTHY = 10;   // Normal operation
@@ -63,8 +63,10 @@ export function initBuildHealth(projectPath: string): void {
     }
   }
 
-  // Run initial check
-  checkBuildHealth().catch(console.error);
+  // Delay initial check to avoid startup CPU spike (30 seconds)
+  setTimeout(() => {
+    checkBuildHealth().catch(console.error);
+  }, 30_000);
 
   // Schedule periodic checks
   setInterval(() => {

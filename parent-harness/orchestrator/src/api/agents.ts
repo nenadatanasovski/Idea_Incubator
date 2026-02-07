@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as agents from '../db/agents.js';
+import * as activities from '../db/activities.js';
 import { getAgentMetadata, getAllAgentMetadata } from '../agents/metadata.js';
 
 export const agentsRouter = Router();
@@ -51,6 +52,28 @@ agentsRouter.get('/', (_req, res) => {
 });
 
 /**
+ * GET /api/agents/activities/recent
+ * Get recent activities across all agents
+ * (MUST be before /:id routes to avoid matching "activities" as an id)
+ */
+agentsRouter.get('/activities/recent', (req, res) => {
+  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 100;
+  const since = req.query.since as string | undefined;
+  const types = req.query.types ? (req.query.types as string).split(',') as activities.ActivityType[] : undefined;
+
+  const recentActivities = activities.getRecentActivities({
+    limit,
+    since,
+    activityTypes: types,
+  });
+
+  return res.json({
+    activities: recentActivities,
+    count: recentActivities.length,
+  });
+});
+
+/**
  * GET /api/agents/:id
  * Get a single agent
  */
@@ -94,4 +117,38 @@ agentsRouter.post('/:id/heartbeat', (req, res) => {
 
   agents.updateHeartbeat(req.params.id);
   return res.json({ success: true });
+});
+
+// ============ Vibe Pattern Endpoints ============
+
+/**
+ * GET /api/agents/:id/activities
+ * Get activity log for an agent
+ */
+agentsRouter.get('/:id/activities', (req, res) => {
+  const agent = agents.getAgent(req.params.id);
+  if (!agent) {
+    return res.status(404).json({ error: 'Agent not found', status: 404 });
+  }
+
+  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
+  const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : undefined;
+  const activityType = req.query.type as activities.ActivityType | undefined;
+  const since = req.query.since as string | undefined;
+
+  const agentActivities = activities.getAgentActivities(agent.id, {
+    limit,
+    offset,
+    activityType,
+    since,
+  });
+
+  const activityCounts = activities.countActivitiesByType(agent.id);
+
+  return res.json({
+    agent_id: agent.id,
+    agent_name: agent.name,
+    activities: agentActivities,
+    activity_counts: activityCounts,
+  });
 });

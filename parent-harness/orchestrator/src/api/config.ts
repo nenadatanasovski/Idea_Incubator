@@ -6,6 +6,7 @@ import * as budget from '../budget/index.js';
 import * as agents from '../db/agents.js';
 import * as tasks from '../db/tasks.js';
 import * as sessions from '../db/sessions.js';
+import { events as dbEvents } from '../db/events.js';
 
 export const configRouter = Router();
 
@@ -47,7 +48,33 @@ configRouter.patch('/', (req, res) => {
     });
   }
 
+  // Capture old values for audit log
+  const oldConfig = config.getConfig();
+  const source = (req.headers['x-source'] as string) || 'dashboard';
+
   const newConfig = config.updateConfig(updates);
+
+  // Emit config change events for audit log
+  function logChanges(section: string, oldSection: Record<string, unknown>, newSection: Record<string, unknown>) {
+    for (const [key, newValue] of Object.entries(newSection)) {
+      const oldValue = oldSection[key];
+      if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+        dbEvents.configChanged(section, key, oldValue, newValue, source);
+      }
+    }
+  }
+
+  // Check each section for changes
+  for (const section of Object.keys(updates)) {
+    if (typeof updates[section] === 'object' && updates[section] !== null) {
+      logChanges(
+        section,
+        ((oldConfig as unknown) as Record<string, Record<string, unknown>>)[section] || {},
+        updates[section] as Record<string, unknown>
+      );
+    }
+  }
+
   return res.json({
     success: true,
     config: newConfig,

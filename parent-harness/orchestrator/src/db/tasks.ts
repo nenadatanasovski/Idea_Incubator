@@ -140,7 +140,7 @@ export function createTask(input: CreateTaskInput & { wave_number?: number }): T
  */
 export function updateTask(
   id: string,
-  updates: Partial<Pick<Task, 'title' | 'description' | 'status' | 'priority' | 'assigned_agent_id' | 'spec_content' | 'implementation_plan'>>
+  updates: Partial<Pick<Task, 'title' | 'description' | 'status' | 'priority' | 'assigned_agent_id' | 'spec_content' | 'implementation_plan' | 'retry_count'>>
 ): Task | undefined {
   const setClauses: string[] = ['updated_at = datetime(\'now\')'];
   const params: unknown[] = [];
@@ -178,6 +178,10 @@ export function updateTask(
   if (updates.implementation_plan !== undefined) {
     setClauses.push('implementation_plan = ?');
     params.push(updates.implementation_plan);
+  }
+  if (updates.retry_count !== undefined) {
+    setClauses.push('retry_count = ?');
+    params.push(updates.retry_count);
   }
 
   params.push(id);

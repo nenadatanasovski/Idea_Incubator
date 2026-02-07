@@ -17,8 +17,9 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitReturns": false,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "types": ["vitest/globals"]
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules", "dist", "frontend", "parent-harness", "tests"]
+  "exclude": ["node_modules", "dist", "frontend", "parent-harness"]
 }

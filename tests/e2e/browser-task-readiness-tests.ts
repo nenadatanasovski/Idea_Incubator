@@ -14,6 +14,8 @@
 
 import puppeteer, { Browser, Page } from "puppeteer";
 
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 const BASE_URL = "http://localhost:5173";
 const API_BASE = "http://localhost:3001/api";
 
@@ -95,7 +97,7 @@ async function testParallelismControlsVisible(page: Page): Promise<void> {
     }
   }, taskListId);
 
-  await page.waitForTimeout(1000);
+  await wait(1000);
 
   // Check ParallelismControls is visible
   await waitForSelector(page, '[data-testid="parallelism-controls"]');
@@ -117,14 +119,14 @@ async function testRecalculateButton(page: Page): Promise<void> {
     }
   }, taskListId);
 
-  await page.waitForTimeout(1000);
+  await wait(1000);
 
   // Click recalculate button
   await waitForSelector(page, '[data-testid="recalculate-parallelism-btn"]');
   await page.click('[data-testid="recalculate-parallelism-btn"]');
 
   // Wait for response (button should show "Calculating..." then finish)
-  await page.waitForTimeout(2000);
+  await wait(2000);
 
   // Verify stats are shown (Waves/Max Parallel chips should appear)
   const hasStats = await page.evaluate(() => {
@@ -157,13 +159,13 @@ async function testParallelismPreviewToggle(page: Page): Promise<void> {
     }
   }, taskListId);
 
-  await page.waitForTimeout(1000);
+  await wait(1000);
 
   // Click Preview button
   await waitForSelector(page, '[data-testid="toggle-parallelism-preview-btn"]');
   await page.click('[data-testid="toggle-parallelism-preview-btn"]');
 
-  await page.waitForTimeout(500);
+  await wait(500);
 
   // Verify ParallelismPreview is visible
   await waitForSelector(page, '[data-testid="parallelism-preview"]');
@@ -185,14 +187,14 @@ async function testTaskDetailModalWithReadiness(page: Page): Promise<void> {
     }
   }, taskListId);
 
-  await page.waitForTimeout(1000);
+  await wait(1000);
 
   // Click on a task cell to open TaskDetailModal
   const taskCell = await page.$('[data-testid^="wave-cell-"]');
   if (!taskCell) throw new Error("No task cell found");
   await taskCell.click();
 
-  await page.waitForTimeout(500);
+  await wait(500);
 
   // Verify ReadinessIndicator is visible in modal header
   await waitForSelector(page, '[data-testid="readiness-indicator"]');
@@ -217,20 +219,20 @@ async function testTaskCompletionModal(page: Page): Promise<void> {
     }
   }, taskListId);
 
-  await page.waitForTimeout(1000);
+  await wait(1000);
 
   // Click on a task cell
   const taskCell = await page.$('[data-testid^="wave-cell-"]');
   if (!taskCell) throw new Error("No task cell found");
   await taskCell.click();
 
-  await page.waitForTimeout(500);
+  await wait(500);
 
   // Click Check Readiness button
   await waitForSelector(page, '[data-testid="check-readiness-btn"]');
   await page.click('[data-testid="check-readiness-btn"]');
 
-  await page.waitForTimeout(500);
+  await wait(500);
 
   // Verify TaskCompletionModal is visible
   await waitForSelector(page, '[data-testid="task-completion-modal"]');
@@ -257,20 +259,20 @@ async function testExecuteButtonDisabledWhenNotReady(
     }
   }, taskListId);
 
-  await page.waitForTimeout(1000);
+  await wait(1000);
 
   // Click on a task cell
   const taskCell = await page.$('[data-testid^="wave-cell-"]');
   if (!taskCell) throw new Error("No task cell found");
   await taskCell.click();
 
-  await page.waitForTimeout(500);
+  await wait(500);
 
   // Click Check Readiness button
   await waitForSelector(page, '[data-testid="check-readiness-btn"]');
   await page.click('[data-testid="check-readiness-btn"]');
 
-  await page.waitForTimeout(1000);
+  await wait(1000);
 
   // Check if execute button is disabled
   const isDisabled = await page.evaluate(() => {

@@ -14,6 +14,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Task } from '../api/types';
 import api from '../api/client';
 import { formatDateTime } from '../utils/format';
+import { ExecutionsPanel } from './ExecutionsPanel';
 
 interface TaskDetailModalProps {
   taskId: string;
@@ -21,13 +22,14 @@ interface TaskDetailModalProps {
   onNavigateToTask?: (taskId: string) => void;
 }
 
-type TabType = 'overview' | 'criteria' | 'dependencies' | 'history';
+type TabType = 'overview' | 'criteria' | 'dependencies' | 'history' | 'executions';
 
 const TAB_CONFIG: { id: TabType; label: string; icon: string }[] = [
   { id: 'overview', label: 'Overview', icon: '📋' },
   { id: 'criteria', label: 'Pass Criteria', icon: '✅' },
   { id: 'dependencies', label: 'Dependencies', icon: '🔗' },
   { id: 'history', label: 'History', icon: '📜' },
+  { id: 'executions', label: 'Executions', icon: '🔄' },
 ];
 
 // Extended task type with additional fields from API
@@ -168,6 +170,7 @@ export function TaskDetailModal({
                 <DependenciesTab task={task} onTaskClick={handleTaskClick} />
               )}
               {activeTab === 'history' && <HistoryTab task={task} />}
+              {activeTab === 'executions' && <ExecutionsPanel taskId={task.id} />}
             </>
           ) : null}
         </div>

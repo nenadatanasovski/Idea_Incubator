@@ -1,8 +1,9 @@
 # Agent Memory System Implementation Plan
 
 > **Based on:** CRITICAL_GAPS.md Gap #3
-> **Status:** Planning
+> **Status:** Planning (Phase 0 implemented)
 > **Priority:** P2 (Needed for Self-Improvement)
+> **Last Updated:** 2026-02-07
 
 ---
 
@@ -12,17 +13,86 @@ The Agent Memory System enables agents to learn from experience, avoid repeating
 
 ---
 
+## Current State (Phase 0 - Already Implemented)
+
+The harness already has a basic memory implementation that serves as the foundation for this plan.
+
+### Existing `agent_memory` Table
+
+**Location:** `parent-harness/orchestrator/src/memory/index.ts`
+**API:** `parent-harness/orchestrator/src/api/memory.ts` (REST endpoints at `/api/memory/`)
+
+```sql
+-- Created dynamically via ensureMemoryTable() on module load
+CREATE TABLE IF NOT EXISTS agent_memory (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    type TEXT NOT NULL,          -- context | learning | preference | error_pattern | success_pattern
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    metadata TEXT,               -- JSON
+    importance INTEGER DEFAULT 5, -- 1-10 scale
+    access_count INTEGER DEFAULT 0,
+    last_accessed TEXT DEFAULT (datetime('now')),
+    created_at TEXT DEFAULT (datetime('now')),
+    expires_at TEXT,              -- TTL support
+    UNIQUE(agent_id, type, key)
+);
+```
+
+**Existing API functions:**
+- `remember(agentId, type, key, value, options?)` - Store a memory
+- `recall(agentId, type, key)` - Retrieve specific memory (auto-increments access_count)
+- `recallAll(agentId, type?)` - Get all memories, sorted by importance + access count
+- `forget(agentId, type, key)` - Delete specific memory
+- `forgetAll(agentId, type?)` - Bulk delete
+- `cleanupExpired()` - Remove TTL-expired memories
+- `setTaskContext(agentId, taskId, context)` - Short-term context (24h TTL)
+- `learnSuccess(agentId, pattern, details)` - Record success pattern (importance: 7)
+- `learnError(agentId, pattern, details)` - Record error pattern (importance: 8)
+- `hasSeenError(agentId, pattern)` - Check for known error patterns
+
+### Existing Self-Improvement/Retry System
+
+**Location:** `parent-harness/orchestrator/src/self-improvement/index.ts`
+
+The retry system creates a `task_retry_attempts` table and provides:
+- Retry counting (max 5 retries per task)
+- Error analysis with pattern matching (TypeScript, test, build, timeout errors)
+- Fix approach generation based on error type + previous attempts
+- `recordSuccess()` / `processFailedTasks()` lifecycle hooks
+
+**Gap:** The retry system has a TODO to integrate with agent memory (`// TODO: Store successful approach in agent memory for future reference`). This is addressed in Phase 2 below.
+
+### What Phase 0 Lacks (Addressed in This Plan)
+
+| Capability | Phase 0 | This Plan |
+|------------|---------|-----------|
+| Memory types | 5 basic types | Extended with `decision`, `failure`, `success`, `pattern` |
+| Task signature matching | None | Hash-based similar task matching |
+| Cross-agent learning | Per-agent only | `technique_effectiveness` table |
+| Relevance decay | None (only TTL) | Continuous decay with access boost |
+| Memory consolidation | None | Pattern extraction from clusters |
+| SIA integration | None | Full integration with `sia_task_memory` |
+| Success rate tracking | None | Per-memory effectiveness metrics |
+| Memory access logging | None | `memory_access_log` audit trail |
+
+---
+
 ## Design Decision: Harness-Specific Tables
 
 **Decision:** Create parent-harness-specific memory tables rather than reusing Vibe tables directly.
 
 **Rationale:**
-1. **Isolation** - Harness operates independently from Vibe platform
-2. **Schema control** - Harness needs different memory granularity
-3. **Simplicity** - Avoid complex cross-database queries
+1. **Isolation** - Harness operates independently from Vibe platform; harness DB is `parent-harness/data/harness.db`, Vibe DB is `database/ideas.db`
+2. **Schema control** - Harness needs different memory granularity (agent-focused vs idea/session-focused)
+3. **Simplicity** - Avoid complex cross-database queries between SQLite files
 4. **Evolution** - Can evolve independently as harness matures
+5. **Existing foundation** - Build on the existing `agent_memory` table rather than starting from scratch
 
-**Integration approach:** Learn from Vibe patterns, implement locally, optionally sync insights back to Vibe later.
+**Integration approach:** Learn from Vibe patterns (SIA tables, memory graph), implement locally in harness DB, optionally sync insights back to Vibe later.
+
+**Migration path:** Phase 1 extends the existing `agent_memory` table schema. Phase 2 adds new tables (`technique_effectiveness`, `memory_access_log`). No data migration needed since the existing table uses `CREATE TABLE IF NOT EXISTS`.
 
 ---
 

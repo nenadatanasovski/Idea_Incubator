@@ -1,23 +1,23 @@
 [
   {
-    "id": "cp-1770431506734-zczc3i",
+    "id": "cp-1770455437361-fqphe6",
     "buildId": "test-build",
     "taskId": "T-007",
-    "stateJson": "{\"buildId\":\"test-build\",\"completedTasks\":[\"T-007\"],\"currentTaskIndex\":7,\"failedTasks\":[],\"startedAt\":\"2026-02-07T02:31:46.734Z\",\"lastUpdatedAt\":\"2026-02-07T02:31:46.734Z\",\"context\":{}}",
-    "createdAt": "2026-02-07T02:31:46.734Z"
+    "stateJson": "{\"buildId\":\"test-build\",\"completedTasks\":[\"T-007\"],\"currentTaskIndex\":7,\"failedTasks\":[],\"startedAt\":\"2026-02-07T09:10:37.361Z\",\"lastUpdatedAt\":\"2026-02-07T09:10:37.361Z\",\"context\":{}}",
+    "createdAt": "2026-02-07T09:10:37.361Z"
   },
   {
-    "id": "cp-1770431506734-3m5hdr",
+    "id": "cp-1770455437361-19w4vw",
     "buildId": "test-build",
     "taskId": "T-008",
-    "stateJson": "{\"buildId\":\"test-build\",\"completedTasks\":[\"T-008\"],\"currentTaskIndex\":8,\"failedTasks\":[],\"startedAt\":\"2026-02-07T02:31:46.734Z\",\"lastUpdatedAt\":\"2026-02-07T02:31:46.734Z\",\"context\":{}}",
-    "createdAt": "2026-02-07T02:31:46.734Z"
+    "stateJson": "{\"buildId\":\"test-build\",\"completedTasks\":[\"T-008\"],\"currentTaskIndex\":8,\"failedTasks\":[],\"startedAt\":\"2026-02-07T09:10:37.361Z\",\"lastUpdatedAt\":\"2026-02-07T09:10:37.361Z\",\"context\":{}}",
+    "createdAt": "2026-02-07T09:10:37.361Z"
   },
   {
-    "id": "cp-1770431506734-sqybgg",
+    "id": "cp-1770455437361-wwkb80",
     "buildId": "test-build",
     "taskId": "T-009",
-    "stateJson": "{\"buildId\":\"test-build\",\"completedTasks\":[\"T-009\"],\"currentTaskIndex\":9,\"failedTasks\":[],\"startedAt\":\"2026-02-07T02:31:46.734Z\",\"lastUpdatedAt\":\"2026-02-07T02:31:46.734Z\",\"context\":{}}",
-    "createdAt": "2026-02-07T02:31:46.734Z"
+    "stateJson": "{\"buildId\":\"test-build\",\"completedTasks\":[\"T-009\"],\"currentTaskIndex\":9,\"failedTasks\":[],\"startedAt\":\"2026-02-07T09:10:37.361Z\",\"lastUpdatedAt\":\"2026-02-07T09:10:37.361Z\",\"context\":{}}",
+    "createdAt": "2026-02-07T09:10:37.361Z"
   }
 ]

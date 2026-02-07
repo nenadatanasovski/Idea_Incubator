@@ -56,7 +56,7 @@ When finished, include one of these in your final message:
 - TASK_FAILED: <reason why it cannot be completed>
 
 ## RULES
-- Always verify your changes work (run tests, build)
+- Verify syntax with \`npx tsc --noEmit\` (DO NOT run npm test - QA agent handles all testing)
 - Write clean, documented code
 - Don't make unnecessary changes
 - If stuck, explain why in TASK_FAILED
@@ -70,8 +70,9 @@ You implement features and fix bugs. Focus on:
 - Unit tests for new code`,
 
     qa_agent: `## ROLE: QA Agent
-You verify implementations and find bugs. Focus on:
-- Running test suites (npm test, npm run build)
+You verify implementations and find bugs. You are the ONLY agent that runs tests. Focus on:
+- Running test suites: \`npm test -- --pool=forks --poolOptions.forks.maxForks=1\` (serialized to prevent CPU exhaustion)
+- Running typecheck: \`npm run build\`
 - Checking edge cases
 - Verifying all requirements are met`,
 
@@ -107,7 +108,7 @@ ${passCriteria.map((c, i) => `${i + 1}. ${c}`).join('\n')}
 ## INSTRUCTIONS
 1. Read relevant files to understand the current state
 2. Implement the required changes
-3. Run tests to verify: \`npm test\` and \`npm run build\`
+3. Run typecheck: \`npx tsc --noEmit\` (do NOT run npm test - QA agent handles testing)
 4. Output TASK_COMPLETE with a summary, or TASK_FAILED with reason
 `;
 

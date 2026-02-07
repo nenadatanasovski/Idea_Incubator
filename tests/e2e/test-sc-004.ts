@@ -6,6 +6,9 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { v4 as uuidv4 } from "uuid";
+import { createDraftFolder } from "../../utils/folder-structure.js";
+import { run, getOne, saveDb } from "../../database/db.js";
 
 const API_BASE = "http://localhost:3001/api/ideation";
 
@@ -40,6 +43,22 @@ async function createTestSessionViaAPI(
     sessionId: data.sessionId || data.session?.id,
     draftId: data.ideaSlug || data.session?.ideaSlug,
   };
+}
+
+/**
+ * Create a test session directly in the database.
+ */
+async function createTestSession(
+  userSlug: string,
+  ideaSlug: string,
+): Promise<string> {
+  const sessionId = uuidv4();
+  await run(
+    `INSERT INTO ideation_sessions (id, user_slug, idea_slug, profile_id) VALUES (?, ?, ?, ?)`,
+    [sessionId, userSlug, ideaSlug, "test-profile"],
+  );
+  await saveDb();
+  return sessionId;
 }
 
 async function runTests(): Promise<TestResult> {
