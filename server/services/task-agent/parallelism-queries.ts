@@ -11,7 +11,6 @@
 import { query, run, getOne, saveDb } from "../../../database/db.js";
 import {
   TaskIdentity,
-  FileConflict,
   FileOperation,
 } from "../../../types/task-agent.js";
 

@@ -13,10 +13,8 @@ import {
   ParallelismAnalysis,
   ExecutionWave,
   TaskListParallelism,
-  TaskIdentity,
 } from "../../../types/task-agent.js";
 import {
-  canRunParallel,
   getConflictDetails,
 } from "./file-conflict-detector.js";
 

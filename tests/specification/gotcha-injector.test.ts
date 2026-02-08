@@ -5,7 +5,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   GotchaInjector,
-  Gotcha,
   createGotchaInjector,
   getHardcodedGotchas,
 } from "../../agents/specification/gotcha-injector.js";

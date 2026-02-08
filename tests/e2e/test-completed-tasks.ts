@@ -99,7 +99,7 @@ async function validateCOM() {
     const delivery =
       await import("../../server/communication/question-delivery");
     const hasClass = typeof delivery.QuestionDelivery === "function";
-    const hasTypes = (delivery as Record<string, unknown>).Question !== undefined || true; // Type won't exist at runtime
+    (delivery as Record<string, unknown>).Question !== undefined || true; // Type won't exist at runtime
     log(
       "COM-006",
       "Question delivery with inline buttons",

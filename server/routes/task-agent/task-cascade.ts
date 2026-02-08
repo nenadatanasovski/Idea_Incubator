@@ -8,7 +8,7 @@
 import { Router, Request, Response } from "express";
 import { cascadeAnalyzerService } from "../../services/task-agent/cascade-analyzer-service.js";
 import { cascadeExecutorService } from "../../services/task-agent/cascade-executor-service.js";
-import { query, run, getOne, saveDb } from "../../../database/db.js";
+import { run, getOne, saveDb } from "../../../database/db.js";
 
 const router = Router();
 
@@ -51,7 +51,6 @@ router.post(
   "/tasks/:taskId/cascade/execute",
   async (req: Request, res: Response) => {
     try {
-      const { taskId } = req.params;
       const { analysis, approveAll, selectedTaskIds } = req.body;
 
       if (!analysis) {

@@ -5,7 +5,7 @@
  * are correctly set up in the database.
  */
 
-import { getDb, query, run } from "../../database/db.js";
+import { query, run } from "../../database/db.js";
 
 interface TableInfo {
   name: string;

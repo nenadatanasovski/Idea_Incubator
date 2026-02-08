@@ -22,24 +22,18 @@ import {
   BuildAgentStatus,
   AgentHeartbeat,
   TaskIdentity,
-  Task,
 } from "../../../types/task-agent.js";
 import {
   calculateWaves,
-  getTaskListParallelism,
 } from "./parallelism-calculator.js";
 import { updateTaskStatus } from "./task-creation-service.js";
 // GAP-002: Import error-handling functions for SIA integration
 import {
-  classifyError,
   recordFailure,
-  makeFailureDecision,
   incrementConsecutiveFailures,
   checkSIAEscalation,
   escalateToSIA,
   gatherFailureContext,
-  type ClassifiedError,
-  type FailureDecision,
 } from "./error-handling.js";
 import os from "os";
 
@@ -97,7 +91,6 @@ const activeProcesses: Map<string, ChildProcess> = new Map();
 /**
  * Heartbeat check interval
  */
-const HEARTBEAT_INTERVAL_MS = 30000; // 30 seconds
 const HEARTBEAT_TIMEOUT_MS = 90000; // 90 seconds
 
 /**
@@ -226,7 +219,6 @@ async function handleAgentExit(
   activeProcesses.delete(agentId);
 
   const success = code === 0;
-  const status = success ? "completed" : "failed";
   const taskStatus = success ? "completed" : "failed";
 
   await run(

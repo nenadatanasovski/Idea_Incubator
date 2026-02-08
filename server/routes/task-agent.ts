@@ -1240,7 +1240,7 @@ router.get("/tasks/:id/dependencies", async (req: Request, res: Response) => {
  */
 router.delete("/dependencies", async (req: Request, res: Response) => {
   try {
-    const { sourceTaskId, targetTaskId, relationshipType } = req.body;
+    const { sourceTaskId, targetTaskId } = req.body;
 
     if (!sourceTaskId || !targetTaskId) {
       return res

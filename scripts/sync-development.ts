@@ -67,7 +67,6 @@ function parseQAPairs(content: string): QAPair[] {
   }
   
   // Pattern 2: Table format | Question | Answer | ... |
-  const _tablePattern = /\|\s*(.+?)\s*\|\s*(.+?)\s*\|(?:\s*(.+?)\s*\|)?(?:\s*(.+?)\s*\|)?/g;
   const lines = content.split("\n");
   let inTable = false;
   let isHeaderRow = true;

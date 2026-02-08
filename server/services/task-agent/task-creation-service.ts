@@ -17,7 +17,6 @@ import {
   TaskStatus,
 } from "../../../types/task-agent.js";
 import { generateDisplayId } from "./display-id-generator.js";
-import { addToQueue } from "./evaluation-queue-manager.js";
 import { taskVersionService } from "./task-version-service.js";
 
 /**

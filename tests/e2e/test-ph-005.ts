@@ -4,7 +4,6 @@
 
 import {
   classifyAllDocuments,
-  DocumentClassification,
 } from "../../agents/ideation/document-classifier.js";
 import * as fs from "fs";
 import * as path from "path";

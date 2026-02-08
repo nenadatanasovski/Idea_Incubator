@@ -10,10 +10,9 @@
  * Run with: npx tsx tests/puppeteer/test-fixes.ts
  */
 
-import puppeteer, { Browser, Page } from "puppeteer";
 import * as fs from "fs";
 import * as path from "path";
-import { execSync, spawn, ChildProcess } from "child_process";
+import { execSync } from "child_process";
 
 // Test configuration
 const CONFIG = {
@@ -33,9 +32,6 @@ interface TestResult {
 }
 
 const results: TestResult[] = [];
-let browser: Browser | null = null;
-let page: Page | null = null;
-let serverProcess: ChildProcess | null = null;
 
 /**
  * Log with timestamp

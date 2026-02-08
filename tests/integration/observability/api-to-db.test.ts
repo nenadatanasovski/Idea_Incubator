@@ -4,7 +4,7 @@
  * Tests that verify the integration between API endpoints and database operations
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import request from "supertest";
 import express from "express";
 import { v4 as uuidv4 } from "uuid";

@@ -9,13 +9,11 @@ import * as path from "path";
 import * as fs from "fs";
 import {
   parseTaskList,
-  findTaskLists,
   getTaskListsSummary,
   updateTaskStatus,
   addTask,
   getNextPendingTask,
   getTasksBySection,
-  TaskList,
   ParsedTask,
 } from "../services/task-loader.js";
 import { query } from "../../database/db.js";
@@ -576,7 +574,6 @@ router.get("/task-detail", (req: Request, res: Response): void => {
     const content = fs.readFileSync(taskDetailPath, "utf-8");
 
     // Parse basic metadata from the markdown
-    const lines = content.split("\n");
     let title = id;
     let summary = "";
     let requirements: string[] = [];

@@ -551,7 +551,7 @@ export async function removeFileImpact(
   filePath: string,
   operation: FileOperation,
 ): Promise<boolean> {
-  const result = await run(
+  await run(
     "DELETE FROM task_file_impacts WHERE task_id = ? AND file_path = ? AND operation = ?",
     [taskId, filePath, operation],
   );

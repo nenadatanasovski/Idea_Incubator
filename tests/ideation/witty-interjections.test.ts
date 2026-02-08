@@ -1,8 +1,7 @@
-import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, test, expect } from "vitest";
 import {
   shouldInjectWit,
   findRelevantInterjection,
-  maybeInjectWit,
   injectAtNaturalBreak,
   InterjectionTracker,
   getAllInterjections,

@@ -15,7 +15,6 @@ import { query, run, getOne } from "../../database/db.js";
 import { emitTaskExecutorEvent } from "../websocket.js";
 import {
   validateAnswerRequest,
-  isSigningEnabled,
 } from "../../utils/url-signer.js";
 import { eventService } from "../services/event-service.js";
 

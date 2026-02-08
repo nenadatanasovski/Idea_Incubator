@@ -7,12 +7,9 @@
  * Part of: PTE-125 to PTE-128
  */
 
-import { v4 as uuidv4 } from "uuid";
 import { query, run, getOne, saveDb } from "../../../database/db.js";
 import {
   TaskListV2,
-  FileConflict,
-  BuildAgentInstance,
   FileOperation,
 } from "../../../types/task-agent.js";
 import {
@@ -418,7 +415,6 @@ export async function getGlobalAgentPool(): Promise<{
 export async function calculateAgentAllocation(
   taskListId: string,
 ): Promise<number> {
-  const config = await getConfig();
   const pool = await getGlobalAgentPool();
 
   // Get the task list's configured max

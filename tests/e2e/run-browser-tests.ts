@@ -141,7 +141,7 @@ async function executeAssertion(
   page: Page,
   assertion: Record<string, unknown>,
 ): Promise<{ passed: boolean; message: string }> {
-  const { type, selector, expected, count, minCount, description } = assertion;
+  const { type, selector, expected, count, minCount } = assertion;
 
   try {
     switch (type) {

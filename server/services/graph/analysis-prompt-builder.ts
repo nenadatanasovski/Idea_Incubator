@@ -9,8 +9,6 @@ import {
   type CollectedSource,
   type SourceCollectionResult,
   type SourceType,
-  ARTIFACT_WEIGHTS,
-  MEMORY_FILE_WEIGHTS,
 } from "./source-collector.js";
 
 // =============================================================================

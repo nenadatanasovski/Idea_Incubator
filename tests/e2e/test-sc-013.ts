@@ -2,7 +2,6 @@ import * as fs from "fs";
 import * as path from "path";
 import {
   updateRecentlyUpdated,
-  loadPriorityRules,
 } from "../../agents/ideation/priority-manager.js";
 import {
   getIdeaFolderPath,

@@ -5,7 +5,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect } from "vitest";
 
 const IDEA_DIR = path.join(process.cwd(), "ideas", "e2e-test-smart-wellness-tracker");
 const DEV_FILE = path.join(IDEA_DIR, "development.md");

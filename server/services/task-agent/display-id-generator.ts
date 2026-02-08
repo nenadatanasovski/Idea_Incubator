@@ -8,7 +8,6 @@
  * Part of: PTE-025 to PTE-028
  */
 
-import { v4 as uuidv4 } from "uuid";
 import { query, run, getOne, saveDb } from "../../../database/db.js";
 import { TaskCategory, CATEGORY_CODES } from "../../../types/task-agent.js";
 import {

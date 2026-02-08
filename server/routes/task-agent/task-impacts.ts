@@ -9,7 +9,6 @@ import { Router, Request, Response } from "express";
 import { taskImpactService } from "../../services/task-agent/task-impact-service.js";
 import {
   estimateFileImpacts,
-  getFileImpacts,
   validateFileImpacts,
 } from "../../services/task-agent/file-impact-analyzer.js";
 import { getOne } from "../../../database/db.js";

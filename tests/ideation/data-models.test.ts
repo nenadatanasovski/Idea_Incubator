@@ -1,5 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll } from "vitest";
-import { getDb } from "../../database/db.js";
+import { describe, test, expect, beforeAll } from "vitest";
 import {
   mapSessionRowToSession,
   mapMessageRowToMessage,
@@ -10,17 +9,17 @@ import {
   createDefaultMarketDiscoveryState,
   createDefaultNarrowingState,
 } from "../../utils/ideation-defaults.js";
+import { getDb } from "../../database/db.js";
 import type { Database as SqlJsDatabase } from "sql.js";
 
 let db: SqlJsDatabase;
 
 describe("Database Schema", () => {
   beforeAll(async () => {
+    // Use the shared in-memory singleton. CHECK constraint violations in
+    // sql.js throw errors but do not corrupt the database state since
+    // SQLite rolls back the failed statement automatically.
     db = await getDb();
-  });
-
-  afterAll(async () => {
-    // Don't close/save DB - shared singleton used by other test files
   });
 
   describe("ideation_sessions table", () => {

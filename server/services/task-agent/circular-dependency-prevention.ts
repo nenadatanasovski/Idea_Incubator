@@ -11,7 +11,7 @@
 
 import { v4 as uuidv4 } from "uuid";
 import { query, run, getOne, saveDb } from "../../../database/db.js";
-import { TaskIdentity, RelationshipType } from "../../../types/task-agent.js";
+import { TaskIdentity } from "../../../types/task-agent.js";
 
 /**
  * Result of cycle detection
@@ -309,7 +309,7 @@ export async function applyResolution(
   sourceTaskId: string,
   targetTaskId: string,
 ): Promise<boolean> {
-  const result = await run(
+  await run(
     `DELETE FROM task_relationships
      WHERE source_task_id = ?
        AND target_task_id = ?

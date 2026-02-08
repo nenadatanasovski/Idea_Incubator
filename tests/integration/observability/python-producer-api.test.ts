@@ -366,10 +366,10 @@ describe("Python Producer to API Integration", () => {
           },
         ]);
 
-      const transcriptResult = await query(
+      await query(
         "SELECT * FROM transcript_entries WHERE id = ?",
         [transcriptEntryId],
-      ) as any[];
+      );
       const toolUseResult = await query(
         "SELECT * FROM tool_uses WHERE transcript_entry_id = ?",
         [transcriptEntryId],

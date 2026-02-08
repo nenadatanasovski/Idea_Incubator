@@ -14,8 +14,6 @@ import {
   UpdatePrdInput,
   PrdStatus,
   PrdRow,
-  PrdTaskListLink,
-  PrdTaskLink,
   mapPrdRow,
   PrdTaskListLinkRow,
   PrdTaskLinkRow,

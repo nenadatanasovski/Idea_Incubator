@@ -62,9 +62,6 @@ import statsRouter from "./routes/stats.js";
 import { apiCounter } from "./middleware/api-counter.js";
 import {
   apiRateLimiter,
-  strictRateLimiter,
-  ideationRateLimiter,
-  searchRateLimiter,
 } from "./middleware/rate-limiter.js";
 import systemRouter from "./routes/system.js";
 import ideasRouter from "./routes/ideas.js";

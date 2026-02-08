@@ -24,18 +24,6 @@ import type {
 // Confidence threshold for flagging sections as needing review
 const LOW_CONFIDENCE_THRESHOLD = 50;
 
-// Section type order for display (kept for reference but unused)
-const _SECTION_ORDER: SpecSectionType[] = [
-  "problem",
-  "target_users",
-  "functional_desc",
-  "success_criteria",
-  "constraints",
-  "out_of_scope",
-  "risks",
-  "assumptions",
-];
-
 /**
  * Parsed response from Claude
  */
@@ -397,7 +385,7 @@ export async function generateSpec(
 
   // Save to database
   const savedSpec = await saveSpec(spec, userId);
-  const _sections = await saveSpecSections(specId, parsed);
+  await saveSpecSections(specId, parsed);
 
   // Calculate section confidences
   const sectionConfidences: Record<SpecSectionType, number> = {

@@ -25,7 +25,6 @@ import type {
 // ── Module imports ────────────────────────────────────────────────────────────
 import {
   getLevelConfig,
-  LEVEL_CONFIGS,
 } from "../agents/validation/level-configs.js";
 import { aggregateResults } from "../agents/validation/result-aggregator.js";
 import {

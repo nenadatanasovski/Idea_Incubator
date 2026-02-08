@@ -192,7 +192,7 @@ async function runTests(): Promise<void> {
 
   // Test 7: Handles nested paths (e.g., research/market.md)
   try {
-    const _artifact = await saveArtifact(TEST_USER, TEST_IDEA, {
+    await saveArtifact(TEST_USER, TEST_IDEA, {
       type: "research",
       title: "Nested Test",
       content: "# Nested Content",
@@ -215,7 +215,7 @@ async function runTests(): Promise<void> {
 
   // Test 8: Creates parent directories if needed
   try {
-    const _artifact = await saveArtifact(TEST_USER, TEST_IDEA, {
+    await saveArtifact(TEST_USER, TEST_IDEA, {
       type: "markdown",
       title: "Deep Nested",
       content: "# Deep Content",

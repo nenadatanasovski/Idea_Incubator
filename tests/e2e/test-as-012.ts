@@ -25,7 +25,6 @@ async function runTest() {
     createIdeaFolder,
     renameIdeaFolder,
     parseFrontmatter,
-    loadArtifact,
   } = await import("../../agents/ideation/unified-artifact-store.js");
 
   const testUserSlug = "test-user-as012";
@@ -128,7 +127,7 @@ async function runTest() {
     );
     if (fs.existsSync(relationshipsPath)) {
       const relContent = fs.readFileSync(relationshipsPath, "utf-8");
-      const _relationships = JSON.parse(relContent);
+      JSON.parse(relContent);
       // Just check it exists and is valid JSON - actual update testing
       // would require setting up a self-referencing relationship
       console.log("✓ Relationships JSON exists and is valid");

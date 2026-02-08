@@ -8,7 +8,7 @@ import assert from "assert";
 async function verify() {
   console.log("Running spec verification code for TEST-AS-012...\n");
 
-  const { createIdeaFolder, renameIdeaFolder, loadArtifact } =
+  const { createIdeaFolder, renameIdeaFolder } =
     await import("../../agents/ideation/unified-artifact-store.js");
   const { getConfig } = await import("../../config/index.js");
   const config = getConfig();

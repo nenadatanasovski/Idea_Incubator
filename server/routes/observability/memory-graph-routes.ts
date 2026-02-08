@@ -44,13 +44,6 @@ interface MemoryBlock {
   updated_at: string;
 }
 
-interface MemoryLink {
-  id: string;
-  source_block_id: string;
-  target_block_id: string;
-  link_type: string;
-}
-
 // ============================================================================
 // Helper function for logging graph changes (exported for use by other modules)
 // ============================================================================

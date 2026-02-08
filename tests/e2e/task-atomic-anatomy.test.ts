@@ -705,9 +705,9 @@ describe("8.3 Cascade Propagation", () => {
 
   it("should generate cascade report for task edit", async () => {
     // Simulate editing task1 description
-    const originalTask = (await getOne(`SELECT * FROM tasks WHERE id = ?`, [
+    await getOne(`SELECT * FROM tasks WHERE id = ?`, [
       task1Id,
-    ])) as any;
+    ]);
 
     // Generate cascade report
     const report = await cascadeAnalyzerService.generateCascadeReport(task1Id);

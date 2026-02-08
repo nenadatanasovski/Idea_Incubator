@@ -60,7 +60,7 @@ describe("MessageStore", () => {
         mockDb as unknown as ReturnType<typeof getDb>,
       );
 
-      const message = await messageStore.add({
+      await messageStore.add({
         sessionId: "session-123",
         role: "user",
         content: "Hello",
@@ -111,7 +111,7 @@ describe("MessageStore", () => {
         mockDb as unknown as ReturnType<typeof getDb>,
       );
 
-      const message = await messageStore.add({
+      await messageStore.add({
         sessionId: "session-123",
         role: "assistant",
         content: "Choose one",

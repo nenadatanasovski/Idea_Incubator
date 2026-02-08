@@ -26,7 +26,6 @@ import { query } from "../../../database/db.js";
 import evaluationQueueManager from "./evaluation-queue-manager.js";
 import autoGroupingEngine from "./auto-grouping-engine.js";
 import taskListOrchestrator from "./task-list-orchestrator.js";
-import parallelismCalculator from "./parallelism-calculator.js";
 import buildAgentOrchestrator from "./build-agent-orchestrator.js";
 import {
   incrementSuggestionsMade,

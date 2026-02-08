@@ -3,7 +3,7 @@ void getDb;
 
 async function testMigration() {
   try {
-    const db = await getDb();
+    await getDb();
     console.log('DB connected');
     
     // Check current table schema

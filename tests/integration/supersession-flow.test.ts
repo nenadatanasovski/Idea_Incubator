@@ -11,7 +11,7 @@
  * 4. Frontend types support all supersession fields
  */
 
-import { describe, test, expect, vi, beforeEach } from "vitest";
+import { describe, test, expect } from "vitest";
 import type { ConversationInsight } from "../../server/services/graph/conversation-synthesizer.js";
 import { parseAnalysisResponse } from "../../server/services/graph/analysis-prompt-builder.js";
 import type { ProposedChange } from "../../frontend/src/types/ideation-state";
@@ -20,7 +20,7 @@ describe("Integration Test: Full Supersession Flow", () => {
   describe("End-to-End Supersession Detection", () => {
     test("complete flow from conversation to graph update", () => {
       // Step 1: Simulate conversation with decision change
-      const conversationMessages = [
+      [
         { role: "user", content: "Let's use React for the frontend" },
         {
           role: "assistant",

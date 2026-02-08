@@ -5,12 +5,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   ClaudeClient,
-  AtomicTask,
 } from "../../agents/specification/claude-client.js";
 import { ParsedBrief } from "../../agents/specification/brief-parser.js";
 import {
   LoadedContext,
-  Gotcha,
 } from "../../agents/specification/context-loader.js";
 
 // Mock the anthropic client module to avoid CLI/API key requirements

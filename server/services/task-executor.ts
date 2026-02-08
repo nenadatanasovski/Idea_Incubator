@@ -13,13 +13,12 @@ import { query, run, getOne } from "../../database/db.js";
 import {
   parseTaskList,
   updateTaskStatus as updateMarkdownStatus,
-  getNextPendingTask,
   ParsedTask,
   TaskList,
 } from "./task-loader.js";
 import { getBotToken } from "../communication/config.js";
 import { emitTaskExecutorEvent } from "../websocket.js";
-import { getAgentRunner, AgentRunner } from "./agent-runner.js";
+import { getAgentRunner } from "./agent-runner.js";
 import {
   getTaskResultCollector,
   TaskResultCollector,

@@ -126,13 +126,11 @@ describe("Knowledge Base", () => {
 
   describe("Pattern Matching", () => {
     it("should match file extension patterns", () => {
-      const pattern = "*.ts";
       const file = "src/index.ts";
       expect(file.endsWith(".ts")).toBe(true);
     });
 
     it("should match directory patterns", () => {
-      const pattern = "server/*";
       const file = "server/routes/api.ts";
       expect(file.startsWith("server/")).toBe(true);
     });

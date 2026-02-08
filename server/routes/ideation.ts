@@ -1161,8 +1161,6 @@ ideationRouter.post("/message/edit", async (req: Request, res: Response) => {
     let candidateData = null;
     const existingCandidate =
       await candidateManager.getActiveForSession(sessionId);
-    let ideaLinked: { userSlug: string; ideaSlug: string } | null = null;
-
     if (existingCandidate) {
       // Update existing candidate
       if (response.candidateUpdate) {
@@ -1172,7 +1170,7 @@ ideationRouter.post("/message/edit", async (req: Request, res: Response) => {
         });
         // Auto-create idea folder when candidate gets a title
         if (response.candidateUpdate.title && session) {
-          ideaLinked = await autoCreateIdeaFolder(
+          await autoCreateIdeaFolder(
             sessionId,
             response.candidateUpdate.title,
             session.profileId,
@@ -1195,7 +1193,7 @@ ideationRouter.post("/message/edit", async (req: Request, res: Response) => {
       candidateData = candidate;
       // Auto-create idea folder when candidate gets a title
       if (response.candidateUpdate.title && session) {
-        ideaLinked = await autoCreateIdeaFolder(
+        await autoCreateIdeaFolder(
           sessionId,
           response.candidateUpdate.title,
           session.profileId,
@@ -1895,7 +1893,7 @@ ideationRouter.post("/save", async (req: Request, res: Response) => {
       });
     }
 
-    const { sessionId, candidateId, notes } = parseResult.data;
+    const { sessionId, candidateId } = parseResult.data;
 
     // Load session
     const session = await sessionManager.load(sessionId);

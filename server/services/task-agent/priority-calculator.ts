@@ -243,18 +243,7 @@ export class PriorityCalculator {
    * Recalculate priorities for a task list after changes
    */
   async recalculateList(taskListId: string): Promise<void> {
-    const priorities = await this.calculateForList(taskListId);
-
-    // Get tasks that should be reordered
-    const tasks = await query<{ id: string; position: number }>(
-      "SELECT id, position FROM tasks WHERE task_list_id = ? ORDER BY position",
-      [taskListId],
-    );
-
-    // Sort by calculated priority
-    const sortedIds = [...priorities.entries()]
-      .sort((a, b) => b[1].score - a[1].score)
-      .map(([id]) => id);
+    await this.calculateForList(taskListId);
 
     // This could update positions if needed
     // For now, just return the calculation

@@ -9,8 +9,6 @@
 import {
   ArchitectureDoc,
   ComponentSpec,
-  ComponentInterface,
-  Relationship,
 } from "./types.js";
 
 /** C4 model abstraction levels */

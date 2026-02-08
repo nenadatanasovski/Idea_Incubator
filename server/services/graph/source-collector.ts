@@ -13,7 +13,6 @@ import { query, getOne, run, saveDb } from "../../../database/db.js";
 import {
   synthesizeConversation,
   INSIGHT_TYPE_WEIGHTS,
-  INSIGHT_TYPE_LABELS,
   type InsightType,
 } from "./conversation-synthesizer.js";
 import * as fs from "fs";

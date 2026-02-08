@@ -6,15 +6,11 @@
 import {
   saveArtifact,
   getArtifactsBySession,
-  deleteArtifactsBySession,
-  updateArtifactStatus,
   artifactStore,
-  StoredArtifact,
 } from "../../agents/ideation/artifact-store.js";
 
 // Test 2: Old function signatures preserved
 type SaveArtifactInput = Parameters<typeof saveArtifact>[0];
-type GetArtifactsBySessionReturn = ReturnType<typeof getArtifactsBySession>;
 
 // Verify the expected signature for saveArtifact
 const testInput: SaveArtifactInput = {
@@ -43,16 +39,6 @@ import {
   updateCacheEntry,
   removeCacheEntry,
   isCacheValid,
-  renameIdeaFolder,
-  parseFrontmatter,
-  generateFrontmatter,
-  estimateTokens,
-  checkTokenLimit,
-  UnifiedArtifact,
-  ArtifactType,
-  ArtifactMetadata,
-  CreateArtifactInput,
-  TokenCheckResult,
 } from "../../agents/ideation/unified-artifact-store.js";
 
 // Verify unified functions are accessible

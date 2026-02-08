@@ -493,12 +493,6 @@ async function spawnSIAAnalysis(
 ): Promise<void> {
   console.log(`[SIA] Starting analysis for escalation ${escalationId}`);
 
-  // Extract keywords from errors for knowledge search
-  const errorKeywords = context.recentErrors
-    .flatMap((e) => e.errorMessage.split(/\s+/))
-    .filter((w) => w.length > 3)
-    .slice(0, 10);
-
   // Query knowledge base for similar gotchas
   const similarGotchas = await queryKnowledge({
     type: "gotcha",

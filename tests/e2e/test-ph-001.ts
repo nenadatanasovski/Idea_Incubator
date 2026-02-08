@@ -4,8 +4,6 @@ import {
   CONTENT_INFERENCE_RULES,
   getAllLifecycleStages,
   validatePhaseRequirements,
-  Classification,
-  PhaseRequirements,
 } from "../../agents/ideation/classification-rules.js";
 
 // Test all lifecycle stages defined

@@ -1,10 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { createMockAnthropicClient } from "../mocks/anthropic.js";
 
 describe("Parallel Execution", () => {
   it("should execute multiple requests in parallel", async () => {
     const mockClient = createMockAnthropicClient();
-    const startTime = Date.now();
 
     // Simulate 3 parallel requests
     const personas = ["Skeptic", "Realist", "First Principles"];
@@ -19,8 +18,6 @@ describe("Parallel Execution", () => {
         }),
       ),
     );
-
-    const duration = Date.now() - startTime;
 
     expect(challenges).toHaveLength(3);
     // In real scenario, parallel should be faster than sequential

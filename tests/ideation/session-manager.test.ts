@@ -60,7 +60,7 @@ describe("SessionManager", () => {
         mockDb as unknown as ReturnType<typeof getDb>,
       );
 
-      const session = await sessionManager.create({ profileId: "profile-123" });
+      await sessionManager.create({ profileId: "profile-123" });
 
       expect(mockDb.run).toHaveBeenCalled();
       expect(saveDb).toHaveBeenCalled();
@@ -272,7 +272,7 @@ describe("SessionManager", () => {
     });
 
     test("PASS: Updates multiple fields", async () => {
-      const { getDb, saveDb } = await import("../../database/db.js");
+      const { getDb } = await import("../../database/db.js");
       const mockDb = {
         run: vi.fn(),
         exec: vi.fn().mockReturnValue([
@@ -324,7 +324,7 @@ describe("SessionManager", () => {
 
   describe("complete", () => {
     test("PASS: Sets status to completed", async () => {
-      const { getDb, saveDb } = await import("../../database/db.js");
+      const { getDb } = await import("../../database/db.js");
       const mockDb = {
         run: vi.fn(),
         exec: vi.fn().mockReturnValue([
@@ -371,7 +371,7 @@ describe("SessionManager", () => {
     });
 
     test("PASS: Sets completed_at timestamp", async () => {
-      const { getDb, saveDb } = await import("../../database/db.js");
+      const { getDb } = await import("../../database/db.js");
       const mockDb = {
         run: vi.fn(),
         exec: vi.fn().mockReturnValue([
@@ -419,7 +419,7 @@ describe("SessionManager", () => {
 
   describe("abandon", () => {
     test("PASS: Sets status to abandoned", async () => {
-      const { getDb, saveDb } = await import("../../database/db.js");
+      const { getDb } = await import("../../database/db.js");
       const mockDb = {
         run: vi.fn(),
         exec: vi.fn().mockReturnValue([

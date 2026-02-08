@@ -533,7 +533,7 @@ async function runTests(): Promise<void> {
   try {
     // Setup
     setupDatabase(db);
-    const { userId, projectId, ideaId } = seedTestData(db);
+    const { userId, projectId } = seedTestData(db);
 
     console.log("\n");
     console.log("Test data seeded. Ready to begin tests.");

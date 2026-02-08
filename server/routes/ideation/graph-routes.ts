@@ -9,7 +9,6 @@ import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { query, run, saveDb, getOne } from "../../../database/db.js";
 import { graphTypes } from "../../../schema/entities/memory-graph-membership.js";
-import { canonicalBlockTypes } from "../../../schema/entities/memory-block-type.js";
 import {
   blockExtractor,
   MemoryBlock,

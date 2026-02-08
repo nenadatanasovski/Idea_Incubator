@@ -49,16 +49,6 @@ const REQUIRED_TASK_FIELDS = [
   "depends_on",
 ];
 
-// Valid phases in order
-const VALID_PHASES = [
-  "database",
-  "types",
-  "services",
-  "api",
-  "tests",
-  "exports",
-];
-
 /**
  * Parse YAML frontmatter from markdown file
  */
@@ -179,12 +169,9 @@ function calculateStructuralSimilarity(
   const genSections = REQUIRED_SPEC_SECTIONS.filter((s) =>
     generated.includes(s),
   );
-  const refSections = REQUIRED_SPEC_SECTIONS.filter((s) =>
-    reference.includes(s),
-  );
 
   const genFrontmatter = parseFrontmatter(generated);
-  const refFrontmatter = parseFrontmatter(reference);
+  parseFrontmatter(reference);
 
   let score = 0;
   let total = 0;

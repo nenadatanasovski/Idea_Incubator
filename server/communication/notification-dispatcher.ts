@@ -62,14 +62,6 @@ const DEFAULT_CONFIG: DispatcherConfig = {
   escalationDelayMs: 30 * 60 * 1000, // 30 minutes
 };
 
-// Priority ordering for future sorting functionality
-const _SEVERITY_PRIORITY: Record<NotificationSeverity, number> = {
-  info: 1,
-  warning: 2,
-  error: 3,
-  critical: 4,
-};
-
 const CATEGORY_CHANNEL: Record<NotificationCategory, NotificationChannel> = {
   agent_status: "telegram",
   question_pending: "telegram",

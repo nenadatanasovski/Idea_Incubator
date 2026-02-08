@@ -13,7 +13,6 @@ import type {
   Spec,
   SpecWorkflowState,
   SpecSectionType,
-  SpecSection,
   ReadinessScore,
 } from "../../types/spec";
 import type { ArtifactType } from "../../frontend/src/types/ideation";
@@ -40,6 +39,7 @@ function testSpecInterface(): boolean {
     updatedAt: new Date().toISOString(),
   };
 
+  void testSpec;
   console.log("PASS: Spec interface has all required fields");
   return true;
 }
@@ -116,6 +116,7 @@ function testReadinessScore(): boolean {
       scopeBoundaries: { name: "Scope Boundaries", score: 15, description: "" },
     },
   };
+  void score;
   console.log("PASS: ReadinessScore interface is correct");
   return true;
 }
@@ -131,6 +132,7 @@ function testSpecState(): boolean {
     isSaving: false,
     error: null,
   };
+  void state;
   console.log("PASS: SpecState interface is correct");
   return true;
 }

@@ -18,9 +18,7 @@ import {
   GroupingSuggestionStatus,
   GroupingCriteriaWeights,
   GroupingTrigger,
-  TaskIdentity,
   TaskCategory,
-  CreateTaskListInput,
 } from "../../../types/task-agent.js";
 
 /**

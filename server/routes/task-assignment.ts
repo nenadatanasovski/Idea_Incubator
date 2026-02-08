@@ -9,10 +9,7 @@ import { Router, Request, Response } from "express";
 import { query, run, getOne } from "../../database/db.js";
 import {
   parseTaskList,
-  updateTaskStatus,
-  getNextPendingTask,
   TaskList,
-  ParsedTask,
 } from "../services/task-loader.js";
 import { emitTaskExecutorEvent } from "../websocket.js";
 
@@ -66,7 +63,6 @@ router.post("/claim", async (req: Request, res: Response): Promise<void> => {
   try {
     const {
       agentId,
-      capabilities,
       minPriority = "P4",
       buildId,
     }: ClaimRequest = req.body;
@@ -346,7 +342,6 @@ router.post("/complete", async (req: Request, res: Response): Promise<void> => {
       taskExecutionId,
       agentId,
       success,
-      output,
       error,
       validationCommand,
       validationOutput,

@@ -7,16 +7,13 @@
  * Part of: PTE-029 to PTE-033
  */
 
-import { v4 as uuidv4 } from "uuid";
 import { query, run, getOne, saveDb } from "../../../database/db.js";
 import {
   Task,
   EvaluationQueueTask,
   EvaluationQueueStats,
-  TaskIdentity,
   UpdateTaskInput,
 } from "../../../types/task-agent.js";
-import { generateDisplayId } from "./display-id-generator.js";
 
 /**
  * Database row type for tasks

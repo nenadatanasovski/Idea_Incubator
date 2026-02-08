@@ -20,7 +20,6 @@ import buildAgentOrchestrator from "../build-agent-orchestrator.js";
 import parallelismCalculator from "../parallelism-calculator.js";
 import naturalLanguageParser, {
   ParsedTaskIntent,
-  ConfirmationMessage,
 } from "../natural-language-parser.js";
 import type {
   ReceivedMessage,

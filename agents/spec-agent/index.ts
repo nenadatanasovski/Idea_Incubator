@@ -427,13 +427,6 @@ Should this be broken into subtasks? If yes, provide the breakdown in JSON forma
    */
   private log(message: string, metadata?: Record<string, unknown>): void {
     const timestamp = new Date().toISOString();
-    const logEntry = {
-      timestamp,
-      agent: "spec-agent",
-      instanceId: this.instanceId,
-      message,
-      ...metadata,
-    };
     console.log(`[SpecAgent ${timestamp}]`, message, metadata || "");
   }
 

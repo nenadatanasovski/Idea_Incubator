@@ -5,10 +5,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   TaskGenerator,
-  AtomicTask,
   Phase,
-  TaskGeneratorOptions,
-  GeneratedTasks,
 } from "../../agents/specification/task-generator.js";
 import { ParsedBrief } from "../../agents/specification/brief-parser.js";
 import { AnalyzedRequirements } from "../../agents/specification/prompts/tasks.js";

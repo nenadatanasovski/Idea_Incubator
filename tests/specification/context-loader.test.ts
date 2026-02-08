@@ -8,7 +8,6 @@ import {
   LoadedContext,
   Gotcha as _Gotcha,
 } from "../../agents/specification/context-loader.js";
-import * as path from "path";
 
 describe("context-loader", () => {
   let loader: ContextLoader;

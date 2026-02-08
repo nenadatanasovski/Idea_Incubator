@@ -5,9 +5,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   QuestionGenerator,
-  Question,
-  QuestionType,
-  QuestionResult,
   createQuestionGenerator,
 } from "../../agents/specification/question-generator.js";
 import { ParsedBrief } from "../../agents/specification/brief-parser.js";

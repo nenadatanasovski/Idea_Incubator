@@ -15,8 +15,6 @@ import type {
   ProjectRow,
   ProjectStatsRow,
   ProjectListOptions,
-  mapProjectRow,
-  mapProjectStatsRow,
 } from "../../types/project.js";
 
 // Re-export mappers from types

@@ -10,7 +10,6 @@
  * Part of: Task Agent Workflow Enhancement
  */
 
-import { v4 as uuidv4 } from "uuid";
 import { query, getOne } from "../../../database/db.js";
 import { createAnthropicClient } from "../../../utils/anthropic-client.js";
 

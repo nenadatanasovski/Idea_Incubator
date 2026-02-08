@@ -19,33 +19,6 @@ interface TestResult {
 }
 
 /**
- * Create a session via API call to ensure the server manages the session.
- * This uses the POST /api/ideation/session endpoint.
- */
-async function createTestSessionViaAPI(
-  userSlug: string,
-): Promise<{ sessionId: string; draftId: string }> {
-  // Create a session via API
-  const response = await fetch(`${API_BASE}/session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userSlug }),
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to create session: ${response.status} ${await response.text()}`,
-    );
-  }
-
-  const data = await response.json();
-  return {
-    sessionId: data.sessionId || data.session?.id,
-    draftId: data.ideaSlug || data.session?.ideaSlug,
-  };
-}
-
-/**
  * Create a test session directly in the database.
  */
 async function createTestSession(
@@ -289,7 +262,7 @@ async function runTests(): Promise<TestResult> {
     );
     await saveDb();
 
-    const response9 = await fetch(
+    await fetch(
       `${API_BASE}/session/${sessionId4}/name-idea`,
       {
         method: "POST",

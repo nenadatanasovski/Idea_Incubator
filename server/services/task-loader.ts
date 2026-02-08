@@ -335,7 +335,6 @@ export function addTask(
   const lines = content.split("\n");
 
   // Find the section
-  let sectionIndex = -1;
   let tableEndIndex = -1;
 
   for (let i = 0; i < lines.length; i++) {
@@ -344,7 +343,6 @@ export function addTask(
       sectionMatch &&
       sectionMatch[2].trim().toLowerCase().includes(sectionName.toLowerCase())
     ) {
-      sectionIndex = i;
       // Find the end of the table in this section
       for (let j = i + 1; j < lines.length; j++) {
         if (lines[j].startsWith("|") && lines[j].includes("|")) {

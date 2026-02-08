@@ -5,11 +5,10 @@
  * without the deprecated memory files system.
  */
 
-import { describe, test, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, test, expect, afterAll } from "vitest";
 import { getDb, saveDb, query as dbQuery } from "../../database/db.js";
 import { graphStateLoader } from "../../agents/ideation/graph-state-loader.js";
 import { contextManager } from "../../agents/ideation/context-manager.js";
-import { graphQueryService } from "../../server/services/graph/graph-query-service.js";
 
 // Test helpers
 async function createTestSession(ideaSlug: string): Promise<string> {
@@ -208,7 +207,7 @@ describe("Memory Graph Migration Integration", () => {
 
   describe("No Memory Files Created", () => {
     test("ideation_memory_files table remains empty during session", async () => {
-      const db = await getDb();
+      await getDb();
       const sessionId = await createTestSession(`empty_test_${Date.now()}`);
       sessionIds.push(sessionId);
 

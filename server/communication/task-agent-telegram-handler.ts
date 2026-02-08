@@ -1070,7 +1070,7 @@ ${prd.problemStatement ? `📄 *Problem:* ${prd.problemStatement.substring(0, 20
             );
             return;
           }
-          const prd = await prdService.approve(prdId, "telegram-user");
+          await prdService.approve(prdId, "telegram-user");
           await this.sendWithRecommendation(
             message.botType,
             chatId,
@@ -1385,9 +1385,6 @@ Use \`/parallel\` to see available task lists.`,
 
     try {
       // Validate task list exists and has tasks (BA-066)
-      const taskListOrchestrator = (
-        await import("../services/task-agent/task-list-orchestrator.js")
-      ).default;
       const validation = await this.validateTaskListForExecution(taskListId);
 
       if (!validation.valid) {
@@ -1458,7 +1455,6 @@ Use \`/parallel\` to see available task lists.`,
     this.clearApprovalTimeout(taskListId);
 
     // Remove from pending executions
-    const pending = this.getPendingExecution(taskListId);
     this.removePendingExecution(taskListId);
 
     if (action === "cancel") {
@@ -1677,12 +1673,6 @@ The agent's current task will be marked for retry.`,
     waveCount?: number;
   }> {
     try {
-      // Check if task list exists
-      const taskListOrchestrator = (
-        await import("../services/task-agent/task-list-orchestrator.js")
-      ).default;
-      const lists = await taskListOrchestrator.getOrchestratorStatus();
-
       // Try to get the task list
       const parallelism =
         await parallelismCalculator.getTaskListParallelism(taskListId);
@@ -1747,10 +1737,6 @@ The agent's current task will be marked for retry.`,
       botType,
       createdAt: new Date(),
     });
-  }
-
-  private getPendingExecution(taskListId: string) {
-    return this.pendingExecutions.get(taskListId);
   }
 
   private removePendingExecution(taskListId: string): void {

@@ -81,7 +81,6 @@ const DEFAULT_CONFIG: CommunicationHubConfig = {
 let hubInstance: CommunicationHub | null = null;
 
 export class CommunicationHub extends EventEmitter {
-  private db: Database;
   private config: CommunicationHubConfig;
   private commConfig: CommunicationConfig;
 
@@ -112,7 +111,6 @@ export class CommunicationHub extends EventEmitter {
   ) {
     super();
     console.log("[CommunicationHub] Constructor starting...");
-    this.db = db;
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.commConfig = loadConfig();
     console.log("[CommunicationHub] Config loaded");
