@@ -1,5 +1,6 @@
 import db from './index.js';
 import { v4 as uuidv4 } from 'uuid';
+import { seedPhase1Tests } from './seed-phase1-tests.js';
 
 console.log('🌱 Seeding database...');
 
@@ -104,6 +105,9 @@ try {
     );
   });
   console.log(`✅ Seeded ${phases.length} test suites`);
+
+  // Seed Phase 1 test cases, steps, and assertions
+  seedPhase1Tests();
 
   db.close();
   console.log('🎉 Seeding complete');

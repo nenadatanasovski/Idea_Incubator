@@ -408,15 +408,15 @@ WHERE case_id = 'phase_2_task_5_queries' AND status = 'passed';
 
 **Build Steps:**
 - [x] 2.6.1: Create test_suites for each phase (16 suites) ✅
-- [ ] 2.6.2: Create test_cases for Phase 1 tasks (8 cases)
-- [ ] 2.6.3: Create test_steps for each case
-- [ ] 2.6.4: Create test_assertions for key criteria
+- [x] 2.6.2: Create test_cases for Phase 1 tasks (8 cases) ✅
+- [x] 2.6.3: Create test_steps for each case ✅
+- [x] 2.6.4: Create test_assertions for key criteria ✅
 
 **Pass Criteria:**
 - [x] 16 rows in `test_suites` (one per phase) ✅
-- [ ] 8 rows in `test_cases` for phase_1
-- [ ] Each test_case has at least 1 test_step
-- [ ] Key assertions defined
+- [x] 8 rows in `test_cases` for phase_1 ✅
+- [x] Each test_case has at least 1 test_step ✅
+- [x] Key assertions defined ✅
 
 **Validation Query:**
 ```sql
