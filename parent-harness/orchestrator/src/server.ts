@@ -36,6 +36,7 @@ import { stabilityRouter } from './api/stability.js';
 import { buildHealthRouter } from './api/build-health.js';
 import { alertsRouter } from './api/alerts.js';
 import { eventBusRouter } from './api/event-bus.js';
+import { introspectionRouter } from './api/introspection.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 
 // Import command handlers (registers commands on load)
@@ -96,6 +97,7 @@ app.use('/api/stability', stabilityRouter);
 app.use('/api/build-health', buildHealthRouter);
 app.use('/api/alerts', alertsRouter);
 app.use('/api/event-bus', eventBusRouter);
+app.use('/api/introspection', introspectionRouter);
 app.use('/webhook', webhookRouter);
 
 // Error handling

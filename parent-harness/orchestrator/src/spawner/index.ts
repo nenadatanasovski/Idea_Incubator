@@ -14,6 +14,7 @@ import * as tasks from '../db/tasks.js';
 import { events } from '../db/events.js';
 import * as executions from '../db/executions.js';
 import * as activities from '../db/activities.js';
+import { buildIntrospectionContext } from '../memory/prompt-builder.js';
 import { ws } from '../websocket.js';
 import { notify } from '../telegram/direct-telegram.js';
 import * as git from '../git/index.js';
@@ -621,7 +622,19 @@ async function spawnAgentSessionInternal(
   } else {
     const systemPrompt = getSystemPrompt(agentData.type);
     const taskPrompt = buildTaskPrompt(taskData);
-    fullPrompt = `${systemPrompt}\n\n---\n\n${taskPrompt}`;
+
+    // Inject introspection context (past sessions, error/success patterns)
+    let introspectionContext = '';
+    try {
+      introspectionContext = buildIntrospectionContext(agentId, taskData);
+      if (introspectionContext) {
+        console.log(`🔍 Introspection: injected historical context for ${agentData.name}`);
+      }
+    } catch (err) {
+      console.warn('Failed to build introspection context:', err);
+    }
+
+    fullPrompt = `${systemPrompt}\n\n---\n\n${taskPrompt}${introspectionContext}`;
   }
 
   console.log(`🚀 Spawning ${agentData.name} for ${taskData.display_id} via Claude CLI (model: ${model})`);
