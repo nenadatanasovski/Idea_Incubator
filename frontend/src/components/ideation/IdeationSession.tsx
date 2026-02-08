@@ -81,7 +81,7 @@ export function IdeationSession({
   profileId,
   entryMode,
   isResuming = false,
-  onComplete,
+  onComplete: _onComplete,
   onExit,
 }: IdeationSessionProps) {
   const [state, dispatch] = useReducer(ideationReducer, initialState);

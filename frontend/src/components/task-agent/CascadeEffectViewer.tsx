@@ -5,18 +5,16 @@
  * Part of: Task System V2 Implementation Plan (IMPL-7.7)
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Workflow,
   AlertTriangle,
   ArrowRight,
   Check,
-  X,
   ChevronDown,
   ChevronRight,
   RefreshCw,
   Play,
-  Pause,
   CheckSquare,
   Square,
 } from "lucide-react";
@@ -135,7 +133,7 @@ export default function CascadeEffectViewer({
       setAnalysis(data);
 
       // Auto-select auto-approvable effects
-      const autoSelected = new Set(
+      const autoSelected = new Set<string>(
         data.effects
           .filter((e: CascadeEffect) => e.autoApprove)
           .map((e: CascadeEffect) => e.id),

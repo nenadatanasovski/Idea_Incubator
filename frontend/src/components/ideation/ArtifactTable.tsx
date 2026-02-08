@@ -291,38 +291,6 @@ function formatRelativeDate(dateString: string | null | undefined): string {
 }
 
 /**
- * Get artifact type display name
- */
-function getTypeDisplayName(type: ArtifactType): string {
-  switch (type) {
-    case "code":
-      return "Code";
-    case "html":
-      return "HTML";
-    case "svg":
-      return "SVG";
-    case "mermaid":
-      return "Diagram";
-    case "react":
-      return "React";
-    case "text":
-      return "Text";
-    case "markdown":
-      return "Markdown";
-    case "research":
-      return "Research";
-    case "idea-summary":
-      return "Summary";
-    case "analysis":
-      return "Analysis";
-    case "comparison":
-      return "Comparison";
-    default:
-      return type;
-  }
-}
-
-/**
  * Create a flat list of artifacts sorted by date (newest first)
  * No folder grouping - just a simple list
  */
@@ -352,61 +320,6 @@ function groupArtifactsByFolder(artifacts: Artifact[]): GroupedArtifact[] {
 // -----------------------------------------------------------------------------
 // Status Badge Component
 // -----------------------------------------------------------------------------
-
-interface StatusBadgeProps {
-  classification: ClassificationInfo | undefined;
-}
-
-const StatusBadge: React.FC<StatusBadgeProps> = ({ classification }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
-
-  let bgColor = "bg-gray-300";
-  let tooltip = "Unknown classification";
-
-  if (classification) {
-    const { classification: type, isComplete } = classification;
-
-    if (type === "required") {
-      if (isComplete) {
-        bgColor = "bg-yellow-400";
-        tooltip = "Required - Complete";
-      } else {
-        bgColor = "bg-red-500";
-        tooltip = "Required - Missing content";
-      }
-    } else if (type === "recommended") {
-      bgColor = "bg-blue-400";
-      tooltip = "Recommended";
-    } else if (type === "optional") {
-      bgColor = "bg-gray-300";
-      tooltip = "Optional";
-    }
-  }
-
-  return (
-    <span
-      className="relative inline-flex items-center justify-center"
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
-    >
-      <span
-        data-testid="status-badge"
-        className={`w-3 h-3 rounded-full ${bgColor} inline-block cursor-help`}
-        role="img"
-        aria-label={tooltip}
-      />
-      {showTooltip && (
-        <span
-          role="tooltip"
-          className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded whitespace-nowrap z-50"
-        >
-          {tooltip}
-          <span className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
-        </span>
-      )}
-    </span>
-  );
-};
 
 // -----------------------------------------------------------------------------
 // Skeleton Row Component for Loading State
@@ -636,12 +549,12 @@ export const ArtifactTable: React.FC<ArtifactTableProps> = ({
   artifacts,
   selectedPath,
   onSelect,
-  onToggleFolder,
+  onToggleFolder: _onToggleFolder,
   onDelete,
   onEdit,
   onCopyRef,
   onClearSelection,
-  classifications = {},
+  classifications: _classifications = {},
   isLoading = false,
   latestArtifactId = null,
 }) => {

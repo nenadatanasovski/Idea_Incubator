@@ -5,10 +5,10 @@
  * Uses the same reagraph library as the main graph view.
  */
 
-import React, { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { GraphCanvas, lightTheme } from 'reagraph';
 import { useMemoryBlocks, useBlockLinks } from '../../hooks/useMemoryGraph';
-import type { MemoryBlock, MemoryLink, BlockType } from '../../api/memory-graph';
+import type { MemoryBlock, BlockType } from '../../api/memory-graph';
 
 interface Neo4jGraphViewProps {
   sessionId: string;

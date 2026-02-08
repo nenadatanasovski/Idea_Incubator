@@ -361,6 +361,17 @@ export const GraphTabPanel = memo(function GraphTabPanel({
     [],
   );
 
+  // Get API functions
+  const {
+    resetGraph,
+    analyzeGraphChanges,
+    applyGraphChanges,
+    listGraphSnapshots,
+    createGraphSnapshot,
+    restoreGraphSnapshot,
+    deleteGraphSnapshot,
+  } = useIdeationAPI();
+
   // Handle confirm all in update confirmation
   const handleConfirmAllUpdates = useCallback(async () => {
     if (!pendingNewBlock || !cascadeEffects) {
@@ -474,16 +485,6 @@ export const GraphTabPanel = memo(function GraphTabPanel({
     setShowUpdateConfirmation(false);
   }, []);
 
-  // Get API functions
-  const {
-    resetGraph,
-    analyzeGraphChanges,
-    applyGraphChanges,
-    listGraphSnapshots,
-    createGraphSnapshot,
-    restoreGraphSnapshot,
-    deleteGraphSnapshot,
-  } = useIdeationAPI();
 
   // State for tracking analysis progress and pending proposed changes
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -846,7 +847,7 @@ export const GraphTabPanel = memo(function GraphTabPanel({
           <CreateBlockForm
             sessionId={sessionId}
             ideaId={ideaSlug}
-            onBlockCreated={(block) => {
+            onBlockCreated={(_block) => {
               refetch();
               setShowCreateBlock(false);
             }}

@@ -478,7 +478,7 @@ export function useGraphWebSocket(
 
       ws.onmessage = handleMessage;
 
-      ws.onerror = (event) => {
+      ws.onerror = (_event) => {
         // WebSocket error events don't provide much detail
         // The actual error details come from the close event
         console.warn(

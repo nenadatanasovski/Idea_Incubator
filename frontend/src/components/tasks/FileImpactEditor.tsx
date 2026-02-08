@@ -64,17 +64,17 @@ const SOURCE_CONFIG: Record<
   FileImpactSource,
   { icon: React.ReactNode; label: string; color: string }
 > = {
-  ai_estimate: {
+  ai: {
     icon: <Brain className="h-3 w-3" />,
     label: "AI Estimate",
     color: "text-purple-600",
   },
-  pattern_match: {
+  pattern: {
     icon: <Clock className="h-3 w-3" />,
     label: "Pattern",
     color: "text-blue-600",
   },
-  user_declared: {
+  user: {
     icon: <User className="h-3 w-3" />,
     label: "User",
     color: "text-green-600",
@@ -424,7 +424,7 @@ export default function FileImpactEditor({
       {/* Footer */}
       <div className="flex items-center justify-between text-xs text-gray-500">
         <span>
-          {impacts.filter((i) => i.source === "user_declared").length} user
+          {impacts.filter((i) => i.source === "user").length} user
           overrides
         </span>
         <button

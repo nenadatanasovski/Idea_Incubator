@@ -19,8 +19,6 @@ export { StreamingText } from "./StreamingText";
 export { InputArea } from "./InputArea";
 export { TypingIndicator } from "./TypingIndicator";
 export { IdeaCandidatePanel } from "./IdeaCandidatePanel";
-export { ConfidenceMeter } from "./ConfidenceMeter";
-export { ViabilityMeter } from "./ViabilityMeter";
 export { RisksList } from "./RisksList";
 export {
   ExistingIdeaModal,

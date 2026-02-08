@@ -5,7 +5,7 @@
  * Part of: Task System V2 Implementation Plan (IMPL-7.11)
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Scissors,
   Plus,

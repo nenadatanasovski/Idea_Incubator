@@ -646,7 +646,6 @@ describe("GraphPrompt", () => {
     it("should not submit when disabled", async () => {
       render(<GraphPrompt sessionId="session_123" disabled={true} />);
 
-      const input = screen.getByTestId("graph-prompt-input");
       // Can't type when disabled, but test submit prevention
       fireEvent.click(screen.getByTestId("graph-prompt-submit"));
 

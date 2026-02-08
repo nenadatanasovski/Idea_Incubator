@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
-import ObservabilityHeader, { ConnectionStatus } from "../ObservabilityHeader";
+import ObservabilityHeader from "../ObservabilityHeader";
 
 // Mock fetch for ObservabilitySearch
 const mockFetch = vi.fn();

@@ -31,6 +31,7 @@ import type {
   ClusterStrategy,
   BlockType,
   GraphType,
+  LinkType,
   NodeShape,
 } from "../types/graph";
 import { nodeShapes, nodeColors } from "../types/graph";
@@ -126,10 +127,10 @@ const ABSTRACTION_LABELS: Record<AbstractionLevel, string> = {
 };
 
 // Block type shapes/icons (using different sizes for now, could be shapes)
-const BLOCK_TYPE_STYLES: Record<
+const BLOCK_TYPE_STYLES: Partial<Record<
   BlockType,
   { size: number; opacity: number; border?: string }
-> = {
+>> & Record<string, { size: number; opacity: number; border?: string }> = {
   insight: { size: 8, opacity: 1 },
   decision: { size: 10, opacity: 1, border: "2px solid white" },
   fact: { size: 6, opacity: 0.9 },
@@ -292,7 +293,7 @@ const IDEA_NODE: IdeaNodeData = {
   id: "idea-root",
   label: "BFRB Companion App",
   title: "BFRB Companion App",
-  blockType: "idea",
+  blockType: "synthesis" as BlockType, // Idea node uses synthesis type
   graphMembership: ["problem", "solution"],
   status: "validated",
   confidence: 1.0,
@@ -1287,7 +1288,7 @@ export default function ClusterDemoPage() {
       id: link.id,
       source: link.sourceId,
       target: link.targetId,
-      linkType: link.linkType,
+      linkType: link.linkType as LinkType,
       status: link.status as "active" | "superseded",
     }));
   }, [dataSource, apiLinks]);
@@ -1430,31 +1431,6 @@ export default function ClusterDemoPage() {
     return byLevel;
   }, [activeNodes]);
 
-  // Generate NodeGroupReport nodes for Meta level
-  const nodeGroupReportNodes: GraphNode[] = useMemo(() => {
-    const groups = dataSource === "api" ? apiNodeGroups : SAMPLE_NODE_GROUPS;
-    return groups.map((group) => ({
-      id: `ngr-${group.id}`,
-      label: group.name,
-      title: group.name,
-      blockType: "synthesis" as BlockType, // NodeGroupReports are synthesized content
-      graphMembership: [group.primaryGraphMembership] as GraphType[],
-      status: "validated" as const,
-      confidence: group.avgConfidence,
-      abstractionLevel: "vision" as AbstractionLevel, // NodeGroupReports are at highest level
-      content: group.summary,
-      properties: {
-        isNodeGroupReport: true,
-        groupId: group.id,
-        blockCount: group.blockIds.length,
-        keyInsights: group.keyInsights,
-        dominantBlockTypes: group.dominantBlockTypes,
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }));
-  }, [dataSource, apiNodeGroups]);
-
   // Filter nodes to show only selected level + Idea Node
   const visibleNodes = useMemo(() => {
     return filterNodesBySelectedLevel(activeNodes, selectedLevel);
@@ -1483,7 +1459,7 @@ export default function ClusterDemoPage() {
       const regularNode = node;
       const nodeIsIdeaNode = isIdeaNode(regularNode);
       const blockStyle =
-        BLOCK_TYPE_STYLES[regularNode.blockType] || BLOCK_TYPE_STYLES.content;
+        BLOCK_TYPE_STYLES[regularNode.blockType] ?? BLOCK_TYPE_STYLES.content ?? { size: 6, opacity: 0.7 };
 
       // Determine cluster attribute based on effective strategy
       let cluster: string | undefined;

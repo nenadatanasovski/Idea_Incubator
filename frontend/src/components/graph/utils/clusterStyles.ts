@@ -19,7 +19,7 @@ export interface ClusterColorConfig {
  * Color mappings for each graph type cluster
  * Uses semantic color tints that match the node colors but lighter
  */
-export const clusterColors: Record<GraphType, ClusterColorConfig> = {
+export const clusterColors: Partial<Record<GraphType, ClusterColorConfig>> = {
   problem: {
     stroke: "#FCA5A5", // Red-300
     fill: "rgba(254, 226, 226, 0.3)", // Red-100 with transparency
@@ -76,7 +76,7 @@ export const defaultClusterColor: ClusterColorConfig = {
  */
 export function getClusterColor(clusterName: string): ClusterColorConfig {
   if (clusterName in clusterColors) {
-    return clusterColors[clusterName as GraphType];
+    return clusterColors[clusterName as GraphType] ?? defaultClusterColor;
   }
   return defaultClusterColor;
 }

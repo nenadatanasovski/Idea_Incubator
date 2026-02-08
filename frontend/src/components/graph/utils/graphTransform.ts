@@ -218,7 +218,7 @@ function buildSourceLocation(
 }
 
 // Graph type keywords to detect in properties
-const GRAPH_TYPE_KEYWORDS: Record<GraphType, string[]> = {
+const GRAPH_TYPE_KEYWORDS: Partial<Record<GraphType, string[]>> = {
   problem: ["problem", "pain_point", "challenge", "issue", "obstacle"],
   solution: ["solution", "approach", "method", "strategy", "tool"],
   market: ["market", "tam", "sam", "som", "customer", "segment", "market_size"],

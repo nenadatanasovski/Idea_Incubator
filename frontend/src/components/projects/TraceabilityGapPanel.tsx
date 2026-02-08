@@ -160,7 +160,7 @@ export default function TraceabilityGapPanel({
   const [showConfigPanel, setShowConfigPanel] = useState(false);
   const [taskFileImpacts, setTaskFileImpacts] = useState<FileImpact[]>([]);
   const [loadingImpacts, setLoadingImpacts] = useState(false);
-  const [showACWizard, setShowACWizard] = useState(false);
+  const [_showACWizard, setShowACWizard] = useState(false);
 
   // Bulk selection state
   const [selectedGaps, setSelectedGaps] = useState<Set<string>>(new Set());

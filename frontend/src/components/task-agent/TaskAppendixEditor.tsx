@@ -156,7 +156,6 @@ export default function TaskAppendixEditor({
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form state
   const [newAppendix, setNewAppendix] = useState({
@@ -208,30 +207,6 @@ export default function TaskAppendixEditor({
         contentInline: "",
         contentRef: "",
       });
-      fetchAppendices();
-      onAppendixChange?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    }
-  };
-
-  const handleUpdateAppendix = async (
-    id: string,
-    updates: Partial<TaskAppendix>,
-  ) => {
-    try {
-      const response = await fetch(
-        `/api/task-agent/tasks/${taskId}/appendices/${id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updates),
-        },
-      );
-
-      if (!response.ok) throw new Error("Failed to update appendix");
-
-      setEditingId(null);
       fetchAppendices();
       onAppendixChange?.();
     } catch (err) {
@@ -391,8 +366,6 @@ export default function TaskAppendixEditor({
             const config = appendixTypeConfig[appendix.appendixType];
             const TypeIcon = config.icon;
             const isExpanded = expandedIds.has(appendix.id);
-            const isEditing = editingId === appendix.id;
-
             return (
               <div
                 key={appendix.id}

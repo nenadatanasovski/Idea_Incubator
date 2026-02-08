@@ -106,8 +106,8 @@ export function getNodeSize(
  * Calculate node size based on confidence and connections
  */
 export function calculateNodeSize(
-  confidence: number,
-  connectionCount: number,
+  _confidence: number,
+  _connectionCount: number,
   config: NodeSizeConfig = DEFAULT_SIZE_CONFIG,
 ): number {
   // Fixed size for all nodes - uniform appearance

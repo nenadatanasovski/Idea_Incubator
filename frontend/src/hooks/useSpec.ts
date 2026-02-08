@@ -39,7 +39,7 @@ export function useSpec({
 }: UseSpecOptions): UseSpecReturn {
   const [spec, setSpec] = useState<Spec | null>(null);
   const [sections, setSections] = useState<SpecSection[]>([]);
-  const [readiness, setReadiness] = useState<ReadinessScore | null>(null);
+  const [readiness, _setReadiness] = useState<ReadinessScore | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

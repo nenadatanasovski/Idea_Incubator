@@ -110,6 +110,10 @@ const SOURCE_TYPE_LABELS: Record<SourceType, { label: string; color: string }> =
     memory_db: { label: "Database", color: "#3B82F6" }, // Blue - memory blocks/links
     user_created: { label: "User Created", color: "#22C55E" }, // Green - manual
     ai_generated: { label: "AI Generated", color: "#EC4899" }, // Pink - AI analysis
+    conversation: { label: "Conversation", color: "#A855F7" }, // Purple - raw conversation
+    conversation_insight: { label: "Insight", color: "#7C3AED" }, // Violet - synthesized
+    user_block: { label: "User Block", color: "#16A34A" }, // Green - user blocks
+    external: { label: "External", color: "#64748B" }, // Slate - external content
   };
 
 // Abstraction level labels and colors

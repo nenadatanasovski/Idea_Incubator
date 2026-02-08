@@ -18,7 +18,6 @@ import { Plus, Zap, ChevronDown, Check, X, Loader2 } from "lucide-react";
 import type {
   QuickAddTaskInput,
   EvaluationQueueTask,
-  CATEGORY_CODES,
 } from "../../types/task-agent";
 
 interface QuickAddTaskProps {

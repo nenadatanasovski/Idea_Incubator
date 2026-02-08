@@ -5,6 +5,62 @@
  * Part of: PTE-082 to PTE-095
  */
 
+// Task categories
+export type TaskCategory =
+  | "feature"
+  | "bug"
+  | "task"
+  | "story"
+  | "epic"
+  | "spike"
+  | "improvement"
+  | "documentation"
+  | "test"
+  | "devops"
+  | "design"
+  | "research"
+  | "infrastructure"
+  | "security"
+  | "performance"
+  | "other";
+
+// Task priority levels
+export type TaskPriority = "P1" | "P2" | "P3" | "P4";
+
+// Task effort estimates
+export type TaskEffort = "trivial" | "small" | "medium" | "large" | "epic";
+
+// Component types for file impact analysis
+export type ComponentType =
+  | "database"
+  | "types"
+  | "api"
+  | "service"
+  | "ui"
+  | "test"
+  | "config"
+  | "documentation"
+  | "infrastructure"
+  | "other";
+
+// Full Task interface for editing
+export interface Task {
+  id: string;
+  displayId: string;
+  title: string;
+  description?: string;
+  category: TaskCategory;
+  priority: TaskPriority;
+  effort: TaskEffort;
+  status: TaskStatus;
+  componentTypes?: ComponentType[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// File impact source types
+export type FileImpactSource = "ai" | "pattern" | "user" | "validated";
+
 // Task statuses
 export type TaskStatus =
   | "pending"

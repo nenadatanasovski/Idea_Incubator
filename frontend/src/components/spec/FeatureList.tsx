@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, CheckCircle, Circle, Zap } from 'lucide-react';
+import { ChevronDown, ChevronRight, CheckCircle, Zap } from 'lucide-react';
 import clsx from 'clsx';
 import type { Feature } from '../../hooks/useSpecSession';
 

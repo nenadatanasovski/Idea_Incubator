@@ -24,7 +24,6 @@ import {
   XCircle,
   RefreshCw,
   ArrowRight,
-  ExternalLink,
   ChevronDown,
   ChevronRight,
   List,
@@ -998,7 +997,7 @@ function TestsTab({
 
   // Calculate AC summary
   const acSummary = () => {
-    if (!acStatus) return { met: 0, total: acStatus?.criteria?.length || 0 };
+    if (!acStatus) return { met: 0, total: 0 };
     const met = acStatus.criteria.filter((c) => c.met).length;
     return { met, total: acStatus.criteria.length };
   };

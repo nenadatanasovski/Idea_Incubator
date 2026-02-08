@@ -10,15 +10,6 @@ import UnifiedLogViewer from "../UnifiedLogViewer";
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-// Mock WebSocket
-const mockWebSocket = {
-  close: vi.fn(),
-  send: vi.fn(),
-  addEventListener: vi.fn(),
-  removeEventListener: vi.fn(),
-  readyState: 1,
-};
-
 vi.mock("../../hooks/useObservabilityStream", () => ({
   useObservabilityStream: () => ({
     events: [],

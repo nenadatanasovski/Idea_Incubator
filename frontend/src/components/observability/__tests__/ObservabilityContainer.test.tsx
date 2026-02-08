@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { BrowserRouter, MemoryRouter } from "react-router-dom";
+import { MemoryRouter } from "react-router-dom";
 import ObservabilityContainer from "../ObservabilityContainer";
 
 // Mock child components
@@ -51,7 +51,7 @@ describe("ObservabilityContainer", () => {
 
   describe("Layout structure", () => {
     it("renders header at the top", () => {
-      const { container } = renderWithRouter();
+      const { container: _container } = renderWithRouter();
       const header = screen.getByTestId("obs-header");
       const subtabs = screen.getByTestId("obs-subtabs");
 

@@ -17,7 +17,6 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronRight,
-  Edit2,
 } from "lucide-react";
 
 type ImpactType = "file" | "api" | "function" | "database" | "type";

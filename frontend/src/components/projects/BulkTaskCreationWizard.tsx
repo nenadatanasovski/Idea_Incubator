@@ -10,7 +10,6 @@
  */
 
 import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Sparkles,
   Check,
@@ -18,12 +17,10 @@ import {
   Loader2,
   ChevronRight,
   ChevronLeft,
-  AlertTriangle,
   Edit2,
   Plus,
   Trash2,
   GitBranch,
-  FileCode,
 } from "lucide-react";
 import clsx from "clsx";
 import type { TraceabilityGap } from "../../hooks/useTraceabilityGaps";
@@ -83,12 +80,11 @@ const gapTypeLabels: Record<string, string> = {
 export default function BulkTaskCreationWizard({
   gaps,
   projectId,
-  projectSlug,
+  projectSlug: _projectSlug,
   prdId,
   onComplete,
   onClose,
 }: BulkTaskCreationWizardProps) {
-  const navigate = useNavigate();
   const [step, setStep] = useState<WizardStep>("select");
 
   // Step 1: Selection

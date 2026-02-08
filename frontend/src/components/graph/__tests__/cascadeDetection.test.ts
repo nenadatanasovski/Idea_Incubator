@@ -13,7 +13,7 @@ import {
   analyzeCascadeEffects,
   wouldCreateCycle,
 } from "../utils/cascadeDetection";
-import type { GraphNode, GraphEdge } from "../../../types/graph";
+import type { GraphNode, GraphEdge, GraphType } from "../../../types/graph";
 
 describe("detectCascadingChanges", () => {
   it("should detect semantically similar nodes", () => {
@@ -37,12 +37,14 @@ describe("detectCascadingChanges", () => {
         source: "block_pricing",
         target: "block_target",
         linkType: "derived_from",
+        status: "active",
       },
       {
         id: "e2",
         source: "block_sales",
         target: "block_pricing",
         linkType: "derived_from",
+        status: "active",
       },
     ];
 
@@ -162,9 +164,9 @@ describe("findSemanticMatches", () => {
 describe("traverseDependencies", () => {
   // Edges: A -> B -> C -> D (A is derived from B, B requires C, C blocks D)
   const mockEdges: GraphEdge[] = [
-    { id: "e1", source: "A", target: "B", linkType: "derived_from" },
-    { id: "e2", source: "B", target: "C", linkType: "requires" },
-    { id: "e3", source: "C", target: "D", linkType: "blocks" },
+    { id: "e1", source: "A", target: "B", linkType: "derived_from", status: "active" },
+    { id: "e2", source: "B", target: "C", linkType: "requires", status: "active" },
+    { id: "e3", source: "C", target: "D", linkType: "blocks", status: "active" },
   ];
 
   it("should traverse downstream dependencies (following outgoing edges)", () => {
@@ -205,9 +207,9 @@ describe("traverseDependencies", () => {
 
 describe("calculateImpactRadius", () => {
   const mockEdges: GraphEdge[] = [
-    { id: "e1", source: "A", target: "center", linkType: "derived_from" },
-    { id: "e2", source: "B", target: "A", linkType: "derived_from" },
-    { id: "e3", source: "C", target: "B", linkType: "derived_from" },
+    { id: "e1", source: "A", target: "center", linkType: "derived_from", status: "active" },
+    { id: "e2", source: "B", target: "A", linkType: "derived_from", status: "active" },
+    { id: "e3", source: "C", target: "B", linkType: "derived_from", status: "active" },
   ];
 
   it("should calculate maximum hop distance", () => {
@@ -223,8 +225,8 @@ describe("calculateImpactRadius", () => {
 
 describe("wouldCreateCycle", () => {
   const mockEdges: GraphEdge[] = [
-    { id: "e1", source: "A", target: "B", linkType: "derived_from" },
-    { id: "e2", source: "B", target: "C", linkType: "derived_from" },
+    { id: "e1", source: "A", target: "B", linkType: "derived_from", status: "active" },
+    { id: "e2", source: "B", target: "C", linkType: "derived_from", status: "active" },
   ];
 
   it("should detect when adding edge would create cycle", () => {
@@ -274,6 +276,7 @@ describe("analyzeCascadeEffects", () => {
       source: "block_pricing",
       target: "block_smb",
       linkType: "derived_from",
+      status: "active",
     },
   ];
 
@@ -282,7 +285,7 @@ describe("analyzeCascadeEffects", () => {
       id: "new_block",
       content: "We are now targeting enterprise customers",
       blockType: "content" as const,
-      graphMembership: ["market"] as ("market" | "product" | "technical")[],
+      graphMembership: ["market"] as GraphType[],
       confidence: 0.85,
     };
 

@@ -254,8 +254,6 @@ export function useBuildSession({
         throw new Error(data.error || 'Failed to start build');
       }
 
-      const data = await response.json();
-      
       // Fetch full status
       await fetchStatus();
       

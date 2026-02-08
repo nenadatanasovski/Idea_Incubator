@@ -35,8 +35,6 @@ import type {
   ExecutionWave,
   BuildAgentInstance,
   TaskIdentity,
-  waveStatusConfig,
-  agentStatusConfig,
 } from "../../types/task-agent";
 
 interface ParallelismViewProps {

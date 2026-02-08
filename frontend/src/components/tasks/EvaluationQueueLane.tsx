@@ -25,7 +25,6 @@ import {
   Check,
   X,
   FolderPlus,
-  ExternalLink,
   Loader2,
   RefreshCw,
 } from "lucide-react";
@@ -33,7 +32,6 @@ import type {
   EvaluationQueueTask,
   GroupingSuggestion,
   EvaluationQueueStats,
-  taskStatusConfig,
 } from "../../types/task-agent";
 
 interface EvaluationQueueLaneProps {

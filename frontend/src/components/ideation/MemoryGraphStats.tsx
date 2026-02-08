@@ -4,7 +4,6 @@
  * Displays Neo4j memory graph statistics for the current session.
  */
 
-import React from 'react';
 import { useMemoryStats, useMemoryGraphHealth } from '../../hooks/useMemoryGraph';
 import type { BlockType } from '../../api/memory-graph';
 

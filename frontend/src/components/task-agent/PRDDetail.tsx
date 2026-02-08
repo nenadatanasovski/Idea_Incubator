@@ -9,7 +9,6 @@ import { useState, useEffect } from "react";
 import {
   FileText,
   Check,
-  Clock,
   Link,
   ChevronDown,
   ChevronRight,
@@ -65,7 +64,7 @@ interface PRDDetailProps {
 
 export default function PRDDetail({
   prdId,
-  onClose,
+  onClose: _onClose,
   onApprove,
 }: PRDDetailProps) {
   const [prd, setPrd] = useState<PRD | null>(null);

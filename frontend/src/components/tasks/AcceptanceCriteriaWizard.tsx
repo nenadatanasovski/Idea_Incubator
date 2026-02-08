@@ -9,7 +9,7 @@
  * Part of: Task Agent Workflow Enhancement
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   ChevronRight,
@@ -766,7 +766,7 @@ export default function AcceptanceCriteriaWizard({
 }
 
 function StepIndicator({
-  step,
+  step: _step,
   label,
   icon,
   isActive,

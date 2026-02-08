@@ -11,7 +11,6 @@ import {
   useEffect,
   forwardRef,
   useImperativeHandle,
-  useSyncExternalStore,
 } from "react";
 import {
   GraphCanvas as ReagraphCanvas,
@@ -436,9 +435,6 @@ function toReagraphNode(
     finalSize = size * 1.15;
   }
 
-  // Add file reference indicator as subLabel (📎 icon)
-  const subLabel = hasFileReferences ? "📎" : undefined;
-
   // Nodes with file references get a secondary ring color
   if (
     hasFileReferences &&
@@ -465,9 +461,6 @@ function toReagraphNode(
     strokeWidth = 4;
     opacity = Math.max(opacity, 0.9); // Ensure cycle nodes are visible
   }
-
-  // Use title if available (short summary), otherwise fall back to content/label
-  const displayLabel = node.title || node.content || node.label;
 
   const fillColor = isRecentlyAdded ? "#4ADE80" : getNodeColor(node.blockType);
   return {
@@ -615,7 +608,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       clusterStrength = 0.7,
       className = "",
       totalNodeCount = 0,
-      showAllLabels = false,
+      showAllLabels: _showAllLabels = false,
     },
     ref,
   ) {
@@ -836,7 +829,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       selections,
       // Note: We don't use actives from useSelection - see actives useMemo below for explanation
       clearSelections,
-      onCanvasClick: reagraphOnCanvasClick,
+      onCanvasClick: _reagraphOnCanvasClick,
     } = useSelection({
       ref: graphRef,
       nodes: reagraphNodes,

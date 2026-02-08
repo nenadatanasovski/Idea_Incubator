@@ -134,7 +134,7 @@ describe("ExecutionsTab", () => {
       await waitFor(() => {
         const buttons = screen.getAllByRole("button");
         const failedFilterButton = buttons.find(
-          (btn) => btn.textContent === "Failed",
+          (btn: HTMLElement) => btn.textContent === "Failed",
         );
         expect(failedFilterButton).toBeDefined();
       });

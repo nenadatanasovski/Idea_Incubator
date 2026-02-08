@@ -126,9 +126,6 @@ export function ReportSynthesisStatusPill({
     }
     if (status.status === "generating") {
       if (status.totalGroups > 0) {
-        const groupInfo = status.currentGroupName
-          ? `"${status.currentGroupName}"`
-          : `${status.completedGroups + 1}`;
         return `Generating reports... (${status.completedGroups}/${status.totalGroups})`;
       }
       return "Generating reports...";

@@ -15,24 +15,6 @@ import type { BlockingQuestion } from "../components/agents/BlockingQuestionModa
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const WS_URL = import.meta.env.VITE_WS_URL || `ws://${window.location.host}/ws`;
 
-interface QuestionEvent {
-  type:
-    | "question:new"
-    | "question:answered"
-    | "question:expired"
-    | "question:skipped";
-  question?: BlockingQuestion;
-  questionId?: string;
-  answer?: string;
-}
-
-interface AgentBlockedEvent {
-  type: "agent:blocked" | "agent:unblocked";
-  agentId: string;
-  questionId?: string;
-  reason?: string;
-}
-
 interface PriorityScore {
   score: number;
   factors: {
