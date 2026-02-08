@@ -7,6 +7,8 @@
 
 import { Router, Request, Response } from "express";
 import { query, run } from "../../database/db.js";
+import { SERVER_START_TIME } from "../server-start-time.js";
+import { requestCounterService } from "../services/request-counter.js";
 
 // Import service singletons (OBS-300 to OBS-306)
 import {
@@ -90,6 +92,7 @@ router.get("/stats", async (_req: Request, res: Response) => {
         errorRate: `${errorRate}%`,
         blockedAgents: blockedCount,
         pendingQuestions: pendingCount,
+        requestCount: requestCounterService.getCount(),
         lastUpdated: new Date().toISOString(),
       },
     });
@@ -322,6 +325,9 @@ router.get("/health", async (_req: Request, res: Response) => {
       issues.push(`${staleQuestions} stale question(s)`);
     }
 
+    // Calculate uptime in seconds
+    const uptimeSeconds = Math.floor((Date.now() - SERVER_START_TIME) / 1000);
+
     res.json({
       success: true,
       data: {
@@ -333,6 +339,7 @@ router.get("/health", async (_req: Request, res: Response) => {
           staleQuestions,
         },
         lastUpdated: new Date().toISOString(),
+        uptime: uptimeSeconds,
       },
     });
   } catch (error) {
