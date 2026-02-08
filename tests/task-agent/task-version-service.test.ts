@@ -8,9 +8,42 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { v4 as uuidv4 } from "uuid";
 import { taskVersionService } from "../../server/services/task-agent/task-version-service";
-import { run, saveDb, getOne } from "../../database/db";
+import { run, exec, saveDb, getOne } from "../../database/db";
 
 const TEST_PREFIX = "VERSION-TEST-";
+
+// Ensure required tables exist for tests
+async function ensureTestTables(): Promise<void> {
+  await exec(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id TEXT PRIMARY KEY,
+      display_id TEXT UNIQUE,
+      title TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      category TEXT,
+      priority TEXT,
+      effort TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  await exec(`
+    CREATE TABLE IF NOT EXISTS task_versions (
+      id TEXT PRIMARY KEY,
+      task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      version INTEGER NOT NULL,
+      snapshot TEXT NOT NULL,
+      changed_fields TEXT NOT NULL,
+      change_reason TEXT,
+      is_checkpoint INTEGER NOT NULL DEFAULT 0,
+      checkpoint_name TEXT,
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(task_id, version)
+    )
+  `);
+  await saveDb();
+}
 
 // Helper to call createVersion with simple parameters
 async function createVersionHelper(
@@ -49,6 +82,7 @@ describe("TaskVersionService", () => {
   let testTaskId: string;
 
   beforeAll(async () => {
+    await ensureTestTables();
     await cleanupTestData();
   });
 
