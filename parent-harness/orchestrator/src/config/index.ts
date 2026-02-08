@@ -59,6 +59,12 @@ export interface HarnessConfig {
     window_minutes: number;      // Failure window (default: 30)
     cooldown_minutes: number;    // Cooldown before retry (default: 60)
   };
+  rate_limit: {
+    max_spawns_per_window: number;    // Max spawns per 5-hour window (default: 400)
+    max_cost_per_window_usd: number;  // Max cost per 5-hour window (default: 20)
+    spawn_cooldown_ms: number;        // Min delay between spawns (default: 5000)
+    block_threshold_percent: number;  // Block spawning at this % (default: 80)
+  };
 }
 
 /**
@@ -105,6 +111,12 @@ const DEFAULT_CONFIG: HarnessConfig = {
     failure_threshold: 5,
     window_minutes: 30,
     cooldown_minutes: 60,
+  },
+  rate_limit: {
+    max_spawns_per_window: 400,
+    max_cost_per_window_usd: 20,
+    spawn_cooldown_ms: 5000,
+    block_threshold_percent: 80,
   },
 };
 

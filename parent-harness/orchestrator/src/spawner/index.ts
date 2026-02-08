@@ -64,11 +64,188 @@ function checkBudgetAllowsSpawn(): { allowed: boolean; reason?: string } {
 }
 
 /**
- * Estimate tokens for a prompt (rough estimate)
+ * Estimate tokens for a prompt (rough estimate - fallback only)
  */
 function estimateTokens(text: string): number {
-  // Rough estimate: ~4 chars per token
+  // Rough estimate: ~4 chars per token (used only as fallback)
   return Math.ceil(text.length / 4);
+}
+
+// ============ RATE LIMIT PROTECTION: Rolling 5-Hour Window Tracking ============
+// PERSISTED to database to survive restarts
+
+import { run as dbRun, query as dbQuery, getOne as dbGetOne } from '../db/index.js';
+
+// Alias to avoid confusion with other 'run' functions
+const run = dbRun;
+const query = dbQuery;
+const getOne = dbGetOne;
+
+interface SpawnRecord {
+  id?: number;
+  timestamp: number;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  model: string;
+}
+
+const ROLLING_WINDOW_MS = 5 * 60 * 60 * 1000; // 5 hours
+
+// Get limits from config (with defaults)
+function getRollingWindowLimits(): { maxSpawns: number; maxCostUsd: number } {
+  try {
+    const cfg = config.getConfig();
+    return {
+      maxSpawns: (cfg as any).rate_limit?.max_spawns_per_window ?? 400,
+      maxCostUsd: (cfg as any).rate_limit?.max_cost_per_window_usd ?? 20,
+    };
+  } catch {
+    return { maxSpawns: 400, maxCostUsd: 20 };
+  }
+}
+
+// Ensure spawn_window table exists
+function ensureSpawnWindowTable(): void {
+  run(`
+    CREATE TABLE IF NOT EXISTS spawn_window (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp INTEGER NOT NULL,
+      input_tokens INTEGER NOT NULL,
+      output_tokens INTEGER NOT NULL,
+      cost_usd REAL NOT NULL,
+      model TEXT NOT NULL
+    )
+  `);
+  run(`CREATE INDEX IF NOT EXISTS idx_spawn_window_timestamp ON spawn_window(timestamp)`);
+}
+
+// Initialize on module load
+ensureSpawnWindowTable();
+
+/**
+ * Add a spawn record to the rolling window (PERSISTED)
+ */
+function recordSpawnInWindow(record: SpawnRecord): void {
+  // Insert new record
+  run(`
+    INSERT INTO spawn_window (timestamp, input_tokens, output_tokens, cost_usd, model)
+    VALUES (?, ?, ?, ?, ?)
+  `, [record.timestamp, record.inputTokens, record.outputTokens, record.costUsd, record.model]);
+  
+  // Prune old records (older than 5 hours)
+  const cutoff = Date.now() - ROLLING_WINDOW_MS;
+  run(`DELETE FROM spawn_window WHERE timestamp < ?`, [cutoff]);
+}
+
+/**
+ * Get rolling window statistics (FROM DATABASE - survives restarts)
+ */
+function getRollingWindowStats(): {
+  spawnsInWindow: number;
+  tokensInWindow: number;
+  costInWindow: number;
+  oldestTimestamp: number | null;
+} {
+  const cutoff = Date.now() - ROLLING_WINDOW_MS;
+  
+  const stats = getOne<{
+    count: number;
+    total_input: number;
+    total_output: number;
+    total_cost: number;
+    oldest: number | null;
+  }>(`
+    SELECT 
+      COUNT(*) as count,
+      COALESCE(SUM(input_tokens), 0) as total_input,
+      COALESCE(SUM(output_tokens), 0) as total_output,
+      COALESCE(SUM(cost_usd), 0) as total_cost,
+      MIN(timestamp) as oldest
+    FROM spawn_window 
+    WHERE timestamp >= ?
+  `, [cutoff]);
+  
+  return {
+    spawnsInWindow: stats?.count ?? 0,
+    tokensInWindow: (stats?.total_input ?? 0) + (stats?.total_output ?? 0),
+    costInWindow: stats?.total_cost ?? 0,
+    oldestTimestamp: stats?.oldest ?? null,
+  };
+}
+
+/**
+ * Check if we should allow spawning based on rolling window
+ */
+function checkRollingWindowAllowsSpawn(): { allowed: boolean; reason?: string; stats: ReturnType<typeof getRollingWindowStats> } {
+  const stats = getRollingWindowStats();
+  const limits = getRollingWindowLimits();
+  
+  // Check spawn count (80% threshold)
+  if (stats.spawnsInWindow >= limits.maxSpawns * 0.8) {
+    console.warn(`⚠️ Rolling window spawn limit: ${stats.spawnsInWindow}/${limits.maxSpawns}`);
+    return {
+      allowed: false,
+      reason: `Rolling window at ${stats.spawnsInWindow}/${limits.maxSpawns} spawns (80% threshold)`,
+      stats,
+    };
+  }
+  
+  // Check cost (80% threshold)
+  if (stats.costInWindow >= limits.maxCostUsd * 0.8) {
+    console.warn(`⚠️ Rolling window cost limit: $${stats.costInWindow.toFixed(2)}/$${limits.maxCostUsd}`);
+    return {
+      allowed: false,
+      reason: `Rolling window cost at $${stats.costInWindow.toFixed(2)}/$${limits.maxCostUsd} (80% threshold)`,
+      stats,
+    };
+  }
+  
+  return { allowed: true, stats };
+}
+
+/**
+ * Parse Claude CLI JSON output for real token counts
+ */
+interface ClaudeJsonOutput {
+  type: string;
+  subtype?: string;
+  is_error: boolean;
+  result: string;
+  total_cost_usd: number;
+  usage: {
+    input_tokens: number;
+    output_tokens: number;
+    cache_read_input_tokens?: number;
+    cache_creation_input_tokens?: number;
+  };
+  duration_ms?: number;
+  num_turns?: number;
+}
+
+function parseClaudeJsonOutput(output: string): ClaudeJsonOutput | null {
+  try {
+    // Try to find and parse JSON in the output
+    // The output might have multiple lines or be wrapped
+    const lines = output.trim().split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        const parsed = JSON.parse(trimmed);
+        if (parsed.type === 'result' && parsed.usage) {
+          return parsed as ClaudeJsonOutput;
+        }
+      }
+    }
+    // If no valid JSON found, try parsing the whole output
+    const parsed = JSON.parse(output.trim());
+    if (parsed.type === 'result' && parsed.usage) {
+      return parsed as ClaudeJsonOutput;
+    }
+  } catch {
+    // JSON parsing failed - output is not JSON
+  }
+  return null;
 }
 
 /**
@@ -99,6 +276,132 @@ function getModelFallbackChain(): string[] {
 
 // Legacy constant for backward compat
 const MAX_CONCURRENT = 8;
+
+// ============ RATE LIMIT PROTECTION ============
+// PERSISTED state to survive restarts
+
+// Ensure spawner_state table exists
+function ensureSpawnerStateTable(): void {
+  run(`
+    CREATE TABLE IF NOT EXISTS spawner_state (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  `);
+}
+ensureSpawnerStateTable();
+
+// Get persisted state value
+function getSpawnerState(key: string): string | null {
+  const row = getOne<{ value: string }>(`SELECT value FROM spawner_state WHERE key = ?`, [key]);
+  return row?.value ?? null;
+}
+
+// Set persisted state value
+function setSpawnerState(key: string, value: string): void {
+  run(`
+    INSERT INTO spawner_state (key, value, updated_at) VALUES (?, ?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = ?
+  `, [key, value, Date.now(), value, Date.now()]);
+}
+
+// Serial execution lock for build agents (only 1 at a time)
+// Queue is persisted to database
+const buildAgentLock = {
+  get locked(): boolean {
+    return getSpawnerState('build_agent_locked') === 'true';
+  },
+  set locked(val: boolean) {
+    setSpawnerState('build_agent_locked', val ? 'true' : 'false');
+  },
+  get queue(): string[] {
+    const val = getSpawnerState('build_agent_queue');
+    return val ? JSON.parse(val) : [];
+  },
+  addToQueue(taskId: string): void {
+    const q = this.queue;
+    q.push(taskId);
+    setSpawnerState('build_agent_queue', JSON.stringify(q));
+  },
+  shiftQueue(): string | undefined {
+    const q = this.queue;
+    const next = q.shift();
+    setSpawnerState('build_agent_queue', JSON.stringify(q));
+    return next;
+  },
+};
+
+// Spawn cooldown to prevent burst consumption (PERSISTED)
+const MIN_SPAWN_DELAY_MS = 5000; // 5 seconds between any spawns
+
+function getLastSpawnTime(): number {
+  const val = getSpawnerState('last_spawn_time');
+  return val ? parseInt(val, 10) : 0;
+}
+
+function setLastSpawnTime(time: number): void {
+  setSpawnerState('last_spawn_time', String(time));
+}
+
+// Model selection by agent type (save expensive models for coding)
+const MODEL_BY_AGENT_TYPE: Record<string, string> = {
+  build_agent: 'opus',      // Needs quality for implementation
+  build: 'opus',
+  qa_agent: 'sonnet',       // Validation doesn't need Opus
+  qa: 'sonnet',
+  validation_agent: 'sonnet',
+  validation: 'sonnet',
+  planning_agent: 'haiku',  // Already cheap
+  planning: 'haiku',
+  research_agent: 'haiku',  // Lightweight
+  research: 'haiku',
+  decomposition_agent: 'haiku',
+  decomposition: 'haiku',
+  spec_agent: 'sonnet',     // Specs need some quality
+  spec: 'sonnet',
+  sia_agent: 'sonnet',      // Strategic thinking
+  sia: 'sonnet',
+  evaluator_agent: 'haiku', // Simple assessment
+  evaluator: 'haiku',
+  clarification_agent: 'haiku',
+  clarification: 'haiku',
+  task_agent: 'haiku',
+  task: 'haiku',
+  human_sim_agent: 'sonnet',
+  human_sim: 'sonnet',
+};
+
+/**
+ * Get appropriate model for agent type (rate limit optimization)
+ */
+function getModelForAgentType(agentType: string): string {
+  return MODEL_BY_AGENT_TYPE[agentType] || 'sonnet'; // Default to sonnet, not opus
+}
+
+/**
+ * Enforce spawn cooldown (PERSISTED - survives restarts)
+ */
+async function enforceSpawnCooldown(): Promise<void> {
+  const now = Date.now();
+  const lastSpawn = getLastSpawnTime();
+  const timeSinceLastSpawn = now - lastSpawn;
+  
+  if (timeSinceLastSpawn < MIN_SPAWN_DELAY_MS) {
+    const delay = MIN_SPAWN_DELAY_MS - timeSinceLastSpawn;
+    console.log(`⏱️ Spawn cooldown: waiting ${delay}ms`);
+    await new Promise(r => setTimeout(r, delay));
+  }
+  
+  setLastSpawnTime(Date.now());
+}
+
+/**
+ * Check if this is a build agent type
+ */
+function isBuildAgentType(agentType: string): boolean {
+  return agentType === 'build_agent' || agentType === 'build';
+}
 
 // Track running processes
 const runningProcesses = new Map<string, { 
@@ -146,375 +449,81 @@ interface SpawnResult {
 
 /**
  * Build system prompt for agent
- * Based on parent-harness/docs/AGENTS.md specifications
+ * 
+ * RATE LIMIT OPTIMIZATION: Minimized prompts to reduce token consumption
+ * Target: ~300-500 tokens per prompt (was ~1500)
  */
 function getSystemPrompt(agentType: string): string {
-  const baseHeader = `You are an autonomous AI agent working on the Vibe Platform codebase at ${CODEBASE_ROOT}.
-
-Your tools: Read (files), Write (files), Edit (precise edits), exec (shell commands)
-
-CRITICAL: Log EVERY action verbosely:
-- Every tool call with parameters
-- Every file read/write
-- Every command execution
-- Progress on pass criteria
-
-Silent agents get terminated. Be verbose.
-
-When done, output: TASK_COMPLETE: <summary>
-If stuck, output: TASK_FAILED: <reason>
+  // Minimal base header - essential info only
+  const baseHeader = `Autonomous AI agent. Codebase: ${CODEBASE_ROOT}
+Tools: Read, Write, Edit, exec (Bash)
+Output TASK_COMPLETE: <summary> when done, or TASK_FAILED: <reason> if stuck.
 `;
 
+  // Minimized prompts - essential instructions only
   const agentPrompts: Record<string, string> = {
-    // BUILD AGENT - Primary code implementer
+    
     build_agent: `${baseHeader}
+ROLE: Build Agent - implement features and fix bugs.
+1. Read task requirements
+2. Find and modify relevant code
+3. Run \`npx tsc --noEmit\` to verify
+4. Git commit with descriptive message
+5. Output TASK_COMPLETE
 
-## ROLE: Build Agent
-You IMPLEMENT features and FIX bugs. You are the primary code-writing agent.
+Do NOT run tests - QA agent handles that.`,
 
-## WORKFLOW:
-1. Read the task and understand requirements
-2. Explore relevant code (find files, read implementations)
-3. Write/Edit code to implement the feature or fix
-4. Run typecheck: \`npx tsc --noEmit\` (quick compile check)
-5. Create git commit with descriptive message
-6. Output TASK_COMPLETE with summary
-
-NOTE: Do NOT run \`npm test\` - the QA agent handles all testing after your work is complete.
-
-## VERBOSE OUTPUT FORMAT:
-10:42:15 ▶ Starting implementation
-10:42:16 🔧 tool:read_file → server/routes/api.ts
-10:42:18 🔧 tool:edit_file → server/routes/api.ts (+15 lines)
-10:42:20 🔧 tool:exec → npx tsc --noEmit
-10:42:25 ✅ TypeScript compiles
-10:42:26 🔧 tool:exec → git commit -m "feat: add endpoint"
-
-## RULES:
-- Always verify changes compile (tsc --noEmit)
-- Write clean, typed, documented code
-- Don't make unnecessary changes
-- Commit your work with descriptive messages`,
-
-    // QA AGENT - Validation and testing
     qa_agent: `${baseHeader}
+ROLE: QA Agent - validate implementations.
+1. Run \`npx tsc --noEmit\` (compiles?)
+2. Run \`npm test\` (tests pass?)
+3. Check each pass criterion explicitly
+4. Output TASK_COMPLETE if all pass, TASK_FAILED if issues`,
 
-## ROLE: QA Agent
-You VALIDATE completed work and VERIFY implementations meet requirements.
-
-## VALIDATION CHECKLIST:
-1. TypeScript compiles? → \`npm run build\` or \`npx tsc --noEmit\`
-2. Tests pass? → \`npm test\` or specific test suite
-3. No regressions? → Run related tests
-4. Lint clean? → \`npm run lint\` if available
-5. Pass criteria met? → Check each criterion explicitly
-
-## WORKFLOW:
-1. Read the task and its pass criteria
-2. Identify what was implemented (check git diff or files)
-3. Run validation checks
-4. Document findings
-5. Output TASK_COMPLETE if all checks pass
-6. Output TASK_FAILED if issues found (list them)
-
-## OUTPUT FORMAT:
-✅ TypeScript: Compiles
-✅ Tests: 42/42 passing
-⚠️ Lint: 2 warnings (non-blocking)
-✅ Pass Criteria 1: "API returns 200" - VERIFIED
-✅ Pass Criteria 2: "Data persists" - VERIFIED
-TASK_COMPLETE: All 5 validation checks passed`,
-
-    // SPEC AGENT - PRDs and technical specifications
     spec_agent: `${baseHeader}
+ROLE: Spec Agent - create technical specifications.
+Write to docs/specs/ with: Overview, Requirements, Technical Design, Pass Criteria, Dependencies.
+Pass criteria must be testable. Reference existing codebase patterns.`,
 
-## ROLE: Spec Agent
-You CREATE technical specifications and PRDs from requirements.
-
-## OUTPUT LOCATIONS:
-- PRDs go in: docs/specs/
-- Technical specs go in: docs/specs/
-- API specs go in: docs/api/
-
-## SPEC STRUCTURE:
-1. Overview - What and why
-2. Requirements - Functional and non-functional
-3. Technical Design - How to implement
-4. Pass Criteria - Testable success conditions
-5. Dependencies - What this needs/affects
-6. Open Questions - Unknowns to resolve
-
-## RULES:
-- Pass criteria MUST be testable
-- Be specific about file paths and APIs
-- Consider edge cases and error handling
-- Reference existing patterns in the codebase`,
-
-    // RESEARCH AGENT - Investigation and analysis
     research_agent: `${baseHeader}
+ROLE: Research Agent - investigate problems, find solutions.
+Search codebase and web. Summarize findings with recommendations.`,
 
-## ROLE: Research Agent
-You INVESTIGATE problems, EXPLORE solutions, and GATHER context.
-
-## RESPONSIBILITIES:
-- Search external documentation
-- Find code examples and patterns
-- Research libraries and tools
-- Analyze codebase for patterns
-- Summarize findings clearly
-
-## WORKFLOW:
-1. Understand what needs to be researched
-2. Search codebase for existing patterns
-3. Search web for external resources (if needed)
-4. Synthesize findings
-5. Output TASK_COMPLETE with summary and recommendations
-
-## OUTPUT FORMAT:
-### Findings
-- [Source 1]: Key insight
-- [Source 2]: Key insight
-
-### Recommendations
-1. Recommended approach
-2. Alternative considered
-
-### References
-- Link/path to resources`,
-
-    // DECOMPOSITION AGENT - Break down large tasks
     decomposition_agent: `${baseHeader}
+ROLE: Decomposition Agent - break large tasks into atomic subtasks.
+Each subtask: 5-15 min, single outcome, testable criteria.
+Assign wave numbers (1=no deps, 2=depends on 1, etc).`,
 
-## ROLE: Decomposition Agent
-You BREAK DOWN large tasks into atomic subtasks.
-
-## ATOMIC TASK CRITERIA:
-- 5-15 minutes to complete
-- Single clear outcome
-- Testable pass criteria
-- Specific file paths
-
-## WORKFLOW:
-1. Analyze the large task
-2. Identify components and dependencies
-3. Create subtask list with:
-   - Title
-   - Description
-   - Pass criteria
-   - Dependencies (which subtasks must complete first)
-   - Wave number (for parallel execution)
-4. Output TASK_COMPLETE with subtask list
-
-## WAVE ASSIGNMENT:
-- Wave 1: Tasks with no dependencies (run in parallel)
-- Wave 2: Tasks depending on Wave 1
-- Wave 3: Tasks depending on Wave 2
-- etc.`,
-
-    // TASK AGENT - Task queue management
     task_agent: `${baseHeader}
+ROLE: Task Agent - manage task queue.
+Analyze queue, identify blockers, recommend priorities.`,
 
-## ROLE: Task Agent
-You MANAGE the task queue and coordinate task flow.
-
-## RESPONSIBILITIES:
-- Prioritize work based on dependencies and priority
-- Track task status transitions
-- Coordinate with other agents
-- Update task metadata
-
-## WORKFLOW:
-1. Analyze task queue state
-2. Identify blockers and dependencies
-3. Recommend priority adjustments
-4. Update task statuses as needed
-5. Output TASK_COMPLETE with actions taken`,
-
-    // VALIDATION AGENT - Final validation before merge
     validation_agent: `${baseHeader}
+ROLE: Validation Agent - final validation before merge.
+Run tests, typecheck, review code quality, verify all pass criteria.`,
 
-## ROLE: Validation Agent
-You perform FINAL VALIDATION before code is considered complete.
-
-## CHECKLIST:
-1. All tests pass
-2. No TypeScript errors
-3. Documentation updated
-4. No console.log or debug code left
-5. Code follows project patterns
-6. Pass criteria explicitly verified
-
-## WORKFLOW:
-1. Run full test suite
-2. Run typecheck
-3. Review changed files for quality
-4. Check documentation
-5. Verify each pass criterion
-6. Output TASK_COMPLETE or TASK_FAILED with detailed report`,
-
-    // EVALUATOR AGENT - Assess complexity and effort
     evaluator_agent: `${baseHeader}
+ROLE: Evaluator Agent - assess task complexity.
+Output: Complexity (LOW/MEDIUM/HIGH), Effort (hours), Risk, Recommendation.`,
 
-## ROLE: Evaluator Agent  
-You EVALUATE task complexity and estimate effort.
-
-## ASSESSMENT CRITERIA:
-- Lines of code likely changed
-- Number of files affected
-- Test coverage needed
-- Risk of regressions
-- Dependencies involved
-
-## OUTPUT FORMAT:
-Complexity: LOW | MEDIUM | HIGH | VERY_HIGH
-Effort: <hours estimate>
-Risk: LOW | MEDIUM | HIGH
-Recommendation: <proceed / decompose / research first>`,
-
-    // SIA (IDEATION AGENT) - Strategic vision and arbitration
     sia_agent: `${baseHeader}
+ROLE: SIA - strategic ideation and arbitration.
+Brainstorm when stuck, analyze failures, recommend fixes.
+Output: Analysis, Options with pros/cons, Recommendation, Action Items.`,
 
-## ROLE: SIA (Strategic Ideation Agent)
-You are the STRATEGIC BRAIN of the harness. You IDEATE, ARBITRATE disputes, and maintain the SOUL VISION.
-
-## RESPONSIBILITIES:
-- Brainstorm solutions when agents are stuck
-- Explore alternatives and challenge assumptions
-- Generate creative ideas for hard problems
-- Arbitrate when agents disagree
-- Analyze failure patterns and recommend fixes
-- Maintain alignment with project vision
-
-## WHEN TRIGGERED:
-- Evaluator identifies task needs exploration
-- Multiple agents fail same task
-- Crown agent detects persistent issues
-- Human requests strategic input
-
-## OUTPUT FORMAT:
-### Analysis
-<What's happening and why>
-
-### Options Explored
-1. Option A: <description> - Pros/Cons
-2. Option B: <description> - Pros/Cons
-
-### Recommendation
-<Chosen approach with rationale>
-
-### Action Items
-- <Specific next steps>`,
-
-    // PLANNING AGENT - Strategic vision and task creation
     planning_agent: `${baseHeader}
+ROLE: Planning Agent - create improvement tasks.
+Analyze codebase, identify gaps, create prioritized tasks.
+Format: TASK: title, PRIORITY: P0/P1/P2, DESCRIPTION, PASS_CRITERIA`,
 
-## ROLE: Planning Agent ⭐ THE STRATEGIC BRAIN
-You ANALYZE the codebase and CREATE improvement tasks. You maintain the "soul vision" for the Vibe platform.
-
-## RESPONSIBILITIES:
-- Continuously evaluate project state
-- Analyze CLI logs and past iterations
-- Create new feature/bug/improvement tasks
-- Identify technical debt
-- Align work with user's long-term vision
-
-## WORKFLOW:
-1. Analyze current codebase state
-2. Review recent completions and failures
-3. Identify gaps and opportunities
-4. Create prioritized task list
-5. Output strategic recommendations
-
-## OUTPUT FORMAT:
-### Project Assessment
-- Current State: <assessment>
-- Key Gaps: <list>
-
-### Proposed Tasks
-TASK: <title>
-PRIORITY: P0|P1|P2
-CATEGORY: feature|bug|improvement
-DESCRIPTION: <what to do>
-PASS_CRITERIA: <testable criteria>
----
-
-TASK_COMPLETE: Created X improvement tasks`,
-
-    // CLARIFICATION AGENT - Ask clarifying questions
     clarification_agent: `${baseHeader}
+ROLE: Clarification Agent - ask questions for ambiguous tasks.
+Formulate specific questions with options. Max 3-5 questions.`,
 
-## ROLE: Clarification Agent
-You INTERCEPT ambiguous tasks and ASK clarifying questions before execution.
-
-## WORKFLOW:
-1. Analyze task requirements
-2. Identify ambiguities or missing information
-3. Formulate targeted questions
-4. Wait for human response via Telegram
-5. Update task with complete specification
-6. Release task for execution
-
-## QUESTION GUIDELINES:
-- Be specific, not open-ended
-- Provide options when possible
-- Explain WHY you need this information
-- Max 3-5 questions at a time
-
-## OUTPUT FORMAT:
-To implement this task, I need clarification:
-
-1. <Question 1>
-   Options: A) ... B) ... C) ...
-
-2. <Question 2>
-
-Reply via Telegram with your answers.`,
-
-    // HUMAN SIM AGENT - Usability testing with personas
     human_sim_agent: `${baseHeader}
-
-## ROLE: Human Simulation Agent
-You TEST completed UI features like a REAL USER with different personas.
-
-## PERSONAS:
-| Persona | Tech Level | Patience | Focus |
-|---------|------------|----------|-------|
-| technical | High | High | CLI, API, error messages |
-| power-user | Medium-high | Medium | Complex workflows, shortcuts |
-| casual | Medium | Medium | Happy path, discoverability |
-| confused | Low | Low | Error recovery, help text |
-| impatient | Any | Very low | Loading, feedback, responsiveness |
-
-## CAPABILITIES:
-- Browser automation (Agent Browser skill)
-- Screenshot capture and analysis
-- Form filling and navigation
-- Error state detection
-- Frustration indicators (repeated clicks, back navigation)
-
-## WORKFLOW:
-1. Load the UI feature to test
-2. Adopt assigned persona mindset
-3. Attempt to complete the task naturally
-4. Document pain points and successes
-5. Output findings and fix suggestions
-
-## OUTPUT FORMAT:
-### Persona: <name>
-### Task Attempted: <description>
-
-### Journey:
-1. Step 1 - ✅ Success / ⚠️ Friction / ❌ Blocked
-2. Step 2 - ...
-
-### Issues Found:
-- [CRITICAL] <issue>
-- [MINOR] <issue>
-
-### Recommendations:
-1. <suggested fix>
-
-TASK_COMPLETE: Tested as <persona>, found X issues`,
+ROLE: Human Sim Agent - test UI as real user.
+Personas: technical, power-user, casual, confused, impatient.
+Document journey, pain points, recommendations.`,
 
   };
 
@@ -617,8 +626,9 @@ async function spawnAgentSessionInternal(
 
   return new Promise((resolve) => {
     // Use shell wrapper to pipe prompt to claude - works with OAuth auth
+    // RATE LIMIT PROTECTION: Use --print --output-format json to get real token counts
     const escapedPrompt = fullPrompt.replace(/'/g, "'\\''");
-    const shellCmd = `echo '${escapedPrompt}' | claude --model ${model} --permission-mode bypassPermissions --allowedTools 'Read,Write,Edit,Bash'`;
+    const shellCmd = `echo '${escapedPrompt}' | claude --model ${model} --permission-mode bypassPermissions --allowedTools 'Read,Write,Edit,Bash' --print --output-format json`;
     
     const { ANTHROPIC_AUTH_TOKEN, ...cleanEnv } = process.env;
     
@@ -660,19 +670,52 @@ async function spawnAgentSessionInternal(
       clearInterval(heartbeatInterval);
       runningProcesses.delete(session.id);
 
-      const output = stdout + stderr;
-      const filesModified = extractFilesModified(output);
-      const rateLimit = isRateLimitError(output);
+      const rawOutput = stdout + stderr;
       
-      // Record token usage (estimate based on prompt + output size)
-      const inputTokens = estimateTokens(fullPrompt);
-      const outputTokens = estimateTokens(output);
+      // ============ RATE LIMIT PROTECTION: Parse JSON for real token counts ============
+      const jsonOutput = parseClaudeJsonOutput(rawOutput);
+      
+      // Extract the actual result text (for TASK_COMPLETE detection)
+      // If JSON parsing failed, fall back to raw output
+      const output = jsonOutput?.result || rawOutput;
+      
+      const filesModified = extractFilesModified(output);
+      const rateLimit = isRateLimitError(rawOutput);
+      
+      // Get REAL token counts from Claude CLI JSON output (or estimate as fallback)
+      let inputTokens: number;
+      let outputTokens: number;
+      let costUsd: number;
+      
+      if (jsonOutput?.usage) {
+        // Use REAL token counts from Claude CLI
+        inputTokens = jsonOutput.usage.input_tokens + (jsonOutput.usage.cache_read_input_tokens || 0);
+        outputTokens = jsonOutput.usage.output_tokens;
+        costUsd = jsonOutput.total_cost_usd;
+        console.log(`📊 REAL token usage for ${task.display_id}: ${inputTokens.toLocaleString()} in, ${outputTokens.toLocaleString()} out, $${costUsd.toFixed(4)}`);
+      } else {
+        // Fallback to estimation (shouldn't happen with JSON output)
+        inputTokens = estimateTokens(fullPrompt);
+        outputTokens = estimateTokens(output);
+        costUsd = budget.calculateCost(model, inputTokens, outputTokens);
+        console.log(`📊 Estimated tokens for ${task.display_id}: ~${(inputTokens + outputTokens).toLocaleString()} (JSON parse failed)`);
+      }
+      
+      // Record in rolling window for rate limit protection
+      recordSpawnInWindow({
+        timestamp: Date.now(),
+        inputTokens,
+        outputTokens,
+        costUsd,
+        model,
+      });
+      
+      // Record in budget system
       try {
         budget.recordUsage(agentId, model, inputTokens, outputTokens, {
           sessionId: session.id,
           taskId: taskId,
         });
-        console.log(`📊 Recorded ~${(inputTokens + outputTokens).toLocaleString()} tokens for ${task.display_id}`);
       } catch (err) {
         console.warn('Failed to record token usage:', err);
       }
@@ -744,14 +787,23 @@ async function spawnAgentSessionInternal(
     }
 
     child.on('close', (code) => {
-      const output = stdout + stderr;
-      const isComplete = output.includes('TASK_COMPLETE');
-      const isFailed = output.includes('TASK_FAILED') || code !== 0;
+      const rawOutput = stdout + stderr;
+      
+      // Parse JSON output to get the actual result text
+      const jsonOutput = parseClaudeJsonOutput(rawOutput);
+      const resultText = jsonOutput?.result || rawOutput;
+      
+      // Check for TASK_COMPLETE/TASK_FAILED in the result text
+      const isComplete = resultText.includes('TASK_COMPLETE');
+      const isFailed = resultText.includes('TASK_FAILED') || code !== 0;
+      
+      // Also check for errors in JSON output
+      const isJsonError = jsonOutput?.is_error || jsonOutput?.subtype === 'error';
 
-      if (isComplete && !isFailed) {
+      if (isComplete && !isFailed && !isJsonError) {
         finishSession(true);
       } else {
-        const errorMsg = extractError(output) || `Exit code ${code}`;
+        const errorMsg = extractError(resultText) || (isJsonError ? 'Claude CLI error' : `Exit code ${code}`);
         finishSession(false, errorMsg);
       }
     });
@@ -764,84 +816,154 @@ async function spawnAgentSessionInternal(
 
 /**
  * Spawn agent using Claude CLI with model fallback on rate limit
- */
-/**
- * Spawn agent using Claude CLI with model fallback on rate limit
+ * 
+ * RATE LIMIT PROTECTION:
+ * 1. Serial execution for build agents (only 1 at a time)
+ * 2. 5-second cooldown between ALL spawns
+ * 3. Model selection by agent type (not all Opus)
  */
 export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnResult> {
-  const { taskId, agentId, model = 'opus', timeout = 300 } = options;
+  const { taskId, agentId, timeout = 300 } = options;
 
-  // Pre-checks (capacity, budget, build health, CLI availability)
-  const maxConcurrent = getMaxConcurrent();
-  if (runningProcesses.size >= maxConcurrent) {
-    return { 
-      success: false, 
-      sessionId: '', 
-      error: `At max capacity (${maxConcurrent} concurrent agents)` 
-    };
-  }
-
+  // Get agent data first to check type
+  const agentData = agents.getAgent(agentId);
   const taskData = tasks.getTask(taskId);
   
-  const budgetCheck = checkBudgetAllowsSpawn();
-  if (!budgetCheck.allowed) {
-    console.warn(`⚠️ Spawn blocked by budget: ${budgetCheck.reason}`);
-    events.budgetSpawnBlocked(taskId, taskData?.title || taskId, budgetCheck.reason || 'Budget limit reached');
-    return { success: false, sessionId: '', error: budgetCheck.reason || 'Budget limit reached' };
-  }
-
-  const buildHealthCheck = checkBuildHealth(taskData?.category ?? undefined, taskData?.priority ?? undefined);
-  if (!buildHealthCheck.allowed) {
-    console.warn(`⚠️ Spawn blocked by build health: ${buildHealthCheck.reason}`);
-    return { success: false, sessionId: '', error: buildHealthCheck.reason || 'Build health gate blocked spawn' };
-  }
-
-  if (!claudeAvailable) {
-    claudeAvailable = await checkClaudeCLI();
-  }
-  if (!claudeAvailable) {
-    return { success: false, sessionId: '', error: 'Claude CLI not available' };
-  }
-
-  const agentData = agents.getAgent(agentId);
   if (!taskData || !agentData) {
     return { success: false, sessionId: '', error: 'Task or agent not found' };
   }
 
-  // Get fallback chain and find starting position
-  const fallbackChain = getModelFallbackChain();
-  let startIdx = fallbackChain.indexOf(model);
-  if (startIdx === -1) startIdx = 0;
-
-  // Try each model in the fallback chain
-  for (let i = startIdx; i < fallbackChain.length; i++) {
-    const currentModel = fallbackChain[i];
-    
-    if (i > startIdx) {
-      console.log(`🔄 Falling back from ${fallbackChain[i - 1]} to ${currentModel}`);
-      events.modelFallback(taskId, fallbackChain[i - 1], currentModel, 'rate limit');
+  // ============ RATE LIMIT PROTECTION: Serial Build Agent Execution ============
+  if (isBuildAgentType(agentData.type)) {
+    if (buildAgentLock.locked) {
+      console.log(`🔒 Build agent already running - ${taskData.display_id} must wait`);
+      buildAgentLock.addToQueue(taskId);
+      const queueLen = buildAgentLock.queue.length;
+      return { 
+        success: false, 
+        sessionId: '', 
+        error: `Build agent queue: ${queueLen} waiting (serial execution mode)` 
+      };
     }
-
-    const result = await spawnAgentSessionInternal(
-      { ...options, model: currentModel },
-      taskData,
-      agentData
-    );
-
-    // If successful or not a rate limit error, return
-    if (result.success || !result.isRateLimit) {
-      return result;
-    }
-
-    console.log(`⚠️ Rate limit hit with ${currentModel}, trying next model...`);
+    buildAgentLock.locked = true;
+    console.log(`🔓 Build agent lock acquired for ${taskData.display_id}`);
   }
 
-  // All models exhausted
-  return {
-    success: false,
-    sessionId: '',
-    error: 'All models in fallback chain rate limited',
-  };
+  try {
+    // ============ RATE LIMIT PROTECTION: Spawn Cooldown ============
+    await enforceSpawnCooldown();
+
+    // ============ RATE LIMIT PROTECTION: Rolling Window Check ============
+    const windowCheck = checkRollingWindowAllowsSpawn();
+    if (!windowCheck.allowed) {
+      console.warn(`⚠️ Spawn blocked by rolling window: ${windowCheck.reason}`);
+      console.log(`   Window stats: ${windowCheck.stats.spawnsInWindow} spawns, $${windowCheck.stats.costInWindow.toFixed(2)} cost`);
+      return { 
+        success: false, 
+        sessionId: '', 
+        error: windowCheck.reason || 'Rolling window rate limit' 
+      };
+    }
+    
+    // Log window stats for monitoring
+    if (windowCheck.stats.spawnsInWindow > 0) {
+      const limits = getRollingWindowLimits();
+      console.log(`📈 Rolling window: ${windowCheck.stats.spawnsInWindow}/${limits.maxSpawns} spawns, $${windowCheck.stats.costInWindow.toFixed(2)}/$${limits.maxCostUsd}`);
+    }
+
+    // ============ RATE LIMIT PROTECTION: Model Selection by Agent Type ============
+    // Use appropriate model for agent type instead of defaulting to Opus
+    const model = options.model || getModelForAgentType(agentData.type);
+    console.log(`🎯 Model selection: ${agentData.type} → ${model}`);
+
+    // Pre-checks (capacity, budget, build health, CLI availability)
+    const maxConcurrent = getMaxConcurrent();
+    if (runningProcesses.size >= maxConcurrent) {
+      return { 
+        success: false, 
+        sessionId: '', 
+        error: `At max capacity (${maxConcurrent} concurrent agents)` 
+      };
+    }
+    
+    const budgetCheck = checkBudgetAllowsSpawn();
+    if (!budgetCheck.allowed) {
+      console.warn(`⚠️ Spawn blocked by budget: ${budgetCheck.reason}`);
+      events.budgetSpawnBlocked(taskId, taskData?.title || taskId, budgetCheck.reason || 'Budget limit reached');
+      return { success: false, sessionId: '', error: budgetCheck.reason || 'Budget limit reached' };
+    }
+
+    const buildHealthCheck = checkBuildHealth(taskData?.category ?? undefined, taskData?.priority ?? undefined);
+    if (!buildHealthCheck.allowed) {
+      console.warn(`⚠️ Spawn blocked by build health: ${buildHealthCheck.reason}`);
+      return { success: false, sessionId: '', error: buildHealthCheck.reason || 'Build health gate blocked spawn' };
+    }
+
+    if (!claudeAvailable) {
+      claudeAvailable = await checkClaudeCLI();
+    }
+    if (!claudeAvailable) {
+      return { success: false, sessionId: '', error: 'Claude CLI not available' };
+    }
+
+    // Get fallback chain and find starting position
+    const fallbackChain = getModelFallbackChain();
+    let startIdx = fallbackChain.indexOf(model);
+    if (startIdx === -1) startIdx = 0;
+
+    // Try each model in the fallback chain
+    for (let i = startIdx; i < fallbackChain.length; i++) {
+      const currentModel = fallbackChain[i];
+      
+      if (i > startIdx) {
+        console.log(`🔄 Falling back from ${fallbackChain[i - 1]} to ${currentModel}`);
+        events.modelFallback(taskId, fallbackChain[i - 1], currentModel, 'rate limit');
+      }
+
+      const result = await spawnAgentSessionInternal(
+        { ...options, model: currentModel },
+        taskData,
+        agentData
+      );
+
+      // If successful or not a rate limit error, return
+      if (result.success || !result.isRateLimit) {
+        return result;
+      }
+
+      console.log(`⚠️ Rate limit hit with ${currentModel}, trying next model...`);
+    }
+
+    // All models exhausted
+    return {
+      success: false,
+      sessionId: '',
+      error: 'All models in fallback chain rate limited',
+    };
+  } finally {
+    // ============ Release build agent lock ============
+    if (isBuildAgentType(agentData.type)) {
+      buildAgentLock.locked = false;
+      const nextInQueue = buildAgentLock.shiftQueue();
+      console.log(`🔓 Build agent lock released for ${taskData.display_id}` + 
+        (nextInQueue ? ` (next in queue: ${nextInQueue})` : ''));
+      
+      // ============ PROCESS QUEUE: Spawn next waiting task ============
+      if (nextInQueue) {
+        console.log(`📋 Processing queued task: ${nextInQueue}`);
+        // Find the agent assigned to this task and respawn
+        // This is async but we don't await - let it run in background
+        const nextTask = tasks.getTask(nextInQueue);
+        if (nextTask && nextTask.assigned_agent_id) {
+          // Trigger spawn for queued task (fire and forget)
+          setImmediate(() => {
+            spawnAgentSession({ taskId: nextInQueue, agentId: nextTask.assigned_agent_id! })
+              .catch(err => console.error(`Failed to spawn queued task ${nextInQueue}:`, err));
+          });
+        }
+      }
+    }
+  }
 }
 
 function extractFilesModified(output: string): string[] {
@@ -900,12 +1022,22 @@ export function canSpawnMore(): boolean {
 /**
  * Spawn an agent with a custom prompt (for planning, etc.)
  * Doesn't require a task in the database.
+ * 
+ * RATE LIMIT PROTECTION: Uses appropriate model for label type
  */
 export async function spawnWithPrompt(
   prompt: string,
   options: { model?: string; timeout?: number; label?: string } = {}
 ): Promise<{ success: boolean; output?: string; error?: string }> {
-  const { model = 'opus', timeout = 600, label = 'planning' } = options;
+  const { timeout = 600, label = 'planning' } = options;
+  
+  // ============ RATE LIMIT PROTECTION: Model Selection by Label ============
+  // Default to haiku for planning/admin tasks, only use opus if explicitly requested
+  const model = options.model || getModelForAgentType(`${label}_agent`);
+  console.log(`🎯 spawnWithPrompt model selection: ${label} → ${model}`);
+
+  // ============ RATE LIMIT PROTECTION: Spawn Cooldown ============
+  await enforceSpawnCooldown();
 
   if (!claudeAvailable) {
     claudeAvailable = await checkClaudeCLI();
@@ -927,14 +1059,21 @@ export async function spawnWithPrompt(
     return { success: false, error: budgetCheck.reason || 'Budget limit reached' };
   }
 
-  console.log(`🧠 Spawning ${label} agent via shell wrapper...`);
+  console.log(`🧠 Spawning ${label} agent via shell wrapper (model: ${model})...`);
   console.log(`   Prompt length: ${prompt.length} chars`);
+
+  // ============ RATE LIMIT PROTECTION: Rolling Window Check ============
+  const windowCheck = checkRollingWindowAllowsSpawn();
+  if (!windowCheck.allowed) {
+    console.warn(`⚠️ ${label} blocked by rolling window: ${windowCheck.reason}`);
+    return { success: false, error: windowCheck.reason || 'Rolling window rate limit' };
+  }
 
   return new Promise((resolve) => {
     // Use bash shell wrapper to pipe prompt to claude
-    // This ensures proper TTY handling for OAuth auth
+    // RATE LIMIT PROTECTION: Use --print --output-format json for real token counts
     const escapedPrompt = prompt.replace(/'/g, "'\\''");
-    const shellCmd = `echo '${escapedPrompt}' | claude --model ${model} --permission-mode bypassPermissions --allowedTools 'Read,Write,Edit,Bash'`;
+    const shellCmd = `echo '${escapedPrompt}' | claude --model ${model} --permission-mode bypassPermissions --allowedTools 'Read,Write,Edit,Bash' --print --output-format json`;
     
     console.log(`   Shell cmd length: ${shellCmd.length}`);
     console.log(`   HOME: ${process.env.HOME}`);
@@ -975,31 +1114,57 @@ export async function spawnWithPrompt(
       clearTimeout(timeoutId);
       runningProcesses.delete(sessionId);
 
-      const output = stdout + stderr;
+      const rawOutput = stdout + stderr;
+      
+      // ============ RATE LIMIT PROTECTION: Parse JSON for real token counts ============
+      const jsonOutput = parseClaudeJsonOutput(rawOutput);
+      const output = jsonOutput?.result || rawOutput;
       const isComplete = output.includes('TASK_COMPLETE');
+      const isJsonError = jsonOutput?.is_error || jsonOutput?.subtype === 'error';
 
       // Debug logging
       console.log(`📋 ${label} agent output (${output.length} chars):`);
-      console.log(`   stdout: ${stdout.slice(0, 500)}...`);
-      console.log(`   stderr: ${stderr.slice(0, 200)}...`);
       console.log(`   exit code: ${code}, has TASK_COMPLETE: ${isComplete}`);
 
-      // Record token usage for planning agents
-      const inputTokens = estimateTokens(prompt);
-      const outputTokens = estimateTokens(output);
+      // Get REAL token counts from Claude CLI JSON output (or estimate as fallback)
+      let inputTokens: number;
+      let outputTokens: number;
+      let costUsd: number;
+      
+      if (jsonOutput?.usage) {
+        inputTokens = jsonOutput.usage.input_tokens + (jsonOutput.usage.cache_read_input_tokens || 0);
+        outputTokens = jsonOutput.usage.output_tokens;
+        costUsd = jsonOutput.total_cost_usd;
+        console.log(`📊 REAL token usage for ${label}: ${inputTokens.toLocaleString()} in, ${outputTokens.toLocaleString()} out, $${costUsd.toFixed(4)}`);
+      } else {
+        inputTokens = estimateTokens(prompt);
+        outputTokens = estimateTokens(output);
+        costUsd = budget.calculateCost(model, inputTokens, outputTokens);
+        console.log(`📊 Estimated tokens for ${label}: ~${(inputTokens + outputTokens).toLocaleString()} (JSON parse failed)`);
+      }
+      
+      // Record in rolling window for rate limit protection
+      recordSpawnInWindow({
+        timestamp: Date.now(),
+        inputTokens,
+        outputTokens,
+        costUsd,
+        model,
+      });
+      
+      // Record in budget system
       try {
         budget.recordUsage(`${label}_agent`, model, inputTokens, outputTokens);
-        console.log(`📊 Recorded ~${(inputTokens + outputTokens).toLocaleString()} tokens for ${label}`);
       } catch (err) {
         console.warn('Failed to record token usage:', err);
       }
 
-      if (isComplete) {
+      if (isComplete && !isJsonError) {
         console.log(`✅ ${label} agent completed`);
         resolve({ success: true, output });
       } else {
         console.log(`❌ ${label} agent failed (code ${code})`);
-        resolve({ success: false, output, error: `Exit code ${code}` });
+        resolve({ success: false, output, error: isJsonError ? 'Claude CLI error' : `Exit code ${code}` });
       }
     });
 
@@ -1011,6 +1176,39 @@ export async function spawnWithPrompt(
   });
 }
 
+/**
+ * Get build agent queue status (for dashboard)
+ */
+export function getBuildAgentQueueStatus(): { locked: boolean; queueLength: number; queuedTaskIds: string[] } {
+  return {
+    locked: buildAgentLock.locked,
+    queueLength: buildAgentLock.queue.length,
+    queuedTaskIds: [...buildAgentLock.queue],
+  };
+}
+
+/**
+ * Get rate limit protection status
+ */
+export function getRateLimitProtectionStatus(): {
+  serialBuildAgents: boolean;
+  spawnCooldownMs: number;
+  lastSpawnTime: number;
+  modelByAgentType: Record<string, string>;
+} {
+  return {
+    serialBuildAgents: true,
+    spawnCooldownMs: MIN_SPAWN_DELAY_MS,
+    lastSpawnTime: getLastSpawnTime(),
+    modelByAgentType: MODEL_BY_AGENT_TYPE,
+  };
+}
+
+/**
+ * Get rolling window statistics for dashboard
+ */
+export { getRollingWindowStats };
+
 export default { 
   spawnAgentSession, 
   spawnWithPrompt,
@@ -1019,4 +1217,7 @@ export default {
   getRunningCount,
   isEnabled,
   canSpawnMore,
+  getBuildAgentQueueStatus,
+  getRateLimitProtectionStatus,
+  getRollingWindowStats,
 };
