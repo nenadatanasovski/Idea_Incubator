@@ -319,6 +319,10 @@ export async function notifyAgent(agentIdOrType: string, message: string): Promi
 /**
  * Notification templates
  */
+/**
+ * Notification templates - ALL TOKEN-FREE NOTIFICATIONS ENABLED
+ * None of these consume AI tokens - they just send Telegram messages
+ */
 export const notify = {
   taskAssigned: async (agentIdOrType: string, taskDisplayId: string, taskTitle: string) => {
     setMessageContext({ messageType: 'task_assigned', taskDisplayId, agentId: agentIdOrType });
@@ -352,9 +356,7 @@ export const notify = {
   },
 
   agentError: async (agentIdOrType: string, error: string) => {
-    // Send to agent's own bot
     await notifyAgent(agentIdOrType, `🔴 *Error*\n${error.slice(0, 300)}`);
-    // Also forward to monitor bot for centralized error tracking
     await notifyAgent('monitor', `🔴 *${agentIdOrType} Error*\n${error.slice(0, 300)}`);
   },
 
@@ -407,22 +409,7 @@ export const notify = {
   // Planning & Approval workflow
   taskProposed: async (taskId: string, title: string, description: string, priority: string, passCriteria: string[]) => {
     const criteriaList = passCriteria.slice(0, 5).map((c, i) => `  ${i + 1}. ${c}`).join('\n');
-    const msg = `📋 *Task Proposal*
-
-*ID:* \`${taskId}\`
-*Title:* ${title}
-*Priority:* ${priority}
-
-*Description:*
-${description.slice(0, 500)}
-
-*Pass Criteria:*
-${criteriaList}
-
-Reply with:
-✅ /approve ${taskId}
-❌ /reject ${taskId} <reason>
-❓ /clarify ${taskId} <question>`;
+    const msg = `📋 *Task Proposal*\n\n*ID:* \`${taskId}\`\n*Title:* ${title}\n*Priority:* ${priority}\n\n*Description:*\n${description.slice(0, 500)}\n\n*Pass Criteria:*\n${criteriaList}\n\nReply with:\n✅ /approve ${taskId}\n❌ /reject ${taskId} <reason>`;
     await notifyAgent('planning', msg);
   },
 
@@ -435,13 +422,7 @@ Reply with:
   },
 
   clarificationRequest: async (taskId: string, question: string) => {
-    const msg = `❓ *Clarification Needed*
-
-*Task:* \`${taskId}\`
-
-${question}
-
-Please provide clarification or type /skip to proceed without.`;
+    const msg = `❓ *Clarification Needed*\n\n*Task:* \`${taskId}\`\n\n${question}\n\nPlease provide clarification or type /skip to proceed without.`;
     await notifyAgent('clarification', msg);
   },
 
@@ -461,7 +442,6 @@ Please provide clarification or type /skip to proceed without.`;
     await notifyAgent('clarification', `🧠 *Strategic Plan Ready*\n${phaseCount} phases proposed. Check your messages for approval.`);
   },
 
-  // Forward any error to monitor bot for centralized tracking
   forwardError: async (source: string, error: string) => {
     await notifyAgent('monitor', `🚨 *${source}*\n${error.slice(0, 500)}`);
   },

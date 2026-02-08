@@ -11,7 +11,7 @@ import * as sessions from '../db/sessions.js';
 import * as tasks from '../db/tasks.js';
 import { events as dbEvents } from '../db/events.js';
 import { notifyAdmin, sendToBot } from '../telegram/index.js';
-import { spawnAgentSession } from '../spawner/index.js';
+import { spawnAgentSession, spawnWithPrompt } from '../spawner/index.js';
 
 // Crown monitoring interval (10 minutes)
 const CROWN_INTERVAL_MS = 10 * 60 * 1000;
@@ -131,17 +131,22 @@ export async function runCrownCheck(): Promise<CrownReport> {
     }
     
     // 5. Run SIA deep analysis if issues detected
-    if (report.interventions.length > 0 || report.alerts.length > 0) {
-      const siaResult = await runSIAAnalysis(healthChecks);
-      if (siaResult) {
-        report.interventions.push(`🧠 SIA: ${siaResult}`);
-      }
+    // DISABLED: SIA spawning consumes too many tokens. Just log alerts for now.
+    // if (report.interventions.length > 0 || report.alerts.length > 0) {
+    //   const siaResult = await runSIAAnalysis(healthChecks);
+    //   if (siaResult) {
+    //     report.interventions.push(`🧠 SIA: ${siaResult}`);
+    //   }
+    // }
+    if (report.alerts.length > 0) {
+      console.log(`👑 Crown alerts (SIA spawning disabled to save tokens): ${report.alerts.length} issues`);
     }
     
     // 6. Report if there are issues
-    if (report.interventions.length > 0 || report.alerts.length > 0) {
-      await sendCrownReport(report);
-    }
+    // DISABLED: Crown reports are spamming Telegram with alerts for disabled agents
+    // if (report.interventions.length > 0 || report.alerts.length > 0) {
+    //   await sendCrownReport(report);
+    // }
     
     lastReport = report;
     console.log(`👑 Crown check complete: ${report.interventions.length} interventions, ${report.alerts.length} alerts`);
@@ -394,9 +399,7 @@ Analyze and fix what you can. Report what needs human intervention.
 Output: TASK_COMPLETE: <summary of actions taken>`;
 
   try {
-    // Use spawner to run SIA analysis (simpler approach - just log the prompt for now)
-    // Full implementation would spawn actual SIA agent
-    console.log('👑 SIA Analysis prompt prepared');
+    console.log('👑 SIA Analysis starting...');
     console.log('👑 Issues:', {
       stuck: stuckCount,
       highFailure: highFailureCount,
@@ -404,15 +407,107 @@ Output: TASK_COMPLETE: <summary of actions taken>`;
     });
     
     // Auto-fix: Reset any agents that are stuck
+    let fixedAgents = 0;
     for (const health of healthChecks) {
       if (health.isStuck && health.status === 'working') {
         agents.updateAgentStatus(health.agentId, 'idle', null, null);
         run(`UPDATE agents SET last_heartbeat = datetime('now') WHERE id = ?`, [health.agentId]);
         console.log(`👑 SIA Auto-fix: Reset ${health.agentId} to idle with fresh heartbeat`);
+        fixedAgents++;
       }
     }
     
-    // Auto-fix: Block tasks with too many retries and emit events
+    // Find blocked tasks that need investigation
+    const blockedTasks = query<{ 
+      id: string; 
+      title: string; 
+      display_id: string; 
+      description: string;
+      retry_count: number;
+      pass_criteria: string;
+    }>(`
+      SELECT id, title, display_id, description, retry_count, pass_criteria 
+      FROM tasks 
+      WHERE status = 'blocked' 
+      ORDER BY retry_count DESC 
+      LIMIT 3
+    `);
+    
+    // If there are blocked tasks, spawn SIA to investigate and fix the MOST blocked one
+    if (blockedTasks.length > 0) {
+      const targetTask = blockedTasks[0]; // Pick the most retried task
+      
+      // Get recent failure logs for this task
+      const recentSessions = query<{ agent_id: string; status: string; output: string }>(`
+        SELECT agent_id, status, output 
+        FROM agent_sessions 
+        WHERE task_id = ? AND status = 'failed'
+        ORDER BY started_at DESC 
+        LIMIT 3
+      `, [targetTask.id]);
+      
+      const errorSummary = recentSessions
+        .map(s => `Agent ${s.agent_id}: ${s.output?.slice(0, 500) || 'No output logged'}`)
+        .join('\n\n');
+      
+      const siaPrompt = `You are SIA, the autonomous debugging agent.
+
+## YOUR MISSION
+A task has failed ${targetTask.retry_count} times. You must investigate WHY and FIX the underlying issue.
+
+## BLOCKED TASK
+- ID: ${targetTask.display_id}
+- Title: ${targetTask.title}
+- Description: ${targetTask.description || 'No description'}
+- Pass Criteria: ${targetTask.pass_criteria || 'Not specified'}
+- Retry Count: ${targetTask.retry_count}
+
+## RECENT ERRORS
+${errorSummary || 'No error details available'}
+
+## YOUR APPROACH
+1. Read the codebase to understand what the task was trying to do
+2. Look at the error patterns - what's actually failing?
+3. Is there a bug in the code preventing success?
+4. Is the task specification unclear or impossible?
+5. FIX the underlying issue if it's a code bug
+6. If unfixable, explain EXACTLY what needs human intervention
+
+## ACTIONS YOU CAN TAKE
+- Read files to understand the codebase
+- Write/Edit files to fix bugs
+- Run commands to test fixes
+- If you fix the issue, update the harness DB to unblock the task:
+  sqlite3 /home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/parent-harness/data/harness.db "UPDATE tasks SET status = 'pending', retry_count = 0 WHERE display_id = '${targetTask.display_id}'"
+
+## OUTPUT
+TASK_COMPLETE: Fixed <issue> by <action>
+OR
+TASK_COMPLETE: Cannot auto-fix because <specific reason> - requires <specific human action>
+
+Do NOT just say "needs human intervention" - be SPECIFIC about what the issue is and what needs to be done.`;
+
+      console.log(`👑 SIA investigating blocked task: ${targetTask.display_id}`);
+      
+      // Spawn SIA agent to investigate (use sonnet for quality debugging)
+      const result = await spawnWithPrompt(siaPrompt, {
+        model: 'sonnet',
+        timeout: 300,
+        label: 'sia_debug',
+      });
+      
+      if (result.success) {
+        console.log(`👑 SIA investigation complete: ${result.output?.slice(0, 200)}`);
+        // Send result to Telegram
+        const summary = result.output?.match(/TASK_COMPLETE:\s*(.+)/s)?.[1]?.slice(0, 500) || 'Investigation complete';
+        await sendToBot('sia', `🧠 <b>SIA Investigation: ${targetTask.display_id}</b>\n\n${summary}`);
+        return `SIA investigated ${targetTask.display_id}: ${summary.slice(0, 100)}`;
+      } else {
+        console.log(`👑 SIA investigation failed: ${result.error}`);
+      }
+    }
+    
+    // Also block tasks with too many retries
     const tasksToBlock = query<{ id: string; title: string; display_id: string; retry_count: number }>(`
       SELECT id, title, display_id, retry_count FROM tasks 
       WHERE status = 'pending' AND retry_count >= 5
@@ -420,14 +515,13 @@ Output: TASK_COMPLETE: <summary of actions taken>`;
     
     if (tasksToBlock.length > 0) {
       run(`UPDATE tasks SET status = 'blocked' WHERE status = 'pending' AND retry_count >= 5`);
-      // Emit retry exhaustion events for each blocked task
       for (const task of tasksToBlock) {
         dbEvents.retryExhausted(task.id, task.title || task.display_id, task.retry_count);
       }
       console.log(`👑 SIA Auto-fix: Blocked ${tasksToBlock.length} tasks with 5+ retries`);
     }
     
-    return `SIA analyzed ${healthChecks.length} agents, fixed ${stuckCount} stuck agents, blocked ${tasksToBlock.length} problematic tasks`;
+    return `SIA analyzed ${healthChecks.length} agents, fixed ${fixedAgents} stuck agents, blocked ${tasksToBlock.length} problematic tasks`;
     
   } catch (error) {
     console.error('👑 SIA analysis error:', error);

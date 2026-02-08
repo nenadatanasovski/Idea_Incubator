@@ -37,28 +37,40 @@ registerGlobalCommand('help', async (args, chatId, messageId, botType) => {
 /coverage - Test coverage stats`,
 
     clarification: `❓ *Clarification Bot Commands*
+/newplan - Generate a new strategic plan
+/pending - Show pending plans
+/plan [id] - View plan details
+/approve [planId] - Approve & execute plan
+/reject [reason] - Reject plan
 /respond <taskId> <answer> - Answer clarification
-/skip <taskId> - Skip, proceed without answer
-/delegate <taskId> <agent> - Forward to agent`,
+/skip <taskId> - Skip clarification`,
 
     sia: `🧠 *SIA Bot Commands*
 /status - System health
 /agents - List active agents
 /budget - Budget usage
-/pause_all - Pause all agents
-/resume_all - Resume all`,
+/pause_all - Pause agent spawning
+/resume_all - Resume spawning
+/stop - Stop orchestrator
+/start - Start orchestrator
+/restart - Restart harness`,
 
     monitor: `👁️ *Monitor Bot Commands*
 /status - System health
 /agents - Active agents
 /errors - Recent errors
-/budget - Budget status`,
+/budget - Budget status
+/stop - Stop orchestrator
+/start - Start orchestrator
+/restart - Restart harness`,
 
     orchestrator: `🎯 *Orchestrator Bot Commands*
 /wave [num] - Wave status
 /spawn <taskId> - Manually spawn agent
 /kill <agentId> - Terminate agent
-/config <key> [value] - View/set config`,
+/stop - Stop orchestrator
+/start - Start orchestrator
+/restart - Restart harness`,
   };
   
   return helpTexts[botType] || `Available commands: /help, /status`;
@@ -409,6 +421,194 @@ registerCommand('clarification', 'respond', async (args) => {
   return `✅ *Clarification provided for* \`${taskId}\`\n\n${answer.slice(0, 300)}`;
 });
 
+registerCommand('clarification', 'newplan', async () => {
+  const db = getDb();
+  
+  // Clear cached plan to force new planning
+  try {
+    const fs = await import('fs');
+    const cachePath = '/home/ned-atanasovski/.harness/approved-plan.json';
+    if (fs.existsSync(cachePath)) {
+      fs.unlinkSync(cachePath);
+    }
+  } catch (e) {
+    // Ignore
+  }
+  
+  // Mark any pending plans as superseded
+  db.prepare(`UPDATE plan_approvals SET status = 'superseded' WHERE status = 'pending'`).run();
+  
+  // Signal orchestrator to run planning on next tick
+  db.prepare(`INSERT OR REPLACE INTO system_state (key, value) VALUES ('trigger_planning', 'true')`).run();
+  
+  return `🧠 *New Planning Triggered*\n\nThe orchestrator will generate a fresh strategic plan on the next tick.\n\nYou'll receive it here for approval.`;
+});
+
+registerCommand('clarification', 'pending', async () => {
+  const db = getDb();
+  
+  // Get pending plans
+  const pending = db.prepare(`
+    SELECT id, status, created_at, plan_data 
+    FROM plan_approvals 
+    WHERE status = 'pending'
+    ORDER BY created_at DESC 
+    LIMIT 5
+  `).all() as { id: string; status: string; created_at: string; plan_data: string }[];
+  
+  if (pending.length === 0) {
+    // Show most recent plan instead
+    const recent = db.prepare(`
+      SELECT id, status, created_at, plan_data 
+      FROM plan_approvals 
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `).get() as { id: string; status: string; created_at: string; plan_data: string } | undefined;
+    
+    if (recent) {
+      const plan = JSON.parse(recent.plan_data);
+      return `📋 *No pending plans*\n\n*Most recent plan:*\nID: \`${recent.id}\`\nStatus: ${recent.status}\nPhases: ${plan.phases?.length || 0}\n\nUse /plan to see details.`;
+    }
+    return '📋 No plans in database.';
+  }
+  
+  const lines = pending.map(p => {
+    const plan = JSON.parse(p.plan_data);
+    return `• \`${p.id.slice(0, 8)}\` - ${plan.phases?.length || 0} phases`;
+  });
+  
+  return `📋 *Pending Plans (${pending.length})*\n\n${lines.join('\n')}\n\nUse /approve to approve the latest, or /plan to see details.`;
+});
+
+registerCommand('clarification', 'plan', async (args) => {
+  const db = getDb();
+  
+  // Get specific plan or most recent
+  const planId = args[0];
+  const query = planId
+    ? `SELECT id, status, created_at, plan_data FROM plan_approvals WHERE id LIKE ? || '%' ORDER BY created_at DESC LIMIT 1`
+    : `SELECT id, status, created_at, plan_data FROM plan_approvals ORDER BY created_at DESC LIMIT 1`;
+  
+  const plan = planId
+    ? db.prepare(query).get(planId) as { id: string; status: string; created_at: string; plan_data: string } | undefined
+    : db.prepare(query).get() as { id: string; status: string; created_at: string; plan_data: string } | undefined;
+  
+  if (!plan) {
+    return '❌ No plan found.';
+  }
+  
+  const data = JSON.parse(plan.plan_data);
+  
+  let msg = `🧠 *Strategic Plan*\n`;
+  msg += `ID: \`${plan.id}\`\n`;
+  msg += `Status: ${plan.status}\n\n`;
+  
+  if (data.visionSummary) {
+    msg += `*Vision:*\n${data.visionSummary.slice(0, 300)}...\n\n`;
+  }
+  
+  if (data.phases && data.phases.length > 0) {
+    msg += `*Phases (${data.phases.length}):*\n`;
+    for (let i = 0; i < Math.min(data.phases.length, 7); i++) {
+      const phase = data.phases[i];
+      msg += `${i + 1}. ${phase.name} [${phase.priority}]\n`;
+    }
+  }
+  
+  if (plan.status === 'pending') {
+    msg += `\n✅ /approve - Accept this plan\n❌ /reject <reason> - Reject`;
+  }
+  
+  return msg;
+});
+
+registerCommand('clarification', 'approve', async (args) => {
+  const db = getDb();
+  
+  // Find pending plan approval
+  const planId = args[0];
+  const query = planId
+    ? `SELECT id, plan_data, task_list_id FROM plan_approvals WHERE id LIKE ? || '%' AND status = 'pending'`
+    : `SELECT id, plan_data, task_list_id FROM plan_approvals WHERE status = 'pending' ORDER BY created_at DESC LIMIT 1`;
+  
+  const pending = planId
+    ? db.prepare(query).get(planId) as { id: string; plan_data: string; task_list_id: string } | undefined
+    : db.prepare(query).get() as { id: string; plan_data: string; task_list_id: string } | undefined;
+  
+  if (!pending) {
+    return '❌ No pending plan to approve.\n\nUse /pending to see plans, or /plan to view the most recent.';
+  }
+  
+  const plan = JSON.parse(pending.plan_data);
+  
+  // Approve the plan
+  db.prepare(`UPDATE plan_approvals SET status = 'approved', updated_at = datetime('now') WHERE id = ?`).run(pending.id);
+  
+  // Cache the approved plan so orchestrator uses it
+  try {
+    const fs = await import('fs');
+    const cachePath = '/home/ned-atanasovski/.harness/approved-plan.json';
+    const now = new Date();
+    const cached = {
+      ...plan,
+      createdAt: now.toISOString(),
+      approvedAt: now.toISOString(),
+      expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+      taskListId: pending.task_list_id || 'default-task-list',
+      tacticalTasksCreated: false,
+    };
+    fs.writeFileSync(cachePath, JSON.stringify(cached, null, 2));
+  } catch (e) {
+    // Ignore cache errors
+  }
+  
+  // Signal orchestrator to proceed with tactical planning
+  db.prepare(`INSERT OR REPLACE INTO system_state (key, value) VALUES ('plan_approved', ?)`).run(pending.id);
+  
+  return `✅ *Plan Approved!*\n\nPlan ID: \`${pending.id}\`\nPhases: ${plan.phases?.length || 0}\n\nThe orchestrator will now create tasks and assign them to agents.`;
+});
+
+registerCommand('clarification', 'reject', async (args) => {
+  const db = getDb();
+  const reason = args.join(' ') || 'No reason provided';
+  
+  // Find pending plan approval
+  const pending = db.prepare(`
+    SELECT id FROM plan_approvals WHERE status = 'pending' ORDER BY created_at DESC LIMIT 1
+  `).get() as { id: string } | undefined;
+  
+  if (!pending) {
+    return '❌ No pending plan to reject.';
+  }
+  
+  // Reject the plan
+  db.prepare(`UPDATE plan_approvals SET status = 'rejected', feedback = ?, updated_at = datetime('now') WHERE id = ?`).run(reason, pending.id);
+  
+  return `❌ *Plan Rejected*\n\nPlan ID: \`${pending.id}\`\nReason: ${reason}`;
+});
+
+registerCommand('clarification', 'skip', async (args) => {
+  if (args.length < 1) {
+    return '❌ Usage: /skip <taskId>';
+  }
+  
+  const taskId = args[0];
+  const db = getDb();
+  
+  const result = db.prepare(`
+    UPDATE tasks SET 
+      status = 'pending',
+      clarification_resolved_at = datetime('now')
+    WHERE (display_id = ? OR id = ?) AND status = 'needs_clarification'
+  `).run(taskId, taskId);
+  
+  if (result.changes === 0) {
+    return `❌ Task not found or not awaiting clarification: ${taskId}`;
+  }
+  
+  return `⏭️ *Skipped clarification for* \`${taskId}\`\n\nTask moved back to pending queue.`;
+});
+
 // ============================================
 // SIA/Monitor Bot Commands
 // ============================================
@@ -609,6 +809,153 @@ registerCommand('orchestrator', 'kill', async (args) => {
   }
   
   return `💀 *Terminated:* \`${agentId}\``;
+});
+
+// ============================================
+// System Control Commands (orchestrator + sia)
+// ============================================
+
+registerCommand('orchestrator', 'stop', async () => {
+  const db = getDb();
+  
+  // Pause orchestrator ticks
+  db.prepare(`
+    INSERT OR REPLACE INTO system_state (key, value) 
+    VALUES ('orchestrator_paused', 'true')
+  `).run();
+  
+  // Also pause spawning
+  db.prepare(`
+    INSERT OR REPLACE INTO system_state (key, value) 
+    VALUES ('spawning_paused', 'true')
+  `).run();
+  
+  return `⏹️ *Orchestrator STOPPED*
+
+Ticks paused. No new tasks will be assigned.
+Running agents will complete their current work.
+
+Use /start to resume.`;
+});
+
+registerCommand('orchestrator', 'start', async () => {
+  const db = getDb();
+  
+  // Resume orchestrator ticks
+  db.prepare(`
+    DELETE FROM system_state WHERE key = 'orchestrator_paused'
+  `).run();
+  
+  // Also resume spawning
+  db.prepare(`
+    DELETE FROM system_state WHERE key = 'spawning_paused'
+  `).run();
+  
+  return `▶️ *Orchestrator STARTED*
+
+Ticks resumed. Tasks will be assigned on next tick.`;
+});
+
+registerCommand('orchestrator', 'restart', async () => {
+  // This will cause pm2 to restart the process
+  setTimeout(() => {
+    console.log('🔄 Restart requested via Telegram - exiting for pm2 restart...');
+    process.exit(0);
+  }, 1000);
+  
+  return `🔄 *Restarting harness...*
+
+Process will restart in 1 second.
+This clears all in-memory state.`;
+});
+
+// SIA bot also gets system control commands
+registerCommand('sia', 'stop', async () => {
+  const db = getDb();
+  
+  db.prepare(`
+    INSERT OR REPLACE INTO system_state (key, value) 
+    VALUES ('orchestrator_paused', 'true')
+  `).run();
+  
+  db.prepare(`
+    INSERT OR REPLACE INTO system_state (key, value) 
+    VALUES ('spawning_paused', 'true')
+  `).run();
+  
+  return `⏹️ *Orchestrator STOPPED*
+
+Ticks paused. No new tasks will be assigned.
+Use /start to resume.`;
+});
+
+registerCommand('sia', 'start', async () => {
+  const db = getDb();
+  
+  db.prepare(`
+    DELETE FROM system_state WHERE key = 'orchestrator_paused'
+  `).run();
+  
+  db.prepare(`
+    DELETE FROM system_state WHERE key = 'spawning_paused'
+  `).run();
+  
+  return `▶️ *Orchestrator STARTED*
+
+Ticks resumed. Tasks will be assigned on next tick.`;
+});
+
+registerCommand('sia', 'restart', async () => {
+  setTimeout(() => {
+    console.log('🔄 Restart requested via Telegram - exiting for pm2 restart...');
+    process.exit(0);
+  }, 1000);
+  
+  return `🔄 *Restarting harness...*
+
+Process will restart in 1 second.`;
+});
+
+// Monitor bot also gets control commands
+registerCommand('monitor', 'stop', async () => {
+  const db = getDb();
+  
+  db.prepare(`
+    INSERT OR REPLACE INTO system_state (key, value) 
+    VALUES ('orchestrator_paused', 'true')
+  `).run();
+  
+  db.prepare(`
+    INSERT OR REPLACE INTO system_state (key, value) 
+    VALUES ('spawning_paused', 'true')
+  `).run();
+  
+  return `⏹️ *Orchestrator STOPPED*
+
+Use /start to resume.`;
+});
+
+registerCommand('monitor', 'start', async () => {
+  const db = getDb();
+  
+  db.prepare(`
+    DELETE FROM system_state WHERE key = 'orchestrator_paused'
+  `).run();
+  
+  db.prepare(`
+    DELETE FROM system_state WHERE key = 'spawning_paused'
+  `).run();
+  
+  return `▶️ *Orchestrator STARTED*`;
+});
+
+registerCommand('monitor', 'restart', async () => {
+  setTimeout(() => {
+    console.log('🔄 Restart requested via Telegram - exiting for pm2 restart...');
+    process.exit(0);
+  }, 1000);
+  
+  return `🔄 *Restarting...*`;
 });
 
 console.log('📋 Telegram command handlers registered');

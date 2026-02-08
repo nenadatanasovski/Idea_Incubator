@@ -2,6 +2,7 @@ import * as agents from '../db/agents.js';
 import * as tasks from '../db/tasks.js';
 import * as sessions from '../db/sessions.js';
 import { events } from '../db/events.js';
+import { getDb } from '../db/index.js';
 import { ws } from '../websocket.js';
 import * as spawner from '../spawner/index.js';
 import * as planning from '../planning/index.js';
@@ -133,14 +134,33 @@ async function runPlanning(): Promise<void> {
     console.log(`✅ Strategic plan created: ${plan.phases.length} phases`);
     
     // ============ PHASE 2: CLARIFICATION (Human approval) ============
-    console.log('🤝 Phase 2: Requesting human approval via Telegram...');
-    await notify.planningComplete(plan.phases.length).catch(() => {});
+    // First check if ANY plan is already approved in DB (e.g., from manual approval or restart)
+    const db = getDb();
+    const approvedInDb = db.prepare(`
+      SELECT id FROM plan_approvals 
+      WHERE status = 'approved' 
+      AND task_list_id = ? 
+      AND expires_at > datetime('now')
+      ORDER BY updated_at DESC LIMIT 1
+    `).get(taskListId) as { id: string } | undefined;
     
-    const { approved, feedback } = await clarification.requestPlanApproval(
-      stratSession.id,
-      plan,
-      taskListId
-    );
+    let approved = !!approvedInDb;
+    let feedback: string | undefined;
+    
+    if (approved) {
+      console.log(`✅ Plan already approved in DB (${approvedInDb?.id}) - skipping approval wait`);
+    } else {
+      console.log('🤝 Phase 2: Requesting human approval via Telegram...');
+      await notify.planningComplete(plan.phases.length).catch(() => {});
+      
+      const result = await clarification.requestPlanApproval(
+        stratSession.id,
+        plan,
+        taskListId
+      );
+      approved = result.approved;
+      feedback = result.feedback;
+    }
 
     if (!approved) {
       console.log(`📝 Plan not approved: ${feedback}`);
@@ -231,11 +251,32 @@ export function stopOrchestrator(): void {
 }
 
 /**
+ * Check if orchestrator is paused via Telegram command
+ */
+function isOrchestratorPaused(): boolean {
+  try {
+    const db = getDb();
+    const result = db.prepare(`SELECT value FROM system_state WHERE key = 'orchestrator_paused'`).get() as { value: string } | undefined;
+    return result?.value === 'true';
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Single orchestration tick
  */
 async function tick(): Promise<void> {
   tickCount++;
   const startTime = Date.now();
+
+  // Check if paused via /stop command
+  if (isOrchestratorPaused()) {
+    if (tickCount % 10 === 0) {
+      console.log(`⏸️ Orchestrator paused (tick #${tickCount} skipped). Use /start to resume.`);
+    }
+    return;
+  }
 
   try {
     // 1. Check agent health (crash-protected)
@@ -277,9 +318,10 @@ async function tick(): Promise<void> {
     recordTick(tickCount);
 
     // 8. Check alerts (every 5th tick to avoid overhead)
-    if (tickCount % 5 === 0) {
-      await crashProtect(() => checkAlerts(), 'checkAlerts');
-    }
+    // DISABLED: Alerts were spamming Telegram
+    // if (tickCount % 5 === 0) {
+    //   await crashProtect(() => checkAlerts(), 'checkAlerts');
+    // }
 
   } catch (error) {
     console.error('❌ Tick error:', error);
@@ -437,7 +479,20 @@ export function recordTaskFailure(taskId: string): void {
  */
 async function assignTasks(): Promise<void> {
   // Get pending tasks (with no unmet dependencies)
-  const pendingTasks = tasks.getPendingTasks();
+  let pendingTasks = tasks.getPendingTasks();
+  if (pendingTasks.length === 0) return;
+
+  // RATE LIMIT PROTECTION: Skip test tasks - they consume real tokens!
+  // Test tasks are created during API testing and shouldn't be executed
+  pendingTasks = pendingTasks.filter(t => {
+    const isTest = t.category === 'test' || 
+                   t.display_id?.startsWith('test_') || 
+                   t.display_id?.startsWith('concurrent_');
+    if (isTest) {
+      console.log(`⏭️ Skipping test task: ${t.display_id}`);
+    }
+    return !isTest;
+  });
   if (pendingTasks.length === 0) return;
 
   // Get idle agents that can work
@@ -480,33 +535,49 @@ async function assignTasks(): Promise<void> {
 
 /**
  * Find a suitable agent for a task
+ * 
+ * RATE LIMIT OPTIMIZATION: Only use essential agents (build, qa, spec)
+ * Disabled agents that consume tokens without producing value:
+ * - planning, validation, research, decomposition, clarification, human_sim, evaluator, task
  */
 function findSuitableAgent(task: tasks.Task, availableAgents: agents.Agent[]): agents.Agent | null {
-  // Map task categories to preferred agent types
+  // ESSENTIAL AGENTS ONLY - disabled wasteful agents to save tokens
+  const ALLOWED_AGENT_TYPES = ['build_agent', 'build', 'qa_agent', 'qa', 'spec_agent', 'spec'];
+  
+  // Debug: log available agent types
+  if (availableAgents.length > 0 && availableAgents.length < 5) {
+    console.log(`🔍 Available agents: ${availableAgents.map(a => `${a.id}(${a.type})`).join(', ')}`);
+  }
+  
+  // Filter to only allowed agents
+  const allowedAgents = availableAgents.filter(a => ALLOWED_AGENT_TYPES.includes(a.type));
+  if (allowedAgents.length === 0) {
+    if (availableAgents.length > 0) {
+      console.log(`⏭️ No allowed agents for ${task.display_id} - available types: ${availableAgents.map(a => a.type).join(', ')}`);
+    }
+    return null;
+  }
+  
+  // Map task categories to preferred agent types (only essential ones)
   const categoryAgentMap: Record<string, string[]> = {
-    feature: ['build_agent'],
-    bug: ['build_agent'],
-    test: ['qa_agent', 'validation_agent'],
-    documentation: ['spec_agent'],
-    research: ['research_agent'],
-    planning: ['planning_agent'],
-    decomposition: ['decomposition_agent', 'task_agent'],
+    feature: ['build_agent', 'build'],
+    bug: ['build_agent', 'build'],
+    test: ['qa_agent', 'qa'],
+    documentation: ['spec_agent', 'spec'],
+    // All other categories default to build_agent
   };
 
-  const preferredTypes = categoryAgentMap[task.category ?? 'feature'] || ['build_agent'];
+  const preferredTypes = categoryAgentMap[task.category ?? 'feature'] || ['build_agent', 'build'];
 
-  // Try to find preferred agent
+  // Try to find preferred agent from allowed list
   for (const type of preferredTypes) {
-    const agent = availableAgents.find(a => a.type === type);
+    const agent = allowedAgents.find(a => a.type === type);
     if (agent) return agent;
   }
 
-  // Fall back to any available agent (except orchestrator, sia)
-  const fallbackAgent = availableAgents.find(
-    a => !['orchestrator', 'sia'].includes(a.type)
-  );
-
-  return fallbackAgent ?? null;
+  // Fall back to build_agent (the workhorse)
+  const buildAgent = allowedAgents.find(a => a.type === 'build_agent' || a.type === 'build');
+  return buildAgent ?? allowedAgents[0] ?? null;
 }
 
 /**
@@ -521,10 +592,10 @@ async function assignTaskToAgent(task: tasks.Task, agent: agents.Agent): Promise
     console.log(`🚀 Spawning ${agent.name} for ${task.display_id}...`);
     
     // Spawn in background (don't await - let it run)
+    // NOTE: Don't pass model - let spawner select based on agent type (rate limit optimization)
     spawner.spawnAgentSession({
       taskId: task.id,
       agentId: agent.id,
-      model: agent.model || 'opus',
     }).then(result => {
       if (result.success) {
         console.log(`✅ ${agent.name} completed ${task.display_id}`);

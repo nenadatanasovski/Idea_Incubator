@@ -121,6 +121,9 @@ const dbAdapter = {
 const app = express();
 const PORT = process.env.API_PORT || 3001;
 
+// Re-export server start time (defined in separate module to avoid circular dependency)
+export { SERVER_START_TIME } from "./server-start-time.js";
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));

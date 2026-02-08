@@ -26,6 +26,7 @@ describe("GET /api/observability/stats", () => {
       activeExecutions: 2,
       blockedAgents: 0,
       pendingQuestions: 1,
+      requestCount: 150,
     });
 
     const res = await request(app).get("/api/observability/stats");
@@ -36,6 +37,7 @@ describe("GET /api/observability/stats", () => {
     expect(res.body.data).toHaveProperty("errorRate");
     expect(res.body.data).toHaveProperty("blockedAgents");
     expect(res.body.data).toHaveProperty("pendingQuestions");
+    expect(res.body.data).toHaveProperty("requestCount");
     expect(res.body.data).toHaveProperty("lastUpdated");
   });
 

@@ -24,6 +24,7 @@ export interface StatsSummary {
   uniqueEndpoints: number;
   avgResponseTime: number;
   period: string;
+  requestCount: number;
 }
 
 export interface CallStatsFilters {

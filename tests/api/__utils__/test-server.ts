@@ -100,6 +100,9 @@ vi.mock("../../../server/services/observability/index.js", () => ({
   crossReferenceService: {
     getCrossReferences: (...args: unknown[]) => mockCrossReferenceService.getCrossReferences(...args),
   },
+  TranscriptWriter: vi.fn(() => ({})),
+  ToolUseLogger: vi.fn(() => ({})),
+  AssertionRecorder: vi.fn(() => ({})),
 }));
 
 // Import observability routes after mocks
@@ -498,6 +501,7 @@ export function mockStats(stats: {
   errorRate?: string;
   blockedAgents?: number;
   pendingQuestions?: number;
+  requestCount?: number;
 }): void {
   // Use service mock (new architecture)
   const failedRecent = stats.errorRate ? parseFloat(stats.errorRate) / 10 : 0;

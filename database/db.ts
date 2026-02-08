@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { getConfig } from "../config/index.js";
 import { DatabaseError } from "../utils/errors.js";
+import { requestCounterService } from "../server/services/request-counter.js";
 
 // Convert boolean parameters to SQLite-compatible values (0/1)
 function toSqlParams(params: (string | number | null | boolean)[]): SqlValue[] {
@@ -735,15 +736,22 @@ export async function getStatsSummary(): Promise<StatsSummary> {
     uniqueEndpoints: Number(result?.uniqueEndpoints || 0),
     avgResponseTime: Math.round(Number(result?.avgResponseTime || 0)),
     period: "last_24h",
+    requestCount: requestCounterService.getCount(),
   };
 }
 
 /**
  * Get total call count with optional filters
+ * When no filters are provided, returns the in-memory request counter (total since startup)
  */
 export async function getCallCount(
   filters: CallStatsFilters = {},
 ): Promise<number> {
+  // If no filters are provided, return the in-memory request counter
+  if (!filters.endpoint && !filters.from && !filters.to) {
+    return requestCounterService.getCount();
+  }
+
   let sql = "SELECT COUNT(*) as count FROM api_calls WHERE 1=1";
   const params: (string | number)[] = [];
 

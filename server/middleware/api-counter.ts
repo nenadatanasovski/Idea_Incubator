@@ -5,6 +5,7 @@
 import { Request, Response, NextFunction } from "express";
 import { recordApiCall } from "../../database/db.js";
 import { eventService } from "../services/event-service.js";
+import { requestCounterService } from "../services/request-counter.js";
 
 // Endpoints that should emit events (excludes high-frequency/read-only endpoints)
 const EVENT_WORTHY_METHODS = ["POST", "PUT", "PATCH", "DELETE"];
@@ -27,6 +28,9 @@ export function apiCounter(
   const endpoint = req.path;
   const method = req.method;
   const userId = (req as any).user?.id ?? null;
+
+  // Increment request counter for every API request
+  requestCounterService.increment();
 
   res.on("finish", () => {
     const responseTime = Date.now() - startTime;
