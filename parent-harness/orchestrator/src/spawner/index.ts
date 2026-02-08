@@ -321,8 +321,14 @@ const buildAgentLock = {
   },
   addToQueue(taskId: string): void {
     const q = this.queue;
-    q.push(taskId);
-    setSpawnerState('build_agent_queue', JSON.stringify(q));
+    // Deduplicate - don't add if already queued
+    if (!q.includes(taskId)) {
+      q.push(taskId);
+      setSpawnerState('build_agent_queue', JSON.stringify(q));
+    }
+  },
+  isQueued(taskId: string): boolean {
+    return this.queue.includes(taskId);
   },
   shiftQueue(): string | undefined {
     const q = this.queue;
@@ -835,8 +841,17 @@ export async function spawnAgentSession(options: SpawnOptions): Promise<SpawnRes
 
   // ============ RATE LIMIT PROTECTION: Serial Build Agent Execution ============
   if (isBuildAgentType(agentData.type)) {
+    // Skip if already queued (prevents duplicate queue entries from repeated assign attempts)
+    if (buildAgentLock.isQueued(taskId)) {
+      return { 
+        success: false, 
+        sessionId: '', 
+        error: `Already queued for serial execution` 
+      };
+    }
+    
     if (buildAgentLock.locked) {
-      console.log(`🔒 Build agent already running - ${taskData.display_id} must wait`);
+      console.log(`🔒 Build agent busy - ${taskData.display_id} queued`);
       buildAgentLock.addToQueue(taskId);
       const queueLen = buildAgentLock.queue.length;
       return { 
