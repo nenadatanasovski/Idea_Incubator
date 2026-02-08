@@ -70,6 +70,7 @@ import systemRouter from "./routes/system.js";
 import ideasRouter from "./routes/ideas.js";
 import profilesRouter from "./routes/profiles.js";
 import debatesRouter from "./routes/debates.js";
+import evaluationHistoryRouter from "./routes/evaluation-history.js";
 import exportImportRouter from "./routes/export-import.js";
 import profileRouter from "./routes/profile.js";
 import notificationsRouter from "./routes/notifications.js";
@@ -167,6 +168,9 @@ app.use("/api/profile", profileRouter);
 
 // Mount debates routes
 app.use("/api", debatesRouter);
+
+// Mount evaluation history routes
+app.use("/api/evaluation-history", evaluationHistoryRouter);
 
 // Mount export/import routes
 app.use("/api", exportImportRouter);

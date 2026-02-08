@@ -1237,6 +1237,24 @@ async function saveEvaluationResults(
     );
   }
 
+  // Record initial scores in score_history for baseline tracking
+  for (const eval_ of result.evaluations) {
+    await run(
+      `INSERT INTO score_history
+       (idea_id, session_id, criterion, score_before, score_after, adjustment, reason)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        ideaId,
+        sessionId,
+        eval_.criterion.name,
+        null, // No previous score for initial evaluation
+        eval_.score,
+        0,
+        "Initial evaluation",
+      ],
+    );
+  }
+
   // Log cost
   await run(
     `INSERT INTO cost_log
@@ -1341,6 +1359,24 @@ async function saveDebateResults(
     logDebug(
       `Updated ${debate.criterion.name} final_score: ${debate.originalScore} → ${debate.finalScore} (adj: ${adjustment > 0 ? "+" : ""}${adjustment})`,
     );
+
+    // Track score change in score_history for unified trend analysis
+    if (adjustment !== 0) {
+      await run(
+        `INSERT INTO score_history
+         (idea_id, session_id, criterion, score_before, score_after, adjustment, reason)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          ideaId,
+          sessionId,
+          debate.criterion.name,
+          debate.originalScore,
+          debate.finalScore,
+          adjustment,
+          `Debate adjustment: ${debate.summary.evaluatorWins} evaluator wins, ${debate.summary.redTeamWins} red team wins, ${debate.summary.draws} draws`,
+        ],
+      );
+    }
   }
 
   logDebug("Debate results saved");

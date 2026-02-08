@@ -166,6 +166,22 @@ program
             [newScore, notes || null, newScore, score.id],
           );
 
+          // Track score change in score_history for trend analysis
+          await run(
+            `INSERT INTO score_history
+             (idea_id, session_id, criterion, score_before, score_after, adjustment, reason)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [
+              ideaData.id,
+              sessionData.id,
+              score.criterion_name,
+              score.final_score,
+              newScore,
+              newScore - score.final_score,
+              `User override${notes ? ": " + notes : ""}`,
+            ],
+          );
+
           hasChanges = true;
           logInfo(
             `Updated ${score.criterion_name}: ${score.final_score} -> ${newScore}`,
