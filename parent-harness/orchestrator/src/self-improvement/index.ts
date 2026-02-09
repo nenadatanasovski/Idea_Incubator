@@ -162,7 +162,9 @@ export function analyzeFailure(error: string, previousAttempts: RetryAttempt[]):
  * Check if task should be retried
  */
 export function shouldRetry(taskId: string): boolean {
-  const retryCount = getRetryCount(taskId);
+  // Use task's own retry_count field, not task_retry_attempts table
+  const task = tasks.getTask(taskId);
+  const retryCount = task?.retry_count || 0;
   return retryCount < MAX_RETRIES;
 }
 
@@ -170,7 +172,9 @@ export function shouldRetry(taskId: string): boolean {
  * Prepare task for retry
  */
 export function prepareForRetry(taskId: string, error: string): { shouldRetry: boolean; fixApproach?: string } {
-  const retryCount = getRetryCount(taskId);
+  // Use task's own retry_count field, not task_retry_attempts table
+  const task = tasks.getTask(taskId);
+  const retryCount = task?.retry_count || 0;
 
   if (retryCount >= MAX_RETRIES) {
     console.log(`❌ Task ${taskId} exceeded max retries (${MAX_RETRIES})`);
@@ -196,8 +200,14 @@ export function getTasksNeedingRetry(): tasks.Task[] {
   const failedTasks = tasks.getTasks({ status: 'failed' });
 
   return failedTasks.filter(task => {
-    const retryCount = getRetryCount(task.id);
-    return retryCount < MAX_RETRIES;
+    // Use task's own retry_count (set by failTask()) - NOT the task_retry_attempts table
+    // This prevents infinite retry loops
+    const retryCount = task.retry_count || 0;
+    if (retryCount >= MAX_RETRIES) {
+      console.log(`⏭️ Task ${task.display_id} has ${retryCount} retries (max ${MAX_RETRIES}) - skipping`);
+      return false;
+    }
+    return true;
   });
 }
 

@@ -108,7 +108,7 @@ export async function analyzeTask(taskId: string): Promise<TaskAnalysisResult> {
 export async function findRelatedTasks(
   taskId: string,
   title: string,
-  description: string,
+  _description: string,
   projectId: string | null,
 ): Promise<Array<TaskIdentity & { similarity: number; reason: string }>> {
   const related: Array<TaskIdentity & { similarity: number; reason: string }> =
@@ -198,7 +198,7 @@ export async function findRelatedTasks(
 export async function detectDuplicates(
   taskId: string,
   title: string,
-  description: string,
+  _description: string,
   projectId: string | null,
 ): Promise<Array<{ taskId: string; similarity: number }>> {
   const duplicates: Array<{ taskId: string; similarity: number }> = [];

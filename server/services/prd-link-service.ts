@@ -283,7 +283,7 @@ export class PrdLinkService {
    */
   async autoLink(
     prdId: string,
-    minConfidence: number = 0.5,
+    _minConfidence: number = 0.5,
   ): Promise<{ linked: number; skipped: number }> {
     const suggestions = await this.suggestLinks(prdId);
     let linked = 0;

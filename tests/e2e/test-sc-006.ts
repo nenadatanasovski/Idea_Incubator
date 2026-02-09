@@ -193,7 +193,7 @@ async function runTest(): Promise<boolean> {
     console.log(
       JSON.stringify(
         progress,
-        (key, value) => {
+        (_key, value) => {
           if (value instanceof Date) return value.toISOString();
           return value;
         },

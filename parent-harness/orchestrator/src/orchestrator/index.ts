@@ -12,8 +12,10 @@ import * as clarification from '../clarification/index.js';
 import * as waves from '../waves/index.js';
 import * as crown from '../crown/index.js';
 import { notify } from '../telegram/index.js';
+import { notify as directNotify } from '../telegram/direct-telegram.js';
 import { recordTick, crashProtect } from '../stability/index.js';
 import { checkAlerts, initAlerts } from '../alerts/index.js';
+import * as config from '../config/index.js';
 
 // Configuration
 const TICK_INTERVAL_MS = 30_000; // 30 seconds
@@ -30,6 +32,89 @@ const RUN_QA = process.env.HARNESS_RUN_QA !== 'false'; // Enabled by default
 let tickCount = 0;
 let planningCount = 0;
 let isRunning = false;
+
+// ============ PROACTIVE RATE LIMIT MONITORING ============
+// Track which thresholds have been alerted (reset on window expiry)
+const rateLimitAlertedThresholds = new Set<number>();
+let lastRateLimitResetCheck = 0;
+
+/**
+ * Proactive rate limit monitoring - alerts BEFORE hitting limits
+ * 
+ * First Principles:
+ * 1. Check EVERY tick (not just after usage)
+ * 2. Alert at 60%, 80%, 95% thresholds
+ * 3. Reset alerts when window rolls over
+ * 4. Use Telegram to notify immediately
+ */
+async function checkRateLimitsProactively(): Promise<void> {
+  try {
+    const stats = spawner.getRollingWindowStats();
+    
+    // Get limits from config
+    let maxCostUsd = 500; // Default
+    let maxSpawns = 2000; // Default
+    try {
+      const cfg = config.getConfig();
+      maxCostUsd = (cfg as any).rate_limit?.max_cost_per_window_usd ?? 500;
+      maxSpawns = (cfg as any).rate_limit?.max_spawns_per_window ?? 2000;
+    } catch { /* use defaults */ }
+    
+    // Reset alerted thresholds if window has rolled (oldest record is gone)
+    const now = Date.now();
+    const ROLLING_WINDOW_MS = 5 * 60 * 60 * 1000;
+    if (stats.oldestTimestamp && now - stats.oldestTimestamp > ROLLING_WINDOW_MS) {
+      if (now - lastRateLimitResetCheck > 60000) { // Check at most once per minute
+        rateLimitAlertedThresholds.clear();
+        lastRateLimitResetCheck = now;
+      }
+    }
+    
+    const costPercent = (stats.costInWindow / maxCostUsd) * 100;
+    const spawnPercent = (stats.spawnsInWindow / maxSpawns) * 100;
+    const highestPercent = Math.max(costPercent, spawnPercent);
+    
+    // Define alert thresholds
+    const thresholds = [
+      { level: 60, emoji: '⚠️', urgency: 'approaching' },
+      { level: 80, emoji: '🟠', urgency: 'WARNING' },
+      { level: 95, emoji: '🔴', urgency: 'CRITICAL' },
+    ];
+    
+    for (const threshold of thresholds) {
+      if (highestPercent >= threshold.level && !rateLimitAlertedThresholds.has(threshold.level)) {
+        rateLimitAlertedThresholds.add(threshold.level);
+        
+        // Calculate time until window rolls
+        const windowRemainingMs = stats.oldestTimestamp 
+          ? ROLLING_WINDOW_MS - (now - stats.oldestTimestamp)
+          : ROLLING_WINDOW_MS;
+        const windowRemainingMin = Math.round(windowRemainingMs / 60000);
+        
+        const message = `${threshold.emoji} *Rate Limit ${threshold.urgency}*
+
+📊 Usage: ${highestPercent.toFixed(1)}% of 5-hour window
+💰 Cost: $${stats.costInWindow.toFixed(2)} / $${maxCostUsd}
+🔄 Spawns: ${stats.spawnsInWindow} / ${maxSpawns}
+⏱️ Window resets in: ~${windowRemainingMin} min
+
+${threshold.level >= 95 ? '🛑 Agent spawning will pause at 100%!' : 
+  threshold.level >= 80 ? '⚠️ Consider pausing non-critical work' : 
+  '💡 Monitor closely'}`;
+        
+        console.log(`${threshold.emoji} Rate limit alert: ${highestPercent.toFixed(1)}%`);
+        await directNotify.forwardError('rate_limit', message);
+      }
+    }
+    
+    // Log to console periodically (every 10 ticks) even if no alert
+    if (tickCount % 10 === 0 && stats.spawnsInWindow > 0) {
+      console.log(`📈 Rate limit status: ${costPercent.toFixed(1)}% cost, ${spawnPercent.toFixed(1)}% spawns (${stats.spawnsInWindow} in window)`);
+    }
+  } catch (err) {
+    console.error('❌ Rate limit check error:', err);
+  }
+}
 
 /**
  * Check if the orchestrator tick loop is running
@@ -251,6 +336,78 @@ export function stopOrchestrator(): void {
 }
 
 /**
+ * Check for approved plans that need tactical task creation
+ */
+async function checkForApprovedPlans(): Promise<void> {
+  try {
+    const fs = await import('fs');
+    const cachePath = '/home/ned-atanasovski/.harness/approved-plan.json';
+    
+    if (!fs.existsSync(cachePath)) return;
+    
+    const cached = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
+    
+    // Skip if tactical tasks already created
+    if (cached.tacticalTasksCreated) return;
+    
+    // Skip if no phases
+    if (!cached.phases || cached.phases.length === 0) return;
+    
+    console.log(`🔧 Found approved plan with ${cached.phases.length} phases - creating tasks directly...`);
+    
+    // Create tasks directly from phases (skip AI tactical planning)
+    const taskListId = cached.taskListId || 'default-task-list';
+    let tasksCreated = 0;
+    
+    for (let i = 0; i < cached.phases.length; i++) {
+      const phase = cached.phases[i];
+      const deliverables = phase.deliverables || [];
+      
+      // Create one task per deliverable
+      for (let j = 0; j < deliverables.length; j++) {
+        const deliverable = deliverables[j];
+        try {
+          // Generate display ID
+          const displayId = `PHASE${i + 1}-TASK-${String(j + 1).padStart(2, '0')}`;
+          
+          // Check if already exists
+          const existing = tasks.getTaskByDisplayId(displayId);
+          if (existing) continue;
+          
+          const task = tasks.createTask({
+            display_id: displayId,
+            title: deliverable.slice(0, 200),
+            description: `Phase ${i + 1}: ${phase.name}\n\nGoal: ${phase.goal}\n\nDeliverable: ${deliverable}`,
+            category: 'feature',
+            priority: phase.priority || 'P1',
+            status: 'pending',
+            task_list_id: taskListId,
+          });
+          
+          console.log(`   ✅ Created: ${task.display_id} - ${task.title.slice(0, 50)}`);
+          tasksCreated++;
+        } catch (e) {
+          console.log(`   ⚠️ Skipped duplicate: ${deliverable.slice(0, 50)}`);
+        }
+      }
+    }
+    
+    console.log(`✅ Created ${tasksCreated} tasks from ${cached.phases.length} phases`);
+    
+    // Mark as done
+    cached.tacticalTasksCreated = true;
+    fs.writeFileSync(cachePath, JSON.stringify(cached, null, 2));
+    
+    // Notify via Telegram
+    if (tasksCreated > 0) {
+      await notify.planningComplete(tasksCreated).catch(() => {});
+    }
+  } catch (error) {
+    console.error('❌ Error checking approved plans:', error);
+  }
+}
+
+/**
  * Check if orchestrator is paused via Telegram command
  */
 function isOrchestratorPaused(): boolean {
@@ -279,6 +436,12 @@ async function tick(): Promise<void> {
   }
 
   try {
+    // 0. PROACTIVE RATE LIMIT CHECK - Alert BEFORE hitting limits
+    await crashProtect(() => checkRateLimitsProactively(), 'checkRateLimitsProactively');
+
+    // 0.5. Check for newly approved plans that need tactical task creation
+    await crashProtect(() => checkForApprovedPlans(), 'checkForApprovedPlans');
+
     // 1. Check agent health (crash-protected)
     await crashProtect(() => checkAgentHealth(), 'checkAgentHealth');
 
@@ -470,12 +633,40 @@ export function recordTaskFailure(taskId: string): void {
 }
 
 /**
+ * Atomically claim a task before spawning
+ * 
+ * CRITICAL: Prevents race conditions where two agents grab the same task.
+ * Uses database transaction to ensure only one agent can claim.
+ */
+function atomicClaimTask(taskId: string, agentId: string): boolean {
+  const db = getDb();
+  try {
+    // Atomic update: only claim if still pending
+    const result = db.prepare(`
+      UPDATE tasks 
+      SET status = 'in_progress', 
+          assigned_agent_id = ?,
+          started_at = datetime('now'),
+          updated_at = datetime('now')
+      WHERE id = ? AND status = 'pending'
+    `).run(agentId, taskId);
+    
+    return result.changes > 0;
+  } catch (err) {
+    console.error(`❌ Failed to claim task ${taskId}:`, err);
+    return false;
+  }
+}
+
+/**
  * Assign pending tasks to idle agents
  * 
  * First Principles:
- * 1. Single Assignment: One task, one agent at a time
- * 2. Cooldown: Failed tasks must wait before retry
- * 3. Priority: P0 > P1 > P2, etc.
+ * 1. ATOMIC CLAIM: Claim task in DB BEFORE spawning (prevents race conditions)
+ * 2. Single Assignment: One task, one agent at a time
+ * 3. Cooldown: Failed tasks must wait before retry
+ * 4. Priority: P0 > P1 > P2, etc.
+ * 5. Agent Type Constraints: SIA investigates failures, validation verifies - no overlap
  */
 async function assignTasks(): Promise<void> {
   // Get pending tasks (with no unmet dependencies)
@@ -519,7 +710,16 @@ async function assignTasks(): Promise<void> {
     const agent = findSuitableAgent(task, idleAgents);
     if (!agent) continue;
 
-    // Assign task
+    // ============ ATOMIC TASK CLAIM (PREVENTS RACE CONDITIONS) ============
+    // Claim the task BEFORE spawning to prevent multiple agents grabbing same task
+    const claimed = atomicClaimTask(task.id, agent.id);
+    if (!claimed) {
+      console.log(`⚠️ Task ${task.display_id} already claimed by another agent`);
+      continue; // Task was grabbed by another process
+    }
+    console.log(`🔒 Task ${task.display_id} atomically claimed by ${agent.name}`);
+
+    // Assign task (now just spawns, claim already done)
     await assignTaskToAgent(task, agent);
 
     // Remove agent from available pool
@@ -537,47 +737,59 @@ async function assignTasks(): Promise<void> {
  * Find a suitable agent for a task
  * 
  * RATE LIMIT OPTIMIZATION: Only use essential agents (build, qa, spec)
- * Disabled agents that consume tokens without producing value:
- * - planning, validation, research, decomposition, clarification, human_sim, evaluator, task
+ * 
+ * AGENT TYPE CONSTRAINTS (prevents SIA/Validation overlap):
+ * - SIA: Only investigates FAILED tasks (via Crown, not assignTasks)
+ * - Validation: Only verifies PENDING_VERIFICATION tasks
+ * - Build/QA/Spec: Handle regular pending tasks
+ * 
+ * This function is ONLY called for pending tasks, so:
+ * - SIA and Validation should NOT be matched here
+ * - They have their own dedicated flows (Crown for SIA, QA cycle for Validation)
  */
 function findSuitableAgent(task: tasks.Task, availableAgents: agents.Agent[]): agents.Agent | null {
-  // ESSENTIAL AGENTS ONLY - disabled wasteful agents to save tokens
-  const ALLOWED_AGENT_TYPES = ['build_agent', 'build', 'qa_agent', 'qa', 'spec_agent', 'spec'];
+  // ONLY essential worker agents for task assignment
+  // SIA and Validation are EXCLUDED - they have dedicated workflows:
+  // - SIA: triggered by Crown when tasks fail repeatedly
+  // - Validation: triggered by QA cycle for pending_verification tasks
+  const TASK_WORKER_AGENTS = ['build_agent', 'build', 'qa_agent', 'qa', 'spec_agent', 'spec', 'architect_agent', 'architect'];
   
   // Debug: log available agent types
   if (availableAgents.length > 0 && availableAgents.length < 5) {
     console.log(`🔍 Available agents: ${availableAgents.map(a => `${a.id}(${a.type})`).join(', ')}`);
   }
   
-  // Filter to only allowed agents
-  const allowedAgents = availableAgents.filter(a => ALLOWED_AGENT_TYPES.includes(a.type));
-  if (allowedAgents.length === 0) {
+  // Filter to only task worker agents (excludes SIA, validation)
+  const workerAgents = availableAgents.filter(a => TASK_WORKER_AGENTS.includes(a.type));
+  if (workerAgents.length === 0) {
     if (availableAgents.length > 0) {
-      console.log(`⏭️ No allowed agents for ${task.display_id} - available types: ${availableAgents.map(a => a.type).join(', ')}`);
+      console.log(`⏭️ No worker agents for ${task.display_id} - available types: ${availableAgents.map(a => a.type).join(', ')}`);
     }
     return null;
   }
   
-  // Map task categories to preferred agent types (only essential ones)
+  // Map task categories to preferred agent types (only task workers)
   const categoryAgentMap: Record<string, string[]> = {
     feature: ['build_agent', 'build'],
     bug: ['build_agent', 'build'],
     test: ['qa_agent', 'qa'],
     documentation: ['spec_agent', 'spec'],
+    architecture: ['architect_agent', 'architect'],
+    design: ['architect_agent', 'architect'],
     // All other categories default to build_agent
   };
 
   const preferredTypes = categoryAgentMap[task.category ?? 'feature'] || ['build_agent', 'build'];
 
-  // Try to find preferred agent from allowed list
+  // Try to find preferred agent from worker list
   for (const type of preferredTypes) {
-    const agent = allowedAgents.find(a => a.type === type);
+    const agent = workerAgents.find(a => a.type === type);
     if (agent) return agent;
   }
 
   // Fall back to build_agent (the workhorse)
-  const buildAgent = allowedAgents.find(a => a.type === 'build_agent' || a.type === 'build');
-  return buildAgent ?? allowedAgents[0] ?? null;
+  const buildAgent = workerAgents.find(a => a.type === 'build_agent' || a.type === 'build');
+  return buildAgent ?? workerAgents[0] ?? null;
 }
 
 /**
@@ -593,6 +805,7 @@ async function assignTaskToAgent(task: tasks.Task, agent: agents.Agent): Promise
     
     // Spawn in background (don't await - let it run)
     // NOTE: Don't pass model - let spawner select based on agent type (rate limit optimization)
+    // NOTE: Task is already claimed atomically in assignTasks() - no need to update status here
     spawner.spawnAgentSession({
       taskId: task.id,
       agentId: agent.id,
@@ -601,17 +814,31 @@ async function assignTaskToAgent(task: tasks.Task, agent: agents.Agent): Promise
         console.log(`✅ ${agent.name} completed ${task.display_id}`);
       } else {
         console.log(`❌ ${agent.name} failed ${task.display_id}: ${result.error}`);
+        // CRITICAL: Release task claim if spawn failed early (before agent started)
+        // This prevents orphaned in_progress tasks
+        const currentTask = tasks.getTask(task.id);
+        if (currentTask && currentTask.status === 'in_progress' && !result.sessionId) {
+          console.log(`🔓 Releasing claim on ${task.display_id} (spawn failed before start)`);
+          // Use null to clear assigned_agent_id (undefined means "don't update")
+          tasks.updateTask(task.id, { status: 'pending', assigned_agent_id: null as any });
+        }
       }
     }).catch(err => {
       console.error(`❌ Spawn error for ${agent.name}:`, err);
+      // Also release claim on exception
+      const currentTask = tasks.getTask(task.id);
+      if (currentTask && currentTask.status === 'in_progress') {
+        console.log(`🔓 Releasing claim on ${task.display_id} (spawn exception)`);
+        tasks.updateTask(task.id, { status: 'pending', assigned_agent_id: null as any });
+      }
     });
 
     // Broadcast task assigned (session created by spawner)
     ws.taskAssigned(tasks.getTask(task.id), agent.id);
   } else {
-    // Simulation mode: just update DB records
+    // Simulation mode: just create session and update agent
+    // NOTE: Task status already set by atomicClaimTask() - don't call tasks.assignTask()
     const session = sessions.createSession(agent.id, task.id);
-    tasks.assignTask(task.id, agent.id);
     agents.updateAgentStatus(agent.id, 'working', task.id, session.id);
 
     ws.taskAssigned(tasks.getTask(task.id), agent.id);

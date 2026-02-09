@@ -11,6 +11,15 @@ function toSqlParams(params: (string | number | null | boolean)[]): SqlValue[] {
 }
 
 let db: SqlJsDatabase | null = null;
+let skipDiskWrites = false;
+
+/**
+ * Control whether saveDb writes to disk. Used by test setup to prevent
+ * intermittent WASM heap corruption from repeated db.export() calls.
+ */
+export function setSkipDiskWrites(skip: boolean): void {
+  skipDiskWrites = skip;
+}
 
 /**
  * Initialize and get database instance
@@ -48,6 +57,7 @@ export async function getDb(): Promise<SqlJsDatabase> {
  */
 export async function saveDb(): Promise<void> {
   if (!db) return;
+  if (skipDiskWrites) return;
 
   const config = getConfig();
   const dbPath = config.paths.database;

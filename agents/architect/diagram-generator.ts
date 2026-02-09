@@ -374,7 +374,7 @@ export class ComponentDiagramGenerator {
   }
 
   /** PlantUML C4 Component diagram */
-  private plantumlComponentDiagram(lines: string[], title: string): void {
+  private plantumlComponentDiagram(lines: string[], _title: string): void {
     lines.push("skinparam component {");
     lines.push("  BackgroundColor #1168BD");
     lines.push("  FontColor #FFFFFF");

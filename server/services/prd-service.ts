@@ -295,7 +295,7 @@ export class PrdService {
   /**
    * Generate a unique slug for a PRD
    */
-  async generateSlug(title: string, projectId?: string): Promise<string> {
+  async generateSlug(title: string, _projectId?: string): Promise<string> {
     const baseSlug = slugify(title);
     let slug = baseSlug;
     let counter = 1;

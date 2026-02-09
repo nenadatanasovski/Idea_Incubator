@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     queue TEXT CHECK(queue IS NULL OR queue = 'evaluation'),
 
     -- Task List reference (nullable for listless tasks in Evaluation Queue)
-    task_list_id TEXT REFERENCES task_lists_v2(id) ON DELETE SET NULL,
+    task_list_id TEXT,
 
     -- Project reference
     project_id TEXT,

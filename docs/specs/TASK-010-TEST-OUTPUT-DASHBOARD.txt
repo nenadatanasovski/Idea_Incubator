@@ -1,0 +1,85 @@
+# Parent Harness - Dashboard E2E Test Output
+# Date: 2026-02-08
+# Command: cd parent-harness/dashboard && npm run test:e2e
+
+> dashboard@0.0.0 test:e2e
+> vitest run tests/e2e/dashboard.test.ts --reporter verbose
+
+Test Files  1 failed (1)
+     Tests  8 failed | 4 passed | 12 skipped (24)
+  Start at  21:52:53
+  Duration  440ms
+
+# Summary of Results:
+
+PASSED TESTS (4):
+- should have backend API running (Health Checks)
+- should return single agent by ID (API Integration Tests > Agents API)
+- should return list of tasks (API Integration Tests > Tasks API)
+- should return events list (API Integration Tests > Events API)
+
+FAILED TESTS (8):
+1. should load dashboard homepage (Health Checks)
+   - Error: ERR_CONNECTION_REFUSED at http://localhost:5173
+   - Reason: Frontend server not running
+
+2. should navigate to Tasks page (Navigation)
+   - Error: ERR_CONNECTION_REFUSED at http://localhost:5173
+   - Reason: Frontend server not running
+
+3. should navigate to Sessions page (Navigation)
+   - Error: ERR_CONNECTION_REFUSED at http://localhost:5173
+   - Reason: Frontend server not running
+
+4. should navigate back to Dashboard (Navigation)
+   - Error: ERR_CONNECTION_REFUSED at http://localhost:5173/sessions
+   - Reason: Frontend server not running
+
+5. should show connection status indicator (WebSocket Connection)
+   - Error: ERR_CONNECTION_REFUSED at http://localhost:5173
+   - Reason: Frontend server not running
+
+6. should return list of agents (API Integration Tests > Agents API)
+   - Error: expected 13 agents, got 14
+   - Reason: Test data count mismatch (hardcoded expectation)
+
+7. should return 16 test suites (API Integration Tests > Test Suites API)
+   - Error: expected 16 test suites, got 1
+   - Reason: Test seed data not loaded or test suites not created
+
+8. should return configuration (API Integration Tests > Config API)
+   - Error: expected config to have property "tick_interval_ms"
+   - Reason: API response schema changed, missing expected property
+
+SKIPPED TESTS (12):
+- Layout Components (5 tests) - prerequisite failed (dashboard not loading)
+  - should have header with navigation
+  - should have left panel (agent status)
+  - should have main panel (event stream)
+  - should have right panel (task queue)
+  - should have notification center
+
+- Agent Status Cards (2 tests) - prerequisite failed
+  - should display agent cards
+  - should show agent name and status
+
+- Event Stream (2 tests) - prerequisite failed
+  - should have event stream component
+  - should display events or placeholder
+
+- Task Cards (2 tests) - prerequisite failed
+  - should display task cards
+  - should show task priority badge
+
+- Notification Center (1 test) - prerequisite failed
+  - should open notification dropdown on click
+
+# Notes:
+- Most failures are due to frontend server not running on port 5173
+- Backend API is running successfully (port 3333) - 4 API tests passed
+- 3 API integration test failures appear to be data/schema mismatches
+- To run successfully, both backend and frontend must be running:
+  - Terminal 1: cd parent-harness/orchestrator && npm run dev
+  - Terminal 2: cd parent-harness/dashboard && npm run dev
+  - Terminal 3: cd parent-harness/dashboard && npm run test:e2e
+- Alternatively use: cd parent-harness && ./scripts/run-e2e-tests.sh

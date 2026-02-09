@@ -362,7 +362,7 @@ export class AtomicityValidator {
    * Suggest splits for non-atomic task
    */
   private async suggestSplits(
-    task: Task,
+    _task: Task,
     rules: RuleResult[],
   ): Promise<string[]> {
     const suggestions: string[] = [];

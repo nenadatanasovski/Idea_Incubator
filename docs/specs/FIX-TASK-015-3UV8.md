@@ -2,9 +2,9 @@
 
 ## Overview
 
-This specification addresses the QA verification failure for TASK-015. Upon investigation, the `hasBeenInStatus()` method **is already fully implemented and functional** in TaskStateHistoryService. The QA failure is a **false negative** caused by unrelated test failures in other parts of the codebase (execution-manager, claude-client), not by issues with TaskStateHistoryService.
+This specification addresses the QA verification failure for TASK-015. Upon investigation, the `hasBeenInStatus()` method **is already fully implemented and functional** in TaskStateHistoryService. The QA failure was a **false negative** caused by Vite's build cache containing an outdated version of `tests/setup.ts`, which attempted to override a readonly property.
 
-**Status**: ✅ IMPLEMENTATION COMPLETE - NO CODE CHANGES REQUIRED
+**Status**: ✅ RESOLVED - Cache cleared, all tests passing
 
 ## Problem Analysis
 
@@ -21,17 +21,34 @@ This description is **factually incorrect**:
 
 ### Why QA Failed
 
-The QA verification command `npm test -- --pool=forks --poolOptions.forks.maxForks=1` failed due to **unrelated test failures**:
+The QA verification command `npm test -- --pool=forks --poolOptions.forks.maxForks=1` failed with **ALL 106 test files failing** with a TypeError:
 
-1. **Execution Manager Tests**: DB error in execution-manager.test.ts (lines 132, 331)
-2. **Claude Client Tests**: JSON parsing error in claude-client.test.ts (line 225)
-3. **Other Infrastructure Issues**: Various observability and schema-related failures
-
-**These failures are NOT related to TaskStateHistoryService or the `hasBeenInStatus()` method.**
+```
+TypeError: Cannot set property saveDb of [object Module] which has only a getter
+ ❯ tests/setup.ts:21:13
+     19| // db.export() calls in sql.js can intermittently corrupt the WASM hea…
+     20| const _originalSaveDb = db.saveDb;
+     21| (db as any).saveDb = async () => {};
+       |             ^
+```
 
 ### Root Cause
 
-The task metadata is stale. The method was likely implemented in a previous attempt (possibly during the initial TASK-015 work), but the task status was never updated to "completed" in the harness database.
+**Vite build cache contained outdated code.** The codebase had been updated to use `setSkipDiskWrites(true)` instead of directly overriding the readonly `db.saveDb` property, but the compiled version in `node_modules/.vite` still contained the old code that attempted the override.
+
+**Current code** in `tests/setup.ts` (lines 17-20):
+```typescript
+// Skip disk writes during tests. The in-memory singleton is shared across all
+// test files so disk persistence is unnecessary, and repeated db.export() calls
+// in sql.js can intermittently corrupt the WASM heap under heavy load.
+setSkipDiskWrites(true);
+```
+
+**Cached code** (from error message):
+```typescript
+const _originalSaveDb = db.saveDb;
+(db as any).saveDb = async () => {};  // ❌ This line fails
+```
 
 ## Requirements
 
@@ -115,19 +132,40 @@ Two comprehensive test cases:
 ## Pass Criteria
 
 ### 1. All Tests Pass ✅
-**Command**: `npm test -- tests/task-agent/task-state-history-service.test.ts`
-**Result**: PASSING (13/13 tests)
-**Evidence**: Test execution on 2026-02-08 15:34:30 shows 100% pass rate
+**Command**: `npm test -- --pool=forks --poolOptions.forks.maxForks=1`
+**Result**: PASSING (1773 tests passed, 4 skipped across 106 test files)
+**Evidence**: Test execution on 2026-02-08 22:45:01 after clearing cache
+
+```
+ Test Files  106 passed (106)
+      Tests  1773 passed | 4 skipped (1777)
+   Start at  22:45:01
+   Duration  9.77s
+```
+
+**Specific hasBeenInStatus tests:**
+```
+✓ tests/task-agent/task-state-history-service.test.ts  (13 tests)
+  ✓ hasBeenInStatus
+    ✓ should return true if task has been in status
+    ✓ should return false if task has never been in status
+```
 
 ### 2. Build Succeeds ✅
-**Command**: `npm run build` or `npx tsc --noEmit`
-**Result**: PASSING (zero TypeScript errors)
-**Evidence**: No compilation errors related to TaskStateHistoryService
+**Command**: `npm run build`
+**Result**: PASSING (TypeScript compilation successful)
+**Evidence**: No compilation errors
+
+```bash
+$ npm run build
+> idea-incubator@0.1.0 build
+> tsc
+```
 
 ### 3. TypeScript Compiles ✅
-**Command**: `npx tsc --noEmit`
+**Command**: `npm run build` (uses tsc)
 **Result**: PASSING
-**Evidence**: Method signature matches type definitions, no type errors
+**Evidence**: Zero TypeScript errors, all types correct
 
 ### Overall Status: ✅ ALL PASS CRITERIA MET
 
@@ -146,32 +184,38 @@ Two comprehensive test cases:
 
 ## Implementation Strategy
 
-### Action Required: NONE
+### Solution Applied
 
-**No code changes are needed.** The method is fully implemented, tested, and functional.
+**Clear Vite build cache:**
+```bash
+rm -rf node_modules/.vite
+```
 
-### Recommended Actions
+This forces Vite to recompile all test files from source, ensuring the latest version of `tests/setup.ts` is used.
 
-1. **Verify Current State** (for documentation):
+### Verification Steps
+
+1. **Clear cache and run tests:**
    ```bash
-   # Confirm method exists
-   grep -A 10 "async hasBeenInStatus" server/services/task-agent/task-state-history-service.ts
-
-   # Confirm tests pass
-   npm test -- tests/task-agent/task-state-history-service.test.ts
-
-   # Confirm TypeScript compiles
-   npx tsc --noEmit
+   rm -rf node_modules/.vite
+   npm test -- --pool=forks --poolOptions.forks.maxForks=1
    ```
 
-2. **Update Task Status** (in harness database):
-   - Mark TASK-015 status as "completed"
-   - Record completion timestamp
-   - Clear any error states
+   **Result**: ✅ All 106 test files passed (1773 tests, 4 skipped)
 
-3. **Document Resolution**:
-   - This specification serves as evidence of completion
-   - Can be referenced if similar issues arise
+2. **Verify TypeScript compilation:**
+   ```bash
+   npm run build
+   ```
+
+   **Result**: ✅ Build succeeded with no errors
+
+3. **Verify method implementation:**
+   ```bash
+   grep -A 10 "async hasBeenInStatus" server/services/task-agent/task-state-history-service.ts
+   ```
+
+   **Result**: ✅ Method exists at lines 226-233
 
 ## Retry Context
 
@@ -242,27 +286,41 @@ Failing tests in full suite (`npm test`):
 
 ## Conclusion
 
-**The task is complete.** No code changes are required.
+**The task is complete.** The `hasBeenInStatus()` method was already fully implemented. The QA failure was caused by Vite's build cache, which was resolved by clearing `node_modules/.vite`.
 
 ### Summary
 - ✅ `hasBeenInStatus()` method is implemented correctly
-- ✅ All tests pass (13/13)
+- ✅ All tests pass (1773/1773, including all hasBeenInStatus tests)
 - ✅ TypeScript compilation succeeds
 - ✅ Implementation follows codebase patterns
 - ✅ Test coverage is comprehensive (positive and negative cases)
+- ✅ Build cache issue resolved
 
-### Recommendation
-Mark TASK-015 as **COMPLETE** in the harness database. The QA verification failure was caused by unrelated test infrastructure issues, not by problems with the TaskStateHistoryService implementation.
+### Root Cause Analysis
+The original task description stating "This method is tested but not implemented" was incorrect. The method was already implemented. The QA failures were due to:
+1. Vite's build cache (`node_modules/.vite`) containing outdated compiled code
+2. The outdated code tried to override a readonly property (`db.saveDb`)
+3. This caused all 106 test files to fail before any tests could run
+
+### Solution
+Simply clearing the build cache resolved all issues:
+```bash
+rm -rf node_modules/.vite
+```
+
+### Lessons Learned
+1. **Cache invalidation**: When seeing unexpected TypeError about readonly properties, check for stale build cache
+2. **Vite caching**: The `node_modules/.vite` directory can retain old compiled versions even after source changes
+3. **Task descriptions**: Always verify the actual state before assuming missing implementation
+4. **Build tools**: Modern build tools with aggressive caching can mask code updates
 
 ### Next Steps
-1. Update task status to "completed"
-2. Record this specification as evidence of verification
-3. Address the actual failing tests in execution-manager and claude-client (separate tasks)
+Mark TASK-015 and FIX-TASK-015-3UV8 as **COMPLETE**.
 
 ---
 
 **Specification Status**: ✅ COMPLETE
-**Implementation Status**: ✅ COMPLETE (pre-existing)
-**Test Status**: ✅ PASSING (13/13 tests)
-**Build Status**: ✅ PASSING (zero errors)
-**Action Required**: Update task metadata only, no code changes
+**Implementation Status**: ✅ COMPLETE (pre-existing, verified working)
+**Test Status**: ✅ PASSING (1773/1773 tests, 4 skipped)
+**Build Status**: ✅ PASSING (zero TypeScript errors)
+**Action Required**: Cache cleared, all pass criteria met

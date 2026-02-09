@@ -132,14 +132,15 @@ export async function runCrownCheck(): Promise<CrownReport> {
     
     // 5. Run SIA deep analysis if issues detected
     // DISABLED: SIA spawning consumes too many tokens. Just log alerts for now.
-    // if (report.interventions.length > 0 || report.alerts.length > 0) {
-    //   const siaResult = await runSIAAnalysis(healthChecks);
-    //   if (siaResult) {
-    //     report.interventions.push(`🧠 SIA: ${siaResult}`);
-    //   }
-    // }
+    // Re-enabled SIA analysis for blocked task resolution
+    if (report.interventions.length > 0 || report.alerts.length > 0) {
+      const siaResult = await runSIAAnalysis(healthChecks);
+      if (siaResult) {
+        report.interventions.push(`🧠 SIA: ${siaResult}`);
+      }
+    }
     if (report.alerts.length > 0) {
-      console.log(`👑 Crown alerts (SIA spawning disabled to save tokens): ${report.alerts.length} issues`);
+      console.log(`👑 Crown alerts: ${report.alerts.length} issues`);
     }
     
     // 6. Report if there are issues

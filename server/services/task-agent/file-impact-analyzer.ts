@@ -261,7 +261,7 @@ export async function estimateFileImpacts(
  */
 export async function matchHistoricalPatterns(
   title: string,
-  description: string,
+  _description: string,
   category: TaskCategory,
 ): Promise<FilePattern[]> {
   // Get patterns that have been accurate for this category

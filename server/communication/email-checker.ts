@@ -71,7 +71,7 @@ export class EmailChecker extends EventEmitter {
   private pollTimeout?: ReturnType<typeof setTimeout>;
 
   constructor(
-    imapConfig: ImapConfig,
+    _imapConfig: ImapConfig,
     config: Partial<EmailCheckerConfig> = {},
   ) {
     super();

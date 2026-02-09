@@ -190,7 +190,7 @@ async function getSpecSections(specId: string): Promise<SpecSection[]> {
  */
 function createTaskFromCriterion(
   criterion: string,
-  taskListId: string,
+  _taskListId: string,
   index: number,
 ): TaskFromSpec {
   // Infer category from criterion content
@@ -211,7 +211,7 @@ function createTaskFromCriterion(
  */
 function createTaskFromFeature(
   feature: string,
-  taskListId: string,
+  _taskListId: string,
   index: number,
 ): TaskFromSpec {
   const category = inferCategory(feature);

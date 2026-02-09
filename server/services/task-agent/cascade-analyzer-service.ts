@@ -27,7 +27,7 @@ export class CascadeAnalyzerService {
   async analyze(
     taskId: string,
     changeType: CascadeTrigger,
-    changes: Record<string, unknown>,
+    _changes: Record<string, unknown>,
   ): Promise<CascadeAnalysis> {
     // Find directly affected tasks
     const directEffects = await this.findDirectlyAffected(taskId, changeType);
@@ -352,7 +352,7 @@ export class CascadeAnalyzerService {
    */
   async analyzeTaskEdit(
     taskId: string,
-    originalImpacts: TaskImpact[],
+    _originalImpacts: TaskImpact[],
     newImpacts: TaskImpact[],
   ): Promise<{ affectedTasks: Array<{ taskId: string; reason: string }> }> {
     const affectedTasks: Array<{ taskId: string; reason: string }> = [];

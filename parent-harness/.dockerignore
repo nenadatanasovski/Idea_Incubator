@@ -1,0 +1,48 @@
+# Node modules
+**/node_modules
+**/npm-debug.log
+**/package-lock.json
+
+# Build outputs
+**/dist
+**/.tsbuildinfo
+
+# Development files
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Version control
+**/.git
+**/.gitignore
+
+# IDE
+**/.vscode
+**/.idea
+**/*.swp
+**/*.swo
+
+# Test files
+**/tests
+**/*.test.ts
+**/*.spec.ts
+**/coverage
+
+# Documentation
+**/README.md
+**/CLAUDE.md
+**/docs
+
+# OS files
+**/.DS_Store
+**/Thumbs.db
+
+# Database files (will be in mounted volume)
+**/data/*.db
+**/data/*.db-shm
+**/data/*.db-wal
+
+# Temporary files
+**/tmp
+**/*.tmp
+**/*.log

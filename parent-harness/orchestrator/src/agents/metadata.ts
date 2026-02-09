@@ -353,6 +353,32 @@ export const AGENT_METADATA: Record<string, AgentMetadata> = {
     defaultModel: 'haiku',
     recommendedModels: ['haiku', 'sonnet'],
   },
+
+  architect_agent: {
+    id: 'architect_agent',
+    name: 'Architect Agent',
+    type: 'architect',
+    emoji: '🏗️',
+    description: 'Designs system architecture and technical solutions',
+    role: 'DESIGN system architecture and RECOMMEND technical solutions.',
+    responsibilities: [
+      'Analyze project requirements and constraints',
+      'Design system architecture and component structure',
+      'Make informed technology stack decisions',
+      'Define API contracts and database schemas',
+      'Identify quality attributes and risks',
+      'Generate comprehensive architecture documentation',
+    ],
+    tools: ['Read', 'Write', 'Edit'],
+    outputFormat: 'Architecture document with components, tech stack, API contracts, and schemas',
+    telegram: {
+      channel: '@vibe-architect',
+      botEnvVar: 'TELEGRAM_BOT_ARCHITECT',
+      webhookPath: '/webhook/architect',
+    },
+    defaultModel: 'opus',
+    recommendedModels: ['opus', 'sonnet'],
+  },
 };
 
 /**
