@@ -58,7 +58,7 @@ import { validateTelegramConfigOrThrow } from './telegram/direct-telegram.js';
 const runtimeMode = getRuntimeMode();
 
 const app = express();
-const PORT = process.env.PORT || 3333;
+const PORT = process.env.PORT || 4001;
 
 // Create HTTP server
 const server = createServer(app);
@@ -71,11 +71,11 @@ try {
   validateTelegramConfigOrThrow();
   initTelegram().catch((err) => {
     console.error('❌ Telegram initialization failed:', err);
-    process.exit(1);
+    console.warn('⚠️  Continuing without Telegram integration');
   });
 } catch (err) {
-  console.error('❌ Telegram configuration invalid:', err);
-  process.exit(1);
+  console.warn('⚠️  Telegram not configured, continuing without Telegram integration');
+  console.debug('Telegram config error:', err);
 }
 
 // Initialize Build Health monitoring - ONLY check orchestrator, not entire codebase
