@@ -14,6 +14,7 @@ import { bus } from './bus.js';
 import * as tasks from '../db/tasks.js';
 import type { Task } from '../db/tasks.js';
 import * as stateHistory from '../db/state-history.js';
+import { events as dbEvents } from '../db/events.js';
 
 // Valid task states
 export type TaskState = 
@@ -48,6 +49,7 @@ export interface TransitionContext {
   error?: string;
   reason?: string;
   failures?: string[];
+  source?: string;
 }
 
 /**
@@ -89,15 +91,34 @@ export function transitionTask(
     };
   }
 
-  // Perform the transition
-  const updateData: Partial<Task> = { status: toState };
-  
-  if (context.agentId) {
-    updateData.assigned_agent_id = context.agentId;
-  }
+  // Perform the transition.
+  let updatedTask: Task;
+  if (toState === 'failed') {
+    const failed = tasks.failTaskWithContext(taskId, {
+      error: context.error,
+      agentId: context.agentId,
+      sessionId: context.sessionId,
+      source: context.source || 'event_state_machine',
+    });
+    if (!failed) {
+      return {
+        success: false,
+        previousState: fromState,
+        newState: toState,
+        error: 'Failed to transition task',
+      };
+    }
+    updatedTask = failed;
+  } else {
+    const updateData: Partial<Task> = { status: toState };
 
-  tasks.updateTask(taskId, updateData);
-  const updatedTask = tasks.getTask(taskId)!;
+    if (context.agentId) {
+      updateData.assigned_agent_id = context.agentId;
+    }
+
+    tasks.updateTask(taskId, updateData);
+    updatedTask = tasks.getTask(taskId)!;
+  }
 
   // Log the state transition to history
   try {
@@ -167,6 +188,13 @@ function emitTransitionEvents(
           agentId: context.agentId,
         });
       }
+      if (context.agentId) {
+        dbEvents.taskAssigned(task.id, context.agentId, task.title, {
+          source: context.source || 'event_state_machine',
+          taskDisplayId: task.display_id,
+          sessionId: context.sessionId || null,
+        });
+      }
       break;
 
     case 'pending_verification':
@@ -179,6 +207,11 @@ function emitTransitionEvents(
         task, 
         output: context.output 
       });
+      dbEvents.taskCompleted(task.id, context.agentId || 'system', task.title, {
+        source: context.source || 'event_state_machine',
+        taskDisplayId: task.display_id,
+        sessionId: context.sessionId || null,
+      });
       
       // Also emit QA passed if coming from verification
       if (fromState === 'pending_verification') {
@@ -187,16 +220,27 @@ function emitTransitionEvents(
       break;
 
     case 'failed':
-      bus.emit('task:failed', { 
+      bus.emit('task:failed', {
         task, 
-        error: context.error || 'Unknown error' 
+        error: context.error || 'Unclassified failure',
       });
+      dbEvents.taskFailed(
+        task.id,
+        context.agentId || 'system',
+        task.title,
+        context.error || 'Unclassified failure',
+        {
+          source: context.source || 'event_state_machine',
+          taskDisplayId: task.display_id,
+          sessionId: context.sessionId || null,
+        }
+      );
       
       // If coming from QA, emit QA failed
       if (fromState === 'pending_verification') {
         bus.emit('task:qa_failed', { 
           task, 
-          failures: context.failures || [context.error || 'QA failed'] 
+          failures: context.failures || [context.error || 'QA failed'],
         });
       }
       break;

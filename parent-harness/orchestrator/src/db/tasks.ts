@@ -38,6 +38,13 @@ export interface CreateTaskInput {
   pass_criteria?: string[];
 }
 
+export interface TaskFailureInput {
+  error?: string;
+  agentId?: string;
+  sessionId?: string;
+  source?: string;
+}
+
 /**
  * Get all tasks
  */
@@ -76,6 +83,14 @@ export function getTasks(filters?: {
  */
 export function getTask(id: string): Task | undefined {
   return getOne<Task>('SELECT * FROM tasks WHERE id = ?', [id]);
+}
+
+function normalizeFailureReason(error?: string): string {
+  const trimmed = (error || '').trim();
+  if (!trimmed) {
+    return 'Unclassified failure';
+  }
+  return trimmed.slice(0, 2000);
 }
 
 /**
@@ -219,17 +234,96 @@ export function completeTask(taskId: string): Task | undefined {
  * Fail a task (increments retry count)
  */
 export function failTask(taskId: string): Task | undefined {
-  // First increment retry count
-  run(`
-    UPDATE tasks 
-    SET retry_count = COALESCE(retry_count, 0) + 1,
-        status = 'failed',
-        completed_at = datetime('now'),
-        updated_at = datetime('now')
-    WHERE id = ?
-  `, [taskId]);
-  
-  return getTask(taskId);
+  return failTaskWithContext(taskId, {});
+}
+
+/**
+ * Fail a task (single-source retry increment authority)
+ */
+export function failTaskWithContext(
+  taskId: string,
+  failure: TaskFailureInput
+): Task | undefined {
+  const existing = getTask(taskId);
+  if (!existing) {
+    return undefined;
+  }
+
+  // Already failed: keep idempotent semantics to prevent duplicate increments.
+  if (existing.status === 'failed') {
+    return existing;
+  }
+
+  run(
+    `
+      UPDATE tasks
+      SET retry_count = COALESCE(retry_count, 0) + 1,
+          status = 'failed',
+          completed_at = datetime('now'),
+          updated_at = datetime('now')
+      WHERE id = ?
+    `,
+    [taskId]
+  );
+
+  const updated = getTask(taskId);
+  if (!updated) {
+    return undefined;
+  }
+
+  const retryError = normalizeFailureReason(failure.error);
+  const attemptId = uuidv4();
+
+  try {
+    run(
+      `
+        INSERT INTO task_retry_attempts (
+          id, task_id, attempt_number, agent_id, session_id, error, source, created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        ON CONFLICT(task_id, attempt_number)
+        DO UPDATE SET
+          agent_id = excluded.agent_id,
+          session_id = excluded.session_id,
+          error = excluded.error,
+          source = excluded.source
+      `,
+      [
+        attemptId,
+        taskId,
+        updated.retry_count,
+        failure.agentId || 'system',
+        failure.sessionId ?? null,
+        retryError,
+        failure.source ?? 'runtime',
+      ]
+    );
+  } catch {
+    // Backward compatibility with older task_retry_attempts schema (without `source`).
+    run(
+      `
+        INSERT INTO task_retry_attempts (
+          id, task_id, attempt_number, agent_id, session_id, error, created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+        ON CONFLICT(task_id, attempt_number)
+        DO UPDATE SET
+          agent_id = excluded.agent_id,
+          session_id = excluded.session_id,
+          error = excluded.error
+      `,
+      [
+        attemptId,
+        taskId,
+        updated.retry_count,
+        failure.agentId || 'system',
+        failure.sessionId ?? null,
+        retryError,
+      ]
+    );
+  }
+
+  return updated;
 }
 
 export default {
@@ -243,4 +337,5 @@ export default {
   assignTask,
   completeTask,
   failTask,
+  failTaskWithContext,
 };

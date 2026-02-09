@@ -9,7 +9,6 @@ import { bus } from './bus.js';
 import { transitionTask } from './task-state-machine.js';
 import * as agents from '../db/agents.js';
 import * as tasks from '../db/tasks.js';
-import { run } from '../db/index.js';
 
 class StuckAgentHandler {
   private handledAgents = new Set<string>();
@@ -53,18 +52,22 @@ class StuckAgentHandler {
       if (task && task.status === 'in_progress') {
         console.log(`🔧 Stuck Agent Handler: Re-queuing task ${task.display_id}`);
         
-        // Increment retry count via raw SQL
-        run(`UPDATE tasks SET retry_count = COALESCE(retry_count, 0) + 1 WHERE id = ?`, [task.id]);
         const retryCount = (task.retry_count || 0) + 1;
 
         // If too many retries, block the task
         if (retryCount >= 5) {
           transitionTask(task.id, 'blocked', { 
-            reason: `Stuck 5 times on different agents` 
+            reason: `Stuck ${retryCount} times on different agents`,
+            source: 'stuck_agent_handler',
           });
         } else {
-          // First transition to failed, then to pending (in_progress -> pending not valid)
-          transitionTask(task.id, 'failed', { error: 'Agent stuck' });
+          // First transition to failed, then to pending (in_progress -> pending is invalid directly).
+          transitionTask(task.id, 'failed', {
+            error: `Agent stuck (${reason})`,
+            agentId: agent.id,
+            sessionId: agent.current_session_id || undefined,
+            source: 'stuck_agent_handler',
+          });
           transitionTask(task.id, 'pending', {});
         }
       }

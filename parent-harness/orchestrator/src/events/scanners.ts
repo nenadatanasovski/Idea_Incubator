@@ -15,8 +15,10 @@
 import { bus } from './bus.js';
 import * as tasks from '../db/tasks.js';
 import * as agents from '../db/agents.js';
+import * as sessions from '../db/sessions.js';
 import * as config from '../config/index.js';
 import * as spawner from '../spawner/index.js';
+import { isRunnableProductionTask } from '../orchestrator/task-gating.js';
 
 interface ScannerConfig {
   enabled: boolean;
@@ -56,7 +58,7 @@ class PendingTaskScanner {
     this.config.lastRun = new Date();
 
     // Find pending tasks that aren't being processed
-    const pendingTasks = tasks.getPendingTasks();
+    const pendingTasks = tasks.getPendingTasks().filter(isRunnableProductionTask);
     const idleAgents = agents.getIdleAgents();
 
     // Only emit if we have both work and workers
@@ -482,6 +484,7 @@ class StateReconciliationScanner {
     intervalMs: 5 * 60 * 1000, // Every 5 minutes
     lastRun: null,
   };
+  private sessionMismatchCounts = new Map<string, number>();
 
   start(): void {
     if (this.interval) return;
@@ -556,6 +559,46 @@ class StateReconciliationScanner {
           fixes++;
         }
       }
+    }
+
+    // Fix 4: Close orphan running sessions after repeated mismatch checks.
+    const runningSessions = sessions.getRunningSessions();
+    const runningSessionIds = new Set(runningSessions.map(s => s.id));
+    for (const [sessionId] of this.sessionMismatchCounts) {
+      if (!runningSessionIds.has(sessionId)) {
+        this.sessionMismatchCounts.delete(sessionId);
+      }
+    }
+
+    for (const session of runningSessions) {
+      const task = session.task_id ? tasks.getTask(session.task_id) : null;
+      const agent = agents.getAgent(session.agent_id);
+      const taskAligned = !!task && task.status === 'in_progress';
+      const agentAligned =
+        !!agent &&
+        agent.status === 'working' &&
+        agent.current_session_id === session.id &&
+        agent.current_task_id === session.task_id;
+
+      if (taskAligned && agentAligned) {
+        this.sessionMismatchCounts.delete(session.id);
+        continue;
+      }
+
+      const nextCount = (this.sessionMismatchCounts.get(session.id) || 0) + 1;
+      this.sessionMismatchCounts.set(session.id, nextCount);
+      if (nextCount < 2) {
+        continue;
+      }
+
+      sessions.updateSessionStatus(
+        session.id,
+        'terminated',
+        undefined,
+        `State reconciliation closed orphan running session (taskAligned=${taskAligned}, agentAligned=${agentAligned})`
+      );
+      this.sessionMismatchCounts.delete(session.id);
+      fixes++;
     }
 
     if (fixes > 0) {

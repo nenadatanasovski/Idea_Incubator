@@ -17,6 +17,8 @@ import * as tasks from '../db/tasks.js';
 import * as config from '../config/index.js';
 import type { Task } from '../db/tasks.js';
 import type { Agent } from '../db/agents.js';
+import { isRunnableProductionTask } from '../orchestrator/task-gating.js';
+import { isSystemFlagEnabled } from '../db/system-state.js';
 
 interface SpawnRequest {
   task: Task;
@@ -95,6 +97,10 @@ class SpawnService {
    * Consider a task for spawning
    */
   considerTask(task: Task): void {
+    if (!isRunnableProductionTask(task)) {
+      return;
+    }
+
     // Skip if already in queue
     if (this.queue.some(r => r.task.id === task.id)) {
       return;
@@ -125,6 +131,7 @@ class SpawnService {
     if (!this.enabled) return false;
     if (!this.cpuOk) return false;
     if (!this.memoryOk) return false;
+    if (isSystemFlagEnabled('spawning_paused')) return false;
 
     // Check concurrent agent limit
     const cfg = config.getConfig();
@@ -211,13 +218,31 @@ class SpawnService {
 
         if (!result.success) {
           console.log(`🚀 Spawn Service: Spawn failed - ${result.error}`);
-          // Transition back to pending for retry
-          transitionTask(request.task.id, 'failed', { error: result.error });
+          if (!result.sessionId) {
+            // Pre-session failure: release claim without charging a retry.
+            tasks.updateTask(request.task.id, {
+              status: 'pending',
+              assigned_agent_id: null,
+            });
+            const pendingTask = tasks.getTask(request.task.id);
+            if (pendingTask) {
+              bus.emit('task:pending', { task: pendingTask });
+            }
+          } else {
+            transitionTask(request.task.id, 'failed', {
+              error: (result.error || 'Spawn failure').slice(0, 2000),
+              agentId: agent.id,
+              sessionId: result.sessionId,
+              source: 'event_spawn_service',
+            });
+          }
         }
       } catch (err) {
         console.error(`🚀 Spawn Service: Error spawning for ${request.task.display_id}:`, err);
         transitionTask(request.task.id, 'failed', { 
-          error: err instanceof Error ? err.message : 'Spawn error' 
+          error: err instanceof Error ? err.message : 'Spawn error',
+          agentId: agent.id,
+          source: 'event_spawn_service',
         });
       }
     }

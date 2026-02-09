@@ -5,6 +5,14 @@
  */
 import { registerCommand, registerGlobalCommand } from '../api/webhook.js';
 import { getDb } from '../db/index.js';
+import { getRuntimeMode } from '../runtime/mode.js';
+
+function tableExists(db: ReturnType<typeof getDb>, tableName: string): boolean {
+  const row = db.prepare(
+    `SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`
+  ).get(tableName) as { name: string } | undefined;
+  return !!row;
+}
 
 // ============================================
 // Global Commands (available on all bots)
@@ -127,13 +135,13 @@ registerCommand('planning', 'approve', async (args) => {
     return `❌ Task not found: ${taskId}`;
   }
   
-  if (task.status !== 'pending_approval' && task.status !== 'proposed') {
+  if (!['pending_approval', 'proposed', 'evaluating'].includes(task.status)) {
     return `⚠️ Task ${task.display_id} is not pending approval (status: ${task.status})`;
   }
   
   // Approve task
   db.prepare(`
-    UPDATE tasks SET status = 'pending', approved_at = datetime('now')
+    UPDATE tasks SET status = 'pending', updated_at = datetime('now')
     WHERE id = ?
   `).run(task.id);
   
@@ -159,7 +167,10 @@ registerCommand('planning', 'reject', async (args) => {
   }
   
   db.prepare(`
-    UPDATE tasks SET status = 'rejected', rejection_reason = ?
+    UPDATE tasks
+    SET status = 'skipped',
+        description = COALESCE(description, '') || '\n\nRejected: ' || ?,
+        updated_at = datetime('now')
     WHERE id = ?
   `).run(reason, task.id);
   
@@ -172,9 +183,9 @@ registerCommand('planning', 'pending', async () => {
   const tasks = db.prepare(`
     SELECT display_id, title, priority, created_at
     FROM tasks 
-    WHERE status IN ('pending_approval', 'proposed')
+    WHERE status IN ('pending_approval', 'proposed', 'evaluating')
     ORDER BY 
-      CASE priority WHEN 'p0' THEN 0 WHEN 'p1' THEN 1 ELSE 2 END,
+      CASE priority WHEN 'P0' THEN 0 WHEN 'P1' THEN 1 WHEN 'P2' THEN 2 WHEN 'P3' THEN 3 ELSE 4 END,
       created_at ASC
     LIMIT 10
   `).all() as { display_id: string; title: string; priority: string; created_at: string }[];
@@ -192,24 +203,25 @@ registerCommand('planning', 'pending', async () => {
 
 registerCommand('planning', 'priority', async (args) => {
   if (args.length < 2) {
-    return '❌ Usage: /priority <taskId> <p0|p1|p2>';
+    return '❌ Usage: /priority <taskId> <P0|P1|P2>';
   }
   
   const [taskId, priority] = args;
-  if (!['p0', 'p1', 'p2'].includes(priority.toLowerCase())) {
-    return '❌ Priority must be p0, p1, or p2';
+  const normalized = priority.toUpperCase();
+  if (!['P0', 'P1', 'P2', 'P3', 'P4'].includes(normalized)) {
+    return '❌ Priority must be P0, P1, P2, P3, or P4';
   }
   
   const db = getDb();
   const result = db.prepare(`
     UPDATE tasks SET priority = ? WHERE display_id = ? OR id = ?
-  `).run(priority.toLowerCase(), taskId, taskId);
+  `).run(normalized, taskId, taskId);
   
   if (result.changes === 0) {
     return `❌ Task not found: ${taskId}`;
   }
   
-  return `✅ Priority updated to *${priority.toUpperCase()}* for \`${taskId}\``;
+  return `✅ Priority updated to *${normalized}* for \`${taskId}\``;
 });
 
 // ============================================
@@ -237,9 +249,10 @@ registerCommand('build', 'retry', async (args) => {
     return `⚠️ Task ${task.display_id} is not in failed state (status: ${task.status})`;
   }
   
-  // Reset task to pending
+  // Reset task to pending without incrementing retry_count.
+  // Retry increments are owned by the failed-transition path only.
   db.prepare(`
-    UPDATE tasks SET status = 'pending', retry_count = COALESCE(retry_count, 0) + 1
+    UPDATE tasks SET status = 'pending', assigned_agent_id = NULL, updated_at = datetime('now')
     WHERE id = ?
   `).run(task.id);
   
@@ -255,7 +268,7 @@ registerCommand('build', 'pause', async (args) => {
   const db = getDb();
   
   const result = db.prepare(`
-    UPDATE tasks SET status = 'paused', paused_at = datetime('now')
+    UPDATE tasks SET status = 'blocked', updated_at = datetime('now')
     WHERE (display_id = ? OR id = ?) AND status = 'in_progress'
   `).run(taskId, taskId);
   
@@ -275,8 +288,8 @@ registerCommand('build', 'resume', async (args) => {
   const db = getDb();
   
   const result = db.prepare(`
-    UPDATE tasks SET status = 'pending', paused_at = NULL
-    WHERE (display_id = ? OR id = ?) AND status = 'paused'
+    UPDATE tasks SET status = 'pending', updated_at = datetime('now')
+    WHERE (display_id = ? OR id = ?) AND status = 'blocked'
   `).run(taskId, taskId);
   
   if (result.changes === 0) {
@@ -294,25 +307,27 @@ registerCommand('build', 'logs', async (args) => {
   const taskId = args[0];
   const db = getDb();
   
-  // Get recent agent output for this task
   const logs = db.prepare(`
-    SELECT content, created_at 
-    FROM agent_outputs 
-    WHERE task_id = (SELECT id FROM tasks WHERE display_id = ? OR id = ?)
-    ORDER BY created_at DESC
+    SELECT
+      COALESCE(il.log_content, il.log_preview, s.metadata) AS content,
+      COALESCE(il.completed_at, il.started_at, s.completed_at, s.started_at) AS created_at
+    FROM agent_sessions s
+    LEFT JOIN iteration_logs il ON il.session_id = s.id
+    WHERE s.task_id = (SELECT id FROM tasks WHERE display_id = ? OR id = ?)
+    ORDER BY COALESCE(il.completed_at, il.started_at, s.completed_at, s.started_at) DESC
     LIMIT 1
-  `).get(taskId, taskId) as { content: string; created_at: string } | undefined;
+  `).get(taskId, taskId) as { content: string | null; created_at: string | null } | undefined;
   
-  if (!logs) {
+  if (!logs || !logs.content) {
     return `📝 No logs found for \`${taskId}\``;
   }
   
   // Truncate to fit Telegram message limit
-  const content = logs.content.length > 3500 
+  const normalizedContent = logs.content.length > 3500
     ? logs.content.slice(-3500) + '\n...(truncated)'
     : logs.content;
   
-  return `📝 *Logs for* \`${taskId}\`\n\n\`\`\`\n${content}\n\`\`\``;
+  return `📝 *Logs for* \`${taskId}\`\n\n\`\`\`\n${normalizedContent}\n\`\`\``;
 });
 
 // ============================================
@@ -326,6 +341,10 @@ registerCommand('validation', 'retest', async (args) => {
   
   const taskId = args[0];
   const db = getDb();
+
+  if (!tableExists(db, 'test_results')) {
+    return '⚠️ Legacy `test_results` table is not available in this schema.';
+  }
   
   // Reset test results for this task
   const result = db.prepare(`
@@ -354,6 +373,10 @@ registerCommand('validation', 'skip', async (args) => {
   const testId = args[0];
   const reason = args.slice(1).join(' ');
   const db = getDb();
+
+  if (!tableExists(db, 'test_results')) {
+    return '⚠️ Legacy `test_results` table is not available in this schema.';
+  }
   
   const result = db.prepare(`
     UPDATE test_results SET status = 'skipped', skip_reason = ?
@@ -369,6 +392,10 @@ registerCommand('validation', 'skip', async (args) => {
 
 registerCommand('validation', 'coverage', async () => {
   const db = getDb();
+
+  if (!tableExists(db, 'test_results')) {
+    return '⚠️ Legacy `test_results` table is not available in this schema.';
+  }
   
   const stats = db.prepare(`
     SELECT 
@@ -408,9 +435,9 @@ registerCommand('clarification', 'respond', async (args) => {
   // Store clarification response
   const result = db.prepare(`
     UPDATE tasks SET 
-      clarification_response = ?,
-      clarification_resolved_at = datetime('now'),
-      status = CASE WHEN status = 'needs_clarification' THEN 'pending' ELSE status END
+      description = COALESCE(description, '') || '\n\nClarification response: ' || ?,
+      updated_at = datetime('now'),
+      status = CASE WHEN status = 'blocked' THEN 'pending' ELSE status END
     WHERE display_id = ? OR id = ?
   `).run(answer, taskId, taskId);
   
@@ -598,8 +625,8 @@ registerCommand('clarification', 'skip', async (args) => {
   const result = db.prepare(`
     UPDATE tasks SET 
       status = 'pending',
-      clarification_resolved_at = datetime('now')
-    WHERE (display_id = ? OR id = ?) AND status = 'needs_clarification'
+      updated_at = datetime('now')
+    WHERE (display_id = ? OR id = ?) AND status = 'blocked'
   `).run(taskId, taskId);
   
   if (result.changes === 0) {
@@ -617,21 +644,21 @@ registerCommand('sia', 'agents', async () => {
   const db = getDb();
   
   const agents = db.prepare(`
-    SELECT agent_type, status, task_id, 
-           ROUND((julianday('now') - julianday(started_at)) * 24 * 60) as minutes
+    SELECT type, status, current_task_id,
+           ROUND((julianday('now') - julianday(COALESCE(last_heartbeat, updated_at, created_at))) * 24 * 60) as minutes
     FROM agents 
-    WHERE status IN ('working', 'idle', 'spawning')
-    ORDER BY started_at DESC
+    WHERE status IN ('working', 'idle')
+    ORDER BY updated_at DESC
     LIMIT 15
-  `).all() as { agent_type: string; status: string; task_id: string | null; minutes: number }[];
+  `).all() as { type: string; status: string; current_task_id: string | null; minutes: number }[];
   
   if (agents.length === 0) {
     return '🤖 No active agents';
   }
   
   const lines = agents.map(a => {
-    const taskInfo = a.task_id ? ` → \`${a.task_id.slice(0, 12)}\`` : '';
-    return `• ${a.agent_type} [${a.status}] ${Math.round(a.minutes)}m${taskInfo}`;
+    const taskInfo = a.current_task_id ? ` → \`${a.current_task_id.slice(0, 12)}\`` : '';
+    return `• ${a.type} [${a.status}] ${Math.round(a.minutes)}m${taskInfo}`;
   });
   
   return `🤖 *Active Agents (${agents.length})*\n\n${lines.join('\n')}`;
@@ -689,21 +716,21 @@ registerCommand('monitor', 'agents', async () => {
   const db = getDb();
   
   const agents = db.prepare(`
-    SELECT agent_type, status, task_id, 
-           ROUND((julianday('now') - julianday(started_at)) * 24 * 60) as minutes
+    SELECT type, status, current_task_id,
+           ROUND((julianday('now') - julianday(COALESCE(last_heartbeat, updated_at, created_at))) * 24 * 60) as minutes
     FROM agents 
-    WHERE status IN ('working', 'idle', 'spawning')
-    ORDER BY started_at DESC
+    WHERE status IN ('working', 'idle')
+    ORDER BY updated_at DESC
     LIMIT 15
-  `).all() as { agent_type: string; status: string; task_id: string | null; minutes: number }[];
+  `).all() as { type: string; status: string; current_task_id: string | null; minutes: number }[];
   
   if (agents.length === 0) {
     return '🤖 No active agents';
   }
   
   const lines = agents.map(a => {
-    const taskInfo = a.task_id ? ` → \`${a.task_id.slice(0, 12)}\`` : '';
-    return `• ${a.agent_type} [${a.status}] ${Math.round(a.minutes)}m${taskInfo}`;
+    const taskInfo = a.current_task_id ? ` → \`${a.current_task_id.slice(0, 12)}\`` : '';
+    return `• ${a.type} [${a.status}] ${Math.round(a.minutes)}m${taskInfo}`;
   });
   
   return `🤖 *Active Agents (${agents.length})*\n\n${lines.join('\n')}`;
@@ -742,15 +769,15 @@ registerCommand('orchestrator', 'wave', async (args) => {
   const waveNum = args[0] ? parseInt(args[0]) : null;
   
   const query = waveNum 
-    ? `SELECT status, COUNT(*) as count FROM tasks WHERE wave = ? GROUP BY status`
-    : `SELECT status, COUNT(*) as count FROM tasks WHERE wave = (SELECT MAX(wave) FROM tasks) GROUP BY status`;
+    ? `SELECT status, COUNT(*) as count FROM tasks WHERE wave_number = ? GROUP BY status`
+    : `SELECT status, COUNT(*) as count FROM tasks WHERE wave_number = (SELECT MAX(wave_number) FROM tasks) GROUP BY status`;
   
   const stats = (waveNum 
     ? db.prepare(query).all(waveNum) 
     : db.prepare(query).all()
   ) as { status: string; count: number }[];
   
-  const currentWave = db.prepare(`SELECT MAX(wave) as wave FROM tasks`).get() as { wave: number };
+  const currentWave = db.prepare(`SELECT MAX(wave_number) as wave FROM tasks`).get() as { wave: number | null };
   
   const statusEmoji: Record<string, string> = {
     pending: '⏳',
@@ -762,7 +789,8 @@ registerCommand('orchestrator', 'wave', async (args) => {
   
   const lines = stats.map(s => `${statusEmoji[s.status] || '•'} ${s.status}: ${s.count}`);
   
-  return `🌊 *Wave ${waveNum || currentWave.wave}*\n\n${lines.join('\n')}`;
+  const resolvedWave = waveNum || currentWave.wave || 0;
+  return `🌊 *Wave ${resolvedWave}*\n\n${lines.join('\n')}`;
 });
 
 registerCommand('orchestrator', 'spawn', async (args) => {
@@ -784,7 +812,11 @@ registerCommand('orchestrator', 'spawn', async (args) => {
   
   // Mark for immediate spawn
   db.prepare(`
-    UPDATE tasks SET status = 'pending', priority = 'p0', force_spawn = 1
+    UPDATE tasks
+    SET status = 'pending',
+        priority = 'P0',
+        assigned_agent_id = NULL,
+        updated_at = datetime('now')
     WHERE id = ?
   `).run(task.id);
   
@@ -800,8 +832,12 @@ registerCommand('orchestrator', 'kill', async (args) => {
   const db = getDb();
   
   const result = db.prepare(`
-    UPDATE agents SET status = 'terminated', terminated_at = datetime('now')
-    WHERE id = ? OR session_id = ?
+    UPDATE agents
+    SET status = 'stopped',
+        current_task_id = NULL,
+        current_session_id = NULL,
+        updated_at = datetime('now')
+    WHERE id = ? OR current_session_id = ?
   `).run(agentId, agentId);
   
   if (result.changes === 0) {
@@ -817,6 +853,7 @@ registerCommand('orchestrator', 'kill', async (args) => {
 
 registerCommand('orchestrator', 'stop', async () => {
   const db = getDb();
+  const mode = getRuntimeMode();
   
   // Pause orchestrator ticks
   db.prepare(`
@@ -830,7 +867,7 @@ registerCommand('orchestrator', 'stop', async () => {
     VALUES ('spawning_paused', 'true')
   `).run();
   
-  return `⏹️ *Orchestrator STOPPED*
+  return `⏹️ *Orchestrator STOPPED* (mode: ${mode})
 
 Ticks paused. No new tasks will be assigned.
 Running agents will complete their current work.
@@ -840,6 +877,7 @@ Use /start to resume.`;
 
 registerCommand('orchestrator', 'start', async () => {
   const db = getDb();
+  const mode = getRuntimeMode();
   
   // Resume orchestrator ticks
   db.prepare(`
@@ -851,7 +889,7 @@ registerCommand('orchestrator', 'start', async () => {
     DELETE FROM system_state WHERE key = 'spawning_paused'
   `).run();
   
-  return `▶️ *Orchestrator STARTED*
+  return `▶️ *Orchestrator STARTED* (mode: ${mode})
 
 Ticks resumed. Tasks will be assigned on next tick.`;
 });

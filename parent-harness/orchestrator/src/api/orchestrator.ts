@@ -7,6 +7,7 @@ import * as tasks from '../db/tasks.js';
 import * as sessions from '../db/sessions.js';
 import { getEvents } from '../db/events.js';
 import { notify } from '../telegram/index.js';
+import { getRuntimeMode, isEventMode } from '../runtime/mode.js';
 
 const router = Router();
 
@@ -16,6 +17,8 @@ const router = Router();
  */
 router.get('/status', async (_req, res) => {
   const { isOrchestratorRunning } = await import('../orchestrator/index.js');
+  const mode = getRuntimeMode();
+  const legacyRunning = isOrchestratorRunning();
 
   const allAgents = agents.getAgents();
   const workingAgents = allAgents.filter(a => a.status === 'working');
@@ -31,7 +34,8 @@ router.get('/status', async (_req, res) => {
 
   res.json({
     status: 'operational',
-    running: isOrchestratorRunning(),
+    mode,
+    running: mode === 'legacy' ? legacyRunning : true,
     timestamp: new Date().toISOString(),
     agents: {
       total: allAgents.length,
@@ -72,6 +76,14 @@ router.get('/status', async (_req, res) => {
  */
 router.post('/pause', async (_req, res) => {
   try {
+    if (isEventMode()) {
+      return res.status(409).json({
+        success: false,
+        error: 'pause/resume is only supported in legacy mode',
+        mode: getRuntimeMode(),
+      });
+    }
+
     const { stopOrchestrator, isOrchestratorRunning } = await import('../orchestrator/index.js');
 
     if (!isOrchestratorRunning()) {
@@ -91,6 +103,14 @@ router.post('/pause', async (_req, res) => {
  */
 router.post('/resume', async (_req, res) => {
   try {
+    if (isEventMode()) {
+      return res.status(409).json({
+        success: false,
+        error: 'pause/resume is only supported in legacy mode',
+        mode: getRuntimeMode(),
+      });
+    }
+
     const { startOrchestrator, isOrchestratorRunning } = await import('../orchestrator/index.js');
 
     if (isOrchestratorRunning()) {
@@ -112,6 +132,14 @@ router.post('/trigger', async (req, res) => {
   const { notify: shouldNotify = false, source = 'api' } = req.body || {};
   
   try {
+    if (isEventMode()) {
+      return res.status(409).json({
+        success: false,
+        error: 'manual tick trigger is only supported in legacy mode',
+        mode: getRuntimeMode(),
+      });
+    }
+
     // Import orchestrator dynamically to avoid circular deps
     const { manualTick } = await import('../orchestrator/index.js');
     

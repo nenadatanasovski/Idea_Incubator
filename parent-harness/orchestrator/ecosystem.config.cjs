@@ -1,12 +1,13 @@
 module.exports = {
   apps: [
     {
-      name: 'harness',
+      name: 'orchestrator',
       script: 'npx',
       args: 'tsx src/server.ts',
-      cwd: '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/parent-harness/orchestrator',
+      cwd: __dirname,
       env: {
         NODE_ENV: 'production',
+        HARNESS_RUNTIME_MODE: 'event',
         HARNESS_EVENT_SYSTEM: 'true',
         HARNESS_SPAWN_AGENTS: 'true',
         HARNESS_RUN_PLANNING: 'true',
@@ -19,8 +20,8 @@ module.exports = {
       restart_delay: 2000,
       
       // Logging
-      error_file: '/tmp/harness-error.log',
-      out_file: '/tmp/harness-out.log',
+      error_file: '/tmp/orchestrator-error.log',
+      out_file: '/tmp/orchestrator-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
       merge_logs: true,
       

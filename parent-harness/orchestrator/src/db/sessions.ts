@@ -27,6 +27,38 @@ export interface IterationLog {
   tasks_failed: number;
 }
 
+interface SessionMetadata {
+  output?: string;
+  errorMessage?: string;
+  terminal?: {
+    status: AgentSession['status'];
+    completedAt: string;
+    output?: string;
+    errorMessage?: string;
+  };
+  [key: string]: unknown;
+}
+
+function parseSessionMetadata(metadata: string | null): SessionMetadata {
+  if (!metadata) return {};
+  try {
+    const parsed = JSON.parse(metadata);
+    return typeof parsed === 'object' && parsed ? parsed as SessionMetadata : {};
+  } catch {
+    return {};
+  }
+}
+
+function hydrateSession(row: AgentSession): AgentSession {
+  const parsed = parseSessionMetadata(row.metadata);
+  const terminal = parsed.terminal;
+  return {
+    ...row,
+    output: row.output ?? terminal?.output ?? parsed.output ?? null,
+    error_message: row.error_message ?? terminal?.errorMessage ?? parsed.errorMessage ?? null,
+  };
+}
+
 /**
  * Get all sessions
  */
@@ -64,14 +96,15 @@ export function getSessions(filters?: {
     params.push(filters.offset);
   }
 
-  return query<AgentSession>(sql, params);
+  return query<AgentSession>(sql, params).map(hydrateSession);
 }
 
 /**
  * Get a single session by ID
  */
 export function getSession(id: string): AgentSession | undefined {
-  return getOne<AgentSession>('SELECT * FROM agent_sessions WHERE id = ?', [id]);
+  const session = getOne<AgentSession>('SELECT * FROM agent_sessions WHERE id = ?', [id]);
+  return session ? hydrateSession(session) : undefined;
 }
 
 /**
@@ -123,11 +156,26 @@ export function updateSessionStatus(
   errorMessage?: string
 ): void {
   if (status === 'completed' || status === 'failed' || status === 'terminated') {
-    // Save output/error to the session
-    const metadata = output || errorMessage ? JSON.stringify({ output, errorMessage }) : null;
+    const existing = getSession(id);
+    const existingMetadata = parseSessionMetadata(existing?.metadata || null);
+    const completedAtIso = new Date().toISOString();
+    const mergedMetadata: SessionMetadata = {
+      ...existingMetadata,
+      output: output ?? existingMetadata.output,
+      errorMessage: errorMessage ?? existingMetadata.errorMessage,
+      terminal: {
+        status,
+        completedAt: completedAtIso,
+        output: output ?? existingMetadata.terminal?.output ?? existingMetadata.output,
+        errorMessage:
+          errorMessage ??
+          existingMetadata.terminal?.errorMessage ??
+          existingMetadata.errorMessage,
+      },
+    };
     run(
-      `UPDATE agent_sessions SET status = ?, completed_at = datetime('now'), output = ?, metadata = ? WHERE id = ?`,
-      [status, output || null, metadata, id]
+      `UPDATE agent_sessions SET status = ?, completed_at = datetime('now'), metadata = ? WHERE id = ?`,
+      [status, JSON.stringify(mergedMetadata), id]
     );
   } else {
     run(`UPDATE agent_sessions SET status = ? WHERE id = ?`, [status, id]);
@@ -189,7 +237,18 @@ export function getSessionsByTask(taskId: string): AgentSession[] {
   return query<AgentSession>(
     'SELECT * FROM agent_sessions WHERE task_id = ? ORDER BY started_at DESC',
     [taskId]
-  );
+  ).map(hydrateSession);
+}
+
+/**
+ * Get running sessions
+ */
+export function getRunningSessions(): AgentSession[] {
+  return query<AgentSession>(
+    `SELECT * FROM agent_sessions
+     WHERE status = 'running'
+     ORDER BY started_at ASC`
+  ).map(hydrateSession);
 }
 
 export default {
@@ -198,6 +257,7 @@ export default {
   getSessionWithIterations,
   getSessionIterations,
   getSessionsByTask,
+  getRunningSessions,
   createSession,
   updateSessionStatus,
   logIteration,

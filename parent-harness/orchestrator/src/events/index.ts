@@ -86,8 +86,28 @@ import { resourceMonitor } from './resource-monitor.js';
 import { startAllScanners, stopAllScanners } from './scanners.js';
 import { stuckAgentHandler } from './stuck-agent-handler.js';
 import { startCrown, stopCrown } from '../crown/index.js';
+import { createEvent } from '../db/events.js';
 
 let initialized = false;
+let observabilityBridgeInstalled = false;
+
+function installObservabilityBridge(): void {
+  if (observabilityBridgeInstalled) return;
+
+  bus.on('system:error', ({ source, error }) => {
+    createEvent({
+      type: 'system:error',
+      message: `System error in ${source}: ${error.message}`,
+      agentId: source,
+      severity: 'error',
+      metadata: {
+        source,
+      },
+    });
+  });
+
+  observabilityBridgeInstalled = true;
+}
 
 /**
  * Initialize the event-driven system
@@ -103,6 +123,7 @@ export function initEventSystem(): void {
 
   // Start resource monitoring first (for backpressure)
   resourceMonitor.start();
+  installObservabilityBridge();
 
   // Services auto-subscribe to events in their constructors
   // Just referencing them ensures they're initialized

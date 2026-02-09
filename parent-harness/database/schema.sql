@@ -342,6 +342,34 @@ CREATE TABLE IF NOT EXISTS message_bus (
 );
 
 -- ============================================
+-- RUNTIME SYSTEM STATE
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS system_state (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Retry attempt audit trail (single-source retry accounting)
+CREATE TABLE IF NOT EXISTS task_retry_attempts (
+    id TEXT PRIMARY KEY,
+    task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    attempt_number INTEGER NOT NULL,
+    agent_id TEXT NOT NULL,
+    session_id TEXT REFERENCES agent_sessions(id) ON DELETE SET NULL,
+    error TEXT,
+    analysis_prompt TEXT,
+    fix_approach TEXT,
+    result TEXT DEFAULT 'pending',
+    completed_at TEXT,
+    source TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(task_id, attempt_number)
+);
+CREATE INDEX IF NOT EXISTS idx_task_retry_attempts_task ON task_retry_attempts(task_id);
+
+-- ============================================
 -- OBSERVABILITY EVENTS
 -- ============================================
 

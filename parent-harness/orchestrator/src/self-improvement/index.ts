@@ -44,6 +44,7 @@ function ensureRetryTable(): void {
       agent_id TEXT NOT NULL,
       session_id TEXT,
       error TEXT,
+      source TEXT,
       analysis_prompt TEXT,
       fix_approach TEXT,
       result TEXT DEFAULT 'pending',
@@ -228,7 +229,7 @@ export async function processFailedTasks(): Promise<number> {
   for (const task of tasksToRetry) {
     // Get the last session to find the error
     const lastSession = sessions.getSessionsByTask(task.id)[0];
-    const error = lastSession?.error_message || 'Unknown error';
+    const error = lastSession?.error_message || 'Unclassified failure';
 
     const { shouldRetry: canRetry, fixApproach } = prepareForRetry(task.id, error);
 

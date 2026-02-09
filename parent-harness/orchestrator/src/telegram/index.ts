@@ -12,5 +12,6 @@ export {
   notifyAgent,
   notify,
   sendToBot,
+  validateTelegramConfigOrThrow,
   default,
 } from './direct-telegram.js';

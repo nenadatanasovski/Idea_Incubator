@@ -3,6 +3,7 @@ import * as tasks from '../db/tasks.js';
 import * as sessions from '../db/sessions.js';
 import { events } from '../db/events.js';
 import { getDb } from '../db/index.js';
+import { isSystemFlagEnabled } from '../db/system-state.js';
 import { ws } from '../websocket.js';
 import * as spawner from '../spawner/index.js';
 import * as planning from '../planning/index.js';
@@ -16,6 +17,7 @@ import { notify as directNotify } from '../telegram/direct-telegram.js';
 import { recordTick, crashProtect } from '../stability/index.js';
 import { checkAlerts, initAlerts } from '../alerts/index.js';
 import * as config from '../config/index.js';
+import { isRunnableProductionTask } from './task-gating.js';
 
 // Configuration
 const TICK_INTERVAL_MS = 30_000; // 30 seconds
@@ -411,13 +413,11 @@ async function checkForApprovedPlans(): Promise<void> {
  * Check if orchestrator is paused via Telegram command
  */
 function isOrchestratorPaused(): boolean {
-  try {
-    const db = getDb();
-    const result = db.prepare(`SELECT value FROM system_state WHERE key = 'orchestrator_paused'`).get() as { value: string } | undefined;
-    return result?.value === 'true';
-  } catch {
-    return false;
-  }
+  return isSystemFlagEnabled('orchestrator_paused');
+}
+
+function isSpawningPaused(): boolean {
+  return isSystemFlagEnabled('spawning_paused');
 }
 
 /**
@@ -436,6 +436,8 @@ async function tick(): Promise<void> {
   }
 
   try {
+    let assignedInTick = 0;
+
     // 0. PROACTIVE RATE LIMIT CHECK - Alert BEFORE hitting limits
     await crashProtect(() => checkRateLimitsProactively(), 'checkRateLimitsProactively');
 
@@ -444,6 +446,7 @@ async function tick(): Promise<void> {
 
     // 1. Check agent health (crash-protected)
     await crashProtect(() => checkAgentHealth(), 'checkAgentHealth');
+    await crashProtect(() => reconcileRunningSessions(), 'reconcileRunningSessions');
 
     // 2. Run QA verification every 10th tick (crash-protected)
     if (RUN_QA && tickCount % QA_EVERY_N_TICKS === 0) {
@@ -466,13 +469,18 @@ async function tick(): Promise<void> {
     await crashProtect(() => checkWaveProgress(), 'checkWaveProgress');
 
     // 5. Assign pending tasks to idle agents (crash-protected)
-    await crashProtect(() => assignTasks(), 'assignTasks');
+    const assignedResult = await crashProtect(() => assignTasks(), 'assignTasks');
+    assignedInTick = Number(assignedResult || 0);
 
     // 6. Log tick event
     const workingAgents = agents.getWorkingAgents();
     const idleAgents = agents.getIdleAgents();
 
-    events.cronTick(tickCount, workingAgents.length, idleAgents.length);
+    events.cronTick(tickCount, workingAgents.length, idleAgents.length, {
+      tasksAssigned: assignedInTick,
+      qaCycle: tickCount % QA_EVERY_N_TICKS === 0 ? 1 : 0,
+      mode: 'legacy',
+    });
 
     const duration = Date.now() - startTime;
     console.log(`⏰ Tick #${tickCount}: ${workingAgents.length} working, ${idleAgents.length} idle (${duration}ms)`);
@@ -591,6 +599,51 @@ async function checkAgentHealth(): Promise<void> {
   }
 }
 
+async function reconcileRunningSessions(): Promise<void> {
+  const runningSessions = sessions.getRunningSessions();
+  if (runningSessions.length === 0) return;
+
+  let closed = 0;
+  const graceMs = TICK_INTERVAL_MS * 2;
+  const now = Date.now();
+
+  for (const session of runningSessions) {
+    const startedMs = new Date(session.started_at).getTime();
+    if (Number.isFinite(startedMs) && now - startedMs < graceMs) {
+      continue;
+    }
+
+    const task = session.task_id ? tasks.getTask(session.task_id) : null;
+    const agent = agents.getAgent(session.agent_id);
+
+    const taskAligned = !!task && task.status === 'in_progress';
+    const agentAligned =
+      !!agent &&
+      agent.status === 'working' &&
+      agent.current_session_id === session.id &&
+      agent.current_task_id === session.task_id;
+
+    if (taskAligned && agentAligned) {
+      continue;
+    }
+
+    sessions.updateSessionStatus(
+      session.id,
+      'terminated',
+      undefined,
+      `Reconciliation closed orphan running session (taskAligned=${taskAligned}, agentAligned=${agentAligned})`
+    );
+    closed++;
+  }
+
+  if (closed > 0) {
+    events.systemRecovery?.(
+      'orchestrator',
+      `Reconciliation closed ${closed} orphan running session(s)`
+    );
+  }
+}
+
 // Track recent task failures for cooldown (task_id -> last_failed_at timestamp)
 const recentFailures = new Map<string, number>();
 const MIN_RETRY_COOLDOWN_MS = 60_000; // 60 seconds minimum between retries
@@ -668,27 +721,29 @@ function atomicClaimTask(taskId: string, agentId: string): boolean {
  * 4. Priority: P0 > P1 > P2, etc.
  * 5. Agent Type Constraints: SIA investigates failures, validation verifies - no overlap
  */
-async function assignTasks(): Promise<void> {
+async function assignTasks(): Promise<number> {
+  let assigned = 0;
+  if (isSpawningPaused()) {
+    return assigned;
+  }
+
   // Get pending tasks (with no unmet dependencies)
   let pendingTasks = tasks.getPendingTasks();
-  if (pendingTasks.length === 0) return;
+  if (pendingTasks.length === 0) return assigned;
 
-  // RATE LIMIT PROTECTION: Skip test tasks - they consume real tokens!
-  // Test tasks are created during API testing and shouldn't be executed
+  // Shared production-task gate (legacy + event mode).
   pendingTasks = pendingTasks.filter(t => {
-    const isTest = t.category === 'test' || 
-                   t.display_id?.startsWith('test_') || 
-                   t.display_id?.startsWith('concurrent_');
-    if (isTest) {
+    const runnable = isRunnableProductionTask(t);
+    if (!runnable) {
       console.log(`⏭️ Skipping test task: ${t.display_id}`);
     }
-    return !isTest;
+    return runnable;
   });
-  if (pendingTasks.length === 0) return;
+  if (pendingTasks.length === 0) return assigned;
 
   // Get idle agents that can work
   const idleAgents = agents.getIdleAgents();
-  if (idleAgents.length === 0) return;
+  if (idleAgents.length === 0) return assigned;
 
   // Sort tasks by priority
   const sortedTasks = pendingTasks.sort((a, b) => {
@@ -721,6 +776,7 @@ async function assignTasks(): Promise<void> {
 
     // Assign task (now just spawns, claim already done)
     await assignTaskToAgent(task, agent);
+    assigned++;
 
     // Remove agent from available pool
     const agentIndex = idleAgents.findIndex(a => a.id === agent.id);
@@ -731,6 +787,8 @@ async function assignTasks(): Promise<void> {
     // Stop if no more idle agents
     if (idleAgents.length === 0) break;
   }
+
+  return assigned;
 }
 
 /**
@@ -797,7 +855,10 @@ function findSuitableAgent(task: tasks.Task, availableAgents: agents.Agent[]): a
  */
 async function assignTaskToAgent(task: tasks.Task, agent: agents.Agent): Promise<void> {
   // Log event
-  events.taskAssigned(task.id, agent.id, task.title);
+  events.taskAssigned(task.id, agent.id, task.title, {
+    source: 'legacy_orchestrator',
+    taskDisplayId: task.display_id,
+  });
 
   if (SPAWN_AGENTS) {
     // Actually spawn the agent process
@@ -870,7 +931,11 @@ export async function completeTask(taskId: string, agentId: string, result?: str
   }
 
   // Log event
-  events.taskCompleted(taskId, agentId, task.title);
+  events.taskCompleted(taskId, agentId, task.title, {
+    source: 'legacy_orchestrator',
+    taskDisplayId: task.display_id,
+    sessionId: agent.current_session_id || null,
+  });
 
   // Broadcast
   ws.taskCompleted(tasks.getTask(taskId));
@@ -891,7 +956,12 @@ export async function failTask(taskId: string, agentId: string, error: string): 
   recordTaskFailure(taskId);
 
   // Update task
-  tasks.failTask(taskId);
+  tasks.failTaskWithContext(taskId, {
+    error,
+    agentId,
+    sessionId: agent.current_session_id ?? undefined,
+    source: 'legacy_orchestrator',
+  });
 
   // Update agent
   agents.updateAgentStatus(agentId, 'idle', null, null);
@@ -903,7 +973,11 @@ export async function failTask(taskId: string, agentId: string, error: string): 
   }
 
   // Log event
-  events.taskFailed(taskId, agentId, task.title, error);
+  events.taskFailed(taskId, agentId, task.title, error, {
+    source: 'legacy_orchestrator',
+    taskDisplayId: task.display_id,
+    sessionId: agent.current_session_id || null,
+  });
 
   // Broadcast
   ws.taskFailed(tasks.getTask(taskId), error);

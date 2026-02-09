@@ -246,9 +246,12 @@ async function handleStuckAgent(health: AgentHealth): Promise<string | null> {
   if (health.currentTaskId) {
     const task = tasks.getTask(health.currentTaskId);
     if (task && task.status === 'in_progress') {
-      tasks.updateTask(health.currentTaskId, { status: 'pending' });
-      // Increment retry count via raw SQL
-      run(`UPDATE tasks SET retry_count = COALESCE(retry_count, 0) + 1 WHERE id = ?`, [health.currentTaskId]);
+      tasks.failTaskWithContext(health.currentTaskId, {
+        error: 'Agent became stuck (Crown intervention)',
+        agentId: health.agentId,
+        source: 'crown_stuck_handler',
+      });
+      tasks.updateTask(health.currentTaskId, { status: 'pending', assigned_agent_id: null });
     }
   }
   
@@ -345,9 +348,12 @@ async function checkTaskQueue(): Promise<{ alerts: string[]; interventions: stri
     
     // Only block if task is still pending or in_progress
     if (task.status === 'pending' || task.status === 'in_progress') {
-      // Block the task to stop the loop
-      tasks.updateTask(loop.task_id, { status: 'blocked' });
-      run(`UPDATE tasks SET retry_count = COALESCE(retry_count, 0) + 1 WHERE id = ?`, [loop.task_id]);
+      // Fail once (single retry authority), then block to stop the loop.
+      tasks.failTaskWithContext(loop.task_id, {
+        error: `Loop detected: ${loop.session_count} sessions in 10 minutes`,
+        source: 'crown_loop_detector',
+      });
+      tasks.updateTask(loop.task_id, { status: 'blocked', assigned_agent_id: null });
       
       interventions.push(`🔄 LOOP DETECTED: ${task.display_id} had ${loop.session_count} sessions in 10 min - BLOCKED`);
       console.log(`👑 Loop detected: ${task.display_id} - ${loop.session_count} sessions by ${loop.agents}`);

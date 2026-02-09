@@ -9,22 +9,26 @@ import https from 'https';
 import { logTelegramMessage } from '../db/telegram.js';
 import { ws } from '../websocket.js';
 
-// Bot tokens per agent type
-const BOT_TOKENS: Record<string, string> = {
-  // System/Admin
-  system: process.env.TELEGRAM_BOT_SYSTEM || '8289522845:AAGsvjg3dnCrodJW1W1EhLjdp2s07LGe6CU',
-  monitor: process.env.TELEGRAM_BOT_MONITOR || '8411912868:AAG8zE_B1RhpQcBcKepJkBjJZ1CtZHk0neQ',
-  orchestrator: process.env.TELEGRAM_BOT_ORCHESTRATOR || '8437865967:AAEwfQ46b5tF94_7TRV90fzt1nOXdRJv86I',
-  
-  // Agent bots
-  build: process.env.TELEGRAM_BOT_BUILD || '8258850025:AAFQUFfaIgC0N1a5GZykcBEJE-sLJrc9lpA',
-  spec: process.env.TELEGRAM_BOT_SPEC || '8293978861:AAHNCRkaEn1xnanYekLNU1jTZcES7HX0k2A',
-  validation: process.env.TELEGRAM_BOT_VALIDATION || '8497591949:AAFqIpnUdIQors9v5pzFRNGPqv0gQ2ZkWx4',
-  sia: process.env.TELEGRAM_BOT_SIA || '8209489629:AAF-TRcCdxrw5lIU6UJS8ogWc94iVN-cQ1Y',
-  planning: process.env.TELEGRAM_BOT_PLANNING || '8567955026:AAHTA8GNPBheu7m59d6TZue6Y-65fnbbH5w',
-  clarification: process.env.TELEGRAM_BOT_CLARIFICATION || '8136650121:AAGjQQV3JS9HS-00A11IL6uqLFeSdV9s-Mw',
-  human: process.env.TELEGRAM_HUMAN_SIM_BOT_TOKEN || '8537180647:AAEb6zO11b4sGkwaYglpLmX9Qcb1W57Yahg',
+const BOT_TOKEN_ENV: Record<string, string> = {
+  system: 'TELEGRAM_BOT_SYSTEM',
+  monitor: 'TELEGRAM_BOT_MONITOR',
+  orchestrator: 'TELEGRAM_BOT_ORCHESTRATOR',
+  build: 'TELEGRAM_BOT_BUILD',
+  spec: 'TELEGRAM_BOT_SPEC',
+  validation: 'TELEGRAM_BOT_VALIDATION',
+  sia: 'TELEGRAM_BOT_SIA',
+  planning: 'TELEGRAM_BOT_PLANNING',
+  clarification: 'TELEGRAM_BOT_CLARIFICATION',
+  human: 'TELEGRAM_HUMAN_SIM_BOT_TOKEN',
 };
+
+// Bot tokens per agent type (env-only, no hardcoded fallbacks).
+const BOT_TOKENS: Record<string, string> = Object.fromEntries(
+  Object.entries(BOT_TOKEN_ENV).map(([botType, envKey]) => [
+    botType,
+    (process.env[envKey] || '').trim(),
+  ])
+);
 
 // Map agent types to their bot
 const AGENT_BOT_MAP: Record<string, string> = {
@@ -41,8 +45,8 @@ const AGENT_BOT_MAP: Record<string, string> = {
   orchestrator: 'orchestrator', system: 'system',
 };
 
-// Admin chat ID
-const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID || '8397599412';
+// Admin chat ID (env-only)
+const ADMIN_CHAT_ID = (process.env.TELEGRAM_ADMIN_CHAT_ID || '').trim();
 
 // Rate limiting: Track recent messages to prevent spam
 const recentMessages = new Map<string, number>(); // hash -> timestamp
@@ -173,7 +177,22 @@ function httpsGetIPv4(url: string, timeoutMs = 10000): Promise<{ ok: boolean; re
  */
 function getBotToken(agentType: string): string {
   const botKey = AGENT_BOT_MAP[agentType] || 'system';
-  return BOT_TOKENS[botKey] || BOT_TOKENS.system;
+  return BOT_TOKENS[botKey] || BOT_TOKENS.system || '';
+}
+
+export function validateTelegramConfigOrThrow(): void {
+  const requiredBotTypes = Object.keys(BOT_TOKEN_ENV);
+  const missing = requiredBotTypes.filter(type => !BOT_TOKENS[type]);
+
+  if (!ADMIN_CHAT_ID) {
+    throw new Error('Missing TELEGRAM_ADMIN_CHAT_ID');
+  }
+  if (missing.length > 0) {
+    const missingEnvKeys = missing.map(type => BOT_TOKEN_ENV[type]);
+    throw new Error(
+      `Missing required Telegram bot tokens: ${missingEnvKeys.join(', ')}`
+    );
+  }
 }
 
 // Context for message logging
@@ -185,23 +204,6 @@ interface MessageContext {
   sessionId?: string;
 }
 
-// Current context (set before sending messages)
-let currentContext: MessageContext = {};
-
-/**
- * Set context for the next message(s) to be sent
- */
-export function setMessageContext(ctx: MessageContext): void {
-  currentContext = ctx;
-}
-
-/**
- * Clear message context
- */
-export function clearMessageContext(): void {
-  currentContext = {};
-}
-
 /**
  * Send a message via a specific bot (with rate limiting and logging)
  */
@@ -210,7 +212,8 @@ async function sendTelegramMessage(
   chatId: string,
   text: string,
   parseMode: 'HTML' | 'Markdown' = 'Markdown',
-  botType: string = 'system'
+  botType: string = 'system',
+  context: MessageContext = {}
 ): Promise<boolean> {
   if (!botToken || !chatId) return false;
   
@@ -241,12 +244,12 @@ async function sendTelegramMessage(
     const logged = logTelegramMessage({
       botType,
       chatId,
-      messageType: currentContext.messageType || 'general',
+      messageType: context.messageType || 'general',
       messageText: text,
-      taskId: currentContext.taskId,
-      taskDisplayId: currentContext.taskDisplayId,
-      agentId: currentContext.agentId || botType,
-      sessionId: currentContext.sessionId,
+      taskId: context.taskId,
+      taskDisplayId: context.taskDisplayId,
+      agentId: context.agentId || botType,
+      sessionId: context.sessionId,
       telegramMessageId,
     });
     
@@ -263,11 +266,10 @@ async function sendTelegramMessage(
  * Initialize Telegram (validate all bot tokens)
  */
 export async function initTelegram(): Promise<boolean> {
+  validateTelegramConfigOrThrow();
   let anyValid = false;
   
   for (const [name, token] of Object.entries(BOT_TOKENS)) {
-    if (!token) continue;
-    
     const result = await httpsGetIPv4(`https://api.telegram.org/bot${token}/getMe`);
     
     if (result.ok && result.result) {
@@ -294,26 +296,37 @@ export async function initTelegram(): Promise<boolean> {
 export async function sendMessage(
   chatId: string | number,
   message: string,
-  options?: { parseMode?: 'HTML' | 'Markdown'; botType?: string }
+  options?: { parseMode?: 'HTML' | 'Markdown'; botType?: string; context?: MessageContext }
 ): Promise<boolean> {
   const token = options?.botType ? getBotToken(options.botType) : BOT_TOKENS.system;
-  return sendTelegramMessage(token, String(chatId), message, options?.parseMode || 'Markdown');
+  return sendTelegramMessage(
+    token,
+    String(chatId),
+    message,
+    options?.parseMode || 'Markdown',
+    options?.botType || 'system',
+    options?.context || {}
+  );
 }
 
 /**
  * Send notification to admin
  */
-export async function notifyAdmin(message: string): Promise<boolean> {
-  return sendTelegramMessage(BOT_TOKENS.system, ADMIN_CHAT_ID, message);
+export async function notifyAdmin(message: string, context: MessageContext = {}): Promise<boolean> {
+  return sendTelegramMessage(BOT_TOKENS.system, ADMIN_CHAT_ID, message, 'Markdown', 'system', context);
 }
 
 /**
  * Send notification from an agent's dedicated bot
  */
-export async function notifyAgent(agentIdOrType: string, message: string): Promise<boolean> {
+export async function notifyAgent(
+  agentIdOrType: string,
+  message: string,
+  context: MessageContext = {}
+): Promise<boolean> {
   const botKey = AGENT_BOT_MAP[agentIdOrType] || 'system';
   const token = getBotToken(agentIdOrType);
-  return sendTelegramMessage(token, ADMIN_CHAT_ID, message, 'Markdown', botKey);
+  return sendTelegramMessage(token, ADMIN_CHAT_ID, message, 'Markdown', botKey, context);
 }
 
 /**
@@ -324,30 +337,70 @@ export async function notifyAgent(agentIdOrType: string, message: string): Promi
  * None of these consume AI tokens - they just send Telegram messages
  */
 export const notify = {
-  taskAssigned: async (agentIdOrType: string, taskDisplayId: string, taskTitle: string) => {
-    setMessageContext({ messageType: 'task_assigned', taskDisplayId, agentId: agentIdOrType });
-    await notifyAgent(agentIdOrType, `📋 *Task Assigned*\n\`${taskDisplayId}\`\n${taskTitle}`);
-    clearMessageContext();
+  taskAssigned: async (
+    agentIdOrType: string,
+    taskDisplayId: string,
+    taskTitle: string,
+    context: MessageContext = {}
+  ) => {
+    await notifyAgent(
+      agentIdOrType,
+      `📋 *Task Assigned*\n\`${taskDisplayId}\`\n${taskTitle}`,
+      {
+        messageType: 'task_assigned',
+        taskDisplayId,
+        agentId: agentIdOrType,
+        ...context,
+      }
+    );
   },
 
-  taskCompleted: async (agentIdOrType: string, taskDisplayId: string, taskTitle: string, summary?: string) => {
-    setMessageContext({ messageType: 'task_completed', taskDisplayId, agentId: agentIdOrType });
+  taskCompleted: async (
+    agentIdOrType: string,
+    taskDisplayId: string,
+    taskTitle: string,
+    summary?: string,
+    context: MessageContext = {}
+  ) => {
     let msg = `✅ *Task Completed*\n\`${taskDisplayId}\`\n${taskTitle}`;
     if (summary) msg += `\n\n${summary.slice(0, 500)}`;
-    await notifyAgent(agentIdOrType, msg);
-    clearMessageContext();
+    await notifyAgent(agentIdOrType, msg, {
+      messageType: 'task_completed',
+      taskDisplayId,
+      agentId: agentIdOrType,
+      ...context,
+    });
   },
 
-  taskFailed: async (agentIdOrType: string, taskDisplayId: string, error: string) => {
-    setMessageContext({ messageType: 'task_failed', taskDisplayId, agentId: agentIdOrType });
-    await notifyAgent(agentIdOrType, `❌ *Task Failed*\n\`${taskDisplayId}\`\n${error.slice(0, 300)}`);
-    clearMessageContext();
+  taskFailed: async (
+    agentIdOrType: string,
+    taskDisplayId: string,
+    error: string,
+    context: MessageContext = {}
+  ) => {
+    await notifyAgent(
+      agentIdOrType,
+      `❌ *Task Failed*\n\`${taskDisplayId}\`\n${error.slice(0, 300)}`,
+      {
+        messageType: 'task_failed',
+        taskDisplayId,
+        agentId: agentIdOrType,
+        ...context,
+      }
+    );
   },
 
-  agentSpawned: async (agentIdOrType: string, taskDisplayId: string) => {
-    setMessageContext({ messageType: 'agent_spawned', taskDisplayId, agentId: agentIdOrType });
-    await notifyAgent(agentIdOrType, `🚀 *Agent Spawned*\nWorking on: \`${taskDisplayId}\``);
-    clearMessageContext();
+  agentSpawned: async (
+    agentIdOrType: string,
+    taskDisplayId: string,
+    context: MessageContext = {}
+  ) => {
+    await notifyAgent(agentIdOrType, `🚀 *Agent Spawned*\nWorking on: \`${taskDisplayId}\``, {
+      messageType: 'agent_spawned',
+      taskDisplayId,
+      agentId: agentIdOrType,
+      ...context,
+    });
   },
 
   agentOutput: async (agentIdOrType: string, taskDisplayId: string, output: string) => {
@@ -600,13 +653,18 @@ export async function getAllBotsStatus(): Promise<Array<{
   return statuses;
 }
 
-// Webhook secret for verification
-const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || 'harness-webhook-secret-2026';
+// Webhook secret for verification (env-only)
+const WEBHOOK_SECRET = (process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
 
 /**
  * Set webhook for a specific bot
  */
 export async function setWebhook(botToken: string, webhookUrl: string): Promise<boolean> {
+  if (!WEBHOOK_SECRET) {
+    console.error('❌ TELEGRAM_WEBHOOK_SECRET is required to configure webhooks');
+    return false;
+  }
+
   const result = await httpsPostIPv4(
     `https://api.telegram.org/bot${botToken}/setWebhook`,
     {

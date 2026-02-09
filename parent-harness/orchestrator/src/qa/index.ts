@@ -61,7 +61,7 @@ async function runCheck(
       name,
       passed: false,
       output: error.stdout?.slice(0, 2500),
-      error: (error.stderr || error.message || 'Unknown error').slice(0, 2500),
+      error: (error.stderr || error.message || 'Unclassified failure').slice(0, 2500),
     };
   }
 }

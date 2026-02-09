@@ -117,30 +117,59 @@ export function createEvent(input: CreateEventInput): ObservabilityEvent {
  * Create common event types
  */
 export const events = {
-  taskAssigned: (taskId: string, agentId: string, taskTitle: string) =>
+  taskAssigned: (
+    taskId: string,
+    agentId: string,
+    taskTitle: string,
+    metadata: Record<string, unknown> = {}
+  ) =>
     createEvent({
       type: 'task:assigned',
       message: `Task assigned to ${agentId}: ${taskTitle}`,
       taskId,
       agentId,
+      metadata: {
+        taskTitle,
+        ...metadata,
+      },
     }),
 
-  taskCompleted: (taskId: string, agentId: string, taskTitle: string) =>
+  taskCompleted: (
+    taskId: string,
+    agentId: string,
+    taskTitle: string,
+    metadata: Record<string, unknown> = {}
+  ) =>
     createEvent({
       type: 'task:completed',
       message: `Task completed: ${taskTitle}`,
       taskId,
       agentId,
       severity: 'info',
+      metadata: {
+        taskTitle,
+        ...metadata,
+      },
     }),
 
-  taskFailed: (taskId: string, agentId: string, taskTitle: string, error: string) =>
+  taskFailed: (
+    taskId: string,
+    agentId: string,
+    taskTitle: string,
+    error: string,
+    metadata: Record<string, unknown> = {}
+  ) =>
     createEvent({
       type: 'task:failed',
       message: `Task failed: ${taskTitle} - ${error}`,
       taskId,
       agentId,
       severity: 'error',
+      metadata: {
+        taskTitle,
+        error,
+        ...metadata,
+      },
     }),
 
   agentStarted: (agentId: string, sessionId: string) =>
@@ -209,12 +238,41 @@ export const events = {
       severity: 'warning',
     }),
 
-  cronTick: (tickNumber: number, workingCount: number, idleCount: number) =>
-    createEvent({
+  cronTick: (
+    tickNumber: number,
+    workingCount: number,
+    idleCount: number,
+    metadata: Record<string, unknown> = {}
+  ) => {
+    try {
+      run(
+        `
+          INSERT OR REPLACE INTO cron_ticks (
+            tick_number, timestamp, actions_taken, agents_working, agents_idle, tasks_assigned, qa_cycle
+          )
+          VALUES (?, datetime('now'), ?, ?, ?, ?, ?)
+        `,
+        [
+          tickNumber,
+          typeof metadata.actionsTaken === 'string'
+            ? metadata.actionsTaken
+            : JSON.stringify(metadata),
+          workingCount,
+          idleCount,
+          Number(metadata.tasksAssigned ?? 0),
+          Number(metadata.qaCycle ?? 0),
+        ]
+      );
+    } catch {
+      // Keep event path resilient even if cron_ticks insert fails.
+    }
+    return createEvent({
       type: 'cron:tick',
       message: `Tick #${tickNumber}: ${workingCount} agents working, ${idleCount} idle`,
       severity: 'debug',
-    }),
+      metadata,
+    });
+  },
 
   planningCompleted: (cycleNumber: number, tasksCreated: number) =>
     createEvent({

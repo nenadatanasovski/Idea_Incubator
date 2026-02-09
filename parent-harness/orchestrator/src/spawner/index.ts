@@ -598,7 +598,12 @@ async function spawnAgentSessionInternal(
   ws.agentStatusChanged(agents.getAgent(agentId));
 
   // Notify agent's dedicated channel
-  await notify.agentSpawned(agentData.type, taskData.display_id).catch(() => {});
+  await notify.agentSpawned(agentData.type, taskData.display_id, {
+    taskId: taskData.id,
+    taskDisplayId: taskData.display_id,
+    sessionId: session.id,
+    agentId: agentData.id,
+  }).catch(() => {});
 
   // Create execution record
   let execution: ReturnType<typeof executions.createExecution> | null = null;
@@ -687,6 +692,7 @@ async function spawnAgentSessionInternal(
     function finishSession(success: boolean, errorMsg?: string) {
       clearTimeout(timeoutId);
       clearInterval(heartbeatInterval);
+      const sessionStartTime = runningProcesses.get(session.id)?.startTime || Date.now();
       runningProcesses.delete(session.id);
 
       const rawOutput = stdout + stderr;
@@ -741,9 +747,26 @@ async function spawnAgentSessionInternal(
 
       if (success) {
         sessions.updateSessionStatus(session.id, 'completed', output);
+        try {
+          sessions.logIteration(session.id, 1, {
+            tokensInput: inputTokens,
+            tokensOutput: outputTokens,
+            cost: costUsd,
+            durationMs: Date.now() - sessionStartTime,
+            status: 'completed',
+            outputMessage: extractSummary(output) || output.slice(0, 2000),
+          });
+        } catch {
+          // Non-fatal: iteration logging should not break completion.
+        }
         tasks.updateTask(task.id, { status: 'pending_verification' });
         agents.incrementTasksCompleted(agentId);
-        events.taskCompleted(taskId, agentId, task.title);
+        events.taskCompleted(taskId, agentId, task.title, {
+          source: 'spawner',
+          taskDisplayId: task.display_id,
+          sessionId: session.id,
+          filesModifiedCount: filesModified.length,
+        });
         ws.taskCompleted(tasks.getTask(taskId));
 
         // Update execution record
@@ -765,7 +788,18 @@ async function spawnAgentSessionInternal(
         }
 
         // Notify agent's channel
-        notify.taskCompleted(agent.type, task.display_id, task.title, extractSummary(output)).catch(() => {});
+        notify.taskCompleted(
+          agent.type,
+          task.display_id,
+          task.title,
+          extractSummary(output),
+          {
+            taskId: task.id,
+            taskDisplayId: task.display_id,
+            sessionId: session.id,
+            agentId: agent.id,
+          }
+        ).catch(() => {});
 
         // Auto-commit
         if (filesModified.length > 0) {
@@ -776,27 +810,55 @@ async function spawnAgentSessionInternal(
         resolve({ success: true, sessionId: session.id, output, filesModified });
       } else {
         sessions.updateSessionStatus(session.id, 'failed', output, errorMsg);
+        const normalizedError = normalizeFailureReason(errorMsg || extractError(output) || output);
+        try {
+          sessions.logIteration(session.id, 1, {
+            tokensInput: inputTokens,
+            tokensOutput: outputTokens,
+            cost: costUsd,
+            durationMs: Date.now() - sessionStartTime,
+            status: 'failed',
+            errorMessage: normalizedError,
+            outputMessage: output.slice(0, 2000),
+          });
+        } catch {
+          // Non-fatal: iteration logging should not block failure handling.
+        }
         // Don't fail the task yet if it's a rate limit - caller will retry
         if (!rateLimit) {
-          tasks.failTask(taskId);
+          tasks.failTaskWithContext(taskId, {
+            error: normalizedError,
+            agentId,
+            sessionId: session.id,
+            source: 'spawner',
+          });
           agents.incrementTasksFailed(agentId);
-          events.taskFailed(taskId, agentId, task.title, errorMsg || 'Unknown error');
-          ws.taskFailed(tasks.getTask(taskId), errorMsg || 'Unknown error');
-          notify.taskFailed(agent.type, task.display_id, errorMsg || 'Unknown error').catch(() => {});
+          events.taskFailed(taskId, agentId, task.title, normalizedError, {
+            source: 'spawner',
+            taskDisplayId: task.display_id,
+            sessionId: session.id,
+          });
+          ws.taskFailed(tasks.getTask(taskId), normalizedError);
+          notify.taskFailed(agent.type, task.display_id, normalizedError, {
+            taskId: task.id,
+            taskDisplayId: task.display_id,
+            sessionId: session.id,
+            agentId: agent.id,
+          }).catch(() => {});
         }
 
         // Update execution record for failure
         if (execution) {
           try {
-            executions.failExecution(execution.id, errorMsg || 'Unknown error');
-            activities.logTaskFailed(agentId, taskId, session.id, errorMsg || 'Unknown error');
+            executions.failExecution(execution.id, normalizedError);
+            activities.logTaskFailed(agentId, taskId, session.id, normalizedError);
           } catch (err) {
             console.warn('Failed to update execution record:', err);
           }
         }
 
-        console.log(`❌ ${agent.name} failed ${task.display_id}: ${(errorMsg || '').slice(0, 100)}`);
-        resolve({ success: false, sessionId: session.id, error: errorMsg, output, filesModified, isRateLimit: rateLimit });
+        console.log(`❌ ${agent.name} failed ${task.display_id}: ${normalizedError.slice(0, 100)}`);
+        resolve({ success: false, sessionId: session.id, error: normalizedError, output, filesModified, isRateLimit: rateLimit });
       }
 
       // Cleanup
@@ -1011,8 +1073,31 @@ function extractFilesModified(output: string): string[] {
 }
 
 function extractError(output: string): string {
-  const match = output.match(/TASK_FAILED:\s*(.+)/);
-  return match ? match[1].trim() : '';
+  const explicit = output.match(/TASK_FAILED:\s*(.+)/i);
+  if (explicit?.[1]) {
+    return explicit[1].trim();
+  }
+
+  const commonPatterns = [
+    /Error:\s*([^\n]+)/i,
+    /Exception:\s*([^\n]+)/i,
+    /failed:\s*([^\n]+)/i,
+  ];
+  for (const pattern of commonPatterns) {
+    const match = output.match(pattern);
+    if (match?.[1]) {
+      return match[1].trim();
+    }
+  }
+  return '';
+}
+
+function normalizeFailureReason(error: string): string {
+  const trimmed = (error || '').trim();
+  if (!trimmed) {
+    return 'Unclassified failure';
+  }
+  return trimmed.slice(0, 2000);
 }
 
 function extractSummary(output: string): string {

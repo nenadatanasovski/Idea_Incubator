@@ -5,11 +5,17 @@ import { initStability } from './stability/index.js';
 initStability();
 
 // ============ DATABASE MIGRATIONS ============
-import { migrate } from './db/index.js';
+import {
+  getDatabasePath,
+  migrate,
+  runMaintenanceCheckpointAndBackup,
+  verifyDatabaseIntegrity,
+} from './db/index.js';
 try {
   migrate();
 } catch (err) {
   console.error('❌ Migration failed:', err);
+  process.exit(1);
 }
 
 import express from 'express';
@@ -46,9 +52,10 @@ import { startOrchestrator } from './orchestrator/index.js';
 import { initTelegram } from './telegram/index.js';
 import { initBuildHealth } from './build-health/index.js';
 import { initEventSystem, getEventSystemStatus } from './events/index.js';
+import { getRuntimeMode, isEventMode } from './runtime/mode.js';
+import { validateTelegramConfigOrThrow } from './telegram/direct-telegram.js';
 
-// Feature flag for event-driven architecture
-const USE_EVENT_SYSTEM = process.env.HARNESS_EVENT_SYSTEM === 'true';
+const runtimeMode = getRuntimeMode();
 
 const app = express();
 const PORT = process.env.PORT || 3333;
@@ -60,11 +67,20 @@ const server = createServer(app);
 initWebSocket(server);
 
 // Initialize Telegram (optional)
-initTelegram();
+try {
+  validateTelegramConfigOrThrow();
+  initTelegram().catch((err) => {
+    console.error('❌ Telegram initialization failed:', err);
+    process.exit(1);
+  });
+} catch (err) {
+  console.error('❌ Telegram configuration invalid:', err);
+  process.exit(1);
+}
 
 // Initialize Build Health monitoring - ONLY check orchestrator, not entire codebase
 // Full codebase check was causing 200%+ CPU usage and machine freezes
-const ORCHESTRATOR_ROOT = process.env.CODEBASE_ROOT || '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/parent-harness/orchestrator';
+const ORCHESTRATOR_ROOT = process.env.CODEBASE_ROOT || process.cwd();
 initBuildHealth(ORCHESTRATOR_ROOT);
 
 // Middleware
@@ -106,28 +122,41 @@ app.use(errorHandler);
 
 // Event system status endpoint
 app.get('/api/events/system', (_req, res) => {
-  if (USE_EVENT_SYSTEM) {
+  if (isEventMode(runtimeMode)) {
     res.json(getEventSystemStatus());
   } else {
-    res.json({ enabled: false, message: 'Event system disabled. Set HARNESS_EVENT_SYSTEM=true' });
+    res.json({ enabled: false, message: 'Event system disabled. Use HARNESS_RUNTIME_MODE=event' });
   }
 });
 
 // Start server
 server.listen(PORT, () => {
-  console.log(`🚀 Orchestrator API running on http://localhost:${PORT}`);
+  console.log(`🚀 Orchestrator API running on http://localhost:${PORT} (pid=${process.pid})`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`🔌 WebSocket: ws://localhost:${PORT}/ws`);
+  console.log(`🗄️ DB Path: ${getDatabasePath()}`);
+  console.log(`🎛️ Runtime mode: ${runtimeMode}`);
 
   // Choose orchestration mode
-  if (USE_EVENT_SYSTEM) {
+  if (isEventMode(runtimeMode)) {
     console.log(`⚡ Event-driven architecture: ENABLED`);
     initEventSystem();
     console.log(`⚡ Event system initialized - scanners and services running`);
   } else {
-    console.log(`🔄 Legacy tick loop: ENABLED (set HARNESS_EVENT_SYSTEM=true to use events)`);
+    console.log(`🔄 Legacy tick loop: ENABLED`);
     startOrchestrator();
   }
+
+  // Integrity hardening: periodic quick_check + checkpoint + backup.
+  setInterval(() => {
+    try {
+      verifyDatabaseIntegrity();
+      const backupPath = runMaintenanceCheckpointAndBackup('periodic');
+      console.log(`🛡️ DB maintenance completed: ${backupPath}`);
+    } catch (err) {
+      console.error('❌ DB maintenance failed:', err);
+    }
+  }, 30 * 60 * 1000);
 });
 
 export default app;
