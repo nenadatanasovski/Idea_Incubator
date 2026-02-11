@@ -1,4 +1,4 @@
-import { query, getOne, run } from './index.js';
+import { query, getOne, run } from "./index.js";
 
 export interface Agent {
   id: string;
@@ -6,7 +6,7 @@ export interface Agent {
   type: string;
   model: string;
   telegram_channel: string | null;
-  status: 'idle' | 'working' | 'error' | 'stuck' | 'stopped';
+  status: "idle" | "working" | "error" | "stuck" | "stopped";
   current_task_id: string | null;
   current_session_id: string | null;
   last_heartbeat: string | null;
@@ -14,7 +14,7 @@ export interface Agent {
   tasks_failed: number;
   created_at: string;
   updated_at: string;
-  running_instances?: number;  // Count of active sessions for this agent type
+  running_instances?: number; // Count of active sessions for this agent type
 }
 
 /**
@@ -27,7 +27,7 @@ export function getRunningInstanceCounts(): Record<string, number> {
     WHERE status = 'running' 
     GROUP BY agent_id
   `);
-  
+
   const counts: Record<string, number> = {};
   for (const row of rows) {
     counts[row.agent_id] = row.count;
@@ -39,13 +39,13 @@ export function getRunningInstanceCounts(): Record<string, number> {
  * Get all agents with running instance counts
  */
 export function getAgents(): Agent[] {
-  const agents = query<Agent>('SELECT * FROM agents ORDER BY name');
+  const agents = query<Agent>("SELECT * FROM agents ORDER BY name");
   const instanceCounts = getRunningInstanceCounts();
-  
+
   // Add running_instances to each agent
-  return agents.map(agent => ({
+  return agents.map((agent) => ({
     ...agent,
-    running_instances: instanceCounts[agent.id] || 0
+    running_instances: instanceCounts[agent.id] || 0,
   }));
 }
 
@@ -53,95 +53,110 @@ export function getAgents(): Agent[] {
  * Get a single agent by ID
  */
 export function getAgent(id: string): Agent | undefined {
-  return getOne<Agent>('SELECT * FROM agents WHERE id = ?', [id]);
+  return getOne<Agent>("SELECT * FROM agents WHERE id = ?", [id]);
 }
 
 /**
  * Get agents by status
  */
-export function getAgentsByStatus(status: Agent['status']): Agent[] {
-  return query<Agent>('SELECT * FROM agents WHERE status = ?', [status]);
+export function getAgentsByStatus(status: Agent["status"]): Agent[] {
+  return query<Agent>("SELECT * FROM agents WHERE status = ?", [status]);
 }
 
 /**
  * Get idle agents
  */
 export function getIdleAgents(): Agent[] {
-  return getAgentsByStatus('idle');
+  return getAgentsByStatus("idle");
 }
 
 /**
  * Get working agents
  */
 export function getWorkingAgents(): Agent[] {
-  return getAgentsByStatus('working');
+  return getAgentsByStatus("working");
 }
 
 /**
  * Update agent status
  */
 export function updateAgentStatus(
-  id: string, 
-  status: Agent['status'],
+  id: string,
+  status: Agent["status"],
   currentTaskId?: string | null,
-  currentSessionId?: string | null
+  currentSessionId?: string | null,
 ): void {
-  run(`
+  run(
+    `
     UPDATE agents 
     SET status = ?, 
         current_task_id = ?,
         current_session_id = ?,
         updated_at = datetime('now')
     WHERE id = ?
-  `, [status, currentTaskId ?? null, currentSessionId ?? null, id]);
+  `,
+    [status, currentTaskId ?? null, currentSessionId ?? null, id],
+  );
 }
 
 /**
  * Update agent heartbeat
  */
 export function updateHeartbeat(id: string): void {
-  run(`
+  run(
+    `
     UPDATE agents 
     SET last_heartbeat = datetime('now'),
         updated_at = datetime('now')
     WHERE id = ?
-  `, [id]);
+  `,
+    [id],
+  );
 }
 
 /**
  * Clear agent heartbeat (for stale agent cleanup)
  */
 export function clearHeartbeat(id: string): void {
-  run(`
+  run(
+    `
     UPDATE agents 
     SET last_heartbeat = NULL,
         updated_at = datetime('now')
     WHERE id = ?
-  `, [id]);
+  `,
+    [id],
+  );
 }
 
 /**
  * Increment tasks completed counter
  */
 export function incrementTasksCompleted(id: string): void {
-  run(`
+  run(
+    `
     UPDATE agents 
     SET tasks_completed = tasks_completed + 1,
         updated_at = datetime('now')
     WHERE id = ?
-  `, [id]);
+  `,
+    [id],
+  );
 }
 
 /**
  * Increment tasks failed counter
  */
 export function incrementTasksFailed(id: string): void {
-  run(`
+  run(
+    `
     UPDATE agents 
     SET tasks_failed = tasks_failed + 1,
         updated_at = datetime('now')
     WHERE id = ?
-  `, [id]);
+  `,
+    [id],
+  );
 }
 
 export interface CreateAgentInput {
@@ -158,7 +173,8 @@ export interface CreateAgentInput {
  * Create a new agent
  */
 export function createAgent(input: CreateAgentInput): Agent {
-  run(`
+  run(
+    `
     INSERT INTO agents (id, name, type, model, telegram_channel, status, tasks_completed, tasks_failed)
     VALUES (?, ?, ?, ?, ?, 'idle', 0, 0)
     ON CONFLICT(id) DO UPDATE SET
@@ -167,14 +183,16 @@ export function createAgent(input: CreateAgentInput): Agent {
       model = excluded.model,
       telegram_channel = excluded.telegram_channel,
       updated_at = datetime('now')
-  `, [
-    input.id,
-    input.name,
-    input.type,
-    input.model ?? 'sonnet',
-    input.telegramChannel ?? null,
-  ]);
-  
+  `,
+    [
+      input.id,
+      input.name,
+      input.type,
+      input.model ?? "sonnet",
+      input.telegramChannel ?? null,
+    ],
+  );
+
   return getAgent(input.id)!;
 }
 

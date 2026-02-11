@@ -16,6 +16,7 @@ Upgrade the Build Agent to analyze feature requirements, identify all files need
 ### Problem Statement
 
 **Current State:**
+
 - Build Agent modifies files sequentially without upfront planning
 - No visibility into which files need changes before execution starts
 - Changes applied immediately without dependency ordering
@@ -24,6 +25,7 @@ Upgrade the Build Agent to analyze feature requirements, identify all files need
 - Circular dependencies or missing files only discovered during execution
 
 **Desired State:**
+
 - Build Agent analyzes requirements and identifies all target files upfront
 - Creates change plan with file dependencies (types before implementations)
 - Validates plan before executing any changes (circular deps, missing files)
@@ -54,6 +56,7 @@ The Multi-File Change Coordination System is the **"All-or-Nothing Implementatio
 The Build Agent must analyze feature requirements and identify all files requiring changes:
 
 **Input:** Feature specification with requirements
+
 ```typescript
 interface FeatureRequirement {
   id: string;
@@ -64,10 +67,11 @@ interface FeatureRequirement {
 ```
 
 **Output:** List of files needing changes with metadata
+
 ```typescript
 interface FileChange {
   path: string; // e.g., 'server/types/user.ts'
-  operation: 'create' | 'modify' | 'delete';
+  operation: "create" | "modify" | "delete";
   reason: string; // Why this file needs to change
   dependencies: string[]; // Paths of files that must change first
   priority: number; // Lower = earlier in execution order
@@ -75,6 +79,7 @@ interface FileChange {
 ```
 
 **Analysis Strategy:**
+
 - Parse feature description for entity names (e.g., "User authentication" → User type)
 - Map requirements to layers (database → migrations, API → routes, UI → components)
 - Identify type definition files (must change before implementations)
@@ -86,6 +91,7 @@ interface FileChange {
 Build a directed acyclic graph (DAG) of file dependencies:
 
 **Dependency Rules:**
+
 ```typescript
 interface DependencyRule {
   condition: (file: FileChange) => boolean;
@@ -95,12 +101,12 @@ interface DependencyRule {
 const DEPENDENCY_RULES: DependencyRule[] = [
   {
     // Type definitions must exist before implementations
-    condition: (file) => file.path.includes('/types/'),
+    condition: (file) => file.path.includes("/types/"),
     dependsOn: () => [], // No dependencies
   },
   {
     // Implementations depend on types
-    condition: (file) => !file.path.includes('/types/'),
+    condition: (file) => !file.path.includes("/types/"),
     dependsOn: (file) => {
       // Extract imported types from file analysis
       return findTypeImports(file.path);
@@ -108,18 +114,19 @@ const DEPENDENCY_RULES: DependencyRule[] = [
   },
   {
     // Database migrations must run before API routes
-    condition: (file) => file.path.includes('/migrations/'),
+    condition: (file) => file.path.includes("/migrations/"),
     dependsOn: () => [],
   },
   {
     // API routes depend on migrations (for schema)
-    condition: (file) => file.path.includes('/routes/'),
+    condition: (file) => file.path.includes("/routes/"),
     dependsOn: (file) => findMigrationDependencies(file.path),
   },
 ];
 ```
 
 **Validation:**
+
 - Detect circular dependencies (types.ts depends on utils.ts depends on types.ts)
 - Ensure all dependencies reference files in the change plan
 - Verify no missing files (dependency not in plan and doesn't exist)
@@ -129,6 +136,7 @@ const DEPENDENCY_RULES: DependencyRule[] = [
 Generate an ordered execution plan with phases:
 
 **Plan Structure:**
+
 ```typescript
 interface ChangePlan {
   id: string; // Unique plan ID
@@ -154,6 +162,7 @@ interface PlanValidation {
 ```
 
 **Example Plan:**
+
 ```typescript
 const examplePlan: ChangePlan = {
   id: 'plan-123',
@@ -193,10 +202,11 @@ const examplePlan: ChangePlan = {
 Execute the plan with atomicity guarantees:
 
 **Execution Strategy:**
+
 ```typescript
 interface ExecutionResult {
   planId: string;
-  status: 'completed' | 'failed' | 'rolled_back';
+  status: "completed" | "failed" | "rolled_back";
   phasesCompleted: number;
   filesChanged: string[]; // Successfully modified files
   failedAt?: {
@@ -209,7 +219,7 @@ interface ExecutionResult {
 
 interface RollbackAction {
   file: string;
-  action: 'restore_from_git' | 'delete_file' | 'unstage';
+  action: "restore_from_git" | "delete_file" | "unstage";
   gitRef: string; // Commit hash before change
   success: boolean;
   timestamp: string;
@@ -217,13 +227,16 @@ interface RollbackAction {
 ```
 
 **Execution Flow:**
+
 1. **Pre-execution checkpoint** - Record current git state
+
    ```typescript
    const checkpoint = await git.getStatus();
    const headCommit = await git.getLastCommitHash();
    ```
 
 2. **Phase-by-phase execution** - Execute phases in order
+
    ```typescript
    for (const phase of plan.phases) {
      for (const file of phase.files) {
@@ -253,29 +266,32 @@ interface RollbackAction {
    ```typescript
    await git.stageAll(plan.filesChanged);
    await git.commit(`feat: ${plan.featureId}
+   ```
 
 All changes:
 ${plan.filesChanged.map(f => `- ${f}`).join('\n')}
 
 Change plan: ${plan.id}`);
-   ```
+
+````
 
 4. **Failure** - Rollback to initial state
-   ```typescript
-   for (const action of rollbackActions.reverse()) {
-     if (action.action === 'restore_from_git') {
-       await git.checkoutFile(action.file, action.gitRef);
-     } else if (action.action === 'delete_file') {
-       await fs.unlink(action.file);
-     }
-   }
-   ```
+```typescript
+for (const action of rollbackActions.reverse()) {
+  if (action.action === 'restore_from_git') {
+    await git.checkoutFile(action.file, action.gitRef);
+  } else if (action.action === 'delete_file') {
+    await fs.unlink(action.file);
+  }
+}
+````
 
 #### 5. Git-Based Rollback
 
 Use git operations for safe rollback:
 
 **Rollback Strategy:**
+
 ```typescript
 interface RollbackStrategy {
   // For modified existing files: restore from git
@@ -305,6 +321,7 @@ interface RollbackStrategy {
 
 **Verification:**
 After rollback, verify working directory matches pre-execution state:
+
 ```typescript
 const postRollbackStatus = await git.getStatus();
 assert.deepEqual(postRollbackStatus, preExecutionStatus);
@@ -315,6 +332,7 @@ assert.deepEqual(postRollbackStatus, preExecutionStatus);
 Log the plan before execution for debugging and audit:
 
 **Log Entry:**
+
 ```typescript
 interface PlanLog {
   planId: string;
@@ -323,12 +341,13 @@ interface PlanLog {
   planContent: ChangePlan; // Full plan serialized as JSON
   executionStartedAt?: string;
   executionCompletedAt?: string;
-  status: 'planned' | 'executing' | 'completed' | 'failed' | 'rolled_back';
+  status: "planned" | "executing" | "completed" | "failed" | "rolled_back";
   failureReason?: string;
 }
 ```
 
 **Database Storage:**
+
 ```sql
 CREATE TABLE IF NOT EXISTS change_plans (
   id TEXT PRIMARY KEY,
@@ -349,24 +368,28 @@ CREATE INDEX idx_plans_status ON change_plans(status);
 ### Non-Functional Requirements
 
 #### Performance
+
 - Change plan generation: < 5 seconds for features affecting < 20 files
 - Dependency graph construction: < 2 seconds for < 50 file dependency graph
 - Rollback execution: < 10 seconds for < 20 files
 - Total overhead: < 10% of actual code generation time
 
 #### Quality
+
 - Dependency graph must be acyclic (no circular dependencies)
 - Rollback must restore exact pre-execution state (verified by git diff)
 - All file operations must succeed or be rolled back (no partial state)
 - Plan validation must catch 100% of circular dependencies
 
 #### Reliability
+
 - Rollback succeeds even if individual file operations fail
 - Git state tracked before every file operation
 - Execution state persisted to database for crash recovery
 - Rollback can be re-attempted if interrupted
 
 #### Observability
+
 - Change plan logged to database before execution
 - Each file change logged with timestamp
 - Rollback actions logged with success/failure
@@ -449,17 +472,17 @@ export class FileAnalyzer {
       // Add type definition file
       files.push({
         path: `server/types/${entity.toLowerCase()}.ts`,
-        operation: 'create',
+        operation: "create",
         reason: `Define ${entity} type for type safety`,
         dependencies: [],
         priority: 0, // Types first
       });
 
       // Add migration if database affected
-      if (requirement.affectedAreas.includes('database')) {
+      if (requirement.affectedAreas.includes("database")) {
         files.push({
           path: `database/migrations/${this.getNextMigrationNumber()}_add_${entity.toLowerCase()}s.sql`,
-          operation: 'create',
+          operation: "create",
           reason: `Create ${entity} table in database`,
           dependencies: [],
           priority: 0, // Migrations run early
@@ -467,10 +490,10 @@ export class FileAnalyzer {
       }
 
       // Add API route if API affected
-      if (requirement.affectedAreas.includes('api')) {
+      if (requirement.affectedAreas.includes("api")) {
         files.push({
           path: `server/routes/${entity.toLowerCase()}s.ts`,
-          operation: 'create',
+          operation: "create",
           reason: `Create API endpoints for ${entity}`,
           dependencies: [`server/types/${entity.toLowerCase()}.ts`],
           priority: 1, // After types
@@ -478,10 +501,10 @@ export class FileAnalyzer {
       }
 
       // Add UI component if UI affected
-      if (requirement.affectedAreas.includes('ui')) {
+      if (requirement.affectedAreas.includes("ui")) {
         files.push({
           path: `frontend/src/components/${entity}Form.tsx`,
-          operation: 'create',
+          operation: "create",
           reason: `Create UI form for ${entity}`,
           dependencies: [`server/routes/${entity.toLowerCase()}s.ts`],
           priority: 2, // After API
@@ -499,9 +522,12 @@ export class FileAnalyzer {
   private extractEntities(description: string): string[] {
     // Simple heuristic: capitalized words that look like entity names
     const words = description.split(/\s+/);
-    const entities = words.filter(word => {
+    const entities = words.filter((word) => {
       // Starts with capital, not common words like "The", "A", "An"
-      return /^[A-Z][a-z]+/.test(word) && !['The', 'A', 'An', 'This', 'That'].includes(word);
+      return (
+        /^[A-Z][a-z]+/.test(word) &&
+        !["The", "A", "An", "This", "That"].includes(word)
+      );
     });
 
     // Remove duplicates
@@ -515,7 +541,7 @@ export class FileAnalyzer {
     // Read database/migrations/*.sql files
     // Find highest number, add 1, pad to 3 digits
     // e.g., 134 if highest is 133
-    return '134'; // Simplified for spec
+    return "134"; // Simplified for spec
   }
 }
 ```
@@ -570,7 +596,7 @@ export class DependencyGraphBuilder {
 
     const detectCycle = (path: string, stack: string[]): boolean => {
       if (recursionStack.has(path)) {
-        errors.push(`Circular dependency: ${[...stack, path].join(' → ')}`);
+        errors.push(`Circular dependency: ${[...stack, path].join(" → ")}`);
         return true;
       }
 
@@ -605,7 +631,9 @@ export class DependencyGraphBuilder {
     for (const [path, node] of graph.nodes) {
       for (const dep of node.dependencies) {
         if (!graph.nodes.has(dep) && !fileExists(dep)) {
-          errors.push(`File "${path}" depends on "${dep}" which doesn't exist and isn't in the change plan`);
+          errors.push(
+            `File "${path}" depends on "${dep}" which doesn't exist and isn't in the change plan`,
+          );
         }
       }
     }
@@ -642,8 +670,8 @@ export class DependencyGraphBuilder {
       }
 
       // Phase = max(dependency phases) + 1
-      const depPhases = Array.from(node.dependencies).map(dep =>
-        assignPhase(dep, new Set(visited))
+      const depPhases = Array.from(node.dependencies).map((dep) =>
+        assignPhase(dep, new Set(visited)),
       );
       const phase = Math.max(...depPhases, 0) + 1;
       phaseMap.set(path, phase);
@@ -674,10 +702,10 @@ export class DependencyGraphBuilder {
       phases.push({
         phase: phaseNum,
         files,
-        canRunInParallel: files.every(f =>
-          files.every(other =>
-            f === other || !f.dependencies.includes(other.path)
-          )
+        canRunInParallel: files.every((f) =>
+          files.every(
+            (other) => f === other || !f.dependencies.includes(other.path),
+          ),
         ),
       });
     }
@@ -742,7 +770,10 @@ export class ChangePlanExecutor {
             // Track rollback action
             rollbackActions.push({
               file: file.path,
-              action: file.operation === 'create' ? 'delete_file' : 'restore_from_git',
+              action:
+                file.operation === "create"
+                  ? "delete_file"
+                  : "restore_from_git",
               gitRef: beforeState.commitHash || preExecutionCommit!,
               success: false, // Will be marked true after rollback succeeds
               timestamp: new Date().toISOString(),
@@ -754,12 +785,12 @@ export class ChangePlanExecutor {
             const rollbackResult = await this.rollbackChanges(
               rollbackActions,
               preExecutionCommit!,
-              preExecutionStatus
+              preExecutionStatus,
             );
 
             return {
               planId: plan.id,
-              status: 'rolled_back',
+              status: "rolled_back",
               phasesCompleted: phaseNum,
               filesChanged,
               failedAt: {
@@ -778,27 +809,26 @@ export class ChangePlanExecutor {
 
       return {
         planId: plan.id,
-        status: 'completed',
+        status: "completed",
         phasesCompleted: plan.phases.length,
         filesChanged,
       };
-
     } catch (error) {
       // Unexpected error during execution
       const rollbackResult = await this.rollbackChanges(
         rollbackActions,
         preExecutionCommit!,
-        preExecutionStatus
+        preExecutionStatus,
       );
 
       return {
         planId: plan.id,
-        status: 'rolled_back',
+        status: "rolled_back",
         phasesCompleted: 0,
         filesChanged,
         failedAt: {
           phase: -1,
-          file: '',
+          file: "",
           error: error instanceof Error ? error.message : String(error),
         },
         rollbackLog: rollbackResult,
@@ -822,11 +852,11 @@ export class ChangePlanExecutor {
       try {
         const { stdout } = await execAsync(
           `git log -1 --format="%H" -- "${filePath}"`,
-          { cwd: this.codebaseRoot }
+          { cwd: this.codebaseRoot },
         );
         return {
           exists: true,
-          commitHash: stdout.trim() || await this.git.getLastCommitHash(),
+          commitHash: stdout.trim() || (await this.git.getLastCommitHash()),
         };
       } catch {
         return {
@@ -848,7 +878,7 @@ export class ChangePlanExecutor {
   private async applyFileChange(file: FileChange): Promise<void> {
     const absolutePath = join(this.codebaseRoot, file.path);
 
-    if (file.operation === 'create') {
+    if (file.operation === "create") {
       // Ensure directory exists
       await fs.ensureDir(dirname(absolutePath));
 
@@ -856,19 +886,17 @@ export class ChangePlanExecutor {
       const code = await this.generateCode(file);
 
       // Write file
-      await fs.writeFile(absolutePath, code, 'utf-8');
-
-    } else if (file.operation === 'modify') {
+      await fs.writeFile(absolutePath, code, "utf-8");
+    } else if (file.operation === "modify") {
       // Read existing file
-      const existing = await fs.readFile(absolutePath, 'utf-8');
+      const existing = await fs.readFile(absolutePath, "utf-8");
 
       // Generate modifications
       const modified = await this.modifyCode(file, existing);
 
       // Write modified file
-      await fs.writeFile(absolutePath, modified, 'utf-8');
-
-    } else if (file.operation === 'delete') {
+      await fs.writeFile(absolutePath, modified, "utf-8");
+    } else if (file.operation === "delete") {
       // Delete file
       await fs.unlink(absolutePath);
     }
@@ -880,30 +908,28 @@ export class ChangePlanExecutor {
   private async rollbackChanges(
     actions: RollbackAction[],
     preExecutionCommit: string,
-    preExecutionStatus: GitStatusResult
+    preExecutionStatus: GitStatusResult,
   ): Promise<RollbackAction[]> {
     console.log(`Rolling back ${actions.length} changes...`);
 
     // Execute rollback actions in reverse order
     for (const action of actions.reverse()) {
       try {
-        if (action.action === 'restore_from_git') {
+        if (action.action === "restore_from_git") {
           // Restore file from git
-          await execAsync(
-            `git checkout ${action.gitRef} -- "${action.file}"`,
-            { cwd: this.codebaseRoot }
-          );
-        } else if (action.action === 'delete_file') {
+          await execAsync(`git checkout ${action.gitRef} -- "${action.file}"`, {
+            cwd: this.codebaseRoot,
+          });
+        } else if (action.action === "delete_file") {
           // Delete newly created file
           const absolutePath = join(this.codebaseRoot, action.file);
           if (await fs.pathExists(absolutePath)) {
             await fs.unlink(absolutePath);
           }
           // Unstage if was staged
-          await execAsync(
-            `git rm --cached "${action.file}"`,
-            { cwd: this.codebaseRoot }
-          ).catch(() => {}); // Ignore errors (file may not be staged)
+          await execAsync(`git rm --cached "${action.file}"`, {
+            cwd: this.codebaseRoot,
+          }).catch(() => {}); // Ignore errors (file may not be staged)
         }
 
         action.success = true;
@@ -915,8 +941,12 @@ export class ChangePlanExecutor {
 
     // Verify rollback succeeded
     const postRollbackStatus = await this.git.getStatus();
-    if (JSON.stringify(postRollbackStatus) !== JSON.stringify(preExecutionStatus)) {
-      console.warn('Rollback verification failed: git status differs from pre-execution state');
+    if (
+      JSON.stringify(postRollbackStatus) !== JSON.stringify(preExecutionStatus)
+    ) {
+      console.warn(
+        "Rollback verification failed: git status differs from pre-execution state",
+      );
     }
 
     return actions;
@@ -925,7 +955,10 @@ export class ChangePlanExecutor {
   /**
    * Commit all changes together
    */
-  private async commitAllChanges(plan: ChangePlan, filesChanged: string[]): Promise<void> {
+  private async commitAllChanges(
+    plan: ChangePlan,
+    filesChanged: string[],
+  ): Promise<void> {
     // Stage all files
     for (const file of filesChanged) {
       await this.git.stageFile(file);
@@ -937,26 +970,28 @@ export class ChangePlanExecutor {
 Multi-file change coordination (plan ${plan.id})
 
 Files changed:
-${filesChanged.map(f => `- ${f}`).join('\n')}
+${filesChanged.map((f) => `- ${f}`).join("\n")}
 
 Total: ${filesChanged.length} files across ${plan.phases.length} phases`;
 
     // Commit
-    await execAsync(
-      `git commit -m "${this.escapeQuotes(message)}"`,
-      { cwd: this.codebaseRoot }
-    );
+    await execAsync(`git commit -m "${this.escapeQuotes(message)}"`, {
+      cwd: this.codebaseRoot,
+    });
   }
 
   // Placeholder methods (implemented by other components)
   private async generateCode(file: FileChange): Promise<string> {
     // Delegate to CodeGenerator
-    return '// Generated code placeholder';
+    return "// Generated code placeholder";
   }
 
-  private async modifyCode(file: FileChange, existing: string): Promise<string> {
+  private async modifyCode(
+    file: FileChange,
+    existing: string,
+  ): Promise<string> {
     // Delegate to CodeGenerator
-    return existing + '\n// Modified code placeholder';
+    return existing + "\n// Modified code placeholder";
   }
 
   private escapeQuotes(str: string): string {
@@ -1014,9 +1049,9 @@ The Multi-File Change Coordinator integrates into the existing Build Agent execu
 **File:** `agents/build/task-executor.ts`
 
 ```typescript
-import { FileAnalyzer } from './file-analyzer.js';
-import { DependencyGraphBuilder } from './dependency-graph.js';
-import { ChangePlanExecutor } from './change-plan-executor.js';
+import { FileAnalyzer } from "./file-analyzer.js";
+import { DependencyGraphBuilder } from "./dependency-graph.js";
+import { ChangePlanExecutor } from "./change-plan-executor.js";
 
 export class TaskExecutor {
   private fileAnalyzer: FileAnalyzer;
@@ -1027,13 +1062,18 @@ export class TaskExecutor {
     // ... existing initialization
     this.fileAnalyzer = new FileAnalyzer();
     this.graphBuilder = new DependencyGraphBuilder();
-    this.planExecutor = new ChangePlanExecutor(options.codebaseRoot || process.cwd());
+    this.planExecutor = new ChangePlanExecutor(
+      options.codebaseRoot || process.cwd(),
+    );
   }
 
   /**
    * Execute task with multi-file change coordination
    */
-  async executeOne(task: AtomicTask, context: TaskContext): Promise<ExecutionResult> {
+  async executeOne(
+    task: AtomicTask,
+    context: TaskContext,
+  ): Promise<ExecutionResult> {
     const startTime = Date.now();
 
     try {
@@ -1051,7 +1091,9 @@ export class TaskExecutor {
       // Step 3: Validate graph
       const validation = this.graphBuilder.validate(graph);
       if (!validation.valid) {
-        throw new Error(`Change plan validation failed: ${validation.errors.join('; ')}`);
+        throw new Error(
+          `Change plan validation failed: ${validation.errors.join("; ")}`,
+        );
       }
 
       // Step 4: Create execution plan
@@ -1072,24 +1114,23 @@ export class TaskExecutor {
       // Step 6: Execute plan with rollback capability
       const executionResult = await this.planExecutor.execute(plan);
 
-      if (executionResult.status === 'completed') {
+      if (executionResult.status === "completed") {
         return {
           taskId: task.id,
-          state: 'done',
+          state: "done",
           output: `Successfully changed ${executionResult.filesChanged.length} files`,
           duration: Date.now() - startTime,
           attempt: 1,
         };
       } else {
         throw new Error(
-          `Change plan failed at ${executionResult.failedAt?.file}: ${executionResult.failedAt?.error}`
+          `Change plan failed at ${executionResult.failedAt?.file}: ${executionResult.failedAt?.error}`,
         );
       }
-
     } catch (error) {
       return {
         taskId: task.id,
-        state: 'failed',
+        state: "failed",
         error: error instanceof Error ? error.message : String(error),
         duration: Date.now() - startTime,
         attempt: 1,
@@ -1099,16 +1140,16 @@ export class TaskExecutor {
 
   private inferAffectedAreas(task: AtomicTask): string[] {
     const areas: string[] = [];
-    if (task.file.includes('migrations/')) areas.push('database');
-    if (task.file.includes('routes/')) areas.push('api');
-    if (task.file.includes('components/')) areas.push('ui');
+    if (task.file.includes("migrations/")) areas.push("database");
+    if (task.file.includes("routes/")) areas.push("api");
+    if (task.file.includes("components/")) areas.push("ui");
     return areas;
   }
 
   private async logPlan(plan: ChangePlan): Promise<void> {
     run(
       `INSERT INTO change_plans (id, feature_id, plan_content, status) VALUES (?, ?, ?, ?)`,
-      [plan.id, plan.featureId, JSON.stringify(plan), 'planned']
+      [plan.id, plan.featureId, JSON.stringify(plan), "planned"],
     );
   }
 }
@@ -1121,14 +1162,16 @@ The spawner can expose change plan management endpoints:
 **File:** `parent-harness/orchestrator/src/spawner/index.ts`
 
 ```typescript
-export { FileAnalyzer } from './file-analyzer.js';
-export { DependencyGraphBuilder } from './dependency-graph.js';
-export { ChangePlanExecutor } from './change-plan-executor.js';
+export { FileAnalyzer } from "./file-analyzer.js";
+export { DependencyGraphBuilder } from "./dependency-graph.js";
+export { ChangePlanExecutor } from "./change-plan-executor.js";
 
 /**
  * Create a change plan without executing it (for preview)
  */
-export async function createChangePlan(requirement: FeatureRequirement): Promise<ChangePlan> {
+export async function createChangePlan(
+  requirement: FeatureRequirement,
+): Promise<ChangePlan> {
   const analyzer = new FileAnalyzer();
   const graphBuilder = new DependencyGraphBuilder();
 
@@ -1151,13 +1194,15 @@ export async function createChangePlan(requirement: FeatureRequirement): Promise
 /**
  * Execute a pre-created change plan
  */
-export async function executeChangePlan(planId: string): Promise<ExecutionResult> {
+export async function executeChangePlan(
+  planId: string,
+): Promise<ExecutionResult> {
   const executor = new ChangePlanExecutor(CODEBASE_ROOT);
 
   // Load plan from database
   const row = getOne<{ plan_content: string }>(
-    'SELECT plan_content FROM change_plans WHERE id = ?',
-    [planId]
+    "SELECT plan_content FROM change_plans WHERE id = ?",
+    [planId],
   );
 
   if (!row) {
@@ -1176,21 +1221,31 @@ export async function executeChangePlan(planId: string): Promise<ExecutionResult
 ### 1. ✅ Build Agent Identifies 3+ Files for Feature
 
 **Test:**
+
 ```typescript
 const requirement: FeatureRequirement = {
-  id: 'TEST-001',
-  description: 'User authentication with JWT tokens',
-  passCriteria: ['Users can register', 'Users can login', 'JWT tokens issued'],
-  affectedAreas: ['database', 'api', 'ui'],
+  id: "TEST-001",
+  description: "User authentication with JWT tokens",
+  passCriteria: ["Users can register", "Users can login", "JWT tokens issued"],
+  affectedAreas: ["database", "api", "ui"],
 };
 
 const analyzer = new FileAnalyzer();
 const files = analyzer.identifyChanges(requirement);
 
-assert(files.length >= 3, 'Should identify at least 3 files');
-assert(files.some(f => f.path.includes('/types/')), 'Should include type definition');
-assert(files.some(f => f.path.includes('/migrations/')), 'Should include database migration');
-assert(files.some(f => f.path.includes('/routes/')), 'Should include API route');
+assert(files.length >= 3, "Should identify at least 3 files");
+assert(
+  files.some((f) => f.path.includes("/types/")),
+  "Should include type definition",
+);
+assert(
+  files.some((f) => f.path.includes("/migrations/")),
+  "Should include database migration",
+);
+assert(
+  files.some((f) => f.path.includes("/routes/")),
+  "Should include API route",
+);
 ```
 
 **Expected:** Analyzer identifies type file, migration, route, and component files.
@@ -1198,6 +1253,7 @@ assert(files.some(f => f.path.includes('/routes/')), 'Should include API route')
 ### 2. ✅ Changes Execute in Dependency Order
 
 **Test:**
+
 ```typescript
 const files: FileChange[] = [
   { path: 'server/routes/users.ts', operation: 'create', dependencies: ['server/types/user.ts'], ... },
@@ -1218,6 +1274,7 @@ assert(phases[1].files[0].path === 'server/routes/users.ts', 'Routes should be i
 ### 3. ✅ Failed Change Triggers Rollback
 
 **Test:**
+
 ```typescript
 const mockExecutor = new ChangePlanExecutor('/tmp/test-repo');
 
@@ -1251,6 +1308,7 @@ assert(!fs.existsSync('/tmp/test-repo/server/types/user.ts'), 'Should rollback c
 ### 4. ✅ Change Plan Logged Before Execution
 
 **Test:**
+
 ```typescript
 const plan: ChangePlan = {
   id: 'log-test',
@@ -1310,6 +1368,7 @@ assert(deserialized.featureId === 'TEST-002', 'Plan content should be preserved'
 ### Phase 1: File Analyzer (3-4 hours)
 
 **Tasks:**
+
 1. Create `file-analyzer.ts` in spawner directory
 2. Implement `FileAnalyzer` class
 3. Add entity extraction from requirement descriptions
@@ -1318,6 +1377,7 @@ assert(deserialized.featureId === 'TEST-002', 'Plan content should be preserved'
 6. Write unit tests for file identification
 
 **Deliverables:**
+
 - `FileAnalyzer.identifyChanges()` returns list of files with dependencies
 - Handles database, API, and UI layers
 - Infers file paths from entity names
@@ -1325,6 +1385,7 @@ assert(deserialized.featureId === 'TEST-002', 'Plan content should be preserved'
 ### Phase 2: Dependency Graph Builder (4-5 hours)
 
 **Tasks:**
+
 1. Create `dependency-graph.ts`
 2. Implement `DependencyGraphBuilder` class
 3. Add DAG construction from file changes
@@ -1334,6 +1395,7 @@ assert(deserialized.featureId === 'TEST-002', 'Plan content should be preserved'
 7. Write unit tests for graph operations
 
 **Deliverables:**
+
 - `DependencyGraphBuilder.buildGraph()` constructs DAG
 - `DependencyGraphBuilder.validate()` catches circular dependencies
 - `DependencyGraphBuilder.topologicalSort()` returns execution phases
@@ -1341,6 +1403,7 @@ assert(deserialized.featureId === 'TEST-002', 'Plan content should be preserved'
 ### Phase 3: Change Plan Executor (5-6 hours)
 
 **Tasks:**
+
 1. Create `change-plan-executor.ts`
 2. Implement `ChangePlanExecutor` class
 3. Add git state capture before execution
@@ -1351,6 +1414,7 @@ assert(deserialized.featureId === 'TEST-002', 'Plan content should be preserved'
 8. Write integration tests for execution
 
 **Deliverables:**
+
 - `ChangePlanExecutor.execute()` runs plan with atomicity
 - Rollback restores exact pre-execution state
 - All changes committed together on success
@@ -1358,6 +1422,7 @@ assert(deserialized.featureId === 'TEST-002', 'Plan content should be preserved'
 ### Phase 4: Database Schema & Persistence (2-3 hours)
 
 **Tasks:**
+
 1. Create migration for change_plans table
 2. Create migration for change_plan_files table
 3. Add indexes for query performance
@@ -1366,6 +1431,7 @@ assert(deserialized.featureId === 'TEST-002', 'Plan content should be preserved'
 6. Write tests for persistence
 
 **Deliverables:**
+
 - Database tables created
 - Plan logging before execution
 - Plan querying for audit and debugging
@@ -1373,6 +1439,7 @@ assert(deserialized.featureId === 'TEST-002', 'Plan content should be preserved'
 ### Phase 5: Build Agent Integration (2-3 hours)
 
 **Tasks:**
+
 1. Import new components into `task-executor.ts`
 2. Add change plan creation in `executeOne()`
 3. Add plan validation before execution
@@ -1382,6 +1449,7 @@ assert(deserialized.featureId === 'TEST-002', 'Plan content should be preserved'
 7. Write integration tests
 
 **Deliverables:**
+
 - `TaskExecutor.executeOne()` uses change coordination
 - Tasks execute with rollback on failure
 - Plans logged to database
@@ -1389,6 +1457,7 @@ assert(deserialized.featureId === 'TEST-002', 'Plan content should be preserved'
 ### Phase 6: End-to-End Testing (2-3 hours)
 
 **Tasks:**
+
 1. Create test fixture: multi-file feature
 2. Test success path (all files created, committed)
 3. Test failure path (partial execution, rollback)
@@ -1398,6 +1467,7 @@ assert(deserialized.featureId === 'TEST-002', 'Plan content should be preserved'
 7. Test plan logging and retrieval
 
 **Deliverables:**
+
 - 6+ end-to-end test scenarios
 - All pass criteria validated
 - Integration with full build agent confirmed
@@ -1413,23 +1483,25 @@ assert(deserialized.featureId === 'TEST-002', 'Plan content should be preserved'
 **File:** `tests/unit/spawner/file-analyzer.test.ts`
 
 ```typescript
-describe('FileAnalyzer', () => {
-  it('should identify type, migration, route, and component files', () => {
+describe("FileAnalyzer", () => {
+  it("should identify type, migration, route, and component files", () => {
     const analyzer = new FileAnalyzer();
     const requirement: FeatureRequirement = {
-      id: 'TEST-001',
-      description: 'User authentication system',
-      passCriteria: ['Users can register'],
-      affectedAreas: ['database', 'api', 'ui'],
+      id: "TEST-001",
+      description: "User authentication system",
+      passCriteria: ["Users can register"],
+      affectedAreas: ["database", "api", "ui"],
     };
 
     const files = analyzer.identifyChanges(requirement);
 
     expect(files.length).toBeGreaterThanOrEqual(4);
-    expect(files.find(f => f.path.includes('types/user.ts'))).toBeDefined();
-    expect(files.find(f => f.path.includes('migrations/'))).toBeDefined();
-    expect(files.find(f => f.path.includes('routes/users.ts'))).toBeDefined();
-    expect(files.find(f => f.path.includes('components/UserForm.tsx'))).toBeDefined();
+    expect(files.find((f) => f.path.includes("types/user.ts"))).toBeDefined();
+    expect(files.find((f) => f.path.includes("migrations/"))).toBeDefined();
+    expect(files.find((f) => f.path.includes("routes/users.ts"))).toBeDefined();
+    expect(
+      files.find((f) => f.path.includes("components/UserForm.tsx")),
+    ).toBeDefined();
   });
 });
 ```
@@ -1475,13 +1547,13 @@ describe('DependencyGraphBuilder', () => {
 **File:** `tests/integration/spawner/change-plan-execution.test.ts`
 
 ```typescript
-describe('ChangePlanExecutor', () => {
-  it('should rollback on failure', async () => {
-    const testDir = '/tmp/test-change-plan';
+describe("ChangePlanExecutor", () => {
+  it("should rollback on failure", async () => {
+    const testDir = "/tmp/test-change-plan";
     await fs.ensureDir(testDir);
 
     // Initialize git repo
-    await execAsync('git init', { cwd: testDir });
+    await execAsync("git init", { cwd: testDir });
     await execAsync('git config user.name "Test"', { cwd: testDir });
     await execAsync('git config user.email "test@test.com"', { cwd: testDir });
 
@@ -1489,20 +1561,32 @@ describe('ChangePlanExecutor', () => {
 
     // Create plan with intentional failure
     const plan: ChangePlan = {
-      id: 'rollback-test',
-      featureId: 'TEST-ROLLBACK',
+      id: "rollback-test",
+      featureId: "TEST-ROLLBACK",
       phases: [
         {
           phase: 0,
           files: [
-            { path: 'success.ts', operation: 'create', dependencies: [], reason: 'Test', priority: 0 },
+            {
+              path: "success.ts",
+              operation: "create",
+              dependencies: [],
+              reason: "Test",
+              priority: 0,
+            },
           ],
           canRunInParallel: false,
         },
         {
           phase: 1,
           files: [
-            { path: '/invalid/path/fail.ts', operation: 'create', dependencies: ['success.ts'], reason: 'Test', priority: 1 },
+            {
+              path: "/invalid/path/fail.ts",
+              operation: "create",
+              dependencies: ["success.ts"],
+              reason: "Test",
+              priority: 1,
+            },
           ],
           canRunInParallel: false,
         },
@@ -1514,9 +1598,9 @@ describe('ChangePlanExecutor', () => {
 
     const result = await executor.execute(plan);
 
-    expect(result.status).toBe('rolled_back');
-    expect(result.filesChanged).toContain('success.ts');
-    expect(await fs.pathExists(join(testDir, 'success.ts'))).toBe(false);
+    expect(result.status).toBe("rolled_back");
+    expect(result.filesChanged).toContain("success.ts");
+    expect(await fs.pathExists(join(testDir, "success.ts"))).toBe(false);
   });
 });
 ```
@@ -1568,6 +1652,7 @@ describe('ChangePlanExecutor', () => {
 **Question:** Should rollback be file-by-file or all-at-once?
 
 **Options:**
+
 - **A:** File-by-file (granular, slower, easier to debug)
 - **B:** All-at-once (fast, harder to debug, uses `git reset --hard`)
 
@@ -1578,6 +1663,7 @@ describe('ChangePlanExecutor', () => {
 **Question:** How deep should pre-execution validation go?
 
 **Options:**
+
 - **A:** Light (check circular deps only)
 - **B:** Medium (check circular deps + missing files)
 - **C:** Deep (check circular deps + missing files + TypeScript type compatibility)
@@ -1589,6 +1675,7 @@ describe('ChangePlanExecutor', () => {
 **Question:** Should files in the same phase execute in parallel or serial?
 
 **Options:**
+
 - **A:** Always serial (simple, predictable)
 - **B:** Parallel if `canRunInParallel` is true (faster, more complex)
 

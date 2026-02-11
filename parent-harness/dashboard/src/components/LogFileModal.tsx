@@ -4,9 +4,12 @@
  * Ported from Vibe Platform for parent-harness dashboard.
  */
 
-import { useState, useEffect, useRef } from 'react';
-import type { LoopIteration, AgentSessionStatus } from '../types/pipeline';
-import { formatTime as formatTimeSydney, sydneyTimestamp } from '../utils/format';
+import { useState, useEffect, useRef } from "react";
+import type { LoopIteration, AgentSessionStatus } from "../types/pipeline";
+import {
+  formatTime as formatTimeSydney,
+  sydneyTimestamp,
+} from "../utils/format";
 
 interface LogFileModalProps {
   logFileId: string;
@@ -19,7 +22,15 @@ interface LogFileModalProps {
 }
 
 // Log line type for syntax highlighting
-type LogLevel = 'INFO' | 'SUCCESS' | 'ERROR' | 'WARN' | 'TASK' | 'CHECKPOINT' | 'PAUSE' | 'DEBUG';
+type LogLevel =
+  | "INFO"
+  | "SUCCESS"
+  | "ERROR"
+  | "WARN"
+  | "TASK"
+  | "CHECKPOINT"
+  | "PAUSE"
+  | "DEBUG";
 
 interface ParsedLogLine {
   timestamp: string;
@@ -40,8 +51,8 @@ function parseLogLine(line: string): ParsedLogLine | null {
   }
   if (line.trim()) {
     return {
-      timestamp: '',
-      level: 'INFO',
+      timestamp: "",
+      level: "INFO",
       message: line,
       raw: line,
     };
@@ -51,35 +62,45 @@ function parseLogLine(line: string): ParsedLogLine | null {
 
 function getLevelConfig(level: LogLevel): { icon: string; color: string } {
   const configs: Record<LogLevel, { icon: string; color: string }> = {
-    INFO: { icon: 'ℹ️', color: 'text-blue-400' },
-    SUCCESS: { icon: '✅', color: 'text-green-400' },
-    ERROR: { icon: '❌', color: 'text-red-400' },
-    WARN: { icon: '⚠️', color: 'text-yellow-400' },
-    TASK: { icon: '📋', color: 'text-purple-400' },
-    CHECKPOINT: { icon: '🔖', color: 'text-indigo-400' },
-    PAUSE: { icon: '⏸️', color: 'text-orange-400' },
-    DEBUG: { icon: '🔍', color: 'text-gray-400' },
+    INFO: { icon: "ℹ️", color: "text-blue-400" },
+    SUCCESS: { icon: "✅", color: "text-green-400" },
+    ERROR: { icon: "❌", color: "text-red-400" },
+    WARN: { icon: "⚠️", color: "text-yellow-400" },
+    TASK: { icon: "📋", color: "text-purple-400" },
+    CHECKPOINT: { icon: "🔖", color: "text-indigo-400" },
+    PAUSE: { icon: "⏸️", color: "text-orange-400" },
+    DEBUG: { icon: "🔍", color: "text-gray-400" },
   };
   return configs[level] || configs.INFO;
 }
 
 function getIterationStatusIcon(status: AgentSessionStatus): string {
   switch (status) {
-    case 'running': return '▶️';
-    case 'completed': return '✅';
-    case 'failed': return '❌';
-    case 'paused': return '⏸️';
-    default: return 'ℹ️';
+    case "running":
+      return "▶️";
+    case "completed":
+      return "✅";
+    case "failed":
+      return "❌";
+    case "paused":
+      return "⏸️";
+    default:
+      return "ℹ️";
   }
 }
 
 function getIterationStatusColor(status: AgentSessionStatus): string {
   switch (status) {
-    case 'running': return 'text-blue-400 bg-blue-900/50';
-    case 'completed': return 'text-green-400 bg-green-900/50';
-    case 'failed': return 'text-red-400 bg-red-900/50';
-    case 'paused': return 'text-orange-400 bg-orange-900/50';
-    default: return 'text-gray-400 bg-gray-900/50';
+    case "running":
+      return "text-blue-400 bg-blue-900/50";
+    case "completed":
+      return "text-green-400 bg-green-900/50";
+    case "failed":
+      return "text-red-400 bg-red-900/50";
+    case "paused":
+      return "text-orange-400 bg-orange-900/50";
+    default:
+      return "text-gray-400 bg-gray-900/50";
   }
 }
 
@@ -93,18 +114,18 @@ export function LogFileModal({
   onNavigateIteration,
 }: LogFileModalProps) {
   const [copied, setCopied] = useState(false);
-  const [filterLevel, setFilterLevel] = useState<LogLevel | 'ALL'>('ALL');
+  const [filterLevel, setFilterLevel] = useState<LogLevel | "ALL">("ALL");
   const contentRef = useRef<HTMLDivElement>(null);
 
   // Parse log lines
   const parsedLines = content
-    .split('\n')
+    .split("\n")
     .map(parseLogLine)
     .filter(Boolean) as ParsedLogLine[];
 
   // Filter lines
   const filteredLines = parsedLines.filter(
-    (line) => filterLevel === 'ALL' || line.level === filterLevel,
+    (line) => filterLevel === "ALL" || line.level === filterLevel,
   );
 
   // Copy to clipboard
@@ -114,15 +135,15 @@ export function LogFileModal({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      console.error("Failed to copy:", err);
     }
   };
 
   // Download as file
   const handleDownload = () => {
-    const blob = new Blob([content], { type: 'text/plain' });
+    const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `${logFileId}.log`;
     document.body.appendChild(a);
@@ -134,38 +155,45 @@ export function LogFileModal({
   // Handle escape key and arrow navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onClose();
       }
       if (allIterations && onNavigateIteration) {
-        const currentIndex = allIterations.findIndex((i) => i.iteration === iteration);
-        if (e.key === 'ArrowLeft' && currentIndex > 0) {
+        const currentIndex = allIterations.findIndex(
+          (i) => i.iteration === iteration,
+        );
+        if (e.key === "ArrowLeft" && currentIndex > 0) {
           const prev = allIterations[currentIndex - 1];
           onNavigateIteration(prev.logFileId, prev.iteration);
         }
-        if (e.key === 'ArrowRight' && currentIndex < allIterations.length - 1) {
+        if (e.key === "ArrowRight" && currentIndex < allIterations.length - 1) {
           const next = allIterations[currentIndex + 1];
           onNavigateIteration(next.logFileId, next.iteration);
         }
       }
     };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose, allIterations, iteration, onNavigateIteration]);
 
   // Stats
   const stats = {
     total: parsedLines.length,
-    errors: parsedLines.filter((l) => l.level === 'ERROR').length,
-    warnings: parsedLines.filter((l) => l.level === 'WARN').length,
-    tasks: parsedLines.filter((l) => l.level === 'TASK').length,
-    success: parsedLines.filter((l) => l.level === 'SUCCESS').length,
+    errors: parsedLines.filter((l) => l.level === "ERROR").length,
+    warnings: parsedLines.filter((l) => l.level === "WARN").length,
+    tasks: parsedLines.filter((l) => l.level === "TASK").length,
+    success: parsedLines.filter((l) => l.level === "SUCCESS").length,
   };
 
   // Navigation
-  const currentIndex = allIterations?.findIndex((i) => i.iteration === iteration);
+  const currentIndex = allIterations?.findIndex(
+    (i) => i.iteration === iteration,
+  );
   const hasPrev = currentIndex !== undefined && currentIndex > 0;
-  const hasNext = currentIndex !== undefined && allIterations && currentIndex < allIterations.length - 1;
+  const hasNext =
+    currentIndex !== undefined &&
+    allIterations &&
+    currentIndex < allIterations.length - 1;
 
   const navigatePrev = () => {
     if (hasPrev && allIterations && onNavigateIteration && currentIndex) {
@@ -175,7 +203,12 @@ export function LogFileModal({
   };
 
   const navigateNext = () => {
-    if (hasNext && allIterations && onNavigateIteration && currentIndex !== undefined) {
+    if (
+      hasNext &&
+      allIterations &&
+      onNavigateIteration &&
+      currentIndex !== undefined
+    ) {
       const next = allIterations[currentIndex + 1];
       onNavigateIteration(next.logFileId, next.iteration);
     }
@@ -223,13 +256,23 @@ export function LogFileModal({
                   disabled={!hasPrev}
                   className={`p-2 rounded-lg transition-colors ${
                     hasPrev
-                      ? 'text-gray-300 hover:text-white hover:bg-gray-700'
-                      : 'text-gray-600 cursor-not-allowed'
+                      ? "text-gray-300 hover:text-white hover:bg-gray-700"
+                      : "text-gray-600 cursor-not-allowed"
                   }`}
                   title="Previous iteration (←)"
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
                   </svg>
                 </button>
                 <span className="text-sm text-gray-400 px-2">
@@ -240,13 +283,23 @@ export function LogFileModal({
                   disabled={!hasNext}
                   className={`p-2 rounded-lg transition-colors ${
                     hasNext
-                      ? 'text-gray-300 hover:text-white hover:bg-gray-700'
-                      : 'text-gray-600 cursor-not-allowed'
+                      ? "text-gray-300 hover:text-white hover:bg-gray-700"
+                      : "text-gray-600 cursor-not-allowed"
                   }`}
                   title="Next iteration (→)"
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                 </button>
               </div>
@@ -257,7 +310,7 @@ export function LogFileModal({
               className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
               title="Copy to clipboard"
             >
-              {copied ? '✓' : '📋'}
+              {copied ? "✓" : "📋"}
             </button>
             <button
               onClick={handleDownload}
@@ -271,8 +324,18 @@ export function LogFileModal({
               className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors ml-2"
               title="Close (ESC)"
             >
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -295,18 +358,21 @@ export function LogFileModal({
                         onClick={() => navigateToIteration(iter)}
                         className={`
                           w-full text-left p-3 rounded-lg transition-colors
-                          ${isActive
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
+                          ${
+                            isActive
+                              ? "bg-blue-600 text-white"
+                              : "bg-gray-700/50 text-gray-300 hover:bg-gray-700"
                           }
                         `}
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium">Loop #{iter.iteration}</span>
+                          <span className="font-medium">
+                            Loop #{iter.iteration}
+                          </span>
                           <span
                             className={`
                               flex items-center gap-1 px-2 py-0.5 rounded-full text-xs
-                              ${isActive ? 'bg-white/20' : getIterationStatusColor(iter.status)}
+                              ${isActive ? "bg-white/20" : getIterationStatusColor(iter.status)}
                             `}
                           >
                             {getIterationStatusIcon(iter.status)} {iter.status}
@@ -369,7 +435,9 @@ export function LogFileModal({
                 <span className="text-sm text-gray-500">Filter:</span>
                 <select
                   value={filterLevel}
-                  onChange={(e) => setFilterLevel(e.target.value as LogLevel | 'ALL')}
+                  onChange={(e) =>
+                    setFilterLevel(e.target.value as LogLevel | "ALL")
+                  }
                   className="text-sm bg-gray-700 text-gray-300 border-gray-600 rounded-md px-3 py-1.5"
                 >
                   <option value="ALL">All Levels</option>
@@ -397,8 +465,8 @@ export function LogFileModal({
                       key={idx}
                       className={`
                         flex items-start gap-3 px-3 py-1.5 rounded
-                        ${line.level === 'ERROR' ? 'bg-red-900/20' : ''}
-                        ${line.level === 'WARN' ? 'bg-yellow-900/20' : ''}
+                        ${line.level === "ERROR" ? "bg-red-900/20" : ""}
+                        ${line.level === "WARN" ? "bg-yellow-900/20" : ""}
                       `}
                     >
                       {line.timestamp && (
@@ -410,13 +478,13 @@ export function LogFileModal({
                       <span
                         className={`
                           flex-1
-                          ${line.level === 'ERROR' ? 'text-red-300' : ''}
-                          ${line.level === 'WARN' ? 'text-yellow-300' : ''}
-                          ${line.level === 'SUCCESS' ? 'text-green-300' : ''}
-                          ${line.level === 'TASK' ? 'text-purple-300' : ''}
-                          ${line.level === 'INFO' ? 'text-gray-300' : ''}
-                          ${line.level === 'CHECKPOINT' ? 'text-indigo-300' : ''}
-                          ${line.level === 'PAUSE' ? 'text-orange-300' : ''}
+                          ${line.level === "ERROR" ? "text-red-300" : ""}
+                          ${line.level === "WARN" ? "text-yellow-300" : ""}
+                          ${line.level === "SUCCESS" ? "text-green-300" : ""}
+                          ${line.level === "TASK" ? "text-purple-300" : ""}
+                          ${line.level === "INFO" ? "text-gray-300" : ""}
+                          ${line.level === "CHECKPOINT" ? "text-indigo-300" : ""}
+                          ${line.level === "PAUSE" ? "text-orange-300" : ""}
                         `}
                       >
                         {highlightMessage(line.message)}
@@ -465,20 +533,40 @@ function highlightMessage(message: string): React.ReactNode {
   const parts = message.split(/(✓|✗|▶|⏸|⚠)/g);
 
   return parts.map((part, idx) => {
-    if (part === '✓') {
-      return <span key={idx} className="text-green-400">{part}</span>;
+    if (part === "✓") {
+      return (
+        <span key={idx} className="text-green-400">
+          {part}
+        </span>
+      );
     }
-    if (part === '✗') {
-      return <span key={idx} className="text-red-400">{part}</span>;
+    if (part === "✗") {
+      return (
+        <span key={idx} className="text-red-400">
+          {part}
+        </span>
+      );
     }
-    if (part === '▶') {
-      return <span key={idx} className="text-blue-400">{part}</span>;
+    if (part === "▶") {
+      return (
+        <span key={idx} className="text-blue-400">
+          {part}
+        </span>
+      );
     }
-    if (part === '⏸') {
-      return <span key={idx} className="text-orange-400">{part}</span>;
+    if (part === "⏸") {
+      return (
+        <span key={idx} className="text-orange-400">
+          {part}
+        </span>
+      );
     }
-    if (part === '⚠') {
-      return <span key={idx} className="text-yellow-400">{part}</span>;
+    if (part === "⚠") {
+      return (
+        <span key={idx} className="text-yellow-400">
+          {part}
+        </span>
+      );
     }
     return part;
   });

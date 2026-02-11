@@ -16,6 +16,7 @@ Implement a learning system where Build Agents learn from QA verification failur
 **Problem:** Build Agents currently operate without awareness of common failure patterns. When a Build Agent completes a task and QA verification fails, the agent doesn't record what went wrong or how it was eventually fixed. The next Build Agent tackling a similar task will make identical mistakes, wasting tokens and time. The existing QA service (`parent-harness/orchestrator/src/events/qa-service.ts`) captures pass/fail results but doesn't extract learnings. The knowledge base system (PHASE4-TASK-01) provides storage infrastructure but lacks Build Agent-specific failure pattern tracking.
 
 **Solution:** Extend the knowledge base with Build Agent-specific failure analysis that:
+
 1. Captures QA failure details (which checks failed, error messages, file changes involved)
 2. Records successful fixes after QA failure → retry cycles
 3. Identifies recurring failure patterns (common mistakes across tasks)
@@ -30,6 +31,7 @@ Implement a learning system where Build Agents learn from QA verification failur
 ### Existing Infrastructure ✅
 
 **1. QA Service** (`parent-harness/orchestrator/src/events/qa-service.ts`)
+
 - ✅ Event-driven verification queue
 - ✅ Pass/fail detection with `verifyTask(taskId)`
 - ✅ Failure summary in transition: `transitionTask(taskId, 'failed', { error, failures })`
@@ -39,6 +41,7 @@ Implement a learning system where Build Agents learn from QA verification failur
 - ❌ **Gap:** No connection between QA failure and Build Agent knowledge
 
 **2. Knowledge Base System** (PHASE4-TASK-01 spec)
+
 - ✅ `knowledge_entries` table for gotchas, patterns, decisions
 - ✅ `error_recovery_strategies` table for fix tracking
 - ✅ Confidence scoring with boost/decay mechanics
@@ -50,6 +53,7 @@ Implement a learning system where Build Agents learn from QA verification failur
 - ❌ **Gap:** No "test failure → fix → success" workflow tracking
 
 **3. Build Agent Orchestrator** (`server/services/task-agent/build-agent-orchestrator.ts`)
+
 - ✅ Task execution with error handling
 - ✅ SIA escalation for stuck tasks (`checkSIAEscalation()`)
 - ✅ Error message capture in `build_agent_instances.error_message`
@@ -59,6 +63,7 @@ Implement a learning system where Build Agents learn from QA verification failur
 - ❌ **Gap:** No post-QA-failure analysis
 
 **4. QA Verification Module** (`parent-harness/orchestrator/src/qa/index.ts`)
+
 - ✅ Executes verification checks (tests, linting, builds)
 - ✅ Returns structured results: `{ passed, summary, checks[] }`
 - ✅ Per-check pass/fail status
@@ -66,6 +71,7 @@ Implement a learning system where Build Agents learn from QA verification failur
 - ❌ **Gap:** No comparison of "what changed" vs. "what broke"
 
 **5. Agent Memory System** (`parent-harness/orchestrator/src/memory/index.ts`)
+
 - ✅ Short-term memory with types: error_pattern, success_pattern
 - ✅ `learnError()` and `learnSuccess()` functions
 - ✅ Task context with 24h expiration
@@ -74,14 +80,14 @@ Implement a learning system where Build Agents learn from QA verification failur
 
 ### Gaps Summary
 
-| Gap | Impact | Solution |
-|-----|--------|----------|
-| No QA failure pattern extraction | Same mistakes repeated | Analyze failed checks → extract patterns |
-| No fix tracking | Unknown which solutions work | Record "QA fail → fix → QA pass" sequences |
-| No failure categorization | Can't prioritize learning | Classify: test failure, build error, lint error, etc. |
-| No Build Agent learning injection | Agents start blind | Inject "watch out for X" warnings pre-execution |
-| No effectiveness tracking | Can't measure impact | Track: warning shown → mistake avoided? |
-| No common pitfall documentation | Manual knowledge transfer | Auto-generate CLAUDE.md entries from patterns |
+| Gap                               | Impact                       | Solution                                              |
+| --------------------------------- | ---------------------------- | ----------------------------------------------------- |
+| No QA failure pattern extraction  | Same mistakes repeated       | Analyze failed checks → extract patterns              |
+| No fix tracking                   | Unknown which solutions work | Record "QA fail → fix → QA pass" sequences            |
+| No failure categorization         | Can't prioritize learning    | Classify: test failure, build error, lint error, etc. |
+| No Build Agent learning injection | Agents start blind           | Inject "watch out for X" warnings pre-execution       |
+| No effectiveness tracking         | Can't measure impact         | Track: warning shown → mistake avoided?               |
+| No common pitfall documentation   | Manual knowledge transfer    | Auto-generate CLAUDE.md entries from patterns         |
 
 ---
 
@@ -90,6 +96,7 @@ Implement a learning system where Build Agents learn from QA verification failur
 ### Functional Requirements
 
 **FR-1: QA Failure Pattern Capture**
+
 - MUST capture QA verification failures with full context:
   - Task ID, Build Agent session ID, execution ID
   - Failed check names and error messages
@@ -106,6 +113,7 @@ Implement a learning system where Build Agents learn from QA verification failur
 - SHOULD auto-categorize failures using regex patterns
 
 **FR-2: Fix Workflow Tracking**
+
 - MUST record "QA fail → fix → QA pass" sequences:
   - Initial failure: task ID, failed checks, error details
   - Fix attempt: what files changed, what approach was used
@@ -120,9 +128,10 @@ Implement a learning system where Build Agents learn from QA verification failur
 - SHOULD correlate fix strategies with failure categories
 
 **FR-3: Recurring Failure Pattern Detection**
+
 - MUST identify patterns that occur across multiple tasks:
   - Same error message in 3+ different tasks
-  - Same file pattern repeatedly causes failures (e.g., "tests/*.test.ts")
+  - Same file pattern repeatedly causes failures (e.g., "tests/\*.test.ts")
   - Same failure category dominates (e.g., 70% are import errors)
 - MUST calculate pattern frequency and recency
 - MUST boost confidence of patterns that recur frequently
@@ -131,19 +140,21 @@ Implement a learning system where Build Agents learn from QA verification failur
 - SHOULD cluster similar failures using semantic similarity
 
 **FR-4: Build Agent Learning Injection**
+
 - MUST inject relevant failure warnings into Build Agent context before execution:
   - Retrieve warnings based on task signature similarity
   - Retrieve warnings based on files being modified
   - Retrieve warnings based on task category (test writing, refactoring, new feature)
 - MUST format warnings as actionable guidance:
-  - "⚠️ Common pitfall: 70% of tasks modifying database/* fail due to missing migrations. Remember to run schema:generate."
-  - "⚠️ Past failure: When updating types/*, imports in 5+ files broke. Use global search to find all usages."
+  - "⚠️ Common pitfall: 70% of tasks modifying database/\* fail due to missing migrations. Remember to run schema:generate."
+  - "⚠️ Past failure: When updating types/\*, imports in 5+ files broke. Use global search to find all usages."
 - MUST limit warnings to top 5 most relevant (avoid overwhelming agent)
 - MUST rank warnings by: relevance score × confidence × failure frequency
 - MUST track which warnings were shown to which Build Agent sessions
 - SHOULD support warning acknowledgment ("Build Agent read this warning")
 
 **FR-5: Failure Prevention Effectiveness Tracking**
+
 - MUST track whether warnings prevented failures:
   - Warning shown → task completed without QA failure = prevention success
   - Warning shown → task failed with same issue = prevention failure
@@ -155,13 +166,14 @@ Implement a learning system where Build Agents learn from QA verification failur
 - SHOULD A/B test: some agents get warnings, some don't (measure impact)
 
 **FR-6: Common Pitfall Documentation**
+
 - MUST identify promotion candidates for CLAUDE.md:
   - Failure pattern with ≥80% prevention effectiveness
   - Occurred in ≥5 different tasks
   - Confidence ≥ 0.8
 - MUST generate markdown proposals:
   - Title: Pattern name ("Missing Database Migrations")
-  - Context: When this occurs ("When modifying schema/entities/*.ts")
+  - Context: When this occurs ("When modifying schema/entities/\*.ts")
   - Problem: What goes wrong ("QA fails with 'table does not exist'")
   - Solution: How to avoid ("Always run `npm run schema:generate && npm run schema:migrate`")
   - Frequency: How common (e.g., "Affects 12% of schema tasks")
@@ -170,6 +182,7 @@ Implement a learning system where Build Agents learn from QA verification failur
 - SHOULD support rollback (remove promoted entry if causes issues)
 
 **FR-7: Failure Analysis Dashboard**
+
 - MUST display QA failure metrics:
   - Failure rate over time (% of tasks failing QA)
   - Top 10 failure patterns (most frequent)
@@ -186,6 +199,7 @@ Implement a learning system where Build Agents learn from QA verification failur
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Failure capture MUST NOT block QA service (<50ms overhead per failure)
 - Pattern detection MUST run async (not in critical path)
 - Learning injection MUST complete in <300ms (retrieve + format warnings)
@@ -193,6 +207,7 @@ Implement a learning system where Build Agents learn from QA verification failur
 - Deduplication check MUST complete in <200ms
 
 **NFR-2: Data Integrity**
+
 - QA failure records MUST be immutable (append-only log)
 - Fix workflow sequences MUST preserve order (attempt 1 → 2 → 3)
 - Pattern confidence updates MUST be atomic
@@ -200,6 +215,7 @@ Implement a learning system where Build Agents learn from QA verification failur
 - MUST validate failure category enum
 
 **NFR-3: Usability**
+
 - Failure capture MUST be automatic (no Build Agent code changes)
 - Warnings MUST be clear and actionable (no vague "be careful")
 - Dashboard MUST use visual severity indicators (red for high-frequency failures)
@@ -207,6 +223,7 @@ Implement a learning system where Build Agents learn from QA verification failur
 - MUST log all learning injections for debugging
 
 **NFR-4: Extensibility**
+
 - Failure categories MUST be extensible (add new types without schema change)
 - Pattern detectors MUST be pluggable (register new detectors)
 - Fix strategies MUST support custom templates
@@ -372,9 +389,9 @@ CREATE INDEX idx_warning_deliveries_outcome ON qa_warning_deliveries(outcome);
 #### 1. QA Failure Analyzer (`parent-harness/orchestrator/src/qa/failure-analyzer.ts`)
 
 ```typescript
-import { v4 as uuid } from 'uuid';
-import { run, getOne, query } from '../db/index.js';
-import { generateTaskSignature } from '../knowledge/task-matcher.js';
+import { v4 as uuid } from "uuid";
+import { run, getOne, query } from "../db/index.js";
+import { generateTaskSignature } from "../knowledge/task-matcher.js";
 
 export interface QAFailure {
   id: string;
@@ -394,14 +411,14 @@ export interface QAFailure {
 }
 
 export type FailureCategory =
-  | 'test_failure'
-  | 'build_error'
-  | 'lint_error'
-  | 'type_error'
-  | 'runtime_error'
-  | 'missing_dependency'
-  | 'config_error'
-  | 'other';
+  | "test_failure"
+  | "build_error"
+  | "lint_error"
+  | "type_error"
+  | "runtime_error"
+  | "missing_dependency"
+  | "config_error"
+  | "other";
 
 /**
  * Capture a QA failure for learning
@@ -423,8 +440,8 @@ export async function captureQAFailure(params: {
 
   // Get task signature for pattern matching
   const task = await getOne<{ title: string; category: string }>(
-    'SELECT title, category FROM tasks WHERE id = ?',
-    [params.taskId]
+    "SELECT title, category FROM tasks WHERE id = ?",
+    [params.taskId],
   );
 
   let signatureHash: string | undefined;
@@ -439,22 +456,37 @@ export async function captureQAFailure(params: {
   }
 
   // Store failure record
-  await run(`
+  await run(
+    `
     INSERT INTO qa_failures
     (id, task_id, session_id, execution_id, failed_checks, failure_category,
      error_messages, files_modified, diff_summary, task_signature_hash, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `, [
-    id, params.taskId, params.sessionId, params.executionId,
-    JSON.stringify(params.failedChecks), category,
-    JSON.stringify(params.errorMessages),
-    JSON.stringify(params.filesModified || []),
-    params.diffSummary, signatureHash, now
-  ]);
+  `,
+    [
+      id,
+      params.taskId,
+      params.sessionId,
+      params.executionId,
+      JSON.stringify(params.failedChecks),
+      category,
+      JSON.stringify(params.errorMessages),
+      JSON.stringify(params.filesModified || []),
+      params.diffSummary,
+      signatureHash,
+      now,
+    ],
+  );
 
   // Async: Detect and record patterns
-  detectFailurePatterns(id, category, params.errorMessages, params.filesModified || [])
-    .catch(err => console.error('[QAFailureAnalyzer] Pattern detection failed:', err));
+  detectFailurePatterns(
+    id,
+    category,
+    params.errorMessages,
+    params.filesModified || [],
+  ).catch((err) =>
+    console.error("[QAFailureAnalyzer] Pattern detection failed:", err),
+  );
 
   return {
     id,
@@ -476,46 +508,55 @@ export async function captureQAFailure(params: {
 /**
  * Categorize failure based on checks and errors
  */
-function categorizeFailure(checks: string[], errors: string[]): FailureCategory {
-  const checksStr = checks.join(' ').toLowerCase();
-  const errorsStr = errors.join(' ').toLowerCase();
+function categorizeFailure(
+  checks: string[],
+  errors: string[],
+): FailureCategory {
+  const checksStr = checks.join(" ").toLowerCase();
+  const errorsStr = errors.join(" ").toLowerCase();
 
   // Test failures
-  if (checksStr.includes('test') || errorsStr.includes('test failed')) {
-    return 'test_failure';
+  if (checksStr.includes("test") || errorsStr.includes("test failed")) {
+    return "test_failure";
   }
 
   // Build errors
-  if (checksStr.includes('build') || errorsStr.includes('compilation failed')) {
-    return 'build_error';
+  if (checksStr.includes("build") || errorsStr.includes("compilation failed")) {
+    return "build_error";
   }
 
   // Lint errors
-  if (checksStr.includes('lint') || errorsStr.includes('eslint')) {
-    return 'lint_error';
+  if (checksStr.includes("lint") || errorsStr.includes("eslint")) {
+    return "lint_error";
   }
 
   // Type errors
-  if (errorsStr.includes('type') && errorsStr.includes('not assignable')) {
-    return 'type_error';
+  if (errorsStr.includes("type") && errorsStr.includes("not assignable")) {
+    return "type_error";
   }
 
   // Missing dependencies
-  if (errorsStr.includes('cannot find module') || errorsStr.includes('enoent')) {
-    return 'missing_dependency';
+  if (
+    errorsStr.includes("cannot find module") ||
+    errorsStr.includes("enoent")
+  ) {
+    return "missing_dependency";
   }
 
   // Runtime errors
-  if (errorsStr.includes('cannot read property') || errorsStr.includes('undefined is not')) {
-    return 'runtime_error';
+  if (
+    errorsStr.includes("cannot read property") ||
+    errorsStr.includes("undefined is not")
+  ) {
+    return "runtime_error";
   }
 
   // Config errors
-  if (errorsStr.includes('config') || errorsStr.includes('tsconfig')) {
-    return 'config_error';
+  if (errorsStr.includes("config") || errorsStr.includes("tsconfig")) {
+    return "config_error";
   }
 
-  return 'other';
+  return "other";
 }
 
 /**
@@ -525,49 +566,63 @@ async function detectFailurePatterns(
   failureId: string,
   category: FailureCategory,
   errors: string[],
-  files: string[]
+  files: string[],
 ): Promise<void> {
   // Get all patterns for this category
   const patterns = await query<{
     id: string;
     error_pattern: string;
     file_pattern: string | null;
-  }>(`
+  }>(
+    `
     SELECT id, error_pattern, file_pattern
     FROM qa_failure_patterns
     WHERE failure_category = ?
-  `, [category]);
+  `,
+    [category],
+  );
 
   let matched = false;
 
   for (const pattern of patterns) {
     // Check if error matches pattern
-    const errorMatch = errors.some(err => {
-      const regex = new RegExp(pattern.error_pattern, 'i');
+    const errorMatch = errors.some((err) => {
+      const regex = new RegExp(pattern.error_pattern, "i");
       return regex.test(err);
     });
 
     // Check if files match pattern
-    const fileMatch = !pattern.file_pattern || files.some(file => {
-      const regex = new RegExp(pattern.file_pattern.replace(/\*/g, '.*'), 'i');
-      return regex.test(file);
-    });
+    const fileMatch =
+      !pattern.file_pattern ||
+      files.some((file) => {
+        const regex = new RegExp(
+          pattern.file_pattern.replace(/\*/g, ".*"),
+          "i",
+        );
+        return regex.test(file);
+      });
 
     if (errorMatch && fileMatch) {
       // Record occurrence
-      await run(`
+      await run(
+        `
         INSERT INTO qa_pattern_occurrences (id, pattern_id, failure_id, matched_error, matched_files)
         VALUES (?, ?, ?, ?, ?)
-      `, [uuid(), pattern.id, failureId, errors[0], JSON.stringify(files)]);
+      `,
+        [uuid(), pattern.id, failureId, errors[0], JSON.stringify(files)],
+      );
 
       // Update pattern stats
-      await run(`
+      await run(
+        `
         UPDATE qa_failure_patterns
         SET occurrences = occurrences + 1,
             last_seen_at = datetime('now'),
             updated_at = datetime('now')
         WHERE id = ?
-      `, [pattern.id]);
+      `,
+        [pattern.id],
+      );
 
       matched = true;
       console.log(`[QAFailureAnalyzer] Matched pattern: ${pattern.id}`);
@@ -587,20 +642,23 @@ async function considerNewPattern(
   failureId: string,
   category: FailureCategory,
   errors: string[],
-  files: string[]
+  files: string[],
 ): Promise<void> {
   // Extract error pattern (first 100 chars, simplified)
-  const errorPattern = errors[0].substring(0, 100).replace(/[0-9]/g, '\\d+');
+  const errorPattern = errors[0].substring(0, 100).replace(/[0-9]/g, "\\d+");
 
   // Extract file pattern (common prefix or extension)
-  const filePattern = files.length > 0
-    ? `*${files[0].substring(files[0].lastIndexOf('.'))}`
-    : null;
+  const filePattern =
+    files.length > 0
+      ? `*${files[0].substring(files[0].lastIndexOf("."))}`
+      : null;
 
   // Only create pattern if error is somewhat generic (not too specific)
   if (errorPattern.length < 20) return;
 
-  console.log(`[QAFailureAnalyzer] New pattern candidate: ${category} - ${errorPattern.substring(0, 50)}...`);
+  console.log(
+    `[QAFailureAnalyzer] New pattern candidate: ${category} - ${errorPattern.substring(0, 50)}...`,
+  );
 
   // This would be reviewed by human or validated by recurrence before promotion
   // For now, just log it
@@ -616,29 +674,41 @@ export async function recordFixAttempt(params: {
   attemptNumber: number;
   filesChanged: string[];
   changesSummary: string;
-  outcome: 'success' | 'failure' | 'partial';
+  outcome: "success" | "failure" | "partial";
   qaResult?: string;
 }): Promise<void> {
   const id = uuid();
 
-  await run(`
+  await run(
+    `
     INSERT INTO qa_fix_workflows
     (id, initial_failure_id, task_id, fix_approach, fix_attempt_number,
      files_changed, changes_summary, outcome, qa_result, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-  `, [
-    id, params.failureId, params.taskId, params.fixApproach, params.attemptNumber,
-    JSON.stringify(params.filesChanged), params.changesSummary,
-    params.outcome, params.qaResult
-  ]);
+  `,
+    [
+      id,
+      params.failureId,
+      params.taskId,
+      params.fixApproach,
+      params.attemptNumber,
+      JSON.stringify(params.filesChanged),
+      params.changesSummary,
+      params.outcome,
+      params.qaResult,
+    ],
+  );
 
   // If successful, mark failure as resolved
-  if (params.outcome === 'success') {
-    await run(`
+  if (params.outcome === "success") {
+    await run(
+      `
       UPDATE qa_failures
       SET resolved = 1, resolved_at = datetime('now'), fix_attempts = ?
       WHERE id = ?
-    `, [params.attemptNumber, params.failureId]);
+    `,
+      [params.attemptNumber, params.failureId],
+    );
 
     // Extract gotcha for knowledge base
     await extractGotchaFromFix(params);
@@ -655,15 +725,17 @@ async function extractGotchaFromFix(params: {
 }): Promise<void> {
   // This would integrate with knowledge-base/writer.ts
   // For now, placeholder
-  console.log(`[QAFailureAnalyzer] Extracting gotcha from fix: ${params.fixApproach}`);
+  console.log(
+    `[QAFailureAnalyzer] Extracting gotcha from fix: ${params.fixApproach}`,
+  );
 }
 ```
 
 #### 2. Learning Injector (`parent-harness/orchestrator/src/qa/learning-injector.ts`)
 
 ```typescript
-import { query } from '../db/index.js';
-import { v4 as uuid } from 'uuid';
+import { query } from "../db/index.js";
+import { v4 as uuid } from "uuid";
 
 export interface QAWarning {
   patternId: string;
@@ -687,8 +759,8 @@ export async function getRelevantQAWarnings(params: {
 
   // Get task signature
   const task = await query<{ title: string; category: string }>(
-    'SELECT title, category FROM tasks WHERE id = ?',
-    [params.taskId]
+    "SELECT title, category FROM tasks WHERE id = ?",
+    [params.taskId],
   );
 
   if (task.length === 0) return [];
@@ -704,7 +776,8 @@ export async function getRelevantQAWarnings(params: {
     prevention_effectiveness: number;
     confidence: number;
     file_pattern: string | null;
-  }>(`
+  }>(
+    `
     SELECT
       id, pattern_name, description, common_cause, recommended_fix,
       occurrences, prevention_effectiveness, confidence, file_pattern
@@ -716,7 +789,9 @@ export async function getRelevantQAWarnings(params: {
       confidence DESC,
       occurrences DESC
     LIMIT ?
-  `, [limit * 2]); // Get extra for filtering
+  `,
+    [limit * 2],
+  ); // Get extra for filtering
 
   // Score and rank patterns
   const warnings: QAWarning[] = [];
@@ -726,8 +801,8 @@ export async function getRelevantQAWarnings(params: {
 
     // Boost if files match pattern
     if (pattern.file_pattern && params.filesInvolved) {
-      const regex = new RegExp(pattern.file_pattern.replace(/\*/g, '.*'), 'i');
-      const hasMatch = params.filesInvolved.some(f => regex.test(f));
+      const regex = new RegExp(pattern.file_pattern.replace(/\*/g, ".*"), "i");
+      const hasMatch = params.filesInvolved.some((f) => regex.test(f));
       if (hasMatch) {
         relevanceScore += 0.3;
       }
@@ -744,7 +819,7 @@ export async function getRelevantQAWarnings(params: {
       pattern.common_cause,
       pattern.recommended_fix,
       pattern.occurrences,
-      pattern.prevention_effectiveness
+      pattern.prevention_effectiveness,
     );
 
     warnings.push({
@@ -771,7 +846,7 @@ function formatWarning(
   cause: string,
   fix: string,
   occurrences: number,
-  effectiveness: number
+  effectiveness: number,
 ): string {
   const effectivenessPercent = Math.round(effectiveness * 100);
 
@@ -779,7 +854,7 @@ function formatWarning(
 - **What happens:** ${description}
 - **Why:** ${cause}
 - **How to avoid:** ${fix}
-- **Frequency:** Seen in ${occurrences} task${occurrences > 1 ? 's' : ''} (${effectivenessPercent}% prevention rate when warning shown)`;
+- **Frequency:** Seen in ${occurrences} task${occurrences > 1 ? "s" : ""} (${effectivenessPercent}% prevention rate when warning shown)`;
 }
 
 /**
@@ -791,17 +866,26 @@ export async function recordWarningDelivery(params: {
   warnings: QAWarning[];
 }): Promise<void> {
   for (const warning of params.warnings) {
-    await query(`
+    await query(
+      `
       INSERT INTO qa_warning_deliveries
       (id, session_id, task_id, pattern_id, warning_text, relevance_score, shown_at)
       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-    `, [
-      uuid(), params.sessionId, params.taskId, warning.patternId,
-      warning.warningText, warning.relevanceScore
-    ]);
+    `,
+      [
+        uuid(),
+        params.sessionId,
+        params.taskId,
+        warning.patternId,
+        warning.warningText,
+        warning.relevanceScore,
+      ],
+    );
   }
 
-  console.log(`[LearningInjector] Delivered ${params.warnings.length} warnings to session ${params.sessionId}`);
+  console.log(
+    `[LearningInjector] Delivered ${params.warnings.length} warnings to session ${params.sessionId}`,
+  );
 }
 
 /**
@@ -810,43 +894,54 @@ export async function recordWarningDelivery(params: {
 export async function recordWarningOutcome(params: {
   sessionId: string;
   taskId: string;
-  outcome: 'prevented' | 'failed_anyway';
+  outcome: "prevented" | "failed_anyway";
 }): Promise<void> {
   // Get all warnings for this session
   const deliveries = await query<{ id: string; pattern_id: string }>(
-    'SELECT id, pattern_id FROM qa_warning_deliveries WHERE session_id = ? AND task_id = ?',
-    [params.sessionId, params.taskId]
+    "SELECT id, pattern_id FROM qa_warning_deliveries WHERE session_id = ? AND task_id = ?",
+    [params.sessionId, params.taskId],
   );
 
   for (const delivery of deliveries) {
     // Update delivery outcome
-    await query(`
+    await query(
+      `
       UPDATE qa_warning_deliveries
       SET outcome = ?, outcome_recorded_at = datetime('now')
       WHERE id = ?
-    `, [params.outcome, delivery.id]);
+    `,
+      [params.outcome, delivery.id],
+    );
 
     // Update pattern effectiveness
-    if (params.outcome === 'prevented') {
-      await query(`
+    if (params.outcome === "prevented") {
+      await query(
+        `
         UPDATE qa_failure_patterns
         SET prevention_successes = prevention_successes + 1,
             confidence = MIN(0.95, confidence + 0.05),
             updated_at = datetime('now')
         WHERE id = ?
-      `, [delivery.pattern_id]);
+      `,
+        [delivery.pattern_id],
+      );
     } else {
-      await query(`
+      await query(
+        `
         UPDATE qa_failure_patterns
         SET prevention_failures = prevention_failures + 1,
             confidence = MAX(0.1, confidence - 0.03),
             updated_at = datetime('now')
         WHERE id = ?
-      `, [delivery.pattern_id]);
+      `,
+        [delivery.pattern_id],
+      );
     }
   }
 
-  console.log(`[LearningInjector] Recorded ${params.outcome} for ${deliveries.length} warnings`);
+  console.log(
+    `[LearningInjector] Recorded ${params.outcome} for ${deliveries.length} warnings`,
+  );
 }
 ```
 
@@ -926,9 +1021,9 @@ export const qaRouter = Router();
 /**
  * GET /api/qa/failures/dashboard
  */
-qaRouter.get('/failures/dashboard', async (req, res) => {
+qaRouter.get("/failures/dashboard", async (req, res) => {
   const stats = {
-    total_failures: await getOne('SELECT COUNT(*) as count FROM qa_failures'),
+    total_failures: await getOne("SELECT COUNT(*) as count FROM qa_failures"),
     by_category: await query(`
       SELECT failure_category, COUNT(*) as count
       FROM qa_failures
@@ -955,7 +1050,7 @@ qaRouter.get('/failures/dashboard', async (req, res) => {
 /**
  * GET /api/qa/failures/patterns
  */
-qaRouter.get('/failures/patterns', async (req, res) => {
+qaRouter.get("/failures/patterns", async (req, res) => {
   const patterns = await query(`
     SELECT * FROM qa_failure_patterns
     ORDER BY confidence DESC, occurrences DESC
@@ -970,12 +1065,14 @@ qaRouter.get('/failures/patterns', async (req, res) => {
 ## Pass Criteria
 
 ### Database Schema
+
 1. ✅ **Tables created** - qa_failures, qa_failure_patterns, qa_pattern_occurrences, qa_fix_workflows, qa_warning_deliveries
 2. ✅ **Indexes created** - All performance-critical indexes present
 3. ✅ **Constraints valid** - CHECK constraints, foreign keys, GENERATED columns
 4. ✅ **Migration tested** - Schema applies cleanly to harness.db
 
 ### Failure Capture
+
 5. ✅ **QA failure capture** - `captureQAFailure()` creates records with all fields
 6. ✅ **Failure categorization** - 7 categories correctly detected from check names + errors
 7. ✅ **Pattern detection** - Existing patterns matched, new patterns identified
@@ -983,6 +1080,7 @@ qaRouter.get('/failures/patterns', async (req, res) => {
 9. ✅ **Resolution tracking** - Failures marked resolved when fix succeeds
 
 ### Learning Injection
+
 10. ✅ **Warning retrieval** - `getRelevantQAWarnings()` returns top 5 warnings ranked by relevance
 11. ✅ **Warning formatting** - Warnings are actionable with context, cause, solution
 12. ✅ **Warning delivery tracking** - qa_warning_deliveries records what was shown
@@ -990,23 +1088,27 @@ qaRouter.get('/failures/patterns', async (req, res) => {
 14. ✅ **Outcome tracking** - Prevention effectiveness calculated from outcomes
 
 ### Pattern Management
+
 15. ✅ **Pattern occurrence tracking** - qa_pattern_occurrences links failures to patterns
 16. ✅ **Confidence updates** - Patterns boosted on prevention, decayed on failure
 17. ✅ **Effectiveness calculation** - prevention_effectiveness = successes / (successes + failures)
 18. ✅ **Pattern deduplication** - Similar error patterns merged
 
 ### API & Dashboard
+
 19. ✅ **GET /api/qa/failures/dashboard** - Returns aggregate stats, top patterns
 20. ✅ **GET /api/qa/failures/patterns** - Returns all patterns with metrics
 21. ✅ **Response time** - Endpoints respond in <2 seconds
 
 ### Integration
+
 22. ✅ **QA service integration** - Failures captured on QA fail events
 23. ✅ **Spawner integration** - Warnings injected before Build Agent execution
 24. ✅ **Outcome recording** - Success/failure recorded after QA verification
 25. ✅ **No Build Agent changes** - Integration is passive (no agent code changes)
 
 ### Testing
+
 26. ✅ **Unit tests** - All modules tested in isolation
 27. ✅ **Integration test** - Complete flow: QA fail → capture → pattern → warning → prevention
 28. ✅ **Effectiveness test** - Verify prevention rate calculation accuracy
@@ -1016,15 +1118,18 @@ qaRouter.get('/failures/patterns', async (req, res) => {
 ## Dependencies
 
 **Upstream (Must Complete First):**
+
 - ✅ PHASE4-TASK-01: Knowledge Base System (provides storage foundation)
 - ✅ PHASE3-TASK-01: Task queue persistence (task signatures)
 - ✅ QA Service (exists: `parent-harness/orchestrator/src/events/qa-service.ts`)
 
 **Downstream (Depends on This):**
+
 - PHASE5-TASK-01: Self-improvement loop (uses failure patterns for meta-learning)
 - PHASE6-TASK-01: Auto-promotion of validated patterns to CLAUDE.md
 
 **Parallel Work (Can Develop Concurrently):**
+
 - PHASE4-TASK-03: Spec Agent learning (similar feedback loop, different agent)
 - PHASE3-TASK-05: Dashboard widgets (can add failure dashboard separately)
 
@@ -1033,6 +1138,7 @@ qaRouter.get('/failures/patterns', async (req, res) => {
 ## Implementation Plan
 
 ### Phase 1: Database & Failure Capture (5 hours)
+
 1. Create migration: `004_qa_failure_learning.sql`
 2. Implement failure analyzer (`qa/failure-analyzer.ts`)
 3. Implement failure categorization logic
@@ -1040,6 +1146,7 @@ qaRouter.get('/failures/patterns', async (req, res) => {
 5. Unit test failure capture
 
 ### Phase 2: Learning Injection (4 hours)
+
 6. Implement learning injector (`qa/learning-injector.ts`)
 7. Implement warning retrieval and ranking
 8. Implement warning formatting
@@ -1047,24 +1154,28 @@ qaRouter.get('/failures/patterns', async (req, res) => {
 10. Test warning generation for sample tasks
 
 ### Phase 3: Integration (4 hours)
+
 11. Integrate with QA service (capture on failure)
 12. Integrate with spawner (inject warnings)
 13. Implement outcome recording
 14. Test end-to-end flow
 
 ### Phase 4: Fix Workflow Tracking (3 hours)
+
 15. Implement fix attempt recording
 16. Link fixes to failures
 17. Extract gotchas from successful fixes
 18. Test fix workflow sequences
 
 ### Phase 5: API & Dashboard (3 hours)
+
 19. Add dashboard endpoints
 20. Add pattern management endpoints
 21. Test API performance
 22. Create sample dashboard queries
 
 ### Phase 6: Testing & Validation (3 hours)
+
 23. Write integration test suite
 24. Test prevention effectiveness calculation
 25. Validate pattern confidence updates
@@ -1080,42 +1191,50 @@ qaRouter.get('/failures/patterns', async (req, res) => {
 
 ```typescript
 // qa/failure-analyzer.test.ts
-describe('QA Failure Analyzer', () => {
-  test('captures failure with all context', async () => {
+describe("QA Failure Analyzer", () => {
+  test("captures failure with all context", async () => {
     const failure = await captureQAFailure({
-      taskId: 'task-001',
-      sessionId: 'session-001',
-      failedChecks: ['test:unit', 'lint:typescript'],
-      errorMessages: ['Test failed: Expected 5 but got 3'],
-      filesModified: ['src/utils/calculator.ts'],
+      taskId: "task-001",
+      sessionId: "session-001",
+      failedChecks: ["test:unit", "lint:typescript"],
+      errorMessages: ["Test failed: Expected 5 but got 3"],
+      filesModified: ["src/utils/calculator.ts"],
     });
 
     expect(failure.id).toBeDefined();
-    expect(failure.failureCategory).toBe('test_failure');
-    expect(failure.failedChecks).toContain('test:unit');
+    expect(failure.failureCategory).toBe("test_failure");
+    expect(failure.failedChecks).toContain("test:unit");
   });
 
-  test('categorizes failures correctly', () => {
-    expect(categorizeFailure(['test:unit'], ['Jest test failed'])).toBe('test_failure');
-    expect(categorizeFailure(['build'], ['tsc compilation failed'])).toBe('build_error');
-    expect(categorizeFailure(['lint'], ['ESLint error'])).toBe('lint_error');
+  test("categorizes failures correctly", () => {
+    expect(categorizeFailure(["test:unit"], ["Jest test failed"])).toBe(
+      "test_failure",
+    );
+    expect(categorizeFailure(["build"], ["tsc compilation failed"])).toBe(
+      "build_error",
+    );
+    expect(categorizeFailure(["lint"], ["ESLint error"])).toBe("lint_error");
   });
 
-  test('detects patterns and links occurrences', async () => {
+  test("detects patterns and links occurrences", async () => {
     // Create a pattern
-    await createPattern('import_error', 'Cannot find module', 'missing_dependency');
+    await createPattern(
+      "import_error",
+      "Cannot find module",
+      "missing_dependency",
+    );
 
     // Capture failure matching pattern
     const failure = await captureQAFailure({
-      taskId: 'task-002',
-      failedChecks: ['build'],
+      taskId: "task-002",
+      failedChecks: ["build"],
       errorMessages: ['Cannot find module "foo"'],
     });
 
     // Verify occurrence created
     const occurrences = await query(
-      'SELECT * FROM qa_pattern_occurrences WHERE failure_id = ?',
-      [failure.id]
+      "SELECT * FROM qa_pattern_occurrences WHERE failure_id = ?",
+      [failure.id],
     );
 
     expect(occurrences).toHaveLength(1);
@@ -1123,64 +1242,73 @@ describe('QA Failure Analyzer', () => {
 });
 
 // qa/learning-injector.test.ts
-describe('Learning Injector', () => {
-  test('retrieves relevant warnings', async () => {
+describe("Learning Injector", () => {
+  test("retrieves relevant warnings", async () => {
     // Create pattern
-    await createPattern('database_migration', 'missing migration', 'build_error', {
-      file_pattern: 'schema/*',
-      occurrences: 5,
-      confidence: 0.8,
-      prevention_effectiveness: 0.75,
-    });
+    await createPattern(
+      "database_migration",
+      "missing migration",
+      "build_error",
+      {
+        file_pattern: "schema/*",
+        occurrences: 5,
+        confidence: 0.8,
+        prevention_effectiveness: 0.75,
+      },
+    );
 
     // Get warnings for task modifying schema
     const warnings = await getRelevantQAWarnings({
-      taskId: 'task-003',
-      filesInvolved: ['schema/entities/user.ts'],
+      taskId: "task-003",
+      filesInvolved: ["schema/entities/user.ts"],
       limit: 5,
     });
 
     expect(warnings).toHaveLength(1);
-    expect(warnings[0].patternName).toBe('database_migration');
+    expect(warnings[0].patternName).toBe("database_migration");
     expect(warnings[0].relevanceScore).toBeGreaterThan(0.8); // Boosted for file match
   });
 
-  test('formats warnings correctly', () => {
+  test("formats warnings correctly", () => {
     const text = formatWarning(
-      'Missing Imports',
-      'Build fails with module not found',
-      'Forgot to add import statement',
-      'Always check imports after moving files',
+      "Missing Imports",
+      "Build fails with module not found",
+      "Forgot to add import statement",
+      "Always check imports after moving files",
       10,
-      0.85
+      0.85,
     );
 
-    expect(text).toContain('⚠️');
-    expect(text).toContain('Missing Imports');
-    expect(text).toContain('85% prevention rate');
+    expect(text).toContain("⚠️");
+    expect(text).toContain("Missing Imports");
+    expect(text).toContain("85% prevention rate");
   });
 
-  test('records warning outcomes and updates effectiveness', async () => {
-    const patternId = await createPattern('test_pattern', 'error', 'test_failure');
+  test("records warning outcomes and updates effectiveness", async () => {
+    const patternId = await createPattern(
+      "test_pattern",
+      "error",
+      "test_failure",
+    );
 
     // Deliver warning
     await recordWarningDelivery({
-      sessionId: 'session-001',
-      taskId: 'task-001',
-      warnings: [{ patternId, /* ... */ }],
+      sessionId: "session-001",
+      taskId: "task-001",
+      warnings: [{ patternId /* ... */ }],
     });
 
     // Record prevention success
     await recordWarningOutcome({
-      sessionId: 'session-001',
-      taskId: 'task-001',
-      outcome: 'prevented',
+      sessionId: "session-001",
+      taskId: "task-001",
+      outcome: "prevented",
     });
 
     // Verify pattern stats updated
     const pattern = await getOne(
-      'SELECT prevention_successes, confidence FROM qa_failure_patterns WHERE id = ?',
-      [patternId]
+      "SELECT prevention_successes, confidence FROM qa_failure_patterns WHERE id = ?",
+      [patternId],
     );
 
     expect(pattern.prevention_successes).toBe(1);
@@ -1266,18 +1394,21 @@ describe('QA Learning Loop Integration', () => {
 ## Success Metrics
 
 **Operational:**
+
 - 100+ QA failures captured in first month
 - 80%+ of failures automatically categorized correctly
 - 10+ recurring patterns identified (≥3 occurrences each)
 - Warning delivery latency <300ms
 
 **Agent Performance:**
+
 - QA failure rate decreases by 25% after 50+ failures captured
 - Mean attempts to pass QA decreases from 2.5 to 1.5
 - 40%+ of warnings lead to prevention (prevented / (prevented + failed_anyway))
 - Build Agents with warnings have 30%+ higher first-time pass rate
 
 **Quality:**
+
 - 90%+ of pattern detections validated as correct by manual review
 - Prevention effectiveness correlates with confidence (Pearson r > 0.6)
 - High-effectiveness warnings (>70%) promoted to CLAUDE.md within 30 days

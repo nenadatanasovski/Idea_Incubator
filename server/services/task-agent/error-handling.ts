@@ -484,7 +484,7 @@ export async function escalateToSIA(
 
 /**
  * Spawn async SIA analysis for an escalation (GAP-012)
- * 
+ *
  * Queries the knowledge base for similar issues and stores suggestions.
  */
 async function spawnSIAAnalysis(
@@ -524,7 +524,10 @@ async function spawnSIAAnalysis(
     `UPDATE sia_escalations 
      SET analysis_result = ?, analyzed_at = datetime('now')
      WHERE id = ?`,
-    [JSON.stringify({ suggestions, analyzedAt: new Date().toISOString() }), escalationId],
+    [
+      JSON.stringify({ suggestions, analyzedAt: new Date().toISOString() }),
+      escalationId,
+    ],
   );
   await saveDb();
 

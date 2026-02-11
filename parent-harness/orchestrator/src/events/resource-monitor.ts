@@ -1,27 +1,27 @@
 /**
  * Resource Monitor - Backpressure via system resource monitoring
- * 
+ *
  * Monitors CPU and memory usage, emits events when thresholds crossed.
  * Services subscribe to these events to implement backpressure.
- * 
+ *
  * This is Phase 5 of the event-driven architecture.
  */
 
-import { bus } from './bus.js';
-import * as os from 'os';
+import { bus } from "./bus.js";
+import * as os from "os";
 
 interface ResourceThresholds {
-  cpuHigh: number;      // Pause spawning above this (default: 80%)
-  cpuNormal: number;    // Resume spawning below this (default: 60%)
-  memoryHigh: number;   // Pause spawning above this (default: 85%)
+  cpuHigh: number; // Pause spawning above this (default: 80%)
+  cpuNormal: number; // Resume spawning below this (default: 60%)
+  memoryHigh: number; // Pause spawning above this (default: 85%)
   memoryNormal: number; // Resume spawning below this (default: 70%)
 }
 
 export interface ResourceState {
   cpuUsage: number;
   memoryUsage: number;
-  cpuStatus: 'normal' | 'high';
-  memoryStatus: 'normal' | 'high';
+  cpuStatus: "normal" | "high";
+  memoryStatus: "normal" | "high";
   loadAverage: number[];
 }
 
@@ -37,8 +37,8 @@ class ResourceMonitor {
   private state: ResourceState = {
     cpuUsage: 0,
     memoryUsage: 0,
-    cpuStatus: 'normal',
-    memoryStatus: 'normal',
+    cpuStatus: "normal",
+    memoryStatus: "normal",
     loadAverage: [0, 0, 0],
   };
   private lastCpuInfo: os.CpuInfo[] | null = null;
@@ -49,8 +49,8 @@ class ResourceMonitor {
   start(): void {
     if (this.interval) return;
 
-    console.log('📊 Resource Monitor: Starting');
-    
+    console.log("📊 Resource Monitor: Starting");
+
     // Initial check
     this.check();
 
@@ -67,7 +67,7 @@ class ResourceMonitor {
     if (this.interval) {
       clearInterval(this.interval);
       this.interval = null;
-      console.log('📊 Resource Monitor: Stopped');
+      console.log("📊 Resource Monitor: Stopped");
     }
   }
 
@@ -85,7 +85,7 @@ class ResourceMonitor {
 
     // Check CPU
     this.checkCpu(cpuUsage);
-    
+
     // Check memory
     this.checkMemory(memoryUsage);
   }
@@ -95,7 +95,7 @@ class ResourceMonitor {
    */
   private getCpuUsage(): number {
     const cpus = os.cpus();
-    
+
     if (!this.lastCpuInfo) {
       this.lastCpuInfo = cpus;
       return 0;
@@ -109,8 +109,9 @@ class ResourceMonitor {
       const lastCpu = this.lastCpuInfo[i];
 
       const idle = cpu.times.idle - lastCpu.times.idle;
-      const total = 
-        (cpu.times.user - lastCpu.times.user) +
+      const total =
+        cpu.times.user -
+        lastCpu.times.user +
         (cpu.times.nice - lastCpu.times.nice) +
         (cpu.times.sys - lastCpu.times.sys) +
         (cpu.times.irq - lastCpu.times.irq) +
@@ -141,16 +142,22 @@ class ResourceMonitor {
   private checkCpu(usage: number): void {
     const previousStatus = this.state.cpuStatus;
 
-    if (usage >= this.thresholds.cpuHigh && previousStatus === 'normal') {
+    if (usage >= this.thresholds.cpuHigh && previousStatus === "normal") {
       // Transition to high
-      this.state.cpuStatus = 'high';
+      this.state.cpuStatus = "high";
       console.log(`📊 Resource Monitor: CPU HIGH (${usage}%)`);
-      bus.emit('system:cpu_high', { usage, threshold: this.thresholds.cpuHigh });
-    } else if (usage <= this.thresholds.cpuNormal && previousStatus === 'high') {
+      bus.emit("system:cpu_high", {
+        usage,
+        threshold: this.thresholds.cpuHigh,
+      });
+    } else if (
+      usage <= this.thresholds.cpuNormal &&
+      previousStatus === "high"
+    ) {
       // Transition to normal
-      this.state.cpuStatus = 'normal';
+      this.state.cpuStatus = "normal";
       console.log(`📊 Resource Monitor: CPU normal (${usage}%)`);
-      bus.emit('system:cpu_normal', { usage });
+      bus.emit("system:cpu_normal", { usage });
     }
   }
 
@@ -160,16 +167,22 @@ class ResourceMonitor {
   private checkMemory(usage: number): void {
     const previousStatus = this.state.memoryStatus;
 
-    if (usage >= this.thresholds.memoryHigh && previousStatus === 'normal') {
+    if (usage >= this.thresholds.memoryHigh && previousStatus === "normal") {
       // Transition to high
-      this.state.memoryStatus = 'high';
+      this.state.memoryStatus = "high";
       console.log(`📊 Resource Monitor: Memory HIGH (${usage}%)`);
-      bus.emit('system:memory_high', { usage, threshold: this.thresholds.memoryHigh });
-    } else if (usage <= this.thresholds.memoryNormal && previousStatus === 'high') {
+      bus.emit("system:memory_high", {
+        usage,
+        threshold: this.thresholds.memoryHigh,
+      });
+    } else if (
+      usage <= this.thresholds.memoryNormal &&
+      previousStatus === "high"
+    ) {
       // Transition to normal
-      this.state.memoryStatus = 'normal';
+      this.state.memoryStatus = "normal";
       console.log(`📊 Resource Monitor: Memory normal (${usage}%)`);
-      bus.emit('system:memory_normal', { usage });
+      bus.emit("system:memory_normal", { usage });
     }
   }
 
@@ -191,7 +204,9 @@ class ResourceMonitor {
    * Check if resources are healthy (can spawn)
    */
   isHealthy(): boolean {
-    return this.state.cpuStatus === 'normal' && this.state.memoryStatus === 'normal';
+    return (
+      this.state.cpuStatus === "normal" && this.state.memoryStatus === "normal"
+    );
   }
 
   /**

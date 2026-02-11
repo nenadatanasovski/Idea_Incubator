@@ -4,7 +4,7 @@ export interface Agent {
   type: string;
   model: string;
   telegram_channel: string | null;
-  status: 'idle' | 'working' | 'error' | 'stuck' | 'stopped';
+  status: "idle" | "working" | "error" | "stuck" | "stopped";
   current_task_id: string | null;
   current_session_id: string | null;
   last_heartbeat: string | null;
@@ -20,8 +20,8 @@ export interface Task {
   title: string;
   description: string | null;
   category: string | null;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'blocked';
-  priority: 'P0' | 'P1' | 'P2' | 'P3' | 'P4';
+  status: "pending" | "in_progress" | "completed" | "failed" | "blocked";
+  priority: "P0" | "P1" | "P2" | "P3" | "P4";
   assigned_agent_id: string | null;
   task_list_id: string;
   parent_task_id: string | null;
@@ -36,7 +36,7 @@ export interface AgentSession {
   id: string;
   agent_id: string;
   task_id: string | null;
-  status: 'starting' | 'running' | 'completed' | 'failed' | 'terminated';
+  status: "starting" | "running" | "completed" | "failed" | "terminated";
   started_at: string;
   ended_at: string | null;
   total_iterations: number;
@@ -56,7 +56,7 @@ export interface ObservabilityEvent {
   agent_id: string | null;
   session_id: string | null;
   task_id: string | null;
-  severity: 'debug' | 'info' | 'warning' | 'error';
+  severity: "debug" | "info" | "warning" | "error";
   metadata: string | null;
   created_at: string;
 }
@@ -74,7 +74,7 @@ export interface TestSuite {
 export interface TestRun {
   id: string;
   suite_id: string | null;
-  status: 'running' | 'passed' | 'failed' | 'cancelled';
+  status: "running" | "passed" | "failed" | "cancelled";
   started_at: string;
   ended_at: string | null;
   total_cases: number;

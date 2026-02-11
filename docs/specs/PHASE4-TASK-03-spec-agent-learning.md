@@ -16,6 +16,7 @@ Enable the Spec Agent to learn from Build Agent feedback, improving specificatio
 **Problem:** The Spec Agent currently operates in a "write-once" mode with no mechanism to learn from Build Agent execution outcomes. When a Build Agent encounters ambiguous requirements, missing technical details, or unrealistic pass criteria, this valuable feedback is lost. The Spec Agent repeats the same mistakes, producing specs that consistently miss critical implementation details, leading to wasted Build Agent iterations and human intervention.
 
 **Solution:** Implement a bi-directional feedback system where:
+
 1. Build Agents log spec quality issues during execution (missing details, ambiguous requirements, incorrect assumptions)
 2. Spec Agent queries this feedback when creating new specifications
 3. Common spec deficiencies are captured as learnings in the knowledge base
@@ -23,6 +24,7 @@ Enable the Spec Agent to learn from Build Agent feedback, improving specificatio
 5. Spec Agent proactively avoids known pitfalls from previous tasks
 
 **Value Proposition:**
+
 - **Reduces Build Iterations:** Better specs → fewer clarification loops → faster delivery
 - **Improves Spec Quality:** Specs become more complete and actionable over time
 - **Enables Self-Improvement:** System learns from mistakes without human intervention
@@ -87,6 +89,7 @@ Enable the Spec Agent to learn from Build Agent feedback, improving specificatio
 ### Functional Requirements
 
 **FR-1: Build Agent Feedback Collection**
+
 - MUST capture spec quality feedback during Build Agent execution
 - MUST record feedback types:
   - **Missing Details**: Required information absent from spec
@@ -101,6 +104,7 @@ Enable the Spec Agent to learn from Build Agent feedback, improving specificatio
 - SHOULD record time spent on spec-related clarifications
 
 **FR-2: Spec Quality Metrics**
+
 - MUST calculate spec effectiveness score: `success_rate = (successful_builds / total_builds)`
 - MUST track metrics per spec:
   - Build attempts required (1 = perfect spec, >3 = poor spec)
@@ -114,6 +118,7 @@ Enable the Spec Agent to learn from Build Agent feedback, improving specificatio
 - SHOULD track improvement trends over time
 
 **FR-3: Spec Knowledge Base**
+
 - MUST store spec-specific learnings:
   - **Requirement Templates**: Validated requirement patterns by task category
   - **Technical Design Patterns**: Proven architecture descriptions
@@ -126,6 +131,7 @@ Enable the Spec Agent to learn from Build Agent feedback, improving specificatio
 - SHOULD support promotion to spec templates (high confidence + occurrences)
 
 **FR-4: Feedback Integration in Spec Generation**
+
 - MUST query spec knowledge base before generating new specifications
 - MUST retrieve relevant learnings based on:
   - Task category (feature, bug, refactor, test)
@@ -140,6 +146,7 @@ Enable the Spec Agent to learn from Build Agent feedback, improving specificatio
 - SHOULD suggest similar past specs as references
 
 **FR-5: Template Evolution**
+
 - MUST identify promotion candidates: confidence ≥0.85 AND occurrences ≥5
 - MUST generate template update proposals:
   - New requirement sections for common patterns
@@ -151,6 +158,7 @@ Enable the Spec Agent to learn from Build Agent feedback, improving specificatio
 - SHOULD support A/B testing (old vs new template effectiveness)
 
 **FR-6: Clarification Loop Integration**
+
 - MUST capture Build Agent clarification requests
 - MUST link clarifications to spec sections that triggered them
 - MUST record clarification resolutions (answers provided)
@@ -159,6 +167,7 @@ Enable the Spec Agent to learn from Build Agent feedback, improving specificatio
 - SHOULD auto-update specs with clarification resolutions
 
 **FR-7: Success Pattern Recognition**
+
 - MUST identify specs that led to first-attempt Build Agent success
 - MUST extract common characteristics from successful specs:
   - Requirement phrasing patterns
@@ -170,6 +179,7 @@ Enable the Spec Agent to learn from Build Agent feedback, improving specificatio
 - SHOULD recommend spec patterns when similar tasks detected
 
 **FR-8: Integration with Build Agent**
+
 - MUST provide Build Agent with feedback API endpoints:
   - `POST /api/spec-feedback/issue` - Report spec quality issue
   - `POST /api/spec-feedback/clarification` - Request clarification
@@ -182,6 +192,7 @@ Enable the Spec Agent to learn from Build Agent feedback, improving specificatio
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Feedback collection MUST NOT block Build Agent execution (async)
 - Spec knowledge query MUST complete in <200ms for typical queries
 - Spec quality metrics calculation MUST complete in <500ms
@@ -189,6 +200,7 @@ Enable the Spec Agent to learn from Build Agent feedback, improving specificatio
 - Feedback API endpoints MUST respond in <100ms
 
 **NFR-2: Data Integrity**
+
 - Feedback entries MUST be immutable (append-only)
 - Spec quality metrics MUST recalculate on new feedback
 - Knowledge entries MUST link to source feedback
@@ -196,6 +208,7 @@ Enable the Spec Agent to learn from Build Agent feedback, improving specificatio
 - Confidence updates MUST be atomic
 
 **NFR-3: Observability**
+
 - MUST log all feedback submissions with spec_id, build_id, issue_type
 - MUST track spec improvement metrics (effectiveness over time)
 - MUST expose metrics endpoint: `/api/spec-metrics`
@@ -203,6 +216,7 @@ Enable the Spec Agent to learn from Build Agent feedback, improving specificatio
 - SHOULD track token savings from reusing spec patterns
 
 **NFR-4: Maintainability**
+
 - Feedback types MUST be extensible (easy to add new types)
 - Spec templates MUST support version rollback
 - Knowledge base MUST support schema migrations
@@ -396,8 +410,8 @@ CREATE INDEX idx_spec_clarifications_session ON spec_clarifications(build_sessio
 #### 1. Spec Feedback Collector (`parent-harness/orchestrator/src/spec-learning/feedback-collector.ts`)
 
 ```typescript
-import { query, run, getOne } from '../db/index.js';
-import { v4 as uuid } from 'uuid';
+import { query, run, getOne } from "../db/index.js";
+import { v4 as uuid } from "uuid";
 
 export interface SpecFeedback {
   id: string;
@@ -405,11 +419,17 @@ export interface SpecFeedback {
   spec_file_path: string;
   build_session_id?: string;
   task_id?: string;
-  feedback_type: 'missing_details' | 'ambiguous_requirements' | 'incorrect_assumptions'
-    | 'unrealistic_pass_criteria' | 'incomplete_dependencies' | 'poor_decomposition' | 'success';
+  feedback_type:
+    | "missing_details"
+    | "ambiguous_requirements"
+    | "incorrect_assumptions"
+    | "unrealistic_pass_criteria"
+    | "incomplete_dependencies"
+    | "poor_decomposition"
+    | "success";
   section?: string;
   description: string;
-  severity?: 'low' | 'medium' | 'high' | 'critical';
+  severity?: "low" | "medium" | "high" | "critical";
   resolution?: string;
   resolved_at?: string;
   created_at: string;
@@ -423,10 +443,10 @@ export function recordSpecIssue(params: {
   specFilePath: string;
   buildSessionId?: string;
   taskId?: string;
-  feedbackType: SpecFeedback['feedback_type'];
+  feedbackType: SpecFeedback["feedback_type"];
   section?: string;
   description: string;
-  severity?: SpecFeedback['severity'];
+  severity?: SpecFeedback["severity"];
 }): SpecFeedback {
   const id = uuid();
   const now = new Date().toISOString();
@@ -440,34 +460,39 @@ export function recordSpecIssue(params: {
     feedback_type: params.feedbackType,
     section: params.section,
     description: params.description,
-    severity: params.severity || 'medium',
+    severity: params.severity || "medium",
     created_at: now,
   };
 
-  run(`
+  run(
+    `
     INSERT INTO spec_feedback
     (id, spec_id, spec_file_path, build_session_id, task_id, feedback_type, section, description, severity, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `, [
-    feedback.id,
-    feedback.spec_id,
-    feedback.spec_file_path,
-    feedback.build_session_id,
-    feedback.task_id,
-    feedback.feedback_type,
-    feedback.section,
-    feedback.description,
-    feedback.severity,
-    feedback.created_at,
-  ]);
+  `,
+    [
+      feedback.id,
+      feedback.spec_id,
+      feedback.spec_file_path,
+      feedback.build_session_id,
+      feedback.task_id,
+      feedback.feedback_type,
+      feedback.section,
+      feedback.description,
+      feedback.severity,
+      feedback.created_at,
+    ],
+  );
 
   // Update spec quality metrics
   updateSpecMetrics(params.specId, params.feedbackType);
 
   // Emit event
-  emitEvent('spec:feedback:received', feedback);
+  emitEvent("spec:feedback:received", feedback);
 
-  console.log(`[SpecFeedback] Recorded ${params.feedbackType} for ${params.specId}`);
+  console.log(
+    `[SpecFeedback] Recorded ${params.feedbackType} for ${params.specId}`,
+  );
 
   return feedback;
 }
@@ -487,9 +512,9 @@ export function recordSpecSuccess(params: {
     specFilePath: params.specFilePath,
     buildSessionId: params.buildSessionId,
     taskId: params.taskId,
-    feedbackType: 'success',
+    feedbackType: "success",
     description: `Build completed successfully in ${params.timeToComplete}s`,
-    severity: 'low',
+    severity: "low",
   });
 }
 
@@ -505,21 +530,31 @@ export function recordClarificationRequest(params: {
   const id = uuid();
   const now = new Date().toISOString();
 
-  run(`
+  run(
+    `
     INSERT INTO spec_clarifications
     (id, spec_id, build_session_id, question, spec_section, created_at)
     VALUES (?, ?, ?, ?, ?, ?)
-  `, [id, params.specId, params.buildSessionId, params.question, params.specSection, now]);
+  `,
+    [
+      id,
+      params.specId,
+      params.buildSessionId,
+      params.question,
+      params.specSection,
+      now,
+    ],
+  );
 
   // Also record as feedback
   recordSpecIssue({
     specId: params.specId,
-    specFilePath: '', // Build Agent should provide
+    specFilePath: "", // Build Agent should provide
     buildSessionId: params.buildSessionId,
-    feedbackType: 'ambiguous_requirements',
+    feedbackType: "ambiguous_requirements",
     section: params.specSection,
     description: `Clarification needed: ${params.question}`,
-    severity: 'medium',
+    severity: "medium",
   });
 
   return id;
@@ -531,61 +566,82 @@ export function recordClarificationRequest(params: {
 export function resolveClarification(
   clarificationId: string,
   answer: string,
-  answeredBy: string
+  answeredBy: string,
 ): void {
   const now = new Date().toISOString();
 
-  run(`
+  run(
+    `
     UPDATE spec_clarifications
     SET answer = ?, answered_by = ?, answered_at = ?
     WHERE id = ?
-  `, [answer, answeredBy, now, clarificationId]);
+  `,
+    [answer, answeredBy, now, clarificationId],
+  );
 }
 
 /**
  * Update spec quality metrics based on feedback
  */
-function updateSpecMetrics(specId: string, feedbackType: SpecFeedback['feedback_type']): void {
+function updateSpecMetrics(
+  specId: string,
+  feedbackType: SpecFeedback["feedback_type"],
+): void {
   // Ensure metrics record exists
-  const existing = getOne(`SELECT * FROM spec_quality_metrics WHERE spec_id = ?`, [specId]);
+  const existing = getOne(
+    `SELECT * FROM spec_quality_metrics WHERE spec_id = ?`,
+    [specId],
+  );
 
   if (!existing) {
     // Create initial metrics record
-    run(`
+    run(
+      `
       INSERT INTO spec_quality_metrics
       (id, spec_id, spec_file_path, task_id, category, created_at, updated_at)
       SELECT ?, spec_id, spec_file_path, task_id, 'feature', datetime('now'), datetime('now')
       FROM spec_feedback WHERE spec_id = ? LIMIT 1
-    `, [uuid(), specId]);
+    `,
+      [uuid(), specId],
+    );
   }
 
   // Increment appropriate counter
   const fieldMap: Record<string, string> = {
-    missing_details: 'missing_details_count',
-    ambiguous_requirements: 'ambiguous_requirements_count',
-    incorrect_assumptions: 'incorrect_assumptions_count',
-    unrealistic_pass_criteria: 'unrealistic_criteria_count',
-    success: 'successful_builds',
+    missing_details: "missing_details_count",
+    ambiguous_requirements: "ambiguous_requirements_count",
+    incorrect_assumptions: "incorrect_assumptions_count",
+    unrealistic_pass_criteria: "unrealistic_criteria_count",
+    success: "successful_builds",
   };
 
   const field = fieldMap[feedbackType];
   if (field) {
-    run(`
+    run(
+      `
       UPDATE spec_quality_metrics
       SET ${field} = ${field} + 1,
           build_attempts = build_attempts + 1,
           updated_at = datetime('now')
       WHERE spec_id = ?
-    `, [specId]);
+    `,
+      [specId],
+    );
   }
 
   // Check if effectiveness is low and emit event
-  const metrics = getOne<{ effectiveness: number }>(`
+  const metrics = getOne<{ effectiveness: number }>(
+    `
     SELECT effectiveness FROM spec_quality_metrics WHERE spec_id = ?
-  `, [specId]);
+  `,
+    [specId],
+  );
 
   if (metrics && metrics.effectiveness < 0.4) {
-    emitEvent('spec:quality:low', { spec_id: specId, effectiveness: metrics.effectiveness });
+    emitEvent("spec:quality:low", {
+      spec_id: specId,
+      effectiveness: metrics.effectiveness,
+    });
   }
 }
 
@@ -598,12 +654,17 @@ function emitEvent(type: string, data: any): void {
 #### 2. Spec Knowledge Analyzer (`parent-harness/orchestrator/src/spec-learning/knowledge-analyzer.ts`)
 
 ```typescript
-import { query, run, getOne } from '../db/index.js';
-import { v4 as uuid } from 'uuid';
+import { query, run, getOne } from "../db/index.js";
+import { v4 as uuid } from "uuid";
 
 export interface SpecKnowledge {
   id: string;
-  type: 'requirement_template' | 'design_pattern' | 'pass_criteria_example' | 'pitfall' | 'decomposition_rule';
+  type:
+    | "requirement_template"
+    | "design_pattern"
+    | "pass_criteria_example"
+    | "pitfall"
+    | "decomposition_rule";
   category: string;
   content: string;
   file_patterns: string[];
@@ -621,7 +682,7 @@ export interface SpecKnowledge {
  * Analyze feedback patterns and extract learnings
  */
 export function analyzeSpecFeedback(): void {
-  console.log('[SpecKnowledgeAnalyzer] Analyzing spec feedback patterns...');
+  console.log("[SpecKnowledgeAnalyzer] Analyzing spec feedback patterns...");
 
   // Find recurring issues (same feedback_type, similar description, ≥3 occurrences)
   const recurringIssues = query<{
@@ -663,7 +724,7 @@ export function analyzeSpecFeedback(): void {
     extractSuccessPatterns(spec);
   }
 
-  console.log('[SpecKnowledgeAnalyzer] Analysis complete.');
+  console.log("[SpecKnowledgeAnalyzer] Analysis complete.");
 }
 
 /**
@@ -675,13 +736,16 @@ function createPitfallKnowledge(issue: {
   count: number;
   example_descriptions: string;
 }): void {
-  const content = `Common pitfall in ${issue.section}: ${issue.feedback_type.replace(/_/g, ' ')}. Examples: ${issue.example_descriptions}`;
+  const content = `Common pitfall in ${issue.section}: ${issue.feedback_type.replace(/_/g, " ")}. Examples: ${issue.example_descriptions}`;
 
   // Check for duplicate
-  const existing = query<SpecKnowledge>(`
+  const existing = query<SpecKnowledge>(
+    `
     SELECT * FROM spec_knowledge
     WHERE type = 'pitfall' AND content LIKE ?
-  `, [`%${issue.feedback_type}%${issue.section}%`]);
+  `,
+    [`%${issue.feedback_type}%${issue.section}%`],
+  );
 
   if (existing.length > 0) {
     // Update confidence and occurrences
@@ -689,21 +753,29 @@ function createPitfallKnowledge(issue: {
     const newConfidence = Math.min(0.95, entry.confidence + 0.05);
     const newOccurrences = entry.occurrences + issue.count;
 
-    run(`
+    run(
+      `
       UPDATE spec_knowledge
       SET confidence = ?, occurrences = ?, updated_at = datetime('now')
       WHERE id = ?
-    `, [newConfidence, newOccurrences, entry.id]);
+    `,
+      [newConfidence, newOccurrences, entry.id],
+    );
 
-    console.log(`[SpecKnowledge] Updated pitfall: ${entry.id} (conf=${newConfidence})`);
+    console.log(
+      `[SpecKnowledge] Updated pitfall: ${entry.id} (conf=${newConfidence})`,
+    );
   } else {
     // Create new entry
     const id = uuid();
-    run(`
+    run(
+      `
       INSERT INTO spec_knowledge
       (id, type, category, content, confidence, occurrences, created_at, updated_at)
       VALUES (?, 'pitfall', 'general', ?, 0.6, ?, datetime('now'), datetime('now'))
-    `, [id, content, issue.count]);
+    `,
+      [id, content, issue.count],
+    );
 
     console.log(`[SpecKnowledge] Created pitfall: ${id}`);
   }
@@ -720,7 +792,9 @@ function extractSuccessPatterns(spec: {
 }): void {
   // TODO: Read spec file, extract patterns using LLM
   // For now, just record as example
-  console.log(`[SpecKnowledge] Successful spec pattern: ${spec.spec_id} (${spec.effectiveness})`);
+  console.log(
+    `[SpecKnowledge] Successful spec pattern: ${spec.spec_id} (${spec.effectiveness})`,
+  );
 }
 
 /**
@@ -740,9 +814,11 @@ export function getRelevantSpecKnowledge(params: {
   // Filter by file patterns if provided
   if (params.filePatterns && params.filePatterns.length > 0) {
     sql += ` AND (`;
-    const fileConditions = params.filePatterns.map(() => `file_patterns LIKE ?`).join(' OR ');
+    const fileConditions = params.filePatterns
+      .map(() => `file_patterns LIKE ?`)
+      .join(" OR ");
     sql += fileConditions + `)`;
-    params.filePatterns.forEach(pattern => args.push(`%${pattern}%`));
+    params.filePatterns.forEach((pattern) => args.push(`%${pattern}%`));
   }
 
   sql += ` ORDER BY confidence DESC, occurrences DESC LIMIT 10`;
@@ -754,8 +830,8 @@ export function getRelevantSpecKnowledge(params: {
 #### 3. Spec Template Evolver (`parent-harness/orchestrator/src/spec-learning/template-evolver.ts`)
 
 ```typescript
-import { query, run } from '../db/index.js';
-import { v4 as uuid } from 'uuid';
+import { query, run } from "../db/index.js";
+import { v4 as uuid } from "uuid";
 
 /**
  * Identify template promotion candidates
@@ -774,7 +850,9 @@ export function identifyPromotionCandidates(): void {
     ORDER BY confidence DESC, occurrences DESC
   `);
 
-  console.log(`[TemplateEvolver] Found ${candidates.length} promotion candidates`);
+  console.log(
+    `[TemplateEvolver] Found ${candidates.length} promotion candidates`,
+  );
 
   for (const candidate of candidates) {
     proposeTemplateUpdate(candidate);
@@ -793,35 +871,46 @@ function proposeTemplateUpdate(knowledge: {
   occurrences: number;
 }): void {
   // Get current template version
-  const currentTemplate = query<{ version: number; template_content: string }>(`
+  const currentTemplate = query<{ version: number; template_content: string }>(
+    `
     SELECT * FROM spec_template_versions
     WHERE category = ? AND status = 'active'
     ORDER BY version DESC LIMIT 1
-  `, [knowledge.category]);
+  `,
+    [knowledge.category],
+  );
 
-  const nextVersion = currentTemplate.length > 0 ? currentTemplate[0].version + 1 : 1;
+  const nextVersion =
+    currentTemplate.length > 0 ? currentTemplate[0].version + 1 : 1;
 
   // Generate improved template (simplified - in reality, use LLM)
-  const improvedTemplate = currentTemplate.length > 0
-    ? currentTemplate[0].template_content + `\n\n## Common Pitfalls\n${knowledge.content}`
-    : `## Overview\n...\n\n## Common Pitfalls\n${knowledge.content}`;
+  const improvedTemplate =
+    currentTemplate.length > 0
+      ? currentTemplate[0].template_content +
+        `\n\n## Common Pitfalls\n${knowledge.content}`
+      : `## Overview\n...\n\n## Common Pitfalls\n${knowledge.content}`;
 
   // Create new template version
   const id = uuid();
-  run(`
+  run(
+    `
     INSERT INTO spec_template_versions
     (id, category, version, template_content, improvements, based_on_knowledge_ids, status, created_at)
     VALUES (?, ?, ?, ?, ?, ?, 'draft', datetime('now'))
-  `, [
-    id,
-    knowledge.category,
-    nextVersion,
-    improvedTemplate,
-    JSON.stringify([`Added pitfall: ${knowledge.content}`]),
-    JSON.stringify([knowledge.id]),
-  ]);
+  `,
+    [
+      id,
+      knowledge.category,
+      nextVersion,
+      improvedTemplate,
+      JSON.stringify([`Added pitfall: ${knowledge.content}`]),
+      JSON.stringify([knowledge.id]),
+    ],
+  );
 
-  console.log(`[TemplateEvolver] Proposed v${nextVersion} for ${knowledge.category}`);
+  console.log(
+    `[TemplateEvolver] Proposed v${nextVersion} for ${knowledge.category}`,
+  );
 }
 
 /**
@@ -829,20 +918,29 @@ function proposeTemplateUpdate(knowledge: {
  */
 export function approveTemplateUpdate(templateId: string): void {
   // Deprecate old active template
-  const template = query<{ category: string }>(`SELECT category FROM spec_template_versions WHERE id = ?`, [templateId])[0];
+  const template = query<{ category: string }>(
+    `SELECT category FROM spec_template_versions WHERE id = ?`,
+    [templateId],
+  )[0];
 
-  run(`
+  run(
+    `
     UPDATE spec_template_versions
     SET status = 'deprecated', deprecated_at = datetime('now')
     WHERE category = ? AND status = 'active'
-  `, [template.category]);
+  `,
+    [template.category],
+  );
 
   // Activate new template
-  run(`
+  run(
+    `
     UPDATE spec_template_versions
     SET status = 'active'
     WHERE id = ?
-  `, [templateId]);
+  `,
+    [templateId],
+  );
 
   console.log(`[TemplateEvolver] Approved template: ${templateId}`);
 }
@@ -851,17 +949,31 @@ export function approveTemplateUpdate(templateId: string): void {
 #### 4. API Endpoints (`parent-harness/orchestrator/src/api/spec-feedback.ts`)
 
 ```typescript
-import { Router } from 'express';
-import { recordSpecIssue, recordSpecSuccess, recordClarificationRequest, resolveClarification } from '../spec-learning/feedback-collector.js';
-import { getRelevantSpecKnowledge } from '../spec-learning/knowledge-analyzer.js';
+import { Router } from "express";
+import {
+  recordSpecIssue,
+  recordSpecSuccess,
+  recordClarificationRequest,
+  resolveClarification,
+} from "../spec-learning/feedback-collector.js";
+import { getRelevantSpecKnowledge } from "../spec-learning/knowledge-analyzer.js";
 
 export const specFeedbackRouter = Router();
 
 /**
  * POST /api/spec-feedback/issue - Report spec quality issue
  */
-specFeedbackRouter.post('/issue', (req, res) => {
-  const { specId, specFilePath, buildSessionId, taskId, feedbackType, section, description, severity } = req.body;
+specFeedbackRouter.post("/issue", (req, res) => {
+  const {
+    specId,
+    specFilePath,
+    buildSessionId,
+    taskId,
+    feedbackType,
+    section,
+    description,
+    severity,
+  } = req.body;
 
   const feedback = recordSpecIssue({
     specId,
@@ -880,8 +992,9 @@ specFeedbackRouter.post('/issue', (req, res) => {
 /**
  * POST /api/spec-feedback/success - Report successful implementation
  */
-specFeedbackRouter.post('/success', (req, res) => {
-  const { specId, specFilePath, buildSessionId, taskId, timeToComplete } = req.body;
+specFeedbackRouter.post("/success", (req, res) => {
+  const { specId, specFilePath, buildSessionId, taskId, timeToComplete } =
+    req.body;
 
   recordSpecSuccess({
     specId,
@@ -891,13 +1004,13 @@ specFeedbackRouter.post('/success', (req, res) => {
     timeToComplete,
   });
 
-  res.json({ message: 'Success recorded' });
+  res.json({ message: "Success recorded" });
 });
 
 /**
  * POST /api/spec-feedback/clarification - Request clarification
  */
-specFeedbackRouter.post('/clarification', (req, res) => {
+specFeedbackRouter.post("/clarification", (req, res) => {
   const { specId, buildSessionId, question, specSection } = req.body;
 
   const clarificationId = recordClarificationRequest({
@@ -913,13 +1026,15 @@ specFeedbackRouter.post('/clarification', (req, res) => {
 /**
  * GET /api/spec-knowledge/relevant - Get relevant knowledge for spec
  */
-specFeedbackRouter.get('/knowledge/relevant', (req, res) => {
+specFeedbackRouter.get("/knowledge/relevant", (req, res) => {
   const { category, filePatterns, keywords } = req.query;
 
   const knowledge = getRelevantSpecKnowledge({
     category: category as string,
-    filePatterns: filePatterns ? (filePatterns as string).split(',') : undefined,
-    keywords: keywords ? (keywords as string).split(',') : undefined,
+    filePatterns: filePatterns
+      ? (filePatterns as string).split(",")
+      : undefined,
+    keywords: keywords ? (keywords as string).split(",") : undefined,
   });
 
   res.json({ knowledge, count: knowledge.length });
@@ -934,22 +1049,26 @@ When generating new specs, Spec Agent queries knowledge base:
 
 ```typescript
 // In agents/specification/core.ts
-import { getRelevantSpecKnowledge } from '../spec-learning/knowledge-analyzer.js';
+import { getRelevantSpecKnowledge } from "../spec-learning/knowledge-analyzer.js";
 
 export async function generateSpecification(task: Task): Promise<void> {
   // Get relevant learnings
   const knowledge = getRelevantSpecKnowledge({
     category: task.category,
     filePatterns: extractFilePatterns(task),
-    keywords: extractKeywords(task.title + ' ' + task.description),
+    keywords: extractKeywords(task.title + " " + task.description),
   });
 
   // Inject learnings into spec generation context
   const specContext = {
     task,
-    relevant_pitfalls: knowledge.filter(k => k.type === 'pitfall'),
-    requirement_templates: knowledge.filter(k => k.type === 'requirement_template'),
-    pass_criteria_examples: knowledge.filter(k => k.type === 'pass_criteria_example'),
+    relevant_pitfalls: knowledge.filter((k) => k.type === "pitfall"),
+    requirement_templates: knowledge.filter(
+      (k) => k.type === "requirement_template",
+    ),
+    pass_criteria_examples: knowledge.filter(
+      (k) => k.type === "pass_criteria_example",
+    ),
   };
 
   // Generate spec with enriched context
@@ -967,18 +1086,18 @@ Build Agent reports feedback during execution:
 ```typescript
 // In Build Agent execution loop
 if (specSectionAmbiguous) {
-  await fetch('http://localhost:3333/api/spec-feedback/issue', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  await fetch("http://localhost:3333/api/spec-feedback/issue", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       specId: task.display_id,
       specFilePath: task.spec_file_path,
       buildSessionId: session.id,
       taskId: task.id,
-      feedbackType: 'ambiguous_requirements',
-      section: 'Requirements',
-      description: 'Auth context not specified for API endpoints',
-      severity: 'high',
+      feedbackType: "ambiguous_requirements",
+      section: "Requirements",
+      description: "Auth context not specified for API endpoints",
+      severity: "high",
     }),
   });
 }
@@ -990,10 +1109,13 @@ Periodic analysis of feedback patterns:
 
 ```typescript
 // In parent-harness/orchestrator/src/orchestrator/index.ts
-setInterval(() => {
-  analyzeSpecFeedback(); // Extract learnings
-  identifyPromotionCandidates(); // Find template updates
-}, 60 * 60 * 1000); // Every hour
+setInterval(
+  () => {
+    analyzeSpecFeedback(); // Extract learnings
+    identifyPromotionCandidates(); // Find template updates
+  },
+  60 * 60 * 1000,
+); // Every hour
 ```
 
 ---
@@ -1001,42 +1123,49 @@ setInterval(() => {
 ## Pass Criteria
 
 ### Database & Schema
+
 1. ✅ **Tables created** - spec_feedback, spec_quality_metrics, spec_knowledge, spec_template_versions, spec_clarifications
 2. ✅ **Indexes created** - All performance-critical indexes present
 3. ✅ **Constraints valid** - CHECK constraints, foreign keys, computed columns
 4. ✅ **Migration tested** - Schema applies cleanly
 
 ### Feedback Collection
+
 5. ✅ **Issue recording works** - `POST /api/spec-feedback/issue` creates entries
 6. ✅ **Success recording works** - `POST /api/spec-feedback/success` updates metrics
 7. ✅ **Clarification requests work** - `POST /api/spec-feedback/clarification` creates entries
 8. ✅ **Metrics calculation** - spec_quality_metrics.effectiveness computed correctly
 
 ### Knowledge Extraction
+
 9. ✅ **Pattern analysis works** - Recurring issues detected (≥3 occurrences)
 10. ✅ **Pitfall knowledge created** - spec_knowledge entries created from feedback
 11. ✅ **Success patterns extracted** - High-performing specs analyzed
 12. ✅ **Duplicate prevention** - Similar learnings merged, not duplicated
 
 ### Spec Generation Integration
+
 13. ✅ **Knowledge query works** - `GET /api/spec-knowledge/relevant` returns learnings
 14. ✅ **Spec Agent uses knowledge** - Relevant pitfalls injected into new specs
 15. ✅ **Template evolution** - Promotion candidates identified (conf≥0.85, occ≥5)
 16. ✅ **Template updates** - New versions created and approved
 
 ### End-to-End Flow
+
 17. ✅ **Feedback → Learning** - Issue reported → pattern detected → knowledge created
 18. ✅ **Learning → Improvement** - Knowledge → injected into spec → better outcome
 19. ✅ **Metrics tracking** - Effectiveness improves over time (measurable trend)
 20. ✅ **Event emission** - `spec:feedback:received`, `spec:quality:low` events broadcast
 
 ### Performance
+
 21. ✅ **Feedback API <100ms** - POST endpoints respond quickly
 22. ✅ **Knowledge query <200ms** - Relevant knowledge retrieved fast
 23. ✅ **Metrics update <500ms** - Recalculation doesn't block
 24. ✅ **No blocking** - Feedback collection is async, doesn't block Build Agent
 
 ### Testing
+
 25. ✅ **Unit tests pass** - All modules tested in isolation
 26. ✅ **Integration test** - Full flow: issue → analysis → knowledge → reuse
 27. ✅ **Load test** - System handles 100+ feedback entries
@@ -1046,15 +1175,18 @@ setInterval(() => {
 ## Dependencies
 
 **Upstream (Must Complete First):**
+
 - ✅ PHASE4-TASK-01: Knowledge Base System (provides infrastructure)
 - ✅ PHASE2-TASK-01: Spec Agent v0.1 (must exist to improve)
 - ⚠️ Build Agent v0.1 (must generate feedback - hypothetical)
 
 **Downstream (Depends on This):**
+
 - PHASE6-TASK-01: Self-improvement loop (uses spec learnings)
 - PHASE8-TASK-02: Spec approval workflow (enhanced with quality metrics)
 
 **Parallel Work:**
+
 - PHASE4-TASK-02: Planning Agent (uses different learning system)
 - PHASE5-TASK-03: QA Agent validation (can validate spec quality)
 
@@ -1063,6 +1195,7 @@ setInterval(() => {
 ## Implementation Plan
 
 ### Phase 1: Database Schema & Feedback Collection (4 hours)
+
 1. Create migration: `003_spec_learning.sql`
 2. Define all 5 tables with indexes
 3. Implement feedback-collector.ts
@@ -1070,6 +1203,7 @@ setInterval(() => {
 5. Test feedback recording
 
 ### Phase 2: Knowledge Analysis (5 hours)
+
 6. Implement knowledge-analyzer.ts
 7. Implement recurring pattern detection
 8. Implement success pattern extraction
@@ -1077,6 +1211,7 @@ setInterval(() => {
 10. Test analysis logic
 
 ### Phase 3: Spec Agent Integration (4 hours)
+
 11. Add knowledge query to Spec Agent workflow
 12. Inject pitfalls into spec generation
 13. Add requirement template reuse
@@ -1084,6 +1219,7 @@ setInterval(() => {
 15. Test improved spec quality
 
 ### Phase 4: Template Evolution (3 hours)
+
 16. Implement template-evolver.ts
 17. Add promotion candidate detection
 18. Create template version management
@@ -1091,12 +1227,14 @@ setInterval(() => {
 20. Test template updates
 
 ### Phase 5: Build Agent Integration (3 hours)
+
 21. Add feedback reporting to Build Agent (hypothetical)
 22. Implement clarification request flow
 23. Test feedback → knowledge → improvement cycle
 24. Validate metrics tracking
 
 ### Phase 6: Testing & Metrics (3 hours)
+
 25. Write unit tests
 26. Write integration tests
 27. Load test with 100+ feedback entries
@@ -1228,18 +1366,21 @@ describe('Spec Learning Integration', () => {
 ## Success Metrics
 
 **Operational:**
+
 - Spec knowledge base contains 20+ learnings after 50 specs
 - 90%+ of recurring issues captured as pitfalls
 - Spec effectiveness improves 20% over 3 months
 - Template updates approved every 2 weeks
 
 **Quality:**
+
 - Build Agent clarification requests reduce by 40%
 - First-attempt build success rate increases from 40% → 65%
 - Spec generation includes relevant learnings 80%+ of time
 - Template evolution accuracy: 80%+ of promoted patterns useful
 
 **Performance:**
+
 - Feedback API latency <100ms (p99)
 - Knowledge query latency <200ms (p99)
 - Analysis job completes in <5 minutes (100+ specs)

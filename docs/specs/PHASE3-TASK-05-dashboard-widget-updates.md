@@ -37,7 +37,7 @@ Enhance Parent Harness dashboard widgets with real-time agent status visualizati
    - ✅ Connection management with auto-reconnect
    - ✅ Message subscription system
    - ✅ Event broadcasting from orchestrator
-   - ✅ Types: agent:*, task:*, session:*, event
+   - ✅ Types: agent:_, task:_, session:\*, event
    - ❌ **Gap:** Widgets not subscribed to real-time updates
    - ❌ **Gap:** No WebSocket connection status in UI
 
@@ -55,7 +55,7 @@ Enhance Parent Harness dashboard widgets with real-time agent status visualizati
    - ❌ **Gap:** Missing error details structure
 
 5. **WebSocket Server** (`parent-harness/orchestrator/src/websocket.ts`)
-   - ✅ Broadcasts: agent:status, task:*, session:started/updated/ended
+   - ✅ Broadcasts: agent:status, task:\*, session:started/updated/ended
    - ✅ Event bus integration
    - ❌ **Gap:** No session:heartbeat event (from PHASE3-TASK-03)
    - ❌ **Gap:** No session:unhealthy event
@@ -78,6 +78,7 @@ Enhance Parent Harness dashboard widgets with real-time agent status visualizati
 ### Functional Requirements
 
 **FR-1: Real-Time Agent Status Updates**
+
 - MUST subscribe to `agent:status` WebSocket events
 - MUST update AgentStatusCard in real-time (<1s latency)
 - MUST display health status badge (healthy, stale, stuck, crashed)
@@ -88,6 +89,7 @@ Enhance Parent Harness dashboard widgets with real-time agent status visualizati
 - SHOULD display current iteration/step for working agents
 
 **FR-2: Task Progress Visualization**
+
 - MUST show progress bar for in_progress tasks (0-100%)
 - MUST display estimated completion time based on iteration rate
 - MUST show current/total iterations if available
@@ -97,6 +99,7 @@ Enhance Parent Harness dashboard widgets with real-time agent status visualizati
 - SHOULD display files modified count
 
 **FR-3: Comprehensive Error State Display**
+
 - MUST show error indicator on agent cards (red badge with count)
 - MUST display recent error message in TaskCard
 - MUST show error severity (warning, error, critical)
@@ -111,6 +114,7 @@ Enhance Parent Harness dashboard widgets with real-time agent status visualizati
 - SHOULD show error rate trend (increasing, stable, decreasing)
 
 **FR-4: Session Health Monitoring**
+
 - MUST display session health status per agent (API from PHASE3-TASK-03)
 - MUST subscribe to `session:heartbeat` WebSocket events
 - MUST show session duration with real-time counter
@@ -120,6 +124,7 @@ Enhance Parent Harness dashboard widgets with real-time agent status visualizati
 - SHOULD show session resource usage over time (sparkline chart)
 
 **FR-5: Interactive Controls**
+
 - MUST provide "Retry" button for failed tasks
 - MUST provide "Terminate" button for stuck sessions
 - MUST provide "View Logs" button for all active sessions
@@ -129,6 +134,7 @@ Enhance Parent Harness dashboard widgets with real-time agent status visualizati
 - SHOULD provide "Force Complete" option with reason input
 
 **FR-6: WebSocket Connection Status**
+
 - MUST display WebSocket connection indicator in header
 - MUST show connection state: Connected, Disconnecting, Reconnecting, Disconnected
 - MUST show connection latency (ping response time)
@@ -137,6 +143,7 @@ Enhance Parent Harness dashboard widgets with real-time agent status visualizati
 - SHOULD show last successful message timestamp
 
 **FR-7: Error Aggregation Widget**
+
 - MUST display top 5 errors across all agents
 - MUST show error frequency (count in last hour)
 - MUST group errors by type/pattern
@@ -147,6 +154,7 @@ Enhance Parent Harness dashboard widgets with real-time agent status visualizati
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Dashboard MUST remain responsive with 100+ events per minute
 - Widget updates MUST complete in <100ms (no UI blocking)
 - WebSocket message processing MUST NOT block React render
@@ -154,6 +162,7 @@ Enhance Parent Harness dashboard widgets with real-time agent status visualizati
 - MUST use React.memo for expensive components
 
 **NFR-2: Usability**
+
 - Widgets MUST use consistent color scheme (healthy=green, error=red, warning=yellow)
 - Progress bars MUST show percentage text overlay
 - Health badges MUST include tooltip explanations
@@ -161,6 +170,7 @@ Enhance Parent Harness dashboard widgets with real-time agent status visualizati
 - MUST support keyboard navigation for controls
 
 **NFR-3: Accessibility**
+
 - MUST use semantic HTML for screen readers
 - MUST provide ARIA labels for status indicators
 - MUST use sufficient color contrast (WCAG AA)
@@ -168,6 +178,7 @@ Enhance Parent Harness dashboard widgets with real-time agent status visualizati
 - SHOULD announce critical errors via screen reader
 
 **NFR-4: Reliability**
+
 - Dashboard MUST handle WebSocket disconnection gracefully
 - Widgets MUST degrade to polling if WebSocket unavailable
 - MUST persist filter/sort preferences to localStorage
@@ -186,7 +197,7 @@ Enhance Parent Harness dashboard widgets with real-time agent status visualizati
 // Extend Agent type
 export interface Agent {
   // ... existing fields ...
-  health_status?: 'healthy' | 'stale' | 'stuck' | 'crashed';
+  health_status?: "healthy" | "stale" | "stuck" | "crashed";
   running_instances?: number; // Count of active sessions
   current_iteration?: number;
   current_step?: string;
@@ -209,7 +220,7 @@ export interface Task {
     message: string;
     stack?: string;
     timestamp: string;
-    severity: 'warning' | 'error' | 'critical';
+    severity: "warning" | "error" | "critical";
     suggestions?: string[];
   };
 }
@@ -218,7 +229,7 @@ export interface Task {
 export interface AgentSession {
   // ... existing fields ...
   progress_percent?: number;
-  health_status?: 'healthy' | 'stale' | 'stuck' | 'crashed';
+  health_status?: "healthy" | "stale" | "stuck" | "crashed";
   current_iteration?: number;
   iteration_rate?: number; // iterations per minute
   last_activity?: string;
@@ -229,7 +240,7 @@ export interface AgentSession {
 export interface ErrorSummary {
   error_pattern: string;
   count: number;
-  severity: 'warning' | 'error' | 'critical';
+  severity: "warning" | "error" | "critical";
   affected_agents: string[];
   affected_tasks: string[];
   first_seen: string;
@@ -239,7 +250,7 @@ export interface ErrorSummary {
 
 // New: WebSocket connection state
 export interface WsConnectionState {
-  status: 'connected' | 'connecting' | 'reconnecting' | 'disconnected';
+  status: "connected" | "connecting" | "reconnecting" | "disconnected";
   latency: number | null; // milliseconds
   reconnectAttempts: number;
   lastMessage: string | null;
@@ -716,10 +727,10 @@ export function useAgents() {
   // Subscribe to real-time updates
   useEffect(() => {
     const unsubscribe = subscribe((message) => {
-      if (message.type === 'agent:status') {
+      if (message.type === "agent:status") {
         const updatedAgent = message.payload as Agent;
-        setAgents(prev =>
-          prev.map(a => a.id === updatedAgent.id ? updatedAgent : a)
+        setAgents((prev) =>
+          prev.map((a) => (a.id === updatedAgent.id ? updatedAgent : a)),
         );
       }
     });
@@ -735,10 +746,10 @@ export function useTasks() {
 
   useEffect(() => {
     const unsubscribe = subscribe((message) => {
-      if (message.type === 'task:updated' || message.type === 'task:assigned') {
+      if (message.type === "task:updated" || message.type === "task:assigned") {
         const updatedTask = message.payload as Task;
-        setTasks(prev =>
-          prev.map(t => t.id === updatedTask.id ? updatedTask : t)
+        setTasks((prev) =>
+          prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)),
         );
       }
     });
@@ -755,8 +766,8 @@ export function useTasks() {
 
 ```typescript
 // parent-harness/orchestrator/src/api/errors.ts
-import { Router } from 'express';
-import { query } from '../db/index.js';
+import { Router } from "express";
+import { query } from "../db/index.js";
 
 export const errorsRouter = Router();
 
@@ -764,10 +775,11 @@ export const errorsRouter = Router();
  * GET /api/errors/summary
  * Get aggregated error statistics
  */
-errorsRouter.get('/summary', (req, res) => {
+errorsRouter.get("/summary", (req, res) => {
   const since = req.query.since || new Date(Date.now() - 3600000).toISOString(); // 1 hour
 
-  const errors = query<any>(`
+  const errors = query<any>(
+    `
     SELECT
       SUBSTR(message, 1, 50) as error_pattern,
       COUNT(*) as count,
@@ -783,14 +795,16 @@ errorsRouter.get('/summary', (req, res) => {
     GROUP BY error_pattern, severity
     ORDER BY count DESC, last_seen DESC
     LIMIT 10
-  `, [since]);
+  `,
+    [since],
+  );
 
-  const formatted = errors.map(e => ({
+  const formatted = errors.map((e) => ({
     error_pattern: e.error_pattern,
     count: e.count,
     severity: e.severity,
-    affected_agents: e.affected_agents ? e.affected_agents.split(',') : [],
-    affected_tasks: e.affected_tasks ? e.affected_tasks.split(',') : [],
+    affected_agents: e.affected_agents ? e.affected_agents.split(",") : [],
+    affected_tasks: e.affected_tasks ? e.affected_tasks.split(",") : [],
     first_seen: e.first_seen,
     last_seen: e.last_seen,
     sample_message: e.sample_message,
@@ -808,19 +822,21 @@ export const ws = {
   // ... existing events ...
 
   // Enhanced agent status with health
-  agentStatusChanged: (agent: Agent & { health_status?: string; error_count?: number }) =>
-    broadcast('agent:status', agent),
+  agentStatusChanged: (
+    agent: Agent & { health_status?: string; error_count?: number },
+  ) => broadcast("agent:status", agent),
 
   // Enhanced task updates with progress
-  taskProgressUpdated: (task: Task & { progress_percent: number; iteration_count: number }) =>
-    broadcast('task:updated', task),
+  taskProgressUpdated: (
+    task: Task & { progress_percent: number; iteration_count: number },
+  ) => broadcast("task:updated", task),
 
   // Session health events (from PHASE3-TASK-03)
   sessionHeartbeat: (data: { sessionId: string; progressPercent: number }) =>
-    broadcast('session:heartbeat', data),
+    broadcast("session:heartbeat", data),
 
   sessionUnhealthy: (health: SessionHealth) =>
-    broadcast('session:unhealthy', health),
+    broadcast("session:unhealthy", health),
 };
 ```
 
@@ -878,15 +894,18 @@ export const ws = {
 ## Dependencies
 
 **Upstream (Must Complete First):**
+
 - ✅ PHASE3-TASK-03: Agent session tracking (provides health_status, progress_percent)
 - ✅ PHASE2-TASK-01: Frontend foundation (React components, WebSocket hook)
 - ✅ WebSocket server infrastructure (COMPLETED)
 
 **Downstream (Depends on This):**
+
 - PHASE4-TASK-01: Advanced analytics dashboard (uses enhanced widgets)
 - PHASE6-TASK-02: Automated intervention system (uses health indicators)
 
 **Parallel Work (Can Develop Concurrently):**
+
 - PHASE3-TASK-04: Dashboard routing and navigation
 - PHASE4-TASK-03: Telegram integration UI
 
@@ -895,6 +914,7 @@ export const ws = {
 ## Implementation Plan
 
 ### Phase 1: Type Extensions & API (2 hours)
+
 1. Extend Agent, Task, AgentSession types in types.ts
 2. Add ErrorSummary, WsConnectionState types
 3. Implement GET /api/errors/summary endpoint
@@ -902,6 +922,7 @@ export const ws = {
 5. Test API endpoint with curl
 
 ### Phase 2: AgentStatusCard Enhancements (2 hours)
+
 6. Add health status badge logic
 7. Add error count indicator with animation
 8. Add resource usage display (CPU, memory)
@@ -909,6 +930,7 @@ export const ws = {
 10. Test with mock data
 
 ### Phase 3: TaskCard Enhancements (2.5 hours)
+
 11. Add progress bar component
 12. Add iteration count display
 13. Add estimated completion time
@@ -917,12 +939,14 @@ export const ws = {
 16. Test progress bar animations
 
 ### Phase 4: New Widgets (2 hours)
+
 17. Create ErrorAggregationPanel component
 18. Create WebSocketStatus indicator
 19. Integrate into Dashboard layout
 20. Test error aggregation with real data
 
 ### Phase 5: WebSocket Integration (2 hours)
+
 21. Update useAgents to subscribe to agent:status
 22. Update useTasks to subscribe to task:updated
 23. Add session:heartbeat subscription
@@ -930,6 +954,7 @@ export const ws = {
 25. Verify no memory leaks on subscribe/unsubscribe
 
 ### Phase 6: Polish & Testing (1.5 hours)
+
 26. Add React.memo to expensive components
 27. Implement keyboard navigation
 28. Add ARIA labels for accessibility
@@ -1084,18 +1109,21 @@ If implementation causes instability:
 ## Success Metrics
 
 **Operational:**
+
 - WebSocket message latency: <100ms (p95)
 - UI update latency: <500ms from event to display
 - Dashboard CPU usage: <10% on idle
 - No memory leaks after 1 hour
 
 **Usability:**
+
 - Users can identify stuck agents within 5 seconds
 - Error root cause visible in <3 clicks
 - Progress estimate accuracy: ±20%
 - 90%+ of users understand health badges without docs
 
 **Reliability:**
+
 - Dashboard recovers from WebSocket disconnect: 100%
 - No component crashes with missing data
 - Works with 50+ concurrent sessions

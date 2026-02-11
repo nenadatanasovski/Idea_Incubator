@@ -14,6 +14,7 @@ Implement comprehensive evidence collection and persistence for Market and Compe
 ### Current State
 
 **Implemented (70%):**
+
 - ✅ Pre-evaluation research agent (`agents/research.ts`)
 - ✅ Web search integration via Claude's native WebSearch tool
 - ✅ Evidence collection with source attribution
@@ -23,6 +24,7 @@ Implement comprehensive evidence collection and persistence for Market and Compe
 - ✅ In-memory `EvaluationResult` includes `evidenceCited` and `gapsIdentified`
 
 **Missing (30%):**
+
 - ❌ Database schema for evidence persistence
 - ❌ Evidence save logic in evaluation flow
 - ❌ Evidence retrieval API endpoints
@@ -32,6 +34,7 @@ Implement comprehensive evidence collection and persistence for Market and Compe
 ### Why This Matters
 
 Without evidence persistence:
+
 - **No Auditability**: Can't trace why evaluators scored ideas a certain way
 - **No Historical Analysis**: Can't track how market evidence changes over time
 - **No Quality Improvement**: Can't identify weak evidence sources or improve research quality
@@ -46,11 +49,13 @@ Without evidence persistence:
 The system SHALL collect and structure evidence in the following formats:
 
 **FR-1.1: Evaluation Evidence**
+
 - `evidenceCited`: Array of strings containing quotes/references from the idea that support the evaluation
 - `gapsIdentified`: Array of strings describing missing information or uncertainties
 - Both fields already collected in `EvaluationResult` interface but not persisted
 
 **FR-1.2: Research Evidence**
+
 - Market size verification with sources
 - Competitor discovery (user-mentioned + discovered)
 - Market trends with direction and CAGR
@@ -59,6 +64,7 @@ The system SHALL collect and structure evidence in the following formats:
 - All evidence MUST include source URLs
 
 **FR-1.3: Source Attribution**
+
 - Every piece of external evidence MUST cite source URLs
 - Sources MUST be web-accessible for verification
 - Source type SHOULD be inferred (e.g., "Statista", "McKinsey Report", "Crunchbase")
@@ -67,12 +73,14 @@ The system SHALL collect and structure evidence in the following formats:
 
 **FR-2.1: Evaluations Table Enhancement**
 The `evaluations` table SHALL be extended with:
+
 - `evidence_cited` (TEXT/JSON): Array of cited evidence from the idea
 - `gaps_identified` (TEXT/JSON): Array of identified information gaps
 - Both columns SHALL default to empty arrays for existing rows
 
 **FR-2.2: Research Sessions Table**
 A new `research_sessions` table SHALL store complete pre-evaluation research:
+
 - Link to `evaluation_sessions` and `ideas`
 - Market size data (verified, sources)
 - Competitor data (discovered, sources)
@@ -83,6 +91,7 @@ A new `research_sessions` table SHALL store complete pre-evaluation research:
 
 **FR-2.3: Evidence Types Table** (Optional Enhancement)
 A `evidence_types` reference table MAY be created to classify evidence:
+
 - `market_data`: Market size, growth rates, TAM/SAM/SOM
 - `competitor_intel`: Competitor names, market share, positioning
 - `trend_analysis`: Market direction, catalysts, timing
@@ -92,11 +101,13 @@ A `evidence_types` reference table MAY be created to classify evidence:
 ### FR-3: Evidence Retrieval API
 
 **FR-3.1: Evaluation Evidence Endpoint**
+
 ```
 GET /api/ideas/:slug/evaluations/:sessionId/evidence
 ```
 
 Response:
+
 ```json
 {
   "evaluations": [
@@ -119,11 +130,13 @@ Response:
 ```
 
 **FR-3.2: Research Data Endpoint**
+
 ```
 GET /api/ideas/:slug/research/:sessionId
 ```
 
 Response:
+
 ```json
 {
   "researchSession": {
@@ -164,10 +177,13 @@ Response:
 ```
 
 **FR-3.3: Evidence History Endpoint** (Future Enhancement)
+
 ```
 GET /api/ideas/:slug/evidence/history
 ```
+
 Returns timeline of evidence collection across all evaluation sessions, enabling:
+
 - Evidence evolution tracking
 - Market trend analysis over time
 - Source reliability assessment
@@ -178,6 +194,7 @@ Returns timeline of evidence collection across all evaluation sessions, enabling
 Location: `frontend/src/components/EvaluationDashboard.tsx`
 
 Add new tab "Evidence" alongside existing category tabs:
+
 - Display evidence cited per criterion in expandable cards
 - Show gaps identified with warning styling
 - Provide source links as clickable references
@@ -187,6 +204,7 @@ Add new tab "Evidence" alongside existing category tabs:
 Trigger: "View Research" button in evaluation header
 
 Display:
+
 - Market size verification (claimed vs. verified)
 - Competitor discovery table (user-mentioned vs. discovered)
 - Market trends summary with sources
@@ -196,6 +214,7 @@ Display:
 
 **FR-4.3: Evidence Quality Indicators** (Future Enhancement)
 Visual indicators for evidence strength:
+
 - 🟢 High: Multiple authoritative sources (Gartner, McKinsey, government data)
 - 🟡 Medium: Single source or industry publications
 - 🔴 Low: No sources or unverified claims
@@ -279,7 +298,9 @@ await run(
    (idea_id, evaluation_run_id, criterion, category, agent_score, final_score,
     confidence, reasoning, session_id, criterion_id, criterion_name, initial_score, created_at)
    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  [/* 13 values, no evidence fields */]
+  [
+    /* 13 values, no evidence fields */
+  ],
 );
 
 // AFTER (enhanced):
@@ -303,9 +324,9 @@ await run(
     eval_.criterion.name,
     eval_.score,
     result.timestamp,
-    JSON.stringify(eval_.evidenceCited || []),  // NEW
+    JSON.stringify(eval_.evidenceCited || []), // NEW
     JSON.stringify(eval_.gapsIdentified || []), // NEW
-  ]
+  ],
 );
 ```
 
@@ -353,7 +374,7 @@ async function saveResearchSession(
       JSON.stringify(research.geographicAnalysis || null),
       research.searchesPerformed,
       research.timestamp,
-    ]
+    ],
   );
 
   logDebug(`Research session saved: ${researchId}`);
@@ -408,11 +429,11 @@ router.get("/ideas/:slug/evaluations/:sessionId/evidence", async (req, res) => {
        FROM evaluations
        WHERE idea_id = ? AND session_id = ?
        ORDER BY category, criterion_name`,
-      [idea.id, sessionId]
+      [idea.id, sessionId],
     );
 
     // Parse JSON fields
-    const parsedEvaluations = evaluations.map(e => ({
+    const parsedEvaluations = evaluations.map((e) => ({
       ...e,
       evidenceCited: JSON.parse(e.evidence_cited || "[]"),
       gapsIdentified: JSON.parse(e.gaps_identified || "[]"),
@@ -455,7 +476,7 @@ router.get("/ideas/:slug/research/:sessionId", async (req, res) => {
     // Get research session
     const research = await db.get(
       `SELECT * FROM research_sessions WHERE evaluation_session_id = ?`,
-      [sessionId]
+      [sessionId],
     );
 
     if (!research) {
@@ -738,19 +759,25 @@ const [showResearch, setShowResearch] = useState(false);
 ## Pass Criteria
 
 ### PC-1: TypeScript Compilation
+
 **Status:** MUST PASS
+
 ```bash
 npx tsc --noEmit
 ```
+
 No compilation errors allowed.
 
 ### PC-2: Database Schema
+
 **Status:** MUST PASS
+
 - Migration `XXX_evaluation_evidence.sql` creates `evidence_cited` and `gaps_identified` columns
 - Migration `XXX_research_sessions.sql` creates `research_sessions` table with all required fields
 - Migrations apply cleanly to existing database without data loss
 
 **Validation:**
+
 ```bash
 npm run schema:migrate
 sqlite3 database/ideas.db ".schema evaluations" | grep evidence
@@ -758,12 +785,15 @@ sqlite3 database/ideas.db ".schema research_sessions"
 ```
 
 ### PC-3: Evidence Persistence
+
 **Status:** MUST PASS
+
 - Running evaluation saves `evidenceCited` and `gapsIdentified` to database
 - Pre-evaluation research saves to `research_sessions` table
 - Existing evaluations without evidence show empty arrays (not null)
 
 **Validation:**
+
 ```bash
 npm run evaluate test-idea-slug
 sqlite3 database/ideas.db "SELECT evidence_cited, gaps_identified FROM evaluations ORDER BY id DESC LIMIT 1;"
@@ -771,13 +801,16 @@ sqlite3 database/ideas.db "SELECT id, searches_performed FROM research_sessions 
 ```
 
 ### PC-4: Evidence Retrieval API
+
 **Status:** MUST PASS
+
 - `GET /api/ideas/:slug/evaluations/:sessionId/evidence` returns evaluations with evidence
 - `GET /api/ideas/:slug/research/:sessionId` returns complete research session
 - Both endpoints return 404 for non-existent ideas/sessions
 - JSON parsing handles empty arrays gracefully
 
 **Validation:**
+
 ```bash
 # Start server
 npm run dev
@@ -790,34 +823,43 @@ curl http://localhost:3000/api/ideas/test-idea/research/eval_123 | jq
 ```
 
 ### PC-5: Frontend Evidence Display
+
 **Status:** MUST PASS
+
 - EvidenceTab component loads and displays evidence by category
 - Evidence cited shown as bulleted lists under each criterion
 - Gaps identified shown with warning styling
 - ResearchModal displays all research sections with clickable source links
 
 **Validation:**
+
 1. Navigate to evaluation dashboard for an idea with completed evaluation
 2. Click "Evidence" tab - should see evidence grouped by category
 3. Click "View Research" button - modal opens with market size, competitors, trends
 4. Click source links - should open in new tab to actual URLs
 
 ### PC-6: Test Coverage
+
 **Status:** SHOULD PASS (95%+ tests passing)
+
 ```bash
 npm test
 ```
+
 - Existing tests continue to pass
 - New tests for evidence persistence added
 - API endpoint tests added
 
 **New Test Files:**
+
 - `tests/evidence/persistence.test.ts` - Tests evidence save/load
 - `tests/api/evidence.test.ts` - Tests API endpoints
 - `tests/api/research.test.ts` - Tests research endpoint
 
 ### PC-7: Data Integrity
+
 **Status:** MUST PASS
+
 - Evidence JSON fields parse without errors
 - Empty evidence arrays handled gracefully
 - Research sources always stored as arrays
@@ -828,11 +870,13 @@ npm test
 ## Dependencies
 
 ### Internal Dependencies
+
 - **PHASE1-TASK-03**: Pre-evaluation web research (COMPLETE)
 - **Database**: SQLite with migration system
 - **Evaluation Flow**: `scripts/evaluate.ts` orchestration
 
 ### External Dependencies
+
 - Claude WebSearch tool (already integrated)
 - React 18+ for frontend components
 - Express router for API endpoints
@@ -844,6 +888,7 @@ npm test
 ### Unit Tests
 
 **Test:** `tests/evidence/persistence.test.ts`
+
 ```typescript
 describe("Evidence Persistence", () => {
   it("should save evidenceCited to database", async () => {
@@ -860,7 +905,7 @@ describe("Evidence Persistence", () => {
 
     const saved = await db.get(
       "SELECT evidence_cited FROM evaluations WHERE session_id = ?",
-      [sessionId]
+      [sessionId],
     );
 
     expect(JSON.parse(saved.evidence_cited)).toEqual(["Quote 1", "Quote 2"]);
@@ -873,9 +918,15 @@ describe("Evidence Persistence", () => {
         verified: "$15M verified",
         sources: ["https://example.com"],
       },
-      competitors: { /* ... */ },
-      trends: { /* ... */ },
-      techFeasibility: { /* ... */ },
+      competitors: {
+        /* ... */
+      },
+      trends: {
+        /* ... */
+      },
+      techFeasibility: {
+        /* ... */
+      },
       geographicAnalysis: null,
       timestamp: new Date().toISOString(),
       searchesPerformed: 5,
@@ -885,7 +936,7 @@ describe("Evidence Persistence", () => {
 
     const saved = await db.get(
       "SELECT * FROM research_sessions WHERE evaluation_session_id = ?",
-      [sessionId]
+      [sessionId],
     );
 
     expect(saved.market_size_verified).toBe("$15M verified");
@@ -897,6 +948,7 @@ describe("Evidence Persistence", () => {
 ### Integration Tests
 
 **Test:** `tests/api/evidence.test.ts`
+
 ```typescript
 describe("Evidence API", () => {
   it("GET /api/ideas/:slug/evaluations/:sessionId/evidence returns evidence", async () => {
@@ -924,6 +976,7 @@ describe("Evidence API", () => {
 ### E2E Tests
 
 **Test:** `tests/e2e/evidence-flow.test.ts`
+
 ```typescript
 describe("Evidence Flow E2E", () => {
   it("should persist evidence throughout evaluation lifecycle", async () => {
@@ -933,20 +986,20 @@ describe("Evidence Flow E2E", () => {
     // 2. Verify research saved
     const research = await db.get(
       "SELECT * FROM research_sessions WHERE evaluation_session_id = ?",
-      [result.sessionId]
+      [result.sessionId],
     );
     expect(research).toBeDefined();
 
     // 3. Verify evidence saved
     const evaluations = await db.all(
       "SELECT evidence_cited FROM evaluations WHERE session_id = ?",
-      [result.sessionId]
+      [result.sessionId],
     );
     expect(evaluations.length).toBeGreaterThan(0);
 
     // 4. Verify API retrieval
     const apiResponse = await fetch(
-      `/api/ideas/test-idea/evaluations/${result.sessionId}/evidence`
+      `/api/ideas/test-idea/evaluations/${result.sessionId}/evidence`,
     );
     const data = await apiResponse.json();
     expect(data.evaluations).toHaveLength(evaluations.length);
@@ -972,11 +1025,13 @@ describe("Evidence Flow E2E", () => {
 ### Migration Safety
 
 The migrations are **backwards compatible**:
+
 - Adding columns with defaults doesn't break existing code
 - New table doesn't affect existing queries
 - Frontend gracefully handles missing evidence (empty arrays)
 
 Rollback strategy:
+
 ```sql
 -- If needed, remove columns (SQLite requires table recreation):
 ALTER TABLE evaluations RENAME TO evaluations_old;
@@ -1002,6 +1057,7 @@ DROP TABLE research_sessions;
 ## Files to Create/Modify
 
 ### Create (9 files)
+
 1. `database/migrations/XXX_evaluation_evidence.sql` - Evidence columns
 2. `database/migrations/XXX_research_sessions.sql` - Research table
 3. `server/routes/evidence.ts` - Evidence API endpoint
@@ -1013,6 +1069,7 @@ DROP TABLE research_sessions;
 9. `tests/e2e/evidence-flow.test.ts` - E2E tests
 
 ### Modify (3 files)
+
 1. `scripts/evaluate.ts` - Add evidence persistence
 2. `server/api.ts` - Register new routes
 3. `frontend/src/components/EvaluationDashboard.tsx` - Add Evidence tab
@@ -1021,13 +1078,13 @@ DROP TABLE research_sessions;
 
 ## Risks and Mitigations
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| JSON parsing errors | Low | Medium | Add try-catch blocks, default to empty arrays |
-| Migration fails on production | Low | High | Test migrations on copy of production DB first |
-| Research data too large | Medium | Low | Add character limits, pagination for history |
-| Source URLs go dead | High | Low | Store source text snapshot (future enhancement) |
-| Performance degradation | Low | Medium | Add database indexes, monitor query times |
+| Risk                          | Likelihood | Impact | Mitigation                                      |
+| ----------------------------- | ---------- | ------ | ----------------------------------------------- |
+| JSON parsing errors           | Low        | Medium | Add try-catch blocks, default to empty arrays   |
+| Migration fails on production | Low        | High   | Test migrations on copy of production DB first  |
+| Research data too large       | Medium     | Low    | Add character limits, pagination for history    |
+| Source URLs go dead           | High       | Low    | Store source text snapshot (future enhancement) |
+| Performance degradation       | Low        | Medium | Add database indexes, monitor query times       |
 
 ---
 

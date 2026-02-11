@@ -15,6 +15,7 @@ Remove unused imports across test files to eliminate TS6133 TypeScript compiler 
 TypeScript's `--noUnusedLocals` compiler option detects declared variables, imports, and parameters that are never used. The project currently has 160 total TS6133 warnings across the codebase, with 47 warnings in test files (`.test.ts` and `.spec.ts`).
 
 **Current State:**
+
 - Total TS6133 warnings: 160
 - Test file warnings: 47
 - Non-test warnings: 113 (agents, server, scripts)
@@ -24,6 +25,7 @@ TypeScript's `--noUnusedLocals` compiler option detects declared variables, impo
 ## Problem Statement
 
 Unused imports in test files:
+
 1. Create compilation noise that obscures real issues
 2. Indicate incomplete test refactoring or abandoned code paths
 3. Suggest potential confusion about test requirements
@@ -70,6 +72,7 @@ Unused imports in test files:
 ### Analysis Strategy
 
 1. **Generate Complete Warning List**
+
    ```bash
    npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "tests/" | grep -E "\.(test|spec)\.ts" > unused-imports.txt
    ```
@@ -88,6 +91,7 @@ Unused imports in test files:
 ### Implementation Approach
 
 **Phase 1: Automated Detection (5 minutes)**
+
 ```bash
 # Generate full list with line numbers
 npx tsc --noUnusedLocals --noEmit 2>&1 | \
@@ -107,6 +111,7 @@ For each warning:
    - Check for type-only usage
    - Check for side-effect imports
 3. **Remove the unused import**:
+
    ```typescript
    // Before
    import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -114,6 +119,7 @@ For each warning:
    // After (if vi and beforeEach unused)
    import { describe, it, expect } from "vitest";
    ```
+
 4. **For unused variables**, consider if the test is incomplete:
    ```typescript
    // Warning indicates potential bug
@@ -124,6 +130,7 @@ For each warning:
 **Phase 3: Testing & Verification (30 minutes)**
 
 After each batch of changes:
+
 ```bash
 # Run affected tests
 npm test -- path/to/modified/tests --run
@@ -137,12 +144,15 @@ npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "path/to/file"
 Based on current analysis, the 47 warnings span multiple test directories:
 
 **tests/e2e/** (1 warning)
+
 - `task-atomic-anatomy.test.ts:708` - unused `originalTask` variable
 
 **tests/graph/** (1 warning)
+
 - `block-extractor.test.ts:5` - unused `afterEach` import
 
 **tests/ideation/** (15 warnings)
+
 - `message-store.test.ts` - 2 unused `message` variables
 - `pre-answered-mapper.test.ts` - unused `createEmptySignals` import
 - `session-manager.test.ts` - 4 unused `saveDb` variables, 1 unused `session`
@@ -151,6 +161,7 @@ Based on current analysis, the 47 warnings span multiple test directories:
 - `witty-interjections.test.ts` - unused `vi`, `beforeEach`, `afterEach`, `maybeInjectWit`
 
 **tests/integration/** (14 warnings)
+
 - `anthropic-client.test.ts` - unused `vi` import
 - `memory-graph-migration.test.ts` - 4 warnings (`beforeAll`, `vi`, `graphQueryService`, `db`)
 - `observability/api-to-db.test.ts` - 3 unused lifecycle hooks
@@ -159,9 +170,11 @@ Based on current analysis, the 47 warnings span multiple test directories:
 - `supersession-flow.test.ts` - unused `vi`, `beforeEach`, `conversationMessages`
 
 **tests/spec-agent/** (3 warnings)
+
 - `acceptance.test.ts` - unused `VALID_PHASES`, `refSections`, `refFrontmatter`
 
 **tests/specification/** (9 warnings)
+
 - `claude-client.test.ts` - unused `AtomicTask`, `Gotcha` types
 - `context-loader.test.ts` - unused `path` import
 - `gotcha-injector.test.ts` - unused `Gotcha` type
@@ -169,17 +182,20 @@ Based on current analysis, the 47 warnings span multiple test directories:
 - `task-generator.test.ts` - unused `AtomicTask`, `TaskGeneratorOptions`, `GeneratedTasks` types
 
 **tests/knowledge-base.test.ts** (2 warnings)
+
 - Unused `pattern` variables
 
 **tests/sync-development.test.ts** (2 warnings)
+
 - Unused `beforeAll`, `afterAll` imports
 
 ### Special Considerations
 
 **1. Type-Only Imports**
 Some imports may appear unused but are referenced in JSDoc or type annotations:
+
 ```typescript
-import type { SessionData } from '../types.js';  // May appear unused
+import type { SessionData } from "../types.js"; // May appear unused
 
 // But used here:
 /** @type {SessionData} */
@@ -188,8 +204,9 @@ const data = loadSession();
 
 **2. Side-Effect Imports**
 Some imports are needed for their side effects:
+
 ```typescript
-import './setup-global-mocks.js';  // Appears unused but essential
+import "./setup-global-mocks.js"; // Appears unused but essential
 ```
 
 **3. Mock Utilities**
@@ -197,6 +214,7 @@ import './setup-global-mocks.js';  // Appears unused but essential
 
 **4. Lifecycle Hooks**
 Unused `beforeEach`, `afterEach`, etc., might indicate:
+
 - Incomplete test setup/teardown
 - Refactored tests where cleanup was removed
 - Copy-paste from other tests
@@ -204,18 +222,23 @@ Unused `beforeEach`, `afterEach`, etc., might indicate:
 ### Automated Tooling
 
 Consider using ESLint rules for ongoing prevention:
+
 ```json
 {
   "rules": {
-    "@typescript-eslint/no-unused-vars": ["error", {
-      "argsIgnorePattern": "^_",
-      "varsIgnorePattern": "^_"
-    }]
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ]
   }
 }
 ```
 
 For variables that must be declared but unused, use `_` prefix:
+
 ```typescript
 const { _unused, needed } = complexObject;
 ```
@@ -223,6 +246,7 @@ const { _unused, needed } = complexObject;
 ## Implementation Plan
 
 ### Step 1: Generate Warning Report (5 min)
+
 ```bash
 npx tsc --noUnusedLocals --noEmit 2>&1 | \
   grep "TS6133" | \
@@ -234,34 +258,42 @@ npx tsc --noUnusedLocals --noEmit 2>&1 | \
 ### Step 2: Process by Directory (2 hours)
 
 **Batch 1: tests/e2e/** (10 min)
+
 - Review and fix `task-atomic-anatomy.test.ts`
 - Run: `npm test -- tests/e2e/task-atomic-anatomy.test.ts --run`
 
 **Batch 2: tests/graph/** (10 min)
+
 - Review and fix `block-extractor.test.ts`
 - Run: `npm test -- tests/graph/block-extractor.test.ts --run`
 
 **Batch 3: tests/ideation/** (30 min)
+
 - Process all 5 files with 15 warnings
 - Run: `npm test -- tests/ideation/ --run`
 
 **Batch 4: tests/integration/** (30 min)
+
 - Process all 5 files with 14 warnings
 - Run: `npm test -- tests/integration/ --run`
 
 **Batch 5: tests/spec-agent/** (15 min)
+
 - Fix `acceptance.test.ts`
 - Run: `npm test -- tests/spec-agent/ --run`
 
 **Batch 6: tests/specification/** (20 min)
+
 - Process 5 files with type import warnings
 - Run: `npm test -- tests/specification/ --run`
 
 **Batch 7: Remaining tests** (15 min)
+
 - Fix `knowledge-base.test.ts` and `sync-development.test.ts`
 - Run: `npm test -- tests/knowledge-base.test.ts tests/sync-development.test.ts --run`
 
 ### Step 3: Final Verification (30 min)
+
 ```bash
 # Verify no test warnings remain
 npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "tests/" | grep -E "\.(test|spec)\.ts" | wc -l
@@ -278,6 +310,7 @@ npm test --run
 ### Success Criteria
 
 **1. Zero TS6133 Warnings in Test Files**
+
 ```bash
 # This command must return 0
 npx tsc --noUnusedLocals --noEmit 2>&1 | \
@@ -288,6 +321,7 @@ npx tsc --noUnusedLocals --noEmit 2>&1 | \
 ```
 
 **2. All Tests Still Pass**
+
 ```bash
 npm test --run
 # All tests that passed before must still pass
@@ -295,11 +329,13 @@ npm test --run
 ```
 
 **3. No Actual Usage Overlooked**
+
 - Manual review confirms each removed import was genuinely unused
 - No "unused" imports that were actually needed for side effects
 - No type imports removed that broke type checking
 
 **4. TypeScript Compilation Clean**
+
 ```bash
 npx tsc --noUnusedLocals --noEmit
 # Exit code: 0 (or only non-test warnings remain)
@@ -329,6 +365,7 @@ grep -E "(passed|failed)" test-results.txt
 ## Dependencies
 
 ### Technical Dependencies
+
 - TypeScript compiler (tsc) with `--noUnusedLocals` flag
 - Vitest test framework
 - Node.js test execution environment
@@ -336,6 +373,7 @@ grep -E "(passed|failed)" test-results.txt
 ### File Dependencies
 
 Test files across multiple directories:
+
 - `tests/e2e/` - End-to-end tests
 - `tests/integration/` - Integration tests
 - `tests/ideation/` - Ideation subsystem tests
@@ -352,15 +390,18 @@ Test files across multiple directories:
 ## Risk Assessment
 
 ### Low Risk
+
 - Removing truly unused imports has no runtime impact
 - Changes are localized to test files
 - Full test suite validates no breakage
 
 ### Medium Risk
+
 - Type imports that appear unused but are referenced in JSDoc
 - Side-effect imports that look unused but configure test environment
 
 ### Mitigation
+
 - Manual review of each change
 - Run tests after each batch of changes
 - Use git to track changes and enable easy rollback
@@ -371,29 +412,32 @@ Test files across multiple directories:
 ### Conventions
 
 **Prefix unused variables with underscore:**
+
 ```typescript
 // If variable must be declared but unused
 const { _unused, needed } = destructure();
 ```
 
 **Remove entire import line if all specifiers unused:**
+
 ```typescript
 // Before
-import { vi, beforeEach } from "vitest";  // Both unused
+import { vi, beforeEach } from "vitest"; // Both unused
 
 // After
 // (entire line removed)
 ```
 
 **Update multi-line imports:**
+
 ```typescript
 // Before
 import {
   describe,
   it,
   expect,
-  vi,           // Unused
-  beforeEach    // Unused
+  vi, // Unused
+  beforeEach, // Unused
 } from "vitest";
 
 // After
@@ -403,6 +447,7 @@ import { describe, it, expect } from "vitest";
 ### Quality Checklist
 
 For each file modified:
+
 - [ ] Read full test file to understand context
 - [ ] Verify import is truly unused (search for identifier)
 - [ ] Check for string references or JSDoc usage
@@ -439,6 +484,7 @@ git commit -m "fix(tests): remove all unused imports across test suite (TASK-025
    - Catches unused variables during development
 
 3. **Pre-commit Hook**
+
    ```bash
    # .husky/pre-commit
    npx tsc --noUnusedLocals --noEmit
@@ -462,18 +508,19 @@ git commit -m "fix(tests): remove all unused imports across test suite (TASK-025
 
 As of 2026-02-08, the 47 warnings are distributed as follows:
 
-| Directory | File Count | Warning Count |
-|-----------|------------|---------------|
-| tests/e2e | 1 | 1 |
-| tests/graph | 1 | 1 |
-| tests/ideation | 5 | 15 |
-| tests/integration | 5 | 14 |
-| tests/spec-agent | 1 | 3 |
-| tests/specification | 5 | 9 |
-| tests/ (root) | 2 | 4 |
-| **Total** | **20** | **47** |
+| Directory           | File Count | Warning Count |
+| ------------------- | ---------- | ------------- |
+| tests/e2e           | 1          | 1             |
+| tests/graph         | 1          | 1             |
+| tests/ideation      | 5          | 15            |
+| tests/integration   | 5          | 14            |
+| tests/spec-agent    | 1          | 3             |
+| tests/specification | 5          | 9             |
+| tests/ (root)       | 2          | 4             |
+| **Total**           | **20**     | **47**        |
 
 ### Most Common Unused Imports
+
 1. `vi` from vitest (8 occurrences) - mocking utility
 2. `beforeEach` / `afterEach` (7 occurrences) - lifecycle hooks
 3. Type imports (9 occurrences) - TypeScript types

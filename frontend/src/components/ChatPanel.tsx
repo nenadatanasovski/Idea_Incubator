@@ -42,7 +42,9 @@ export function ChatPanel({
       {/* Header */}
       <div className="h-12 border-b flex items-center justify-between px-3 shrink-0">
         <span className="font-medium text-gray-700">{title}</span>
-        {isLoading && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
+        {isLoading && (
+          <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+        )}
       </div>
 
       {/* Agent Activity Banner */}
@@ -106,9 +108,7 @@ function ChatMessageBubble({ message }: { message: ChatMessage }) {
       <div
         className={clsx(
           "max-w-[85%] rounded-lg px-3 py-2 text-sm",
-          isUser
-            ? "bg-primary-600 text-white"
-            : "bg-gray-100 text-gray-800"
+          isUser ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-800",
         )}
       >
         <p className="whitespace-pre-wrap">{message.content}</p>
@@ -130,7 +130,7 @@ function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
     const form = e.currentTarget;
     const input = form.elements.namedItem("message") as HTMLTextAreaElement;
     const message = input.value.trim();
-    
+
     if (message && !disabled) {
       onSend(message);
       input.value = "";
@@ -160,7 +160,7 @@ function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
             "flex-1 resize-none rounded-md border px-3 py-2 text-sm",
             "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent",
             "placeholder:text-gray-400",
-            disabled && "bg-gray-50 cursor-not-allowed"
+            disabled && "bg-gray-50 cursor-not-allowed",
           )}
         />
         <button
@@ -169,7 +169,7 @@ function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
           className={clsx(
             "px-3 py-2 rounded-md transition",
             "bg-primary-600 text-white hover:bg-primary-700",
-            disabled && "opacity-50 cursor-not-allowed"
+            disabled && "opacity-50 cursor-not-allowed",
           )}
         >
           <Send className="w-4 h-4" />

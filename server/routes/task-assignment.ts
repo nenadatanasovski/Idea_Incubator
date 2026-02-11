@@ -7,10 +7,7 @@
 
 import { Router, Request, Response } from "express";
 import { query, run, getOne } from "../../database/db.js";
-import {
-  parseTaskList,
-  TaskList,
-} from "../services/task-loader.js";
+import { parseTaskList, TaskList } from "../services/task-loader.js";
 import { emitTaskExecutorEvent } from "../websocket.js";
 
 const router = Router();
@@ -61,11 +58,7 @@ interface CompleteRequest {
  */
 router.post("/claim", async (req: Request, res: Response): Promise<void> => {
   try {
-    const {
-      agentId,
-      minPriority = "P4",
-      buildId,
-    }: ClaimRequest = req.body;
+    const { agentId, minPriority = "P4", buildId }: ClaimRequest = req.body;
 
     if (!agentId) {
       res.status(400).json({ error: "agentId is required" });

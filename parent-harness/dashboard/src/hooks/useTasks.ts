@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import api from '../api/client';
-import type { Task } from '../api/types';
+import { useState, useEffect, useCallback } from "react";
+import api from "../api/client";
+import type { Task } from "../api/types";
 
 interface UseTasksResult {
   tasks: Task[];
@@ -18,10 +18,10 @@ export function useTasks(): UseTasksResult {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.get<Task[]>('/api/tasks');
+      const data = await api.get<Task[]>("/api/tasks");
       setTasks(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch tasks');
+      setError(err instanceof Error ? err.message : "Failed to fetch tasks");
     } finally {
       setLoading(false);
     }

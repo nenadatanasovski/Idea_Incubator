@@ -1,7 +1,7 @@
 # North Star Schema
 
 > **Source of Truth** for how Vibe's vision, capabilities, and constraints are stored.
-> 
+>
 > Related: `00-ARCHITECTURE-OVERVIEW.md` (ARCH-021), `02-NEO4J-SCHEMA.md`
 
 ---
@@ -48,14 +48,15 @@ Per ARCH-021, North Star is stored as a **Neo4j subgraph** using the existing 9 
 
 ## Block Types for North Star
 
-| Concept | Block Type | Topic Tag |
-|---------|------------|-----------|
-| Vision | Knowledge | `north_star_vision` |
-| Capability | Knowledge | `north_star_capability` |
+| Concept    | Block Type  | Topic Tag               |
+| ---------- | ----------- | ----------------------- |
+| Vision     | Knowledge   | `north_star_vision`     |
+| Capability | Knowledge   | `north_star_capability` |
 | Constraint | Requirement | `north_star_constraint` |
-| Priority | Decision | `north_star_priority` |
+| Priority   | Decision    | `north_star_priority`   |
 
 All North Star blocks share:
+
 - `sessionId: "north_star"` (special session)
 - `status: "active"`
 - `abstractionLevel: "vision"` or `"strategy"`
@@ -127,7 +128,7 @@ MATCH (cap:Block:Knowledge {sessionId: 'north_star', topic: 'north_star_capabili
 WHERE cap.status = 'active'
 OPTIONAL MATCH (cap)<-[:SUPPORTS|EVIDENCE_FOR]-(evidence:Block:Evidence)
 WHERE evidence.status = 'active'
-RETURN cap.title as capability, 
+RETURN cap.title as capability,
        count(evidence) as evidence_count,
        CASE WHEN count(evidence) > 0 THEN 'implemented' ELSE 'gap' END as status
 ```
@@ -384,10 +385,10 @@ CREATE (p)-[:CREATES]->(c)
 
 ## Revision History
 
-| Date | Change | Author |
-|------|--------|--------|
+| Date       | Change           | Author         |
+| ---------- | ---------------- | -------------- |
 | 2026-02-05 | Initial creation | AI Agent (Kai) |
 
 ---
 
-*This is a source-truth document. Changes require founder review.*
+_This is a source-truth document. Changes require founder review._

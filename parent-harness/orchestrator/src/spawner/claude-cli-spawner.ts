@@ -1,14 +1,16 @@
 /**
  * Claude CLI Spawner - Executes tasks via Claude CLI directly
- * 
+ *
  * NO OpenClaw involvement. Spawns Claude CLI processes directly
  * with full tool access (Read, Write, Edit, exec).
  */
 
-import { spawn } from 'child_process';
+import { spawn } from "child_process";
 
 // Codebase root
-const CODEBASE_ROOT = process.env.CODEBASE_ROOT || '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
+const CODEBASE_ROOT =
+  process.env.CODEBASE_ROOT ||
+  "/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator";
 
 export interface SpawnRequest {
   task: string;
@@ -32,7 +34,7 @@ export function buildAgentPrompt(
   agentType: string,
   taskTitle: string,
   taskDescription: string,
-  passCriteria?: string[]
+  passCriteria?: string[],
 ): string {
   const systemContext = `You are an autonomous AI agent working on the Vibe Platform codebase.
 
@@ -127,7 +129,7 @@ ${taskDescription}
   if (passCriteria && passCriteria.length > 0) {
     taskSection += `
 **Pass Criteria (ALL must be met):**
-${passCriteria.map((c, i) => `${i + 1}. ${c}`).join('\n')}
+${passCriteria.map((c, i) => `${i + 1}. ${c}`).join("\n")}
 `;
   }
 
@@ -145,61 +147,72 @@ ${passCriteria.map((c, i) => `${i + 1}. ${c}`).join('\n')}
 /**
  * Spawn Claude CLI directly
  */
-export async function spawnViaCLI(request: SpawnRequest): Promise<SpawnResponse> {
-  const { task, model = 'sonnet', timeoutSeconds = 300 } = request;
+export async function spawnViaCLI(
+  request: SpawnRequest,
+): Promise<SpawnResponse> {
+  const { task, model = "sonnet", timeoutSeconds = 300 } = request;
 
   return new Promise((resolve) => {
     const output: string[] = [];
     const errors: string[] = [];
 
     // Spawn claude CLI with allowed tools
-    const claude = spawn('claude', [
-      '--print',
-      '--model', model,
-      '--allowedTools', 'Read,Write,Edit,exec',
-      '--max-turns', '20',
-      task,
-    ], {
-      cwd: CODEBASE_ROOT,
-      env: { ...process.env },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    const claude = spawn(
+      "claude",
+      [
+        "--print",
+        "--model",
+        model,
+        "--allowedTools",
+        "Read,Write,Edit,exec",
+        "--max-turns",
+        "20",
+        task,
+      ],
+      {
+        cwd: CODEBASE_ROOT,
+        env: { ...process.env },
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+    );
 
     // Timeout handler
     const timeout = setTimeout(() => {
-      claude.kill('SIGTERM');
+      claude.kill("SIGTERM");
       resolve({
         success: false,
         error: `Timeout after ${timeoutSeconds}s`,
-        output: output.join(''),
+        output: output.join(""),
         exitCode: -1,
       });
     }, timeoutSeconds * 1000);
 
-    claude.stdout.on('data', (data: Buffer) => {
+    claude.stdout.on("data", (data: Buffer) => {
       output.push(data.toString());
     });
 
-    claude.stderr.on('data', (data: Buffer) => {
+    claude.stderr.on("data", (data: Buffer) => {
       errors.push(data.toString());
     });
 
-    claude.on('close', (code) => {
+    claude.on("close", (code) => {
       clearTimeout(timeout);
-      
-      const fullOutput = output.join('');
-      const isComplete = fullOutput.includes('TASK_COMPLETE');
-      const isFailed = fullOutput.includes('TASK_FAILED');
+
+      const fullOutput = output.join("");
+      const isComplete = fullOutput.includes("TASK_COMPLETE");
+      const isFailed = fullOutput.includes("TASK_FAILED");
 
       resolve({
         success: isComplete && !isFailed,
         output: fullOutput,
-        error: isFailed ? errors.join('') || fullOutput.split('TASK_FAILED:')[1]?.trim() : undefined,
+        error: isFailed
+          ? errors.join("") || fullOutput.split("TASK_FAILED:")[1]?.trim()
+          : undefined,
         exitCode: code ?? 0,
       });
     });
 
-    claude.on('error', (err) => {
+    claude.on("error", (err) => {
       clearTimeout(timeout);
       resolve({
         success: false,
@@ -215,13 +228,13 @@ export async function spawnViaCLI(request: SpawnRequest): Promise<SpawnResponse>
  */
 export async function checkClaudeCliHealth(): Promise<boolean> {
   return new Promise((resolve) => {
-    const check = spawn('claude', ['--version'], { stdio: 'pipe' });
-    
-    check.on('close', (code) => {
+    const check = spawn("claude", ["--version"], { stdio: "pipe" });
+
+    check.on("close", (code) => {
       resolve(code === 0);
     });
 
-    check.on('error', () => {
+    check.on("error", () => {
       resolve(false);
     });
 

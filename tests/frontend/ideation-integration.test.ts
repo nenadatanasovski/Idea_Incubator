@@ -8,9 +8,7 @@ import {
   ideationReducer,
   initialState,
 } from "../../frontend/src/reducers/ideationReducer";
-import type {
-  IdeationStore,
-} from "../../frontend/src/types/ideation-state";
+import type { IdeationStore } from "../../frontend/src/types/ideation-state";
 import type { IdeaCandidate, ViabilityRisk } from "../../frontend/src/types";
 
 // =============================================================================

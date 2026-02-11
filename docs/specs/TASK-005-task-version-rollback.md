@@ -15,6 +15,7 @@ The TaskVersionService currently has comprehensive version tracking and rollback
 ### Current State
 
 **Service Implementation**: ✅ Complete
+
 - Version tracking with auto-incrementing version numbers
 - Full task snapshot storage in `task_versions` table
 - Checkpoint support with named checkpoints
@@ -24,11 +25,13 @@ The TaskVersionService currently has comprehensive version tracking and rollback
 - REST API endpoints for all operations
 
 **Database Schema**: ✅ Complete (Migration 085)
+
 - `task_versions` table with proper indexes
 - Supports checkpoints, snapshots, change tracking
 - Foreign key to tasks table with CASCADE delete
 
 **Problem Identified**: Test Parameter Order Mismatch
+
 - **Test calls**: `rollbackToVersion(taskId, version, userId, reason)`
 - **Service expects**: `rollbackToVersion(taskId, targetVersion, reason?, userId?)`
 
@@ -89,8 +92,8 @@ export class TaskVersionService {
     taskId: string,
     changedFields: string[],
     reason?: string,
-    userId?: string
-  ): Promise<TaskVersion>
+    userId?: string,
+  ): Promise<TaskVersion>;
 
   // 2. Update object (most flexible)
   async createVersion(
@@ -101,38 +104,55 @@ export class TaskVersionService {
       category?: string;
       changedBy?: string;
       changeReason?: string;
-    }
-  ): Promise<TaskVersion>
+    },
+  ): Promise<TaskVersion>;
 
   // 3. Simple reason + userId
   async createVersion(
     taskId: string,
     reason: string,
-    userId: string
-  ): Promise<TaskVersion>
+    userId: string,
+  ): Promise<TaskVersion>;
 
   // Core version operations
-  async getVersions(taskId: string): Promise<TaskVersion[]>
-  async getVersion(taskId: string, version: number): Promise<TaskVersion | null>
-  async getLatestVersion(taskId: string): Promise<TaskVersion | null>
+  async getVersions(taskId: string): Promise<TaskVersion[]>;
+  async getVersion(
+    taskId: string,
+    version: number,
+  ): Promise<TaskVersion | null>;
+  async getLatestVersion(taskId: string): Promise<TaskVersion | null>;
 
   // Comparison and diffing
-  async diff(taskId: string, fromVersion: number, toVersion: number): Promise<VersionDiff>
-  async compareVersions(taskId: string, from: number, to: number): Promise<VersionDiff>
+  async diff(
+    taskId: string,
+    fromVersion: number,
+    toVersion: number,
+  ): Promise<VersionDiff>;
+  async compareVersions(
+    taskId: string,
+    from: number,
+    to: number,
+  ): Promise<VersionDiff>;
 
   // Checkpoints
-  async createCheckpoint(input: CreateCheckpointInput, userId: string): Promise<TaskVersion>
-  async getCheckpoints(taskId: string): Promise<TaskVersion[]>
+  async createCheckpoint(
+    input: CreateCheckpointInput,
+    userId: string,
+  ): Promise<TaskVersion>;
+  async getCheckpoints(taskId: string): Promise<TaskVersion[]>;
 
   // Rollback
-  async restore(input: RestoreVersionInput, userId: string): Promise<Task>
-  async previewRestore(taskId: string, targetVersion: number): Promise<VersionDiff>
+  async restore(input: RestoreVersionInput, userId: string): Promise<Task>;
+  async previewRestore(
+    taskId: string,
+    targetVersion: number,
+  ): Promise<VersionDiff>;
   async rollbackToVersion(
     taskId: string,
     targetVersion: number,
     reason?: string,
-    userId: string = "system"
-  ): Promise<Task>  // ← Correct signature
+    userId: string = "system",
+  ): Promise<Task>; // ← Correct signature
 }
 ```
 
@@ -172,31 +192,34 @@ CREATE INDEX idx_task_versions_checkpoint ON task_versions(is_checkpoint) WHERE 
 
 All endpoints are already implemented in `server/routes/task-agent/task-versions.ts`:
 
-| Endpoint | Method | Purpose | Status |
-|----------|--------|---------|--------|
-| `/api/task-agent/tasks/:taskId/versions` | GET | Get version history | ✅ |
-| `/api/task-agent/tasks/:taskId/versions/:version` | GET | Get specific version | ✅ |
-| `/api/task-agent/tasks/:taskId/versions/diff?from=N&to=M` | GET | Compare versions | ✅ |
-| `/api/task-agent/tasks/:taskId/versions/checkpoint` | POST | Create checkpoint | ✅ |
-| `/api/task-agent/tasks/:taskId/versions/checkpoints` | GET | List checkpoints | ✅ |
-| `/api/task-agent/tasks/:taskId/versions/restore` | POST | Restore to version | ✅ |
-| `/api/task-agent/tasks/:taskId/versions/restore/preview` | POST | Preview restore | ✅ |
+| Endpoint                                                  | Method | Purpose              | Status |
+| --------------------------------------------------------- | ------ | -------------------- | ------ |
+| `/api/task-agent/tasks/:taskId/versions`                  | GET    | Get version history  | ✅     |
+| `/api/task-agent/tasks/:taskId/versions/:version`         | GET    | Get specific version | ✅     |
+| `/api/task-agent/tasks/:taskId/versions/diff?from=N&to=M` | GET    | Compare versions     | ✅     |
+| `/api/task-agent/tasks/:taskId/versions/checkpoint`       | POST   | Create checkpoint    | ✅     |
+| `/api/task-agent/tasks/:taskId/versions/checkpoints`      | GET    | List checkpoints     | ✅     |
+| `/api/task-agent/tasks/:taskId/versions/restore`          | POST   | Restore to version   | ✅     |
+| `/api/task-agent/tasks/:taskId/versions/restore/preview`  | POST   | Preview restore      | ✅     |
 
 ### Version Tracking Behavior
 
 **Automatic Versioning**:
+
 - Each call to `createVersion()` increments version number
 - Stores full task snapshot at that moment
 - Tracks which fields changed
 - Records who made the change and why
 
 **Rollback Behavior**:
+
 1. Fetch target version snapshot
 2. Apply snapshot to current task (excluding id, created_at, display_id)
 3. Create NEW version entry with restored content
 4. Version history is append-only (never deleted)
 
 **Example Timeline**:
+
 ```
 v1: Initial task creation → title: "Task A"
 v2: Update title → title: "Task B"
@@ -214,28 +237,31 @@ After rollback to v1, you have 3 versions total. The rollback creates v3 with th
 **File**: `tests/e2e/task-atomic-anatomy.test.ts`
 
 **Current Code** (line 834-839):
+
 ```typescript
 // Rollback to v1
 await taskVersionService.rollbackToVersion(
   taskId,
   1,
-  "user-a",           // ← userId (wrong position)
+  "user-a", // ← userId (wrong position)
   "Reverting mistake", // ← reason (wrong position)
 );
 ```
 
 **Fixed Code**:
+
 ```typescript
 // Rollback to v1
 await taskVersionService.rollbackToVersion(
   taskId,
-  1,                   // targetVersion
+  1, // targetVersion
   "Reverting mistake", // reason (optional)
-  "user-a",           // userId (optional, defaults to "system")
+  "user-a", // userId (optional, defaults to "system")
 );
 ```
 
 **Verification**:
+
 ```bash
 npm test -- tests/e2e/task-atomic-anatomy.test.ts -t "should support rollback"
 ```
@@ -270,6 +296,7 @@ Create inline JSDoc examples for all three `createVersion()` signatures:
 ### Phase 3: Validate Test Coverage (1 hour)
 
 **Current Test Coverage** (11 tests in `tests/task-agent/task-version-service.test.ts`):
+
 - ✅ Create initial version (v1)
 - ✅ Increment version numbers
 - ✅ Capture task snapshot
@@ -283,6 +310,7 @@ Create inline JSDoc examples for all three `createVersion()` signatures:
 - ✅ Preview restore changes
 
 **Additional Tests Needed**:
+
 1. Test all three `createVersion()` overloads explicitly
 2. Test `rollbackToVersion()` alias (currently only tests `restore()`)
 3. Test version cascade delete when task is deleted
@@ -300,30 +328,35 @@ describe("TaskVersionService Integration", () => {
     const taskId = await createTestTask();
 
     // 2. Create v1 with overload 1 (array)
-    await taskVersionService.createVersion(taskId, ['title'], 'Initial', 'user1');
+    await taskVersionService.createVersion(
+      taskId,
+      ["title"],
+      "Initial",
+      "user1",
+    );
 
     // 3. Create v2 with overload 2 (update object)
     await taskVersionService.createVersion(taskId, {
-      title: 'Updated Title',
-      changedBy: 'user2',
-      changeReason: 'Refinement'
+      title: "Updated Title",
+      changedBy: "user2",
+      changeReason: "Refinement",
     });
 
     // 4. Create checkpoint
     await taskVersionService.createCheckpoint(
-      { taskId, name: 'Stable Version' },
-      'user2'
+      { taskId, name: "Stable Version" },
+      "user2",
     );
 
     // 5. Create v4 with overload 3 (simple)
-    await taskVersionService.createVersion(taskId, 'Another change', 'user3');
+    await taskVersionService.createVersion(taskId, "Another change", "user3");
 
     // 6. Preview rollback
     const preview = await taskVersionService.previewRestore(taskId, 2);
     expect(preview.changes).toBeDefined();
 
     // 7. Rollback to v2
-    await taskVersionService.rollbackToVersion(taskId, 2, 'Rollback', 'user1');
+    await taskVersionService.rollbackToVersion(taskId, 2, "Rollback", "user1");
 
     // 8. Verify version count (should be 5: v1, v2, checkpoint-v3, v4, rollback-v5)
     const versions = await taskVersionService.getVersions(taskId);
@@ -332,11 +365,11 @@ describe("TaskVersionService Integration", () => {
     // 9. Verify checkpoints
     const checkpoints = await taskVersionService.getCheckpoints(taskId);
     expect(checkpoints).toHaveLength(1);
-    expect(checkpoints[0].checkpointName).toBe('Stable Version');
+    expect(checkpoints[0].checkpointName).toBe("Stable Version");
 
     // 10. Verify task state matches v2
     const task = await getOne(`SELECT title FROM tasks WHERE id = ?`, [taskId]);
-    expect(task.title).toBe('Updated Title');
+    expect(task.title).toBe("Updated Title");
   });
 });
 ```
@@ -346,39 +379,48 @@ describe("TaskVersionService Integration", () => {
 ## Pass Criteria
 
 ### 1. Test Parameter Order Fixed ✅
+
 **Verification**:
+
 ```bash
 npm test -- tests/e2e/task-atomic-anatomy.test.ts -t "should support rollback"
 ```
+
 **Expected**: Test passes without errors
 
 ### 2. All Existing Tests Pass ✅
+
 **Verification**:
+
 ```bash
 npm test -- tests/task-agent/task-version-service.test.ts
 ```
+
 **Expected**: 11/11 tests pass
 
 ### 3. API Consistency Verified ✅
+
 **Verification**:
+
 - Call all three `createVersion()` overloads in test
 - Verify `restore()` and `rollbackToVersion()` produce same result
 - Confirm version history persists correctly
 
 **Test**:
+
 ```typescript
 // Test that restore() and rollbackToVersion() are identical
 const task1 = await taskVersionService.restore(
   { taskId, targetVersion: 1 },
-  'user1'
+  "user1",
 );
 const version1 = await taskVersionService.getLatestVersion(taskId);
 
 const task2 = await taskVersionService.rollbackToVersion(
   taskId,
   version1.version,
-  'Rollback',
-  'user2'
+  "Rollback",
+  "user2",
 );
 
 // Both should produce same task state
@@ -386,7 +428,9 @@ expect(task1.title).toBe(task2.title);
 ```
 
 ### 4. Version History Persists Correctly ✅
+
 **Verification**:
+
 ```sql
 SELECT
   version,
@@ -400,23 +444,30 @@ ORDER BY version ASC;
 ```
 
 **Expected**:
+
 - All versions stored in ascending order
 - Rollback creates new version (append-only)
 - Checkpoints marked with is_checkpoint = 1
 - Snapshots contain full task state
 
 ### 5. TypeScript Compilation Passes ✅
+
 **Verification**:
+
 ```bash
 npx tsc --noEmit
 ```
+
 **Expected**: No type errors
 
 ### 6. Build Succeeds ✅
+
 **Verification**:
+
 ```bash
 npm run build
 ```
+
 **Expected**: Clean build with no errors
 
 ---
@@ -424,17 +475,20 @@ npm run build
 ## Dependencies
 
 ### Internal Dependencies
+
 - ✅ `database/db.ts` - Database query functions
 - ✅ `types/task-version.ts` - Type definitions and mappers
 - ✅ `types/task-agent.ts` - Task type
 - ✅ Migration 085 - `task_versions` table schema
 
 ### External Dependencies
+
 - ✅ `uuid` - Version ID generation
 - ✅ SQLite - Database storage
 - ✅ Vitest - Test framework
 
 ### API Dependencies
+
 - ✅ `server/routes/task-agent/task-versions.ts` - REST endpoints
 - ✅ `server/routes/task-agent.ts` - Route registration
 
@@ -443,9 +497,11 @@ npm run build
 ## Testing Strategy
 
 ### Unit Tests
+
 **Location**: `tests/task-agent/task-version-service.test.ts`
 
 **Coverage Areas**:
+
 - ✅ Version creation (all three overloads)
 - ✅ Version retrieval (single, all, latest)
 - ✅ Checkpoint creation and retrieval
@@ -456,9 +512,11 @@ npm run build
 **Current Status**: 11 tests, all passing
 
 ### E2E Tests
+
 **Location**: `tests/e2e/task-atomic-anatomy.test.ts`
 
 **Coverage Areas**:
+
 - ✅ Full rollback workflow
 - Task versioning lifecycle
 - Concurrent version operations
@@ -466,6 +524,7 @@ npm run build
 **Fix Required**: Parameter order in rollbackToVersion call (line 834-839)
 
 ### Integration Tests
+
 **Needed**: Complete lifecycle test (see Phase 4 above)
 
 ---
@@ -473,18 +532,31 @@ npm run build
 ## Known Issues
 
 ### Issue #1: Test Parameter Order Mismatch
+
 **File**: `tests/e2e/task-atomic-anatomy.test.ts:834-839`
 **Severity**: Medium
 **Impact**: Test currently passes incorrect parameters
 
 **Current**:
+
 ```typescript
-await taskVersionService.rollbackToVersion(taskId, 1, "user-a", "Reverting mistake");
+await taskVersionService.rollbackToVersion(
+  taskId,
+  1,
+  "user-a",
+  "Reverting mistake",
+);
 ```
 
 **Should be**:
+
 ```typescript
-await taskVersionService.rollbackToVersion(taskId, 1, "Reverting mistake", "user-a");
+await taskVersionService.rollbackToVersion(
+  taskId,
+  1,
+  "Reverting mistake",
+  "user-a",
+);
 ```
 
 **Root Cause**: Test was written with parameters in wrong order
@@ -496,18 +568,22 @@ await taskVersionService.rollbackToVersion(taskId, 1, "Reverting mistake", "user
 ## Related Documentation
 
 ### Implementation References
+
 - `server/services/task-agent/task-version-service.ts` - Service implementation (lines 1-419)
 - `types/task-version.ts` - Type definitions (lines 1-166)
 - `database/migrations/085_create_task_versions.sql` - Schema
 
 ### API Documentation
+
 - `server/routes/task-agent/task-versions.ts` - REST endpoints
 
 ### Test References
+
 - `tests/task-agent/task-version-service.test.ts` - Unit tests (11 tests)
 - `tests/e2e/task-atomic-anatomy.test.ts` - E2E tests (line 817+)
 
 ### Related Systems
+
 - Task State History Service - Tracks status transitions
 - Task Impact Service - Tracks file changes
 - Parent Harness - Uses versions for task rollback in orchestration
@@ -580,6 +656,7 @@ Before marking this task complete, verify:
 The TaskVersionService is **already fully implemented** with comprehensive version tracking, checkpoints, and rollback capabilities. The only issue is a parameter order mismatch in the e2e test that needs to be fixed. This is a quick fix (5-10 minutes) that will make all tests pass.
 
 The service is production-ready and provides:
+
 - ✅ Complete version history tracking
 - ✅ Named checkpoints
 - ✅ Rollback with preview

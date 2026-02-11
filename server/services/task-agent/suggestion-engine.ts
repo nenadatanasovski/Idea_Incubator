@@ -368,7 +368,9 @@ Type /queue to see pending tasks or /suggest for grouping ideas.`,
     try {
       const agents = await buildAgentOrchestrator.getActiveAgents();
       const blockedAgents = agents.filter(
-        (a) => (a.status as string) === "blocked" || (a.status as string) === "waiting",
+        (a) =>
+          (a.status as string) === "blocked" ||
+          (a.status as string) === "waiting",
       );
 
       if (blockedAgents.length > 0) {
@@ -456,7 +458,11 @@ Nice work! What's next?`,
       }
 
       // Query for task lists that are ready to execute
-      const readyLists = await query<{ id: string; name: string; total_tasks: number }>(
+      const readyLists = await query<{
+        id: string;
+        name: string;
+        total_tasks: number;
+      }>(
         `SELECT id, name, total_tasks FROM task_lists_v2
          WHERE status = 'ready'
          AND total_tasks > 0
@@ -475,8 +481,14 @@ Nice work! What's next?`,
         priority: 2,
         buttons: [
           [
-            { text: "✅ Execute", callbackData: `task_execute:${readyList.id}` },
-            { text: "📋 Details", callbackData: `task_details:${readyList.id}` },
+            {
+              text: "✅ Execute",
+              callbackData: `task_execute:${readyList.id}`,
+            },
+            {
+              text: "📋 Details",
+              callbackData: `task_details:${readyList.id}`,
+            },
             { text: "❌ Skip", callbackData: `task_skip:${readyList.id}` },
           ],
         ],
@@ -545,7 +557,10 @@ Nice work! What's next?`,
               text: "▶️ Start Parallel",
               callbackData: `task_parallel:${nonConflicting.id}`,
             },
-            { text: "⏭️ Later", callbackData: `task_later:${nonConflicting.id}` },
+            {
+              text: "⏭️ Later",
+              callbackData: `task_later:${nonConflicting.id}`,
+            },
           ],
         ],
         metadata: {

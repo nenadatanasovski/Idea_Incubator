@@ -11,6 +11,7 @@ Missing capabilities required for the harness to operate autonomously.
 **Solution:** Agent that proactively asks clarifying questions (like SIA does for ideation).
 
 **Flow:**
+
 ```
 User: "Add authentication"
     ↓
@@ -25,6 +26,7 @@ Well-defined task enters queue
 ```
 
 **Implementation:**
+
 - New agent: `clarification_agent`
 - Model: Sonnet
 - Triggers: All new tasks from users (bypass for agent-created tasks)
@@ -49,12 +51,13 @@ Well-defined task enters queue
 **Multiple instances can run in parallel** to get different angles on the same feature.
 
 **Flow:**
+
 ```
 Build Agent completes "Add login page"
     ↓
 Spawn 3 Human Sim instances:
   - technical persona
-  - casual persona  
+  - casual persona
   - confused persona
     ↓
 Each tests the feature independently
@@ -63,6 +66,7 @@ Findings aggregated → fix tasks created
 ```
 
 **Capabilities:**
+
 - Browser automation (Agent Browser)
 - Screenshot analysis
 - Persona-based expectations
@@ -70,6 +74,7 @@ Findings aggregated → fix tasks created
 - Task completion tracking
 
 **Implementation:**
+
 - New agent: `human_sim_agent`
 - Model: Sonnet
 - Config: `persona`, `patience_level`, `tech_level`
@@ -84,6 +89,7 @@ Findings aggregated → fix tasks created
 ### Vibe's Existing Memory Solutions:
 
 **1. SIA Task Memory (`sia_task_memory` table):**
+
 ```sql
 CREATE TABLE sia_task_memory (
     task_id TEXT PRIMARY KEY,
@@ -94,11 +100,13 @@ CREATE TABLE sia_task_memory (
     total_interventions INTEGER
 );
 ```
+
 - Tracks which techniques work for which failures
 - Avoids repeating failed approaches
 - Matches similar tasks by signature
 
 **2. Memory Graph (`memory_blocks` + `memory_links`):**
+
 ```sql
 memory_blocks (
     id, session_id, type, content, properties,
@@ -106,27 +114,31 @@ memory_blocks (
 )
 
 memory_links (
-    source_block_id, target_block_id, 
+    source_block_id, target_block_id,
     link_type, degree, confidence
 )
 ```
+
 - Structured knowledge storage
 - Relationship tracking between concepts
 - Graph traversal for context retrieval
 
 **3. Agent States (`agent_states` table):**
+
 ```sql
 agent_states (
     agent_id, agent_type, status, session_id,
     current_task, last_activity
 )
 ```
+
 - Current work tracking
 - Session persistence
 
 ### Harness Should Add:
 
 **Per-agent long-term memory:**
+
 ```sql
 CREATE TABLE agent_memories (
     id TEXT PRIMARY KEY,
@@ -142,6 +154,7 @@ CREATE TABLE agent_memories (
 ```
 
 **Cross-agent pattern learning:**
+
 ```sql
 CREATE TABLE technique_effectiveness (
     id TEXT PRIMARY KEY,
@@ -161,6 +174,7 @@ CREATE TABLE technique_effectiveness (
 ### A. Transcript & Tool Tracking
 
 **Vibe has:**
+
 - `transcript_entries` - Every action logged with timing
 - `skill_traces` - Skill file usage tracked
 - `tool_uses` - Atomic tool call records
@@ -170,6 +184,7 @@ CREATE TABLE technique_effectiveness (
 ### B. Task Version History & Checkpoints
 
 **Vibe has:**
+
 - `task_versions` - Full change history
 - `TaskVersionService` - Checkpoint/rollback support
 - Diff tracking between versions
@@ -179,6 +194,7 @@ CREATE TABLE technique_effectiveness (
 ### C. Spec Workflow State Machine
 
 **Vibe has:**
+
 - `workflow_state_machine.ts` - Formal state transitions
 - Spec approval workflow
 - Spec → Task List conversion
@@ -188,8 +204,9 @@ CREATE TABLE technique_effectiveness (
 ### D. SIA Intervention System
 
 **Vibe has:**
+
 - `sia_attempts` - Each intervention tracked
-- `sia_task_memory` - Per-task technique history  
+- `sia_task_memory` - Per-task technique history
 - Technique effectiveness metrics
 - Auto-escalation after N failures
 
@@ -198,6 +215,7 @@ CREATE TABLE technique_effectiveness (
 ### E. Build Interventions
 
 **Vibe has:**
+
 - `build_interventions` - Human/SIA fixes during build
 - Links intervention to specific task/session
 
@@ -206,6 +224,7 @@ CREATE TABLE technique_effectiveness (
 ### F. Traceability Service
 
 **Vibe has:**
+
 - PRD → Spec → Task → Code linking
 - Gap detection between layers
 - Coverage metrics
@@ -215,6 +234,7 @@ CREATE TABLE technique_effectiveness (
 ### G. File Impact Analysis
 
 **Vibe has:**
+
 - `file_impact_analyzer.ts` - Predicts which files a task touches
 - `file_conflict_detector.ts` - Detects parallel conflicts
 - Used for lane assignment
@@ -224,6 +244,7 @@ CREATE TABLE technique_effectiveness (
 ### H. Parallelism Calculator
 
 **Vibe has:**
+
 - `parallelism_calculator.ts` - Determines safe parallelism
 - `parallelism_queries.ts` - Wave calculation
 - Conflict resolution
@@ -233,6 +254,7 @@ CREATE TABLE technique_effectiveness (
 ### I. Question Engine
 
 **Vibe has:**
+
 - `question_engine.ts` - Dynamic clarifying questions
 - Context-aware question generation
 - Used by multiple agents
@@ -242,6 +264,7 @@ CREATE TABLE technique_effectiveness (
 ### J. PRD Service
 
 **Vibe has:**
+
 - `prd_service.ts` - PRD generation and management
 - `prd_coverage_service.ts` - Tracks what's implemented
 - `prd_link_service.ts` - Links PRDs to tasks
@@ -251,6 +274,7 @@ CREATE TABLE technique_effectiveness (
 ### K. Acceptance Criteria Results
 
 **Vibe has:**
+
 - `acceptance_criteria_results` table
 - Tracks pass/fail for each criterion
 - Used for task completion verification
@@ -260,6 +284,7 @@ CREATE TABLE technique_effectiveness (
 ### L. Execution Sessions & Pipelines
 
 **Vibe has:**
+
 - `task_list_execution_runs` - Execution tracking
 - `pipeline_state` - Current pipeline state
 - `concurrent_execution_sessions` - Parallel session management
@@ -269,6 +294,7 @@ CREATE TABLE technique_effectiveness (
 ### M. Graph Snapshots
 
 **Vibe has:**
+
 - `graph_snapshots` table
 - Point-in-time graph state capture
 - Used for debugging and rollback
@@ -280,29 +306,33 @@ CREATE TABLE technique_effectiveness (
 ## Summary: What to Implement
 
 ### Priority 1 (Critical for Operation)
-| Feature | Vibe Source | Effort |
-|---------|-------------|--------|
-| Clarification Agent | `question_engine.ts` | Medium |
-| Human Sim Agent (multi-persona) | New | High |
-| SIA Task Memory | `sia_task_memory` | Low |
-| Transcript/Tool Tracking | `transcript_entries` | Medium |
+
+| Feature                         | Vibe Source          | Effort |
+| ------------------------------- | -------------------- | ------ |
+| Clarification Agent             | `question_engine.ts` | Medium |
+| Human Sim Agent (multi-persona) | New                  | High   |
+| SIA Task Memory                 | `sia_task_memory`    | Low    |
+| Transcript/Tool Tracking        | `transcript_entries` | Medium |
 
 ### Priority 2 (Needed for Self-Improvement)
-| Feature | Vibe Source | Effort |
-|---------|-------------|--------|
-| Technique Effectiveness | `sia_attempts` | Low |
-| Build Interventions | `build_interventions` | Low |
-| Agent Memory System | New (using Vibe patterns) | Medium |
+
+| Feature                 | Vibe Source               | Effort |
+| ----------------------- | ------------------------- | ------ |
+| Technique Effectiveness | `sia_attempts`            | Low    |
+| Build Interventions     | `build_interventions`     | Low    |
+| Agent Memory System     | New (using Vibe patterns) | Medium |
 
 ### Priority 3 (Polish)
-| Feature | Vibe Source | Effort |
-|---------|-------------|--------|
-| Task Versions | `task_versions` | Medium |
-| Traceability | `traceability_service.ts` | High |
-| PRD Coverage | `prd_coverage_service.ts` | Medium |
-| Acceptance Criteria Results | Table exists | Low |
+
+| Feature                     | Vibe Source               | Effort |
+| --------------------------- | ------------------------- | ------ |
+| Task Versions               | `task_versions`           | Medium |
+| Traceability                | `traceability_service.ts` | High   |
+| PRD Coverage                | `prd_coverage_service.ts` | Medium |
+| Acceptance Criteria Results | Table exists              | Low    |
 
 ### Can Skip (Already in Schema or Not Critical)
+
 - File Impact Analysis (schema exists, implement later)
 - Parallelism Calculator (schema exists, implement later)
 - Graph Snapshots (nice to have)

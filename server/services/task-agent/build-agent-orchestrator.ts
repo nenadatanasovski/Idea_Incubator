@@ -23,9 +23,7 @@ import {
   AgentHeartbeat,
   TaskIdentity,
 } from "../../../types/task-agent.js";
-import {
-  calculateWaves,
-} from "./parallelism-calculator.js";
+import { calculateWaves } from "./parallelism-calculator.js";
 import { updateTaskStatus } from "./task-creation-service.js";
 // GAP-002: Import error-handling functions for SIA integration
 import {

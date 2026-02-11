@@ -2625,7 +2625,8 @@ async function analyzeSessionForGraphUpdates(
       if (change.type === "create_block") {
         previewNodes.push({
           id: change.id,
-          type: (change.blockType || "knowledge") as typeof previewNodes[number]["type"],
+          type: (change.blockType ||
+            "knowledge") as (typeof previewNodes)[number]["type"],
           content: change.content.slice(0, 50),
           isNew: true,
         });

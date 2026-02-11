@@ -5,7 +5,12 @@ import { AtomicTask, TaskContext } from "./build-agent.js";
 /**
  * Issue types that SIA can identify
  */
-export type IssueType = "complexity" | "clarity" | "environment" | "dependency" | "unknown";
+export type IssueType =
+  | "complexity"
+  | "clarity"
+  | "environment"
+  | "dependency"
+  | "unknown";
 
 /**
  * Possible results of SIA intervention
@@ -76,20 +81,20 @@ export interface TaskMemory {
 export interface Technique {
   name: string;
   description: string;
-  
+
   /**
    * Score how suitable this technique is for the failure
    * @returns Score between 0-1
    */
   scoreSuitability(analysis: FailureAnalysis): number;
-  
+
   /**
    * Apply the technique to the task
    */
   apply(
     task: AtomicTask,
     context: TaskContext,
-    analysis: FailureAnalysis
+    analysis: FailureAnalysis,
   ): Promise<SIAResult>;
 }
 
@@ -115,8 +120,8 @@ export interface DbSiaAttempt {
 export interface DbSiaTaskMemory {
   task_id: string;
   task_signature: string | null;
-  attempts: string;  // JSON
-  techniques_tried: string | null;  // JSON
+  attempts: string; // JSON
+  techniques_tried: string | null; // JSON
   successful_technique: string | null;
   total_interventions: number;
   created_at: string;

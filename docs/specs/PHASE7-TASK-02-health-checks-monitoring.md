@@ -14,6 +14,7 @@
 This specification defines a comprehensive health monitoring system for production deployment of the Parent Harness platform. The system provides real-time visibility into agent health, task execution success rates, system resource utilization, and automated alerting for critical conditions.
 
 The Parent Harness orchestrates 12+ specialized AI agents executing autonomous tasks. Production monitoring must answer three critical questions:
+
 1. **Are agents alive and working?** (heartbeat monitoring)
 2. **Are tasks succeeding?** (success rate tracking)
 3. **Is the system healthy?** (resource utilization, error rates)
@@ -21,6 +22,7 @@ The Parent Harness orchestrates 12+ specialized AI agents executing autonomous t
 ### Current State
 
 **Existing Infrastructure** (already implemented):
+
 - ✅ `agent_heartbeats` table - captures agent status, progress, resource metrics every 30s
 - ✅ Crown Agent (SIA monitoring) - 10-minute interval health checks with intervention logic
 - ✅ Monitoring Agent class - WebSocket emission, issue detection, configurable alerting
@@ -31,6 +33,7 @@ The Parent Harness orchestrates 12+ specialized AI agents executing autonomous t
 - ✅ Docker HEALTHCHECK - orchestrator polls `/health` every 30s (3 retries, 40s start delay)
 
 **Missing Components** (this task):
+
 - ❌ Enhanced `/health` endpoint with detailed metrics (agent counts, error rates, recent failures)
 - ❌ Aggregated success rate calculations (per-agent, system-wide, time-windowed)
 - ❌ Dashboard health visualization (status indicators, metrics cards, trend charts)
@@ -44,6 +47,7 @@ The Parent Harness orchestrates 12+ specialized AI agents executing autonomous t
 ### Functional Requirements
 
 **FR-1: Enhanced Health Endpoint**
+
 - Extend `/health` endpoint to return comprehensive health status
 - Include system-level metrics: active agents, blocked agents, pending questions
 - Include task metrics: success rate (last hour, last 24h), failed tasks count
@@ -54,6 +58,7 @@ The Parent Harness orchestrates 12+ specialized AI agents executing autonomous t
 - Response time: <100ms for standard check, <500ms for detailed
 
 **FR-2: Agent Heartbeat Monitoring**
+
 - Monitor agent heartbeats from `agent_heartbeats` table
 - Detect stuck agents (no heartbeat for 15+ minutes while status=working)
 - Calculate agent uptime percentage (time working / total session time)
@@ -62,6 +67,7 @@ The Parent Harness orchestrates 12+ specialized AI agents executing autonomous t
 - Support per-agent health endpoint: `GET /api/agents/:id/health`
 
 **FR-3: Task Success Rate Tracking**
+
 - Calculate system-wide success rate across time windows (1h, 24h, 7d)
 - Calculate per-agent success rates with minimum sample size (>=5 tasks)
 - Calculate per-task-category success rates (feature, bug, test, etc.)
@@ -70,6 +76,7 @@ The Parent Harness orchestrates 12+ specialized AI agents executing autonomous t
 - Store aggregated metrics in `health_metrics` table for historical analysis
 
 **FR-4: Dashboard Health Visualization**
+
 - Add `HealthIndicator` component to Dashboard (already exists - enhance it)
 - Display system status badge (green/yellow/red) with hover tooltip
 - Show key metrics cards: Active Agents, Success Rate (24h), Pending Tasks, System Uptime
@@ -79,6 +86,7 @@ The Parent Harness orchestrates 12+ specialized AI agents executing autonomous t
 - Alert banner for critical issues (dismissible, persists until issue resolved)
 
 **FR-5: Alert Integration**
+
 - Crown Agent fires alerts via existing alert rules engine
 - Telegram notifications for critical alerts (already implemented)
 - WebSocket broadcasts for real-time dashboard updates
@@ -87,6 +95,7 @@ The Parent Harness orchestrates 12+ specialized AI agents executing autonomous t
 - Support manual alert acknowledgment via API
 
 **FR-6: Historical Data Management**
+
 - Retain `agent_heartbeats` for 7 days (cleanup old records)
 - Retain `detected_issues` for 30 days (archive after resolution)
 - Retain `health_metrics` aggregates indefinitely (compact storage)
@@ -97,6 +106,7 @@ The Parent Harness orchestrates 12+ specialized AI agents executing autonomous t
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Health endpoint responds in <100ms (p95)
 - Dashboard health metrics load in <500ms
 - Database queries use indexes for heartbeat/session lookups
@@ -105,6 +115,7 @@ The Parent Harness orchestrates 12+ specialized AI agents executing autonomous t
 - Minimal CPU overhead: <5% for monitoring loops
 
 **NFR-2: Reliability**
+
 - Health checks never crash the orchestrator (error boundary)
 - Database write failures logged but don't block agent work
 - Crown monitoring loop restarts automatically on failure
@@ -113,6 +124,7 @@ The Parent Harness orchestrates 12+ specialized AI agents executing autonomous t
 - Monitoring Agent tolerates incomplete data gracefully
 
 **NFR-3: Observability**
+
 - All health checks logged with timestamps and results
 - Alert rules log trigger conditions and evidence
 - Crown interventions logged with before/after state
@@ -121,6 +133,7 @@ The Parent Harness orchestrates 12+ specialized AI agents executing autonomous t
 - Support `/health?detailed=true` for debugging
 
 **NFR-4: Maintainability**
+
 - Clear separation: Crown (monitoring loop), Monitoring Agent (metrics collection), Health API (exposure)
 - Alert rules defined declaratively in `alerts/index.ts`
 - Configurable thresholds via environment variables
@@ -183,6 +196,7 @@ The Parent Harness orchestrates 12+ specialized AI agents executing autonomous t
 #### 1. Health Endpoint (`server.ts`, new `/api/health.ts`)
 
 **Basic Health Check** (existing - enhance):
+
 ```typescript
 GET /health
 Response: {
@@ -208,6 +222,7 @@ Response: {
 ```
 
 **Detailed Health** (new):
+
 ```typescript
 GET /health?detailed=true
 Response: {
@@ -263,6 +278,7 @@ CREATE TABLE IF NOT EXISTS health_metrics (
 #### 3. Monitoring Agent Enhancements (`server/monitoring/monitoring-agent.ts`)
 
 **Add Success Rate Calculation**:
+
 ```typescript
 class MonitoringAgent {
   // ... existing methods ...
@@ -281,11 +297,11 @@ class MonitoringAgent {
     const sessions = await this.db.all<AgentSession>(
       `SELECT status FROM agent_sessions
        WHERE completed_at >= ? AND status IN ('completed', 'failed')`,
-      [since]
+      [since],
     );
 
-    const completed = sessions.filter(s => s.status === 'completed').length;
-    const failed = sessions.filter(s => s.status === 'failed').length;
+    const completed = sessions.filter((s) => s.status === "completed").length;
+    const failed = sessions.filter((s) => s.status === "failed").length;
     const total = completed + failed;
     const success_rate = total > 0 ? completed / total : 0;
 
@@ -310,7 +326,7 @@ class MonitoringAgent {
        WHERE completed_at >= datetime('now', '-24 hours')
        GROUP BY agent_id
        HAVING total >= ?`,
-      [minSampleSize]
+      [minSampleSize],
     );
 
     for (const row of results) {
@@ -325,6 +341,7 @@ class MonitoringAgent {
 #### 4. Crown Agent Enhancements (`orchestrator/src/crown/index.ts`)
 
 **Add Health Metrics Recording** (already has health checks - add metrics persistence):
+
 ```typescript
 async function recordHealthMetrics(report: CrownReport): Promise<void> {
   const db = getDb();
@@ -337,13 +354,13 @@ async function recordHealthMetrics(report: CrownReport): Promise<void> {
   await db.run(
     `INSERT INTO health_metrics (id, metric_type, time_window, value, sample_size)
      VALUES (?, 'system_success_rate', '1h', ?, ?)`,
-    [uuidv4(), rate1h.success_rate, rate1h.total]
+    [uuidv4(), rate1h.success_rate, rate1h.total],
   );
 
   await db.run(
     `INSERT INTO health_metrics (id, metric_type, time_window, value, sample_size)
      VALUES (?, 'system_success_rate', '24h', ?, ?)`,
-    [uuidv4(), rate24h.success_rate, rate24h.total]
+    [uuidv4(), rate24h.success_rate, rate24h.total],
   );
 
   // Record per-agent success rates
@@ -352,16 +369,18 @@ async function recordHealthMetrics(report: CrownReport): Promise<void> {
     await db.run(
       `INSERT INTO health_metrics (id, metric_type, metric_key, time_window, value)
        VALUES (?, 'agent_success_rate', ?, '24h', ?)`,
-      [uuidv4(), agentId, rate]
+      [uuidv4(), agentId, rate],
     );
   }
 
   // Record active agent count
-  const activeCount = report.healthChecks.filter(h => h.status === 'working').length;
+  const activeCount = report.healthChecks.filter(
+    (h) => h.status === "working",
+  ).length;
   await db.run(
     `INSERT INTO health_metrics (id, metric_type, time_window, value)
      VALUES (?, 'active_agents', '1h', ?)`,
-    [uuidv4(), activeCount]
+    [uuidv4(), activeCount],
   );
 }
 ```
@@ -369,12 +388,13 @@ async function recordHealthMetrics(report: CrownReport): Promise<void> {
 #### 5. Dashboard Health Component (`parent-harness/dashboard/src/components/HealthIndicator.tsx`)
 
 **Enhanced Health Visualization**:
+
 ```tsx
-import React, { useEffect, useState } from 'react';
-import { useWebSocket } from '../hooks/useWebSocket';
+import React, { useEffect, useState } from "react";
+import { useWebSocket } from "../hooks/useWebSocket";
 
 interface HealthMetrics {
-  status: 'healthy' | 'degraded' | 'critical';
+  status: "healthy" | "degraded" | "critical";
   metrics: {
     active_agents: number;
     blocked_agents: number;
@@ -391,15 +411,15 @@ export function HealthIndicator() {
 
   useEffect(() => {
     // Fetch initial health
-    fetch('/api/health')
-      .then(res => res.json())
+    fetch("/api/health")
+      .then((res) => res.json())
       .then(setHealth);
 
     // Subscribe to WebSocket health updates
-    const ws = new WebSocket('ws://localhost:3333/ws');
+    const ws = new WebSocket("ws://localhost:3333/ws");
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      if (data.type === 'system:health') {
+      if (data.type === "system:health") {
         setHealth(data.payload);
       }
     };
@@ -410,9 +430,11 @@ export function HealthIndicator() {
   if (!health) return <div>Loading...</div>;
 
   const statusColor =
-    health.status === 'healthy' ? 'bg-green-500' :
-    health.status === 'degraded' ? 'bg-yellow-500' :
-    'bg-red-500';
+    health.status === "healthy"
+      ? "bg-green-500"
+      : health.status === "degraded"
+        ? "bg-yellow-500"
+        : "bg-red-500";
 
   return (
     <div className="health-indicator">
@@ -439,7 +461,9 @@ export function HealthIndicator() {
       {health.issues.length > 0 && (
         <div className="alert-banner">
           {health.issues.map((issue, i) => (
-            <div key={i} className="alert-item">{issue}</div>
+            <div key={i} className="alert-item">
+              {issue}
+            </div>
           ))}
         </div>
       )}
@@ -460,18 +484,18 @@ export async function cleanupHealthData(): Promise<void> {
   // Delete heartbeats older than 7 days
   await db.run(
     `DELETE FROM agent_heartbeats
-     WHERE recorded_at < datetime('now', '-7 days')`
+     WHERE recorded_at < datetime('now', '-7 days')`,
   );
 
   // Delete resolved issues older than 30 days
   await db.run(
     `DELETE FROM detected_issues
-     WHERE resolved = 1 AND resolved_at < datetime('now', '-30 days')`
+     WHERE resolved = 1 AND resolved_at < datetime('now', '-30 days')`,
   );
 
   // Keep aggregated metrics forever (small storage footprint)
 
-  console.log('[Cleanup] Old health data removed');
+  console.log("[Cleanup] Old health data removed");
 }
 
 // Schedule cleanup every 6 hours
@@ -485,6 +509,7 @@ setInterval(cleanupHealthData, 6 * 60 * 60 * 1000);
 ### Functional Validation
 
 **PC-1: Health Endpoint Returns Comprehensive Status**
+
 - [ ] `GET /health` returns JSON with `status`, `timestamp`, `uptime_ms`, `metrics`, `issues`, `checks`
 - [ ] Status calculation: `healthy` if no critical issues, `degraded` if 1-2 warnings, `critical` if 3+ issues or any critical
 - [ ] Metrics include `active_agents`, `blocked_agents`, `pending_questions`, `tasks_last_hour`, `tasks_last_24h`
@@ -493,6 +518,7 @@ setInterval(cleanupHealthData, 6 * 60 * 60 * 1000);
 - [ ] `GET /health?detailed=true` includes per-agent breakdown and recent issues
 
 **PC-2: Agent Heartbeat Monitoring Works**
+
 - [ ] Crown Agent detects stuck agents (no heartbeat for 15min while working)
 - [ ] Per-agent health endpoint `GET /api/agents/:id/health` returns success rate, uptime, last heartbeat
 - [ ] Agents with >50% failure rate in last 10 sessions flagged in health report
@@ -500,6 +526,7 @@ setInterval(cleanupHealthData, 6 * 60 * 60 * 1000);
 - [ ] Missing heartbeats trigger `agent:timeout` issue after 5 minutes
 
 **PC-3: Success Rate Tracking Accurate**
+
 - [ ] System-wide success rate calculated for 1h, 24h, 7d windows
 - [ ] Per-agent success rates calculated (minimum 5 sessions sample size)
 - [ ] Consecutive failure detection triggers alert after 3 failures
@@ -507,6 +534,7 @@ setInterval(cleanupHealthData, 6 * 60 * 60 * 1000);
 - [ ] Success rate displayed in dashboard with trend indicator (↑/↓/→)
 
 **PC-4: Dashboard Health Visualization**
+
 - [ ] `HealthIndicator` component shows status badge (green/yellow/red)
 - [ ] Metrics cards display: Active Agents, Success Rate (24h), Pending Tasks, System Uptime
 - [ ] Alert banner appears for critical issues with dismiss button
@@ -515,6 +543,7 @@ setInterval(cleanupHealthData, 6 * 60 * 60 * 1000);
 - [ ] Chart renders 7-day success rate trend (line chart, daily aggregates)
 
 **PC-5: Alert Integration**
+
 - [ ] Crown Agent fires alerts using existing alert rules (5 rules: stuck agents, failure rate, build critical, crashes, blocked tasks)
 - [ ] Telegram notifications sent for critical alerts
 - [ ] WebSocket broadcasts `system:alert` events to dashboard
@@ -522,6 +551,7 @@ setInterval(cleanupHealthData, 6 * 60 * 60 * 1000);
 - [ ] Detected issues logged to `detected_issues` table with severity, evidence
 
 **PC-6: Historical Data Management**
+
 - [ ] `agent_heartbeats` records older than 7 days deleted by cleanup job
 - [ ] `detected_issues` records (resolved only) older than 30 days deleted
 - [ ] `health_metrics` table retains all aggregated data indefinitely
@@ -532,6 +562,7 @@ setInterval(cleanupHealthData, 6 * 60 * 60 * 1000);
 ### Non-Functional Validation
 
 **PC-7: Performance**
+
 - [ ] Health endpoint responds in <100ms (p95) measured over 100 requests
 - [ ] Detailed health endpoint responds in <500ms (p95)
 - [ ] Dashboard health metrics load in <500ms on initial page load
@@ -540,6 +571,7 @@ setInterval(cleanupHealthData, 6 * 60 * 60 * 1000);
 - [ ] Monitoring Agent CPU usage <5% (measured via `top` during active monitoring)
 
 **PC-8: Reliability**
+
 - [ ] Health endpoint returns `{ status: 'degraded' }` if database unavailable (not crash)
 - [ ] Crown monitoring loop restarts automatically after exception
 - [ ] Monitoring Agent tolerates missing heartbeat data (no crash)
@@ -548,6 +580,7 @@ setInterval(cleanupHealthData, 6 * 60 * 60 * 1000);
 - [ ] Docker HEALTHCHECK succeeds during normal operation, fails during crash
 
 **PC-9: Observability**
+
 - [ ] Crown health check results logged with timestamp and summary
 - [ ] Alert rule triggers logged with condition and evidence
 - [ ] Health endpoint access logged (timestamp, response time, status)
@@ -556,6 +589,7 @@ setInterval(cleanupHealthData, 6 * 60 * 60 * 1000);
 - [ ] Database query performance logged for queries >500ms
 
 **PC-10: Maintainability**
+
 - [ ] TypeScript compilation passes with no errors
 - [ ] Unit tests cover health calculation logic (status determination, success rate calculation)
 - [ ] Integration tests verify end-to-end health flow (heartbeat → Crown → alert → dashboard)
@@ -589,9 +623,10 @@ setInterval(cleanupHealthData, 6 * 60 * 60 * 1000);
    - Implement status calculation logic (healthy/degraded/critical)
 
 2. Add health router to `server.ts`:
+
    ```typescript
-   import { healthRouter } from './api/health.js';
-   app.use('/api/health', healthRouter);
+   import { healthRouter } from "./api/health.js";
+   app.use("/api/health", healthRouter);
    ```
 
 3. Update existing `/health` endpoint to redirect to new detailed version
@@ -662,12 +697,14 @@ setInterval(cleanupHealthData, 6 * 60 * 60 * 1000);
 ## Dependencies
 
 ### External Libraries
+
 - `express` - already installed
 - `better-sqlite3` - already installed
 - `ws` - already installed for WebSocket
 - `chart.js` or `recharts` - for trend visualization (optional, can defer)
 
 ### Internal Dependencies
+
 - `orchestrator/src/db/index.ts` - database connection
 - `orchestrator/src/crown/index.ts` - Crown Agent monitoring loop
 - `server/monitoring/monitoring-agent.ts` - Monitoring Agent class
@@ -675,6 +712,7 @@ setInterval(cleanupHealthData, 6 * 60 * 60 * 1000);
 - `parent-harness/database/schema.sql` - database schema
 
 ### Configuration
+
 ```bash
 # .env variables for monitoring thresholds
 STUCK_THRESHOLD_MS=900000          # 15 minutes
@@ -690,28 +728,31 @@ CLEANUP_INTERVAL_MS=21600000       # 6 hours
 
 ## Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Health checks add CPU overhead | Medium | Medium | Use indexes, cache results, throttle WebSocket |
-| Database grows too large | Low | Medium | Cleanup jobs every 6h, 7-day retention for heartbeats |
-| False alerts during deployments | Medium | Low | Grace periods, alert cooldowns, manual acknowledgment |
-| Dashboard polling overwhelms API | Low | Low | WebSocket-based updates, throttling, rate limits |
-| Crown Agent fails silently | Low | High | Stability layer restart, health check monitors Crown itself |
+| Risk                             | Likelihood | Impact | Mitigation                                                  |
+| -------------------------------- | ---------- | ------ | ----------------------------------------------------------- |
+| Health checks add CPU overhead   | Medium     | Medium | Use indexes, cache results, throttle WebSocket              |
+| Database grows too large         | Low        | Medium | Cleanup jobs every 6h, 7-day retention for heartbeats       |
+| False alerts during deployments  | Medium     | Low    | Grace periods, alert cooldowns, manual acknowledgment       |
+| Dashboard polling overwhelms API | Low        | Low    | WebSocket-based updates, throttling, rate limits            |
+| Crown Agent fails silently       | Low        | High   | Stability layer restart, health check monitors Crown itself |
 
 ---
 
 ## Testing Strategy
 
 ### Unit Tests
+
 - `health.test.ts` - Health endpoint response structure, status calculation
 - `monitoring-agent.test.ts` - Success rate calculations, agent rate calculations
 - `cleanup.test.ts` - Date calculations, record deletion logic
 
 ### Integration Tests
+
 - `health-flow.test.ts` - End-to-end flow: heartbeat → Crown → alert → dashboard
 - `health-api.test.ts` - All health API endpoints with real database
 
 ### Manual Testing
+
 1. Start orchestrator: `npm run dev` in `parent-harness/orchestrator`
 2. Verify `/health` returns comprehensive metrics
 3. Open dashboard and check health indicator
@@ -720,6 +761,7 @@ CLEANUP_INTERVAL_MS=21600000       # 6 hours
 6. Verify cleanup job runs (check logs after 6 hours)
 
 ### Load Testing (optional)
+
 - 100 concurrent health endpoint requests → verify p95 <100ms
 - 1000 heartbeat records → verify queries <100ms
 
@@ -741,12 +783,14 @@ The monitoring system itself needs health checks:
 ### Runbook (create `docs/runbooks/monitoring.md`)
 
 **Alert Response Procedures**:
+
 - `all_agents_stuck` → Check Crown logs, restart orchestrator, inspect stuck tasks
 - `high_failure_rate` → Review recent task logs, check for pattern (API failures, timeout issues)
 - `build_critical` → Run `npm run build`, fix TypeScript errors
 - `tasks_blocked_too_long` → Manually unblock via dashboard, investigate root cause
 
 **Health Check Troubleshooting**:
+
 - Health endpoint timeout → Check database connection, disk space
 - Missing heartbeats → Verify agents running, check spawner logs
 - False alerts → Adjust thresholds in `.env`, restart orchestrator

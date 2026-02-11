@@ -1,95 +1,101 @@
-import { useState, useEffect, useCallback } from 'react'
-import { formatDate } from '../utils/format'
+import { useState, useEffect, useCallback } from "react";
+import { formatDate } from "../utils/format";
 
 interface Notification {
-  id: number
-  type: string
-  message: string
-  severity: 'warning' | 'error'
-  timestamp: string
-  agentId?: string
-  taskId?: string
-  read: boolean
+  id: number;
+  type: string;
+  message: string;
+  severity: "warning" | "error";
+  timestamp: string;
+  agentId?: string;
+  taskId?: string;
+  read: boolean;
 }
 
-const API_BASE = 'http://localhost:3333/api'
+const API_BASE = "http://localhost:3333/api";
 
 // Map event types to user-friendly titles
 const typeToTitle: Record<string, string> = {
-  'budget:warning': '⚠️ Budget Warning',
-  'budget:exceeded': '🛑 Budget Exceeded',
-  'budget:spawn_blocked': '🚫 Spawn Blocked',
-  'task:failed': '❌ Task Failed',
-  'agent:error': '🔴 Agent Error',
-  'retry:exhausted': '⛔ Retry Exhausted',
-  'circuit:opened': '🔴 Circuit Breaker',
-  'qa:failed': '⚠️ QA Failed',
-}
+  "budget:warning": "⚠️ Budget Warning",
+  "budget:exceeded": "🛑 Budget Exceeded",
+  "budget:spawn_blocked": "🚫 Spawn Blocked",
+  "task:failed": "❌ Task Failed",
+  "agent:error": "🔴 Agent Error",
+  "retry:exhausted": "⛔ Retry Exhausted",
+  "circuit:opened": "🔴 Circuit Breaker",
+  "qa:failed": "⚠️ QA Failed",
+};
 
 const severityColors = {
-  warning: 'bg-yellow-500',
-  error: 'bg-red-500',
-}
+  warning: "bg-yellow-500",
+  error: "bg-red-500",
+};
 
 export function NotificationCenter() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [loading, setLoading] = useState(true)
+  const [isOpen, setIsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/events/notifications`)
+      const res = await fetch(`${API_BASE}/events/notifications`);
       if (res.ok) {
-        const data = await res.json()
-        setNotifications(data.notifications || [])
+        const data = await res.json();
+        setNotifications(data.notifications || []);
       }
     } catch (err) {
-      console.error('Failed to fetch notifications:', err)
+      console.error("Failed to fetch notifications:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    fetchNotifications()
+    fetchNotifications();
     // Poll every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000)
-    return () => clearInterval(interval)
-  }, [fetchNotifications])
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
 
-  const unreadCount = notifications.filter((n) => !n.read).length
-  const hasErrors = notifications.some((n) => !n.read && n.severity === 'error')
+  const unreadCount = notifications.filter((n) => !n.read).length;
+  const hasErrors = notifications.some(
+    (n) => !n.read && n.severity === "error",
+  );
 
   const markAsRead = async (id: number) => {
     try {
-      await fetch(`${API_BASE}/events/notifications/${id}/read`, { method: 'POST' })
+      await fetch(`${API_BASE}/events/notifications/${id}/read`, {
+        method: "POST",
+      });
       setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-      )
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
+      );
     } catch (err) {
-      console.error('Failed to mark as read:', err)
+      console.error("Failed to mark as read:", err);
     }
-  }
+  };
 
   const markAllAsRead = async () => {
     try {
-      await fetch(`${API_BASE}/events/notifications/read-all`, { method: 'POST' })
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+      await fetch(`${API_BASE}/events/notifications/read-all`, {
+        method: "POST",
+      });
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (err) {
-      console.error('Failed to mark all as read:', err)
+      console.error("Failed to mark all as read:", err);
     }
-  }
+  };
 
   const formatTime = (timestamp: string) => {
-    const now = new Date()
-    const diffMs = now.getTime() - new Date(timestamp).getTime()
-    const diffMins = Math.floor(diffMs / 60000)
+    const now = new Date();
+    const diffMs = now.getTime() - new Date(timestamp).getTime();
+    const diffMins = Math.floor(diffMs / 60000);
 
-    if (diffMins < 1) return 'just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`
-    return formatDate(timestamp)
-  }
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+    return formatDate(timestamp);
+  };
 
   return (
     <div data-testid="notification-center" className="relative">
@@ -97,12 +103,12 @@ export function NotificationCenter() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`relative p-2 rounded-lg hover:bg-gray-700 transition-colors ${
-          hasErrors && unreadCount > 0 ? 'animate-pulse' : ''
+          hasErrors && unreadCount > 0 ? "animate-pulse" : ""
         }`}
         aria-label="Notifications"
       >
         <svg
-          className={`w-5 h-5 ${hasErrors && unreadCount > 0 ? 'text-red-400' : 'text-gray-300'}`}
+          className={`w-5 h-5 ${hasErrors && unreadCount > 0 ? "text-red-400" : "text-gray-300"}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -117,8 +123,10 @@ export function NotificationCenter() {
 
         {/* Unread Badge */}
         {unreadCount > 0 && (
-          <span className={`absolute -top-1 -right-1 ${hasErrors ? 'bg-red-500' : 'bg-yellow-500'} text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold`}>
-            {unreadCount > 9 ? '9+' : unreadCount}
+          <span
+            className={`absolute -top-1 -right-1 ${hasErrors ? "bg-red-500" : "bg-yellow-500"} text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold`}
+          >
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
@@ -149,7 +157,7 @@ export function NotificationCenter() {
                   key={notification.id}
                   onClick={() => markAsRead(notification.id)}
                   className={`p-3 border-b border-gray-700/50 cursor-pointer hover:bg-gray-700/50 transition-colors ${
-                    !notification.read ? 'bg-gray-700/30' : ''
+                    !notification.read ? "bg-gray-700/30" : ""
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -195,7 +203,7 @@ export function NotificationCenter() {
         </div>
       )}
     </div>
-  )
+  );
 }
 
-export default NotificationCenter
+export default NotificationCenter;

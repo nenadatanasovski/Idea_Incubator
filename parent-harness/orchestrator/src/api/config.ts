@@ -1,12 +1,12 @@
-import { Router } from 'express';
-import * as selfImprovement from '../self-improvement/index.js';
-import * as planning from '../planning/index.js';
-import * as config from '../config/index.js';
-import * as budget from '../budget/index.js';
-import * as agents from '../db/agents.js';
-import * as tasks from '../db/tasks.js';
-import * as sessions from '../db/sessions.js';
-import { events as dbEvents } from '../db/events.js';
+import { Router } from "express";
+import * as selfImprovement from "../self-improvement/index.js";
+import * as planning from "../planning/index.js";
+import * as config from "../config/index.js";
+import * as budget from "../budget/index.js";
+import * as agents from "../db/agents.js";
+import * as tasks from "../db/tasks.js";
+import * as sessions from "../db/sessions.js";
+import { events as dbEvents } from "../db/events.js";
 
 export const configRouter = Router();
 
@@ -16,7 +16,7 @@ export const configRouter = Router();
  * GET /api/config
  * Get current harness configuration
  */
-configRouter.get('/', (_req, res) => {
+configRouter.get("/", (_req, res) => {
   const cfg = config.getConfig();
   res.json({
     ...cfg,
@@ -36,26 +36,30 @@ configRouter.get('/', (_req, res) => {
  * PATCH /api/config
  * Update harness configuration (partial update)
  */
-configRouter.patch('/', (req, res) => {
+configRouter.patch("/", (req, res) => {
   const updates = req.body;
 
   // Validate
   const validation = config.validateConfig(updates);
   if (!validation.valid) {
     return res.status(400).json({
-      error: 'Invalid configuration',
-      details: validation.errors
+      error: "Invalid configuration",
+      details: validation.errors,
     });
   }
 
   // Capture old values for audit log
   const oldConfig = config.getConfig();
-  const source = (req.headers['x-source'] as string) || 'dashboard';
+  const source = (req.headers["x-source"] as string) || "dashboard";
 
   const newConfig = config.updateConfig(updates);
 
   // Emit config change events for audit log
-  function logChanges(section: string, oldSection: Record<string, unknown>, newSection: Record<string, unknown>) {
+  function logChanges(
+    section: string,
+    oldSection: Record<string, unknown>,
+    newSection: Record<string, unknown>,
+  ) {
     for (const [key, newValue] of Object.entries(newSection)) {
       const oldValue = oldSection[key];
       if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
@@ -66,11 +70,13 @@ configRouter.patch('/', (req, res) => {
 
   // Check each section for changes
   for (const section of Object.keys(updates)) {
-    if (typeof updates[section] === 'object' && updates[section] !== null) {
+    if (typeof updates[section] === "object" && updates[section] !== null) {
       logChanges(
         section,
-        ((oldConfig as unknown) as Record<string, Record<string, unknown>>)[section] || {},
-        updates[section] as Record<string, unknown>
+        (oldConfig as unknown as Record<string, Record<string, unknown>>)[
+          section
+        ] || {},
+        updates[section] as Record<string, unknown>,
       );
     }
   }
@@ -78,7 +84,7 @@ configRouter.patch('/', (req, res) => {
   return res.json({
     success: true,
     config: newConfig,
-    message: 'Configuration updated. Some changes may require restart.',
+    message: "Configuration updated. Some changes may require restart.",
   });
 });
 
@@ -86,12 +92,12 @@ configRouter.patch('/', (req, res) => {
  * POST /api/config/reset
  * Reset configuration to defaults
  */
-configRouter.post('/reset', (_req, res) => {
+configRouter.post("/reset", (_req, res) => {
   const defaultConfig = config.resetConfig();
-  res.json({ 
-    success: true, 
+  res.json({
+    success: true,
     config: defaultConfig,
-    message: 'Configuration reset to defaults',
+    message: "Configuration reset to defaults",
   });
 });
 
@@ -101,32 +107,34 @@ configRouter.post('/reset', (_req, res) => {
  * GET /api/config/stats
  * Get current system stats for dashboard
  */
-configRouter.get('/stats', (_req, res) => {
+configRouter.get("/stats", (_req, res) => {
   const allAgents = agents.getAgents();
   const workingAgents = agents.getWorkingAgents();
   const idleAgents = agents.getIdleAgents();
   const pendingTasks = tasks.getPendingTasks();
-  const inProgressTasks = tasks.getTasks({ status: 'in_progress' });
-  const completedTasks = tasks.getTasks({ status: 'completed' });
-  const failedTasks = tasks.getTasks({ status: 'failed' });
-  
+  const inProgressTasks = tasks.getTasks({ status: "in_progress" });
+  const completedTasks = tasks.getTasks({ status: "completed" });
+  const failedTasks = tasks.getTasks({ status: "failed" });
+
   // Get recent sessions
   const recentSessions = sessions.getSessions({ limit: 20 });
-  const activeSessions = recentSessions.filter(s => s.status === 'running');
-  
+  const activeSessions = recentSessions.filter((s) => s.status === "running");
+
   res.json({
     agents: {
       total: allAgents.length,
       working: workingAgents.length,
       idle: idleAgents.length,
-      stuck: allAgents.filter(a => a.status === 'stuck').length,
+      stuck: allAgents.filter((a) => a.status === "stuck").length,
     },
     tasks: {
       pending: pendingTasks.length,
       in_progress: inProgressTasks.length,
       completed: completedTasks.length,
       failed: failedTasks.length,
-      pending_verification: tasks.getTasks({ status: 'pending_verification' as any }).length,
+      pending_verification: tasks.getTasks({
+        status: "pending_verification" as any,
+      }).length,
     },
     sessions: {
       active: activeSessions.length,
@@ -140,15 +148,20 @@ configRouter.get('/stats', (_req, res) => {
  * GET /api/config/budget
  * Get budget/token usage status
  */
-configRouter.get('/budget', (_req, res) => {
+configRouter.get("/budget", (_req, res) => {
   const dailyUsage = budget.getDailyUsage();
   const monthlyUsage = budget.getMonthlyUsage();
   const _budgetConfig = budget.getBudgetConfig();
   const cfg = config.getConfig();
-  
+
   const dailyLimit = cfg.budget.daily_token_limit;
-  const dailyPercent = dailyLimit > 0 ? (dailyUsage.totalInputTokens + dailyUsage.totalOutputTokens) / dailyLimit * 100 : 0;
-  
+  const dailyPercent =
+    dailyLimit > 0
+      ? ((dailyUsage.totalInputTokens + dailyUsage.totalOutputTokens) /
+          dailyLimit) *
+        100
+      : 0;
+
   res.json({
     daily: {
       tokens: {
@@ -181,12 +194,17 @@ configRouter.get('/budget', (_req, res) => {
   });
 });
 
-function getBudgetStatus(percent: number, budgetCfg: config.HarnessConfig['budget']): string {
-  if (percent >= 100) return 'EXCEEDED';
-  for (const threshold of [...budgetCfg.warn_thresholds].sort((a, b) => b - a)) {
+function getBudgetStatus(
+  percent: number,
+  budgetCfg: config.HarnessConfig["budget"],
+): string {
+  if (percent >= 100) return "EXCEEDED";
+  for (const threshold of [...budgetCfg.warn_thresholds].sort(
+    (a, b) => b - a,
+  )) {
     if (percent >= threshold) return `WARNING_${threshold}`;
   }
-  return 'OK';
+  return "OK";
 }
 
 // ============ RETRY & PLANNING ============
@@ -195,7 +213,7 @@ function getBudgetStatus(percent: number, budgetCfg: config.HarnessConfig['budge
  * GET /api/config/retry-stats
  * Get retry statistics
  */
-configRouter.get('/retry-stats', (_req, res) => {
+configRouter.get("/retry-stats", (_req, res) => {
   const stats = selfImprovement.getRetryStats();
   res.json(stats);
 });
@@ -204,7 +222,7 @@ configRouter.get('/retry-stats', (_req, res) => {
  * GET /api/config/retry-history/:taskId
  * Get retry history for a task
  */
-configRouter.get('/retry-history/:taskId', (req, res) => {
+configRouter.get("/retry-history/:taskId", (req, res) => {
   const history = selfImprovement.getRetryHistory(req.params.taskId);
   res.json(history);
 });
@@ -213,11 +231,14 @@ configRouter.get('/retry-history/:taskId', (req, res) => {
  * POST /api/config/retry/:taskId
  * Manually retry a failed task
  */
-configRouter.post('/retry/:taskId', (req, res) => {
+configRouter.post("/retry/:taskId", (req, res) => {
   const { taskId } = req.params;
   const { error } = req.body;
 
-  const result = selfImprovement.prepareForRetry(taskId, error || 'Manual retry requested');
+  const result = selfImprovement.prepareForRetry(
+    taskId,
+    error || "Manual retry requested",
+  );
   res.json(result);
 });
 
@@ -225,7 +246,7 @@ configRouter.post('/retry/:taskId', (req, res) => {
  * GET /api/config/planning/analyze
  * Run performance analysis
  */
-configRouter.get('/planning/analyze', (_req, res) => {
+configRouter.get("/planning/analyze", (_req, res) => {
   const analysis = planning.analyzePerformance();
   res.json(analysis);
 });
@@ -234,10 +255,10 @@ configRouter.get('/planning/analyze', (_req, res) => {
  * POST /api/config/planning/daily
  * Run daily planning
  */
-configRouter.post('/planning/daily', async (req, res) => {
+configRouter.post("/planning/daily", async (req, res) => {
   const { taskListId } = req.body;
   if (!taskListId) {
-    return res.status(400).json({ error: 'Missing taskListId', status: 400 });
+    return res.status(400).json({ error: "Missing taskListId", status: 400 });
   }
 
   const session = await planning.runDailyPlanning(taskListId);
@@ -248,7 +269,7 @@ configRouter.post('/planning/daily', async (req, res) => {
  * POST /api/config/planning/clear-cache
  * Clear the cached strategic plan
  */
-configRouter.post('/planning/clear-cache', (_req, res) => {
+configRouter.post("/planning/clear-cache", (_req, res) => {
   planning.clearPlanCache();
-  res.json({ success: true, message: 'Plan cache cleared' });
+  res.json({ success: true, message: "Plan cache cleared" });
 });

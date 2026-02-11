@@ -19,12 +19,14 @@
 ## Validation Results
 
 ### 1. Code Compilation ✅
+
 ```bash
 $ npx tsc --noEmit
 # No errors
 ```
 
 ### 2. Test Suite ✅
+
 ```bash
 $ npm test
  Test Files  87 passed (106)
@@ -38,10 +40,12 @@ Minor test failures are unrelated to graceful degradation implementation (missin
 ## Implemented Graceful Degradation Mechanisms
 
 ### 🔄 1. Model Fallback Chain
+
 **File:** `parent-harness/orchestrator/src/spawner/index.ts:268-276, 837-970`
 **Status:** ✅ IMPLEMENTED
 
 When an agent hits a rate limit, the system automatically retries with cheaper models:
+
 - Primary attempt: Opus (for build agents)
 - Fallback 1: Sonnet
 - Fallback 2: Haiku
@@ -51,10 +55,12 @@ When an agent hits a rate limit, the system automatically retries with cheaper m
 ---
 
 ### 🔁 2. Retry with Exponential Backoff
+
 **File:** `parent-harness/orchestrator/src/config/index.ts:50-55, 103-108`
 **Status:** ✅ CONFIGURED
 
 Temporary failures are retried with progressive delays:
+
 - Max attempts: 5
 - Base delay: 30 seconds
 - Multiplier: 2x
@@ -65,10 +71,12 @@ Temporary failures are retried with progressive delays:
 ---
 
 ### ⚡ 3. Circuit Breaker Pattern
+
 **File:** `parent-harness/orchestrator/src/config/index.ts:56-61, 109-114`
 **Status:** ✅ CONFIGURED
 
 Prevents cascading failures by temporarily disabling failing operations:
+
 - Failure threshold: 5 failures
 - Time window: 30 minutes
 - Cooldown: 60 minutes
@@ -78,10 +86,12 @@ Prevents cascading failures by temporarily disabling failing operations:
 ---
 
 ### 💰 4. Budget Protection
+
 **File:** `parent-harness/orchestrator/src/spawner/index.ts:43-65, 917-922`
 **Status:** ✅ IMPLEMENTED & ACTIVE
 
 Prevents overspending with multiple controls:
+
 - Daily token limit: 500,000 (configurable)
 - Warning thresholds: 50%, 80%, 100%
 - P0 task reserve: 20% of budget
@@ -92,10 +102,12 @@ Prevents overspending with multiple controls:
 ---
 
 ### 🛡️ 5. Rate Limit Protection (Rolling Window)
+
 **File:** `parent-harness/orchestrator/src/spawner/index.ts:75-206`
 **Status:** ✅ IMPLEMENTED & PERSISTED
 
 Proactive rate limit avoidance with 5-hour rolling window:
+
 - Max spawns: 400 per window
 - Max cost: $20 per window
 - Blocking threshold: 80%
@@ -106,10 +118,12 @@ Proactive rate limit avoidance with 5-hour rolling window:
 ---
 
 ### 🏗️ 6. Build Health Gates
+
 **File:** `parent-harness/orchestrator/src/spawner/index.ts:924-928`
 **Status:** ✅ IMPLEMENTED
 
 Prevents wasting resources on broken codebase:
+
 - Checks build health before spawning
 - Blocks agents when builds failing
 - Returns clear error message
@@ -117,10 +131,12 @@ Prevents wasting resources on broken codebase:
 ---
 
 ### 🔒 7. Serial Build Agent Execution
+
 **File:** `parent-harness/orchestrator/src/spawner/index.ts:310-340, 855-878, 972-994`
 **Status:** ✅ IMPLEMENTED & PERSISTED
 
 Prevents resource exhaustion and merge conflicts:
+
 - Only 1 build agent at a time
 - Additional tasks queued
 - Queue persisted to database
@@ -131,10 +147,12 @@ Prevents resource exhaustion and merge conflicts:
 ---
 
 ### 👑 8. Crown SIA Monitoring
+
 **File:** `parent-harness/orchestrator/src/crown/index.ts:1-100+`
 **Status:** ✅ IMPLEMENTED & RUNNING
 
 Automated health monitoring and intervention:
+
 - Runs every 10 minutes
 - Detects stuck agents (15+ min without heartbeat)
 - Auto-resets stuck agents to idle
@@ -142,6 +160,7 @@ Automated health monitoring and intervention:
 - Tracks consecutive failures and error rates
 
 **Thresholds:**
+
 - Stuck: 15 minutes without heartbeat
 - Problematic: 3+ consecutive failures
 - Concerning: 50%+ failure rate
@@ -149,10 +168,12 @@ Automated health monitoring and intervention:
 ---
 
 ### 📊 9. Session Failure Tracking
+
 **File:** `parent-harness/orchestrator/src/spawner/index.ts:687-806`
 **Status:** ✅ IMPLEMENTED
 
 Preserves error context without blocking system:
+
 - Failed sessions logged with full output
 - Rate limit failures don't immediately fail tasks (allows retry)
 - Execution records updated with failure reason
@@ -202,6 +223,7 @@ All features are configurable via `~/.harness/config.json`:
 ## Observability
 
 ### Log Messages
+
 - `🔄 Falling back from opus to sonnet`
 - `⚠️ Rate limit hit with opus, trying next model...`
 - `⚠️ Spawn blocked by budget: Daily token limit reached`
@@ -210,11 +232,13 @@ All features are configurable via `~/.harness/config.json`:
 - `👑 Crown check starting...`
 
 ### Event System
+
 - `events.modelFallback(taskId, fromModel, toModel, reason)`
 - `events.budgetSpawnBlocked(taskId, title, reason)`
 - `events.taskFailed(taskId, agentId, title, error)`
 
 ### Dashboard APIs
+
 - `getRollingWindowStats()` - Real-time spawn metrics
 - `getBuildAgentQueueStatus()` - Queue state
 - `getRateLimitProtectionStatus()` - Protection status
@@ -223,17 +247,17 @@ All features are configurable via `~/.harness/config.json`:
 
 ## Pass Criteria Evaluation
 
-| # | Criterion | Status | Evidence |
-|---|-----------|--------|----------|
-| 1 | Model fallback on rate limits | ✅ PASS | spawner/index.ts:837-970 |
-| 2 | Retry with exponential backoff | ✅ PASS | config/index.ts:103-108 |
-| 3 | Circuit breaker pattern | ✅ PASS | config/index.ts:109-114 |
-| 4 | Budget protection | ✅ PASS | spawner/index.ts:43-65 |
-| 5 | Rate limit protection | ✅ PASS | spawner/index.ts:75-206 |
-| 6 | Build health gates | ✅ PASS | spawner/index.ts:924-928 |
-| 7 | Serial build agents | ✅ PASS | spawner/index.ts:310-340 |
-| 8 | Crown SIA monitoring | ✅ PASS | crown/index.ts:1-100+ |
-| 9 | Session failure tracking | ✅ PASS | spawner/index.ts:687-806 |
+| #   | Criterion                      | Status  | Evidence                 |
+| --- | ------------------------------ | ------- | ------------------------ |
+| 1   | Model fallback on rate limits  | ✅ PASS | spawner/index.ts:837-970 |
+| 2   | Retry with exponential backoff | ✅ PASS | config/index.ts:103-108  |
+| 3   | Circuit breaker pattern        | ✅ PASS | config/index.ts:109-114  |
+| 4   | Budget protection              | ✅ PASS | spawner/index.ts:43-65   |
+| 5   | Rate limit protection          | ✅ PASS | spawner/index.ts:75-206  |
+| 6   | Build health gates             | ✅ PASS | spawner/index.ts:924-928 |
+| 7   | Serial build agents            | ✅ PASS | spawner/index.ts:310-340 |
+| 8   | Crown SIA monitoring           | ✅ PASS | crown/index.ts:1-100+    |
+| 9   | Session failure tracking       | ✅ PASS | spawner/index.ts:687-806 |
 
 **Overall:** 9/9 criteria met ✅
 
@@ -242,31 +266,37 @@ All features are configurable via `~/.harness/config.json`:
 ## System Characteristics
 
 ### Fail-Safe Design
+
 - Degrades quality (cheaper models) before failing completely
 - Fail-open on budget system errors (allows spawning)
 - Preserves error state for debugging
 
 ### Self-Healing
+
 - Crown automatically resets stuck agents
 - Auto-processes queued build tasks
 - Circuit breaker self-recovers after cooldown
 
 ### Cost-Aware
+
 - Multiple budget controls prevent overspending
 - Proactive rate limit avoidance
 - Model selection optimized by agent type
 
 ### Observable
+
 - Comprehensive logging at each decision point
 - Event system for real-time monitoring
 - Dashboard APIs for metrics
 
 ### Configurable
+
 - All thresholds tunable via config file
 - Hot-reload on config changes
 - Validation on config updates
 
 ### Persistent
+
 - Critical state survives restarts (queues, window stats)
 - Database-backed configuration
 - Session history preserved
@@ -277,17 +307,17 @@ All features are configurable via `~/.harness/config.json`:
 
 The system can gracefully handle:
 
-| Scenario | Mechanism | Behavior |
-|----------|-----------|----------|
-| API rate limit | Model fallback | Retry with Sonnet, then Haiku |
-| Service outage | Circuit breaker | Stop attempts, resume after 1h |
-| Budget exhaustion | Budget limits | Pause spawning (configurable) |
-| Build failures | Health gates | Block spawning until builds pass |
-| Resource exhaustion | Serial builds | Queue excess tasks |
-| Stuck agents | Crown monitoring | Auto-reset + SIA investigation |
-| Temporary failures | Retry + backoff | Up to 5 attempts with delays |
-| Cost overrun | Rolling window | Block at 80% threshold |
-| Database errors | Try-catch + warn | Continue with degraded functionality |
+| Scenario            | Mechanism        | Behavior                             |
+| ------------------- | ---------------- | ------------------------------------ |
+| API rate limit      | Model fallback   | Retry with Sonnet, then Haiku        |
+| Service outage      | Circuit breaker  | Stop attempts, resume after 1h       |
+| Budget exhaustion   | Budget limits    | Pause spawning (configurable)        |
+| Build failures      | Health gates     | Block spawning until builds pass     |
+| Resource exhaustion | Serial builds    | Queue excess tasks                   |
+| Stuck agents        | Crown monitoring | Auto-reset + SIA investigation       |
+| Temporary failures  | Retry + backoff  | Up to 5 attempts with delays         |
+| Cost overrun        | Rolling window   | Block at 80% threshold               |
+| Database errors     | Try-catch + warn | Continue with degraded functionality |
 
 ---
 
@@ -298,6 +328,7 @@ The system can gracefully handle:
 The implementation provides **9 distinct layers of protection** against various failure modes, ensuring the system remains operational even when individual components fail.
 
 **Key Strengths:**
+
 - ✅ Multiple fallback mechanisms
 - ✅ Self-healing capabilities
 - ✅ Cost and resource protection

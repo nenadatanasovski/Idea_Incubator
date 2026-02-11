@@ -64,6 +64,7 @@ None. This task is a duplicate of TASK-006 (config-version-mismatch), which was 
 ## Resolution
 
 This task was already resolved prior to investigation. The test file correctly:
+
 - Defaults to `"v2"` (matching `config/default.ts`)
 - Tests switching to `"v1"` as an alternate mode
 - Uses `as const` assertions for type safety when passing literal string values

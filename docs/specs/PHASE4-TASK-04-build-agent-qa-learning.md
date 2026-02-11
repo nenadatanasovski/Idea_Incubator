@@ -16,6 +16,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 **Problem:** Currently, when the QA Agent validates a task and finds failures (TypeScript compilation errors, test failures, build failures), the Build Agent receives feedback but doesn't systematically learn from these mistakes. The same types of errors recur across different tasks because there's no mechanism to capture, categorize, and reuse QA failure patterns. Each Build Agent instance starts fresh without benefiting from past QA failures experienced by previous builds.
 
 **Solution:** Create a bidirectional learning loop between Build Agent and QA Agent that:
+
 1. Captures QA failure patterns with error classification and context
 2. Associates failures with specific implementation techniques that caused them
 3. Enables Build Agent to query past QA failures before implementing
@@ -31,6 +32,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 ### Existing Infrastructure ✅
 
 **1. QA Agent Verification System** (`parent-harness/orchestrator/src/qa/index.ts`)
+
 - ✅ Runs TypeScript compilation checks
 - ✅ Runs build verification (`npm run build`)
 - ✅ Runs test suite (`npm test`)
@@ -44,6 +46,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 - ❌ **Gap:** No failure categorization or root cause analysis
 
 **2. QA Service Event System** (`parent-harness/orchestrator/src/events/qa-service.ts`)
+
 - ✅ Event-driven QA queue processing
 - ✅ Listens for `task:ready_for_qa` events
 - ✅ Emits `task:qa_passed` and `task:qa_failed` events
@@ -54,6 +57,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 - ❌ **Gap:** No learning event emission (`qa:learning_captured`)
 
 **3. Knowledge Base System** (PHASE4-TASK-01 - VERIFIED COMPLETE)
+
 - ✅ Database tables: `knowledge_entries`, `claude_md_proposals`, `gotcha_applications`
 - ✅ Types: gotcha, pattern, decision
 - ✅ Confidence tracking with boost/decay logic
@@ -65,6 +69,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 - ⚠️ **Partial:** No technique effectiveness tracking
 
 **4. Build Agent Orchestrator** (`server/services/task-agent/build-agent-orchestrator.ts`)
+
 - ✅ Spawns Build Agents for tasks
 - ✅ Tracks execution status and errors
 - ✅ Error handling integration (GAP-002)
@@ -75,6 +80,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 - ❌ **Gap:** No post-QA learning capture
 
 **5. Parent Harness Memory System** (`parent-harness/data/harness.db` - agent_memory table)
+
 - ✅ Per-agent key-value memory storage
 - ✅ Memory types: context, learning, preference, error_pattern, success_pattern
 - ✅ Access tracking and importance scoring
@@ -85,14 +91,14 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 
 ### Gaps Summary
 
-| Gap | Impact | Solution |
-|-----|--------|----------|
-| No QA failure pattern capture | Same errors repeated | Add `qa_failures` table with categorization |
-| No technique effectiveness tracking | Unknown which approaches work | Track technique → QA outcome mapping |
-| No Build Agent learning injection | Agents ignore past failures | Inject relevant failures into Build Agent prompt |
-| No failure root cause analysis | Surface symptoms, not causes | Add error pattern extraction from QA output |
-| No success pattern tracking | Only learn from failures | Track successful techniques that pass QA |
-| No pitfall warnings | Preventable errors occur | Proactive warning system for known pitfalls |
+| Gap                                 | Impact                        | Solution                                         |
+| ----------------------------------- | ----------------------------- | ------------------------------------------------ |
+| No QA failure pattern capture       | Same errors repeated          | Add `qa_failures` table with categorization      |
+| No technique effectiveness tracking | Unknown which approaches work | Track technique → QA outcome mapping             |
+| No Build Agent learning injection   | Agents ignore past failures   | Inject relevant failures into Build Agent prompt |
+| No failure root cause analysis      | Surface symptoms, not causes  | Add error pattern extraction from QA output      |
+| No success pattern tracking         | Only learn from failures      | Track successful techniques that pass QA         |
+| No pitfall warnings                 | Preventable errors occur      | Proactive warning system for known pitfalls      |
 
 ---
 
@@ -101,6 +107,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 ### Functional Requirements
 
 **FR-1: QA Failure Pattern Capture**
+
 - MUST capture detailed QA failure information:
   - **Failure type**: compilation_error, test_failure, build_failure, criteria_unmet
   - **Error pattern**: Normalized error message (e.g., "TypeError: Cannot read property")
@@ -114,6 +121,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 - SHOULD auto-extract error patterns from QA output using regex
 
 **FR-2: Technique Effectiveness Tracking**
+
 - MUST record which implementation techniques lead to QA success vs. failure
 - MUST track technique metadata:
   - **Technique description**: "Use TypeScript interfaces for API contracts"
@@ -128,6 +136,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 - SHOULD recommend best techniques for specific task categories
 
 **FR-3: Build Agent Learning Injection**
+
 - MUST inject relevant QA failure learnings before Build Agent starts implementation
 - MUST retrieve learnings by:
   - **Task similarity**: Similar titles, file patterns, dependencies
@@ -143,6 +152,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 - SHOULD support learning priority (critical > high > medium > low)
 
 **FR-4: Pitfall Warning System**
+
 - MUST proactively warn Build Agent about known pitfalls before implementation
 - MUST detect warning triggers:
   - **File pattern match**: Task affects files known to have issues
@@ -156,6 +166,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 - SHOULD track warning effectiveness (prevented errors vs. ignored warnings)
 
 **FR-5: Success Pattern Recognition**
+
 - MUST capture successful implementation patterns from QA-passing tasks
 - MUST extract success indicators:
   - **Clean first-pass**: Task passed QA on first attempt
@@ -168,6 +179,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 - SHOULD identify "golden patterns" (100% QA pass rate, 5+ uses)
 
 **FR-6: Failure Root Cause Analysis**
+
 - MUST categorize QA failures by root cause:
   - **Syntax errors**: Missing semicolons, typos, invalid syntax
   - **Type mismatches**: TypeScript type errors, interface violations
@@ -182,6 +194,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 - SHOULD learn new root cause patterns from repeated failures
 
 **FR-7: Learning Feedback Loop**
+
 - MUST create event-driven feedback flow:
   1. Build Agent completes task → `task:ready_for_qa`
   2. QA Agent validates → `task:qa_failed` (with failure details)
@@ -196,6 +209,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Failure capture MUST NOT delay QA verification (<100ms overhead)
 - Learning retrieval MUST complete in <300ms for Build Agent spawn
 - Technique effectiveness calculation MUST be real-time (not batch)
@@ -203,6 +217,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 - System MUST handle 100+ failures per day without degradation
 
 **NFR-2: Data Integrity**
+
 - QA failures MUST be immutable (append-only log)
 - Technique statistics MUST be atomic (no race conditions)
 - Learning injections MUST be auditable (track what was used)
@@ -210,6 +225,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 - Failure data MUST survive system restarts (persistent storage)
 
 **NFR-3: Usability**
+
 - Failure capture MUST be automatic (no Build/QA Agent code changes)
 - Learning format MUST be human-readable (for debugging)
 - Warnings MUST be concise (3-5 sentences max)
@@ -217,6 +233,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 - Learning system MUST be configurable (enable/disable, thresholds)
 
 **NFR-4: Observability**
+
 - MUST log all failure captures with task ID, timestamp
 - MUST emit events for learning lifecycle stages
 - MUST expose metrics endpoint: `/api/learning/metrics`
@@ -224,6 +241,7 @@ Implement a learning system where the Build Agent learns from QA Agent failures 
 - MUST support export to JSON for analysis
 
 **NFR-5: Integration**
+
 - MUST integrate with existing Knowledge Base (PHASE4-TASK-01)
 - MUST integrate with QA Service event system
 - MUST integrate with Build Agent spawner
@@ -427,15 +445,19 @@ INSERT INTO pitfall_warnings (id, warning_name, warning_message, file_pattern, r
 #### 1. QA Failure Capture Service (`parent-harness/orchestrator/src/learning/qa-failure-capture.ts`)
 
 ```typescript
-import { v4 as uuid } from 'uuid';
-import { run, getOne, query } from '../db/index.js';
-import type { QAResult, QACheck } from '../qa/index.js';
+import { v4 as uuid } from "uuid";
+import { run, getOne, query } from "../db/index.js";
+import type { QAResult, QACheck } from "../qa/index.js";
 
 export interface QAFailure {
   id: string;
   taskId: string;
   sessionId?: string;
-  failureType: 'compilation_error' | 'test_failure' | 'build_failure' | 'criteria_unmet';
+  failureType:
+    | "compilation_error"
+    | "test_failure"
+    | "build_failure"
+    | "criteria_unmet";
   errorPattern: string;
   rootCause?: string;
   fileAffected?: string;
@@ -452,19 +474,21 @@ export interface QAFailure {
 export async function captureQAFailure(
   taskId: string,
   qaResult: QAResult,
-  sessionId?: string
+  sessionId?: string,
 ): Promise<QAFailure[]> {
   const failures: QAFailure[] = [];
 
   // Process each failed check
-  for (const check of qaResult.checks.filter(c => !c.passed)) {
+  for (const check of qaResult.checks.filter((c) => !c.passed)) {
     const failure = await processFailedCheck(taskId, check, sessionId);
     if (failure) {
       failures.push(failure);
     }
   }
 
-  console.log(`📚 Learning: Captured ${failures.length} QA failures for task ${taskId}`);
+  console.log(
+    `📚 Learning: Captured ${failures.length} QA failures for task ${taskId}`,
+  );
 
   return failures;
 }
@@ -475,31 +499,36 @@ export async function captureQAFailure(
 async function processFailedCheck(
   taskId: string,
   check: QACheck,
-  sessionId?: string
+  sessionId?: string,
 ): Promise<QAFailure | null> {
   // Determine failure type
   const failureType = classifyCheckFailure(check.name);
 
   // Extract error pattern
-  const errorPattern = extractErrorPattern(check.error || '');
+  const errorPattern = extractErrorPattern(check.error || "");
 
   // Check for duplicate (same pattern in last 7 days)
   const existing = await findSimilarFailure(taskId, errorPattern);
   if (existing) {
-    console.log(`📚 Learning: Duplicate failure pattern detected (${errorPattern.substring(0, 50)}...)`);
+    console.log(
+      `📚 Learning: Duplicate failure pattern detected (${errorPattern.substring(0, 50)}...)`,
+    );
     return existing;
   }
 
   // Analyze root cause
-  const rootCause = analyzeRootCause(check.error || '', check.output || '');
+  const rootCause = analyzeRootCause(check.error || "", check.output || "");
 
   // Extract file and line info
-  const { file, line } = extractFileLocation(check.error || '');
+  const { file, line } = extractFileLocation(check.error || "");
 
   // Create failure record
   const id = uuid();
-  const qaOutput = truncate((check.output || '') + '\n' + (check.error || ''), 10000);
-  const errorDetails = extractErrorDetails(check.error || '');
+  const qaOutput = truncate(
+    (check.output || "") + "\n" + (check.error || ""),
+    10000,
+  );
+  const errorDetails = extractErrorDetails(check.error || "");
 
   const failure: QAFailure = {
     id,
@@ -515,15 +544,27 @@ async function processFailedCheck(
     capturedAt: new Date().toISOString(),
   };
 
-  await run(`
+  await run(
+    `
     INSERT INTO qa_failures
     (id, task_id, session_id, failure_type, error_pattern, root_cause,
      file_affected, line_number, qa_output, error_details, captured_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `, [
-    id, taskId, sessionId, failureType, errorPattern, rootCause,
-    file, line, qaOutput, errorDetails, failure.capturedAt
-  ]);
+  `,
+    [
+      id,
+      taskId,
+      sessionId,
+      failureType,
+      errorPattern,
+      rootCause,
+      file,
+      line,
+      qaOutput,
+      errorDetails,
+      failure.capturedAt,
+    ],
+  );
 
   return failure;
 }
@@ -531,12 +572,12 @@ async function processFailedCheck(
 /**
  * Classify check failure type
  */
-function classifyCheckFailure(checkName: string): QAFailure['failureType'] {
-  if (checkName.includes('TypeScript')) return 'compilation_error';
-  if (checkName.includes('Build')) return 'build_failure';
-  if (checkName.includes('Tests')) return 'test_failure';
-  if (checkName.includes('Criterion')) return 'criteria_unmet';
-  return 'compilation_error';
+function classifyCheckFailure(checkName: string): QAFailure["failureType"] {
+  if (checkName.includes("TypeScript")) return "compilation_error";
+  if (checkName.includes("Build")) return "build_failure";
+  if (checkName.includes("Tests")) return "test_failure";
+  if (checkName.includes("Criterion")) return "criteria_unmet";
+  return "compilation_error";
 }
 
 /**
@@ -544,16 +585,16 @@ function classifyCheckFailure(checkName: string): QAFailure['failureType'] {
  */
 function extractErrorPattern(errorText: string): string {
   // Remove file paths
-  let pattern = errorText.replace(/\/[^\s:]+\//g, '[PATH]/');
+  let pattern = errorText.replace(/\/[^\s:]+\//g, "[PATH]/");
 
   // Remove line numbers
-  pattern = pattern.replace(/:\d+:\d+/g, ':L:C');
+  pattern = pattern.replace(/:\d+:\d+/g, ":L:C");
 
   // Remove specific variable names
-  pattern = pattern.replace(/\b([a-z_][a-zA-Z0-9_]*)\b/g, '[VAR]');
+  pattern = pattern.replace(/\b([a-z_][a-zA-Z0-9_]*)\b/g, "[VAR]");
 
   // Normalize whitespace
-  pattern = pattern.replace(/\s+/g, ' ').trim();
+  pattern = pattern.replace(/\s+/g, " ").trim();
 
   // Take first 100 chars
   return pattern.substring(0, 100);
@@ -562,18 +603,23 @@ function extractErrorPattern(errorText: string): string {
 /**
  * Analyze root cause from error output
  */
-function analyzeRootCause(error: string, output: string): QAFailure['rootCause'] {
-  const combined = (error + ' ' + output).toLowerCase();
+function analyzeRootCause(
+  error: string,
+  output: string,
+): QAFailure["rootCause"] {
+  const combined = (error + " " + output).toLowerCase();
 
-  if (/cannot find (module|name|namespace)/i.test(combined)) return 'missing_dependency';
-  if (/type '.*' is not assignable/i.test(combined)) return 'type_mismatch';
-  if (/unexpected token|syntax error/i.test(combined)) return 'syntax';
-  if (/expected.*but got/i.test(combined)) return 'logic';
-  if (/cannot read property|undefined is not/i.test(combined)) return 'logic';
-  if (/module not found|cannot resolve/i.test(combined)) return 'missing_dependency';
-  if (/no such file|enoent/i.test(combined)) return 'configuration';
+  if (/cannot find (module|name|namespace)/i.test(combined))
+    return "missing_dependency";
+  if (/type '.*' is not assignable/i.test(combined)) return "type_mismatch";
+  if (/unexpected token|syntax error/i.test(combined)) return "syntax";
+  if (/expected.*but got/i.test(combined)) return "logic";
+  if (/cannot read property|undefined is not/i.test(combined)) return "logic";
+  if (/module not found|cannot resolve/i.test(combined))
+    return "missing_dependency";
+  if (/no such file|enoent/i.test(combined)) return "configuration";
 
-  return 'other';
+  return "other";
 }
 
 /**
@@ -600,18 +646,20 @@ function extractFileLocation(error: string): { file?: string; line?: number } {
  */
 function extractErrorDetails(error: string): string {
   // Extract just the error message, remove stack traces
-  const lines = error.split('\n');
-  const errorLines = lines.filter(line =>
-    !line.trim().startsWith('at ') &&
-    !line.includes('node_modules')
+  const lines = error.split("\n");
+  const errorLines = lines.filter(
+    (line) => !line.trim().startsWith("at ") && !line.includes("node_modules"),
   );
-  return errorLines.slice(0, 10).join('\n').substring(0, 1000);
+  return errorLines.slice(0, 10).join("\n").substring(0, 1000);
 }
 
 /**
  * Find similar failure in recent history
  */
-async function findSimilarFailure(taskId: string, errorPattern: string): Promise<QAFailure | null> {
+async function findSimilarFailure(
+  taskId: string,
+  errorPattern: string,
+): Promise<QAFailure | null> {
   const recent = await query<any>(`
     SELECT * FROM qa_failures
     WHERE captured_at > datetime('now', '-7 days')
@@ -620,7 +668,10 @@ async function findSimilarFailure(taskId: string, errorPattern: string): Promise
   `);
 
   for (const existing of recent) {
-    const similarity = calculateSimilarity(errorPattern, existing.error_pattern);
+    const similarity = calculateSimilarity(
+      errorPattern,
+      existing.error_pattern,
+    );
     if (similarity > 0.85) {
       return {
         id: existing.id,
@@ -647,7 +698,7 @@ async function findSimilarFailure(taskId: string, errorPattern: string): Promise
 function calculateSimilarity(a: string, b: string): number {
   const wordsA = new Set(a.toLowerCase().split(/\s+/));
   const wordsB = new Set(b.toLowerCase().split(/\s+/));
-  const intersection = new Set([...wordsA].filter(x => wordsB.has(x)));
+  const intersection = new Set([...wordsA].filter((x) => wordsB.has(x)));
   const union = new Set([...wordsA, ...wordsB]);
   return intersection.size / union.size;
 }
@@ -656,14 +707,14 @@ function calculateSimilarity(a: string, b: string): number {
  * Truncate string to max length
  */
 function truncate(str: string, maxLength: number): string {
-  return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
+  return str.length > maxLength ? str.substring(0, maxLength) + "..." : str;
 }
 ```
 
 #### 2. Learning Injector (`parent-harness/orchestrator/src/learning/learning-injector.ts`)
 
 ```typescript
-import { query } from '../db/index.js';
+import { query } from "../db/index.js";
 
 export interface LearningContext {
   qaFailures: QAFailureSummary[];
@@ -731,7 +782,7 @@ async function getRelevantQAFailures(params: any): Promise<QAFailureSummary[]> {
     LIMIT 5
   `);
 
-  return failures.map(f => ({
+  return failures.map((f) => ({
     errorPattern: f.error_pattern,
     rootCause: f.root_cause,
     occurrences: f.occurrences,
@@ -743,7 +794,9 @@ async function getRelevantQAFailures(params: any): Promise<QAFailureSummary[]> {
 /**
  * Get recommended techniques
  */
-async function getRecommendedTechniques(params: any): Promise<TechniqueRecommendation[]> {
+async function getRecommendedTechniques(
+  params: any,
+): Promise<TechniqueRecommendation[]> {
   const techniques = await query<any>(`
     SELECT
       technique_name,
@@ -757,7 +810,7 @@ async function getRecommendedTechniques(params: any): Promise<TechniqueRecommend
     LIMIT 5
   `);
 
-  return techniques.map(t => ({
+  return techniques.map((t) => ({
     name: t.technique_name,
     description: t.technique_description,
     effectivenessRate: t.effectiveness_rate,
@@ -786,7 +839,7 @@ async function getPitfallWarnings(params: any): Promise<PitfallWarning[]> {
     LIMIT 3
   `);
 
-  return matched.map(w => ({
+  return matched.map((w) => ({
     message: w.warning_message,
     severity: w.severity,
     recommendation: w.recommendation,
@@ -798,13 +851,18 @@ async function getPitfallWarnings(params: any): Promise<PitfallWarning[]> {
  */
 function getRootCauseRecommendation(rootCause: string): string {
   const recommendations: Record<string, string> = {
-    syntax: 'Review TypeScript syntax. Use ESLint for syntax checking before QA.',
-    type_mismatch: 'Add explicit type annotations. Use interfaces for complex types.',
-    logic: 'Write unit tests before implementation. Review logic flow carefully.',
-    missing_dependency: 'Check imports and package.json. Run npm install before building.',
-    configuration: 'Review tsconfig.json and build configuration files.',
-    incomplete_implementation: 'Ensure all required functions are implemented. Check pass criteria.',
-    other: 'Review QA output carefully for specific error details.',
+    syntax:
+      "Review TypeScript syntax. Use ESLint for syntax checking before QA.",
+    type_mismatch:
+      "Add explicit type annotations. Use interfaces for complex types.",
+    logic:
+      "Write unit tests before implementation. Review logic flow carefully.",
+    missing_dependency:
+      "Check imports and package.json. Run npm install before building.",
+    configuration: "Review tsconfig.json and build configuration files.",
+    incomplete_implementation:
+      "Ensure all required functions are implemented. Check pass criteria.",
+    other: "Review QA output carefully for specific error details.",
   };
 
   return recommendations[rootCause] || recommendations.other;
@@ -817,31 +875,37 @@ export function formatLearningsForPrompt(learnings: LearningContext): string {
   const sections: string[] = [];
 
   if (learnings.warnings.length > 0) {
-    sections.push('## ⚠️ Known Pitfalls to Avoid\n');
+    sections.push("## ⚠️ Known Pitfalls to Avoid\n");
     for (const warning of learnings.warnings) {
-      sections.push(`**[${warning.severity.toUpperCase()}]** ${warning.message}`);
+      sections.push(
+        `**[${warning.severity.toUpperCase()}]** ${warning.message}`,
+      );
       sections.push(`→ ${warning.recommendation}\n`);
     }
   }
 
   if (learnings.qaFailures.length > 0) {
-    sections.push('## 📚 Recent QA Failures to Learn From\n');
+    sections.push("## 📚 Recent QA Failures to Learn From\n");
     for (const failure of learnings.qaFailures) {
-      sections.push(`**${failure.rootCause}** (${failure.occurrences}× in last 30 days)`);
+      sections.push(
+        `**${failure.rootCause}** (${failure.occurrences}× in last 30 days)`,
+      );
       sections.push(`→ ${failure.recommendation}\n`);
     }
   }
 
   if (learnings.techniques.length > 0) {
-    sections.push('## ✅ Recommended Techniques (High QA Pass Rate)\n');
+    sections.push("## ✅ Recommended Techniques (High QA Pass Rate)\n");
     for (const tech of learnings.techniques) {
       const passRate = (tech.effectivenessRate * 100).toFixed(0);
-      sections.push(`**${tech.name}** (${passRate}% pass rate, ${tech.successCount} successes)`);
+      sections.push(
+        `**${tech.name}** (${passRate}% pass rate, ${tech.successCount} successes)`,
+      );
       sections.push(`${tech.description}\n`);
     }
   }
 
-  return sections.join('\n');
+  return sections.join("\n");
 }
 ```
 
@@ -891,12 +955,14 @@ private async verifyTask(queued: QueuedTask): Promise<void> {
 ## Pass Criteria
 
 ### Database Schema
+
 1. ✅ **Tables created** - qa_failures, technique_effectiveness, technique_applications, learning_injections, pitfall_warnings, success_patterns
 2. ✅ **Indexes created** - All performance-critical indexes present
 3. ✅ **Seed data** - 5 common pitfall warnings inserted
 4. ✅ **Migration tested** - Schema applies cleanly to ideas.db
 
 ### QA Failure Capture
+
 5. ✅ **Failure capture works** - `captureQAFailure()` creates entries for all failed checks
 6. ✅ **Error pattern extraction** - Patterns normalized (paths/vars removed)
 7. ✅ **Root cause analysis** - 6 root cause categories correctly identified
@@ -905,28 +971,33 @@ private async verifyTask(queued: QueuedTask): Promise<void> {
 10. ✅ **Event emission** - `qa:learning_captured` event emitted after capture
 
 ### Learning Injection
+
 11. ✅ **Learning retrieval** - `getLearningsForTask()` returns failures + techniques + warnings
 12. ✅ **Prompt formatting** - `formatLearningsForPrompt()` generates readable guidance
 13. ✅ **Relevance filtering** - Only recent (30 days), frequent (2+) failures returned
 14. ✅ **Technique recommendations** - High-effectiveness (75%+) techniques recommended
 
 ### Technique Effectiveness
+
 15. ✅ **Technique tracking** - Success/failure counts update correctly
 16. ✅ **Effectiveness calculation** - effectiveness_rate = success / (success + failure)
 17. ✅ **Technique application** - technique_applications records created on usage
 
 ### Pitfall Warnings
+
 18. ✅ **Warning triggers** - Warnings matched by file pattern, category, severity
 19. ✅ **Warning formatting** - Concise message + actionable recommendation
 20. ✅ **Warning statistics** - times_triggered, times_prevented_error tracked
 
 ### Integration
+
 21. ✅ **QA Service integration** - Failure capture called after QA verification
 22. ✅ **Build Agent integration** - Learnings injected into spawner context
 23. ✅ **Event bus integration** - Learning events emitted and handled
 24. ✅ **Knowledge Base integration** - QA failures linkable to knowledge entries
 
 ### Testing
+
 25. ✅ **Unit tests** - All modules tested in isolation
 26. ✅ **Integration test** - Complete flow: Build → QA fail → capture → next Build uses learning
 27. ✅ **Performance test** - Capture <100ms, retrieval <300ms
@@ -936,15 +1007,18 @@ private async verifyTask(queued: QueuedTask): Promise<void> {
 ## Dependencies
 
 **Upstream (Must Complete First):**
+
 - ✅ PHASE4-TASK-01: Knowledge Base System (VERIFICATION COMPLETE)
 - ✅ QA Agent verification system (EXISTS: `parent-harness/orchestrator/src/qa/index.ts`)
 - ✅ QA Service event system (EXISTS: `parent-harness/orchestrator/src/events/qa-service.ts`)
 
 **Downstream (Depends on This):**
+
 - PHASE5-TASK-01: Self-improvement loop (uses learning metrics for improvement suggestions)
 - PHASE6-TASK-01: Auto-promotion of validated techniques to CLAUDE.md
 
 **Parallel Work (Can Develop Concurrently):**
+
 - PHASE4-TASK-02: Agent introspection (complementary learning mechanism)
 - PHASE4-TASK-03: Spec-Build feedback loop (learns from different failure types)
 
@@ -953,6 +1027,7 @@ private async verifyTask(queued: QueuedTask): Promise<void> {
 ## Implementation Plan
 
 ### Phase 1: Database Schema & Seed Data (2 hours)
+
 1. Create migration: `004_qa_learning.sql`
 2. Define all 6 tables with indexes
 3. Insert seed pitfall warnings
@@ -960,6 +1035,7 @@ private async verifyTask(queued: QueuedTask): Promise<void> {
 5. Verify constraints and foreign keys
 
 ### Phase 2: QA Failure Capture (4 hours)
+
 6. Implement `qa-failure-capture.ts`: captureQAFailure, processFailedCheck
 7. Implement error pattern extraction and normalization
 8. Implement root cause analysis with pattern matching
@@ -967,28 +1043,33 @@ private async verifyTask(queued: QueuedTask): Promise<void> {
 10. Unit test all functions with sample QA outputs
 
 ### Phase 3: Learning Injection (3 hours)
+
 11. Implement `learning-injector.ts`: getLearningsForTask
 12. Implement prompt formatting for Build Agent
 13. Implement relevance filtering and ranking
 14. Test learning retrieval with various task types
 
 ### Phase 4: Technique Effectiveness (3 hours)
+
 15. Implement technique tracking on QA success/failure
 16. Implement effectiveness calculation
 17. Implement technique recommendation logic
 18. Test with simulated QA results
 
 ### Phase 5: QA Service Integration (2 hours)
+
 19. Integrate failure capture into QA service
 20. Add event emission for learning lifecycle
 21. Test event flow end-to-end
 
 ### Phase 6: Build Agent Integration (3 hours)
+
 22. Integrate learning injection into Build Agent spawner
 23. Add learning injection tracking
 24. Test learning impact on QA pass rate
 
 ### Phase 7: Testing & Documentation (3 hours)
+
 25. Write integration test suite
 26. Write performance tests
 27. Document API and data flow
@@ -1004,31 +1085,36 @@ private async verifyTask(queued: QueuedTask): Promise<void> {
 
 ```typescript
 // learning/qa-failure-capture.test.ts
-describe('QA Failure Capture', () => {
-  test('captures compilation errors correctly', async () => {
+describe("QA Failure Capture", () => {
+  test("captures compilation errors correctly", async () => {
     const qaResult = {
-      taskId: 'task-001',
+      taskId: "task-001",
       passed: false,
-      checks: [{
-        name: 'TypeScript Compilation',
-        passed: false,
-        error: 'src/app.ts:42:15 - error TS2339: Property "name" does not exist',
-      }],
-      summary: 'TypeScript errors',
+      checks: [
+        {
+          name: "TypeScript Compilation",
+          passed: false,
+          error:
+            'src/app.ts:42:15 - error TS2339: Property "name" does not exist',
+        },
+      ],
+      summary: "TypeScript errors",
     };
 
-    const failures = await captureQAFailure('task-001', qaResult);
+    const failures = await captureQAFailure("task-001", qaResult);
 
     expect(failures).toHaveLength(1);
-    expect(failures[0].failureType).toBe('compilation_error');
-    expect(failures[0].rootCause).toBe('type_mismatch');
-    expect(failures[0].fileAffected).toBe('src/app.ts');
+    expect(failures[0].failureType).toBe("compilation_error");
+    expect(failures[0].rootCause).toBe("type_mismatch");
+    expect(failures[0].fileAffected).toBe("src/app.ts");
     expect(failures[0].lineNumber).toBe(42);
   });
 
-  test('normalizes error patterns', () => {
-    const error1 = '/home/user/project/src/file.ts:10:5 - error TS2339: Property "foo"';
-    const error2 = '/different/path/src/other.ts:20:10 - error TS2339: Property "bar"';
+  test("normalizes error patterns", () => {
+    const error1 =
+      '/home/user/project/src/file.ts:10:5 - error TS2339: Property "foo"';
+    const error2 =
+      '/different/path/src/other.ts:20:10 - error TS2339: Property "bar"';
 
     const pattern1 = extractErrorPattern(error1);
     const pattern2 = extractErrorPattern(error2);
@@ -1039,35 +1125,41 @@ describe('QA Failure Capture', () => {
 });
 
 // learning/learning-injector.test.ts
-describe('Learning Injector', () => {
-  test('retrieves relevant QA failures', async () => {
+describe("Learning Injector", () => {
+  test("retrieves relevant QA failures", async () => {
     // Create test failures
-    await captureQAFailure('task-001', { /* compilation error */ });
-    await captureQAFailure('task-002', { /* same pattern */ });
+    await captureQAFailure("task-001", {
+      /* compilation error */
+    });
+    await captureQAFailure("task-002", {
+      /* same pattern */
+    });
 
-    const learnings = await getLearningsForTask({ taskId: 'task-003' });
+    const learnings = await getLearningsForTask({ taskId: "task-003" });
 
     expect(learnings.qaFailures.length).toBeGreaterThan(0);
     expect(learnings.qaFailures[0].occurrences).toBeGreaterThanOrEqual(2);
   });
 
-  test('formats learnings for prompt', () => {
+  test("formats learnings for prompt", () => {
     const learnings = {
-      qaFailures: [{
-        errorPattern: 'type error',
-        rootCause: 'type_mismatch',
-        occurrences: 3,
-        recommendation: 'Add explicit types',
-      }],
+      qaFailures: [
+        {
+          errorPattern: "type error",
+          rootCause: "type_mismatch",
+          occurrences: 3,
+          recommendation: "Add explicit types",
+        },
+      ],
       techniques: [],
       warnings: [],
     };
 
     const formatted = formatLearningsForPrompt(learnings);
 
-    expect(formatted).toContain('QA Failures');
-    expect(formatted).toContain('type_mismatch');
-    expect(formatted).toContain('3×');
+    expect(formatted).toContain("QA Failures");
+    expect(formatted).toContain("type_mismatch");
+    expect(formatted).toContain("3×");
   });
 });
 ```
@@ -1076,10 +1168,10 @@ describe('Learning Injector', () => {
 
 ```typescript
 // integration/qa-learning-loop.test.ts
-describe('QA Learning Loop', () => {
-  test('complete flow: Build → QA fail → capture → next Build learns', async () => {
+describe("QA Learning Loop", () => {
+  test("complete flow: Build → QA fail → capture → next Build learns", async () => {
     // 1. Build Agent completes task with type error
-    const taskId1 = await createTask({ title: 'Add user API' });
+    const taskId1 = await createTask({ title: "Add user API" });
     await executeTask(taskId1); // Introduces type error
 
     // 2. QA verification fails
@@ -1089,20 +1181,20 @@ describe('QA Learning Loop', () => {
     // 3. Failure captured
     const failures = await captureQAFailure(taskId1, qaResult1);
     expect(failures.length).toBeGreaterThan(0);
-    expect(failures[0].rootCause).toBe('type_mismatch');
+    expect(failures[0].rootCause).toBe("type_mismatch");
 
     // 4. Next Build Agent spawns for similar task
-    const taskId2 = await createTask({ title: 'Add product API' });
+    const taskId2 = await createTask({ title: "Add product API" });
     const learnings = await getLearningsForTask({ taskId: taskId2 });
 
     // 5. Learnings include past failure
     expect(learnings.qaFailures).toContainEqual(
-      expect.objectContaining({ rootCause: 'type_mismatch' })
+      expect.objectContaining({ rootCause: "type_mismatch" }),
     );
 
     // 6. Inject learnings and verify improved outcome
     const prompt = formatLearningsForPrompt(learnings);
-    expect(prompt).toContain('type_mismatch');
+    expect(prompt).toContain("type_mismatch");
 
     // 7. Second task should benefit from learning
     // (In real test, would spawn Build Agent with learnings and verify QA pass)
@@ -1115,24 +1207,28 @@ describe('QA Learning Loop', () => {
 ## Success Metrics
 
 **Operational:**
+
 - 100+ QA failures captured in first month
 - 90%+ root cause categorization accuracy
 - Learning retrieval completes in <300ms (95th percentile)
 - Zero data loss or corruption
 
 **Agent Performance:**
+
 - QA first-pass rate improves by 15% after 50+ learnings
 - Repeated error patterns decrease by 40%
 - Build Agent completion time reduces by 10% (fewer retries)
 - Critical failures (compilation/build) decrease by 25%
 
 **Learning Quality:**
+
 - 80%+ of captured failures are unique (not duplicates)
 - Technique effectiveness correlates with QA success (r > 0.7)
 - Pitfall warnings prevent 50%+ of matching errors
 - High-effectiveness techniques (>80%) have 10+ uses
 
 **System Health:**
+
 - Failure capture adds <100ms to QA verification
 - Learning injection adds <300ms to Build Agent spawn
 - Database size grows <1MB per 100 failures

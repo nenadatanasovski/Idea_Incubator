@@ -18,18 +18,18 @@ The Spec Agent v0.1 is **fully implemented, integrated, and operational**. All c
 
 ### ✅ Core Modules (agents/specification/)
 
-| Module | File | Lines | Status |
-|--------|------|-------|--------|
-| Core Agent | `core.ts` | 494 | ✅ Complete |
-| Brief Parser | `brief-parser.ts` | 378 | ✅ Complete |
-| Context Loader | `context-loader.ts` | 400+ | ✅ Complete |
-| Claude Client | `claude-client.ts` | 350+ | ✅ Complete |
-| Task Generator | `task-generator.ts` | 450+ | ✅ Complete |
-| Question Generator | `question-generator.ts` | 350+ | ✅ Complete |
-| Gotcha Injector | `gotcha-injector.ts` | 380+ | ✅ Complete |
-| Template Renderer | `template-renderer.ts` | 300+ | ✅ Complete |
-| Session Manager | `session-manager.ts` | 250+ | ✅ Complete |
-| **TOTAL** | | **~4,868 lines** | **✅ All Complete** |
+| Module             | File                    | Lines            | Status              |
+| ------------------ | ----------------------- | ---------------- | ------------------- |
+| Core Agent         | `core.ts`               | 494              | ✅ Complete         |
+| Brief Parser       | `brief-parser.ts`       | 378              | ✅ Complete         |
+| Context Loader     | `context-loader.ts`     | 400+             | ✅ Complete         |
+| Claude Client      | `claude-client.ts`      | 350+             | ✅ Complete         |
+| Task Generator     | `task-generator.ts`     | 450+             | ✅ Complete         |
+| Question Generator | `question-generator.ts` | 350+             | ✅ Complete         |
+| Gotcha Injector    | `gotcha-injector.ts`    | 380+             | ✅ Complete         |
+| Template Renderer  | `template-renderer.ts`  | 300+             | ✅ Complete         |
+| Session Manager    | `session-manager.ts`    | 250+             | ✅ Complete         |
+| **TOTAL**          |                         | **~4,868 lines** | **✅ All Complete** |
 
 ### ✅ Orchestrator Integration
 
@@ -44,6 +44,7 @@ The Spec Agent v0.1 is **fully implemented, integrated, and operational**. All c
 ### ✅ Database Schema
 
 **Tables:**
+
 - ✅ `tasks` table includes `spec_file_path` column
 - ✅ `tasks.status` supports workflow states (pending, in_progress, ready, etc.)
 - ✅ `tasks.source` tracks user vs agent-created tasks
@@ -102,7 +103,7 @@ spec_agent: {
 spec_agent: `${baseHeader}
 ROLE: Spec Agent - create technical specifications.
 Write to docs/specs/ with: Overview, Requirements, Technical Design, Pass Criteria, Dependencies.
-Pass criteria must be testable. Reference existing codebase patterns.`
+Pass criteria must be testable. Reference existing codebase patterns.`;
 ```
 
 ### 3. ✅ Orchestrator Assigns Tasks to Spec Agent
@@ -118,6 +119,7 @@ Pass criteria must be testable. Reference existing codebase patterns.`
 **Verified:** 9 modules implemented with ~4,868 total lines of code
 
 Core workflow implemented:
+
 1. **Brief Parsing** → Extract task details from markdown
 2. **Context Loading** → Load gotchas from docs/gotchas/
 3. **Requirement Analysis** → Use Claude Opus for analysis
@@ -136,6 +138,7 @@ pending → in_progress (spec_agent) → ready → in_progress (build_agent) →
 ```
 
 Task creation sets initial status based on source:
+
 - User-created tasks: `pending` (will be assigned to spec_agent when needed)
 - Agent-created tasks: `ready` (skip spec phase)
 
@@ -170,8 +173,8 @@ $ cd parent-harness/orchestrator && npm run build  # ✅ SUCCESS
 
 ```typescript
 const modelMap: Record<string, string> = {
-  spec_agent: 'sonnet',  // Specs need quality
-  spec: 'sonnet',
+  spec_agent: "sonnet", // Specs need quality
+  spec: "sonnet",
   // ...
 };
 ```
@@ -255,6 +258,7 @@ Build Agent picks up ready task
 ### Current Scope (v0.1)
 
 The implementation focuses on core specification generation:
+
 - ✅ Brief → Spec transformation
 - ✅ Task decomposition
 - ✅ Question generation for ambiguous briefs
@@ -301,6 +305,7 @@ The implementation focuses on core specification generation:
 ### Operational Metrics (To Be Measured)
 
 Once the system is live, we'll track:
+
 - Spec generation time (target: <60s for simple, <180s for complex)
 - Spec quality scores (target: 8/10+)
 - Build Agent success rate with specs (target: 70%+ first-attempt success)
@@ -313,6 +318,7 @@ Once the system is live, we'll track:
 **PHASE2-TASK-01 is COMPLETE.**
 
 The Spec Agent v0.1 is:
+
 - ✅ **Fully implemented** (~4,868 lines of production code)
 - ✅ **Integrated** with orchestrator and spawner
 - ✅ **Tested** (builds pass, tests pass)
@@ -320,6 +326,7 @@ The Spec Agent v0.1 is:
 - ✅ **Ready for production use**
 
 The agent can now:
+
 1. Parse task briefs from user input
 2. Generate comprehensive technical specifications
 3. Decompose complex tasks into atomic subtasks
@@ -335,6 +342,7 @@ The agent can now:
 **Summary:** PHASE2-TASK-01 (Spec Agent v0.1) is fully implemented and verified. All 10 pass criteria met. The agent is integrated into the orchestrator, builds successfully, tests pass, and is ready to generate technical specifications from task briefs. Implementation includes 9 core modules (~4,868 lines), full orchestrator integration, and comprehensive documentation.
 
 **Next Steps:**
+
 1. Begin PHASE2-TASK-02 (Build Agent v0.1 integration with Spec Agent)
 2. Test end-to-end workflow: User task → Spec Agent → Build Agent → QA Agent
 3. Monitor operational metrics once live

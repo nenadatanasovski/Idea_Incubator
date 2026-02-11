@@ -1,7 +1,7 @@
-import { Router } from 'express';
-import * as qa from '../qa/index.js';
-import * as tasks from '../db/tasks.js';
-import { query } from '../db/index.js';
+import { Router } from "express";
+import * as qa from "../qa/index.js";
+import * as tasks from "../db/tasks.js";
+import { query } from "../db/index.js";
 
 export const qaRouter = Router();
 
@@ -9,12 +9,12 @@ export const qaRouter = Router();
  * POST /api/qa/verify/:taskId
  * Verify a task (run QA checks)
  */
-qaRouter.post('/verify/:taskId', async (req, res) => {
+qaRouter.post("/verify/:taskId", async (req, res) => {
   const { taskId } = req.params;
 
   const task = tasks.getTask(taskId);
   if (!task) {
-    return res.status(404).json({ error: 'Task not found', status: 404 });
+    return res.status(404).json({ error: "Task not found", status: 404 });
   }
 
   try {
@@ -22,7 +22,7 @@ qaRouter.post('/verify/:taskId', async (req, res) => {
     res.json(result);
   } catch (error) {
     res.status(500).json({
-      error: error instanceof Error ? error.message : 'Verification failed',
+      error: error instanceof Error ? error.message : "Verification failed",
       status: 500,
     });
   }
@@ -32,18 +32,18 @@ qaRouter.post('/verify/:taskId', async (req, res) => {
  * POST /api/qa/run
  * Run full QA cycle (verify all pending_verification tasks)
  */
-qaRouter.post('/run', async (_req, res) => {
+qaRouter.post("/run", async (_req, res) => {
   try {
     const results = await qa.runQACycle();
     res.json({
       tasksVerified: results.length,
-      passed: results.filter(r => r.passed).length,
-      failed: results.filter(r => !r.passed).length,
+      passed: results.filter((r) => r.passed).length,
+      failed: results.filter((r) => !r.passed).length,
       results,
     });
   } catch (error) {
     res.status(500).json({
-      error: error instanceof Error ? error.message : 'QA cycle failed',
+      error: error instanceof Error ? error.message : "QA cycle failed",
       status: 500,
     });
   }
@@ -53,11 +53,11 @@ qaRouter.post('/run', async (_req, res) => {
  * POST /api/qa/check
  * Run a specific command check
  */
-qaRouter.post('/check', async (req, res) => {
+qaRouter.post("/check", async (req, res) => {
   const { command, cwd } = req.body;
 
   if (!command) {
-    return res.status(400).json({ error: 'Missing command', status: 400 });
+    return res.status(400).json({ error: "Missing command", status: 400 });
   }
 
   try {
@@ -65,7 +65,7 @@ qaRouter.post('/check', async (req, res) => {
     res.json(result);
   } catch (error) {
     res.status(500).json({
-      error: error instanceof Error ? error.message : 'Check failed',
+      error: error instanceof Error ? error.message : "Check failed",
       status: 500,
     });
   }
@@ -75,7 +75,7 @@ qaRouter.post('/check', async (req, res) => {
  * GET /api/qa/stats
  * Get overall QA statistics
  */
-qaRouter.get('/stats', (_req, res) => {
+qaRouter.get("/stats", (_req, res) => {
   // Get stats from database
   const stats = query<{ status: string; count: number }>(
     `SELECT 
@@ -83,7 +83,7 @@ qaRouter.get('/stats', (_req, res) => {
       COUNT(*) as count
     FROM tasks 
     WHERE status IN ('completed', 'failed', 'pending_verification')
-    GROUP BY status`
+    GROUP BY status`,
   );
 
   const statsMap: Record<string, number> = {};
@@ -92,8 +92,8 @@ qaRouter.get('/stats', (_req, res) => {
   }
 
   res.json({
-    completed: statsMap['completed'] || 0,
-    failed: statsMap['failed'] || 0,
-    pendingVerification: statsMap['pending_verification'] || 0,
+    completed: statsMap["completed"] || 0,
+    failed: statsMap["failed"] || 0,
+    pendingVerification: statsMap["pending_verification"] || 0,
   });
 });

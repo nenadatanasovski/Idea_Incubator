@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import api from '../api/client';
-import type { Agent } from '../api/types';
+import { useState, useEffect, useCallback } from "react";
+import api from "../api/client";
+import type { Agent } from "../api/types";
 
 interface UseAgentsResult {
   agents: Agent[];
@@ -18,10 +18,10 @@ export function useAgents(): UseAgentsResult {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.get<Agent[]>('/api/agents');
+      const data = await api.get<Agent[]>("/api/agents");
       setAgents(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch agents');
+      setError(err instanceof Error ? err.message : "Failed to fetch agents");
     } finally {
       setLoading(false);
     }

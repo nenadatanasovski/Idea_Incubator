@@ -1,23 +1,27 @@
-import * as agents from '../db/agents.js';
-import * as tasks from '../db/tasks.js';
-import * as sessions from '../db/sessions.js';
-import { events } from '../db/events.js';
-import { getDb } from '../db/index.js';
-import { isSystemFlagEnabled } from '../db/system-state.js';
-import { ws } from '../websocket.js';
-import * as spawner from '../spawner/index.js';
-import * as planning from '../planning/index.js';
-import * as qa from '../qa/index.js';
-import * as selfImprovement from '../self-improvement/index.js';
-import * as clarification from '../clarification/index.js';
-import * as waves from '../waves/index.js';
-import * as crown from '../crown/index.js';
-import { notify } from '../telegram/index.js';
-import { notify as directNotify } from '../telegram/direct-telegram.js';
-import { recordTick, crashProtect } from '../stability/index.js';
-import { checkAlerts, initAlerts } from '../alerts/index.js';
-import * as config from '../config/index.js';
-import { isRunnableProductionTask } from './task-gating.js';
+import * as agents from "../db/agents.js";
+import * as tasks from "../db/tasks.js";
+import * as sessions from "../db/sessions.js";
+import { events } from "../db/events.js";
+import { getDb } from "../db/index.js";
+import { isSystemFlagEnabled } from "../db/system-state.js";
+import { ws } from "../websocket.js";
+import * as spawner from "../spawner/index.js";
+import * as planning from "../planning/index.js";
+import * as qa from "../qa/index.js";
+import * as selfImprovement from "../self-improvement/index.js";
+import * as clarification from "../clarification/index.js";
+import * as waves from "../waves/index.js";
+import * as crown from "../crown/index.js";
+import { notify } from "../telegram/index.js";
+import {
+  isRateLimited,
+  getRateLimitStatus,
+} from "../rate-limit/backoff-state.js";
+import { notify as directNotify } from "../telegram/direct-telegram.js";
+import { recordTick, crashProtect } from "../stability/index.js";
+import { checkAlerts, initAlerts } from "../alerts/index.js";
+import * as config from "../config/index.js";
+import { isRunnableProductionTask } from "./task-gating.js";
 
 // Configuration
 const TICK_INTERVAL_MS = 30_000; // 30 seconds
@@ -27,9 +31,9 @@ const QA_EVERY_N_TICKS = 10; // Run QA every 10th tick
 const MAX_RETRIES = 5;
 
 // Feature flags
-const SPAWN_AGENTS = process.env.HARNESS_SPAWN_AGENTS === 'true'; // Set to 'true' to enable
-const RUN_PLANNING = process.env.HARNESS_RUN_PLANNING === 'true'; // Set to 'true' to enable
-const RUN_QA = process.env.HARNESS_RUN_QA !== 'false'; // Enabled by default
+const SPAWN_AGENTS = process.env.HARNESS_SPAWN_AGENTS === "true"; // Set to 'true' to enable
+const RUN_PLANNING = process.env.HARNESS_RUN_PLANNING === "true"; // Set to 'true' to enable
+const RUN_QA = process.env.HARNESS_RUN_QA !== "false"; // Enabled by default
 
 let tickCount = 0;
 let planningCount = 0;
@@ -42,7 +46,7 @@ let lastRateLimitResetCheck = 0;
 
 /**
  * Proactive rate limit monitoring - alerts BEFORE hitting limits
- * 
+ *
  * First Principles:
  * 1. Check EVERY tick (not just after usage)
  * 2. Alert at 60%, 80%, 95% thresholds
@@ -52,7 +56,7 @@ let lastRateLimitResetCheck = 0;
 async function checkRateLimitsProactively(): Promise<void> {
   try {
     const stats = spawner.getRollingWindowStats();
-    
+
     // Get limits from config
     let maxCostUsd = 500; // Default
     let maxSpawns = 2000; // Default
@@ -60,39 +64,48 @@ async function checkRateLimitsProactively(): Promise<void> {
       const cfg = config.getConfig();
       maxCostUsd = (cfg as any).rate_limit?.max_cost_per_window_usd ?? 500;
       maxSpawns = (cfg as any).rate_limit?.max_spawns_per_window ?? 2000;
-    } catch { /* use defaults */ }
-    
+    } catch {
+      /* use defaults */
+    }
+
     // Reset alerted thresholds if window has rolled (oldest record is gone)
     const now = Date.now();
     const ROLLING_WINDOW_MS = 5 * 60 * 60 * 1000;
-    if (stats.oldestTimestamp && now - stats.oldestTimestamp > ROLLING_WINDOW_MS) {
-      if (now - lastRateLimitResetCheck > 60000) { // Check at most once per minute
+    if (
+      stats.oldestTimestamp &&
+      now - stats.oldestTimestamp > ROLLING_WINDOW_MS
+    ) {
+      if (now - lastRateLimitResetCheck > 60000) {
+        // Check at most once per minute
         rateLimitAlertedThresholds.clear();
         lastRateLimitResetCheck = now;
       }
     }
-    
+
     const costPercent = (stats.costInWindow / maxCostUsd) * 100;
     const spawnPercent = (stats.spawnsInWindow / maxSpawns) * 100;
     const highestPercent = Math.max(costPercent, spawnPercent);
-    
+
     // Define alert thresholds
     const thresholds = [
-      { level: 60, emoji: '⚠️', urgency: 'approaching' },
-      { level: 80, emoji: '🟠', urgency: 'WARNING' },
-      { level: 95, emoji: '🔴', urgency: 'CRITICAL' },
+      { level: 60, emoji: "⚠️", urgency: "approaching" },
+      { level: 80, emoji: "🟠", urgency: "WARNING" },
+      { level: 95, emoji: "🔴", urgency: "CRITICAL" },
     ];
-    
+
     for (const threshold of thresholds) {
-      if (highestPercent >= threshold.level && !rateLimitAlertedThresholds.has(threshold.level)) {
+      if (
+        highestPercent >= threshold.level &&
+        !rateLimitAlertedThresholds.has(threshold.level)
+      ) {
         rateLimitAlertedThresholds.add(threshold.level);
-        
+
         // Calculate time until window rolls
-        const windowRemainingMs = stats.oldestTimestamp 
+        const windowRemainingMs = stats.oldestTimestamp
           ? ROLLING_WINDOW_MS - (now - stats.oldestTimestamp)
           : ROLLING_WINDOW_MS;
         const windowRemainingMin = Math.round(windowRemainingMs / 60000);
-        
+
         const message = `${threshold.emoji} *Rate Limit ${threshold.urgency}*
 
 📊 Usage: ${highestPercent.toFixed(1)}% of 5-hour window
@@ -100,21 +113,37 @@ async function checkRateLimitsProactively(): Promise<void> {
 🔄 Spawns: ${stats.spawnsInWindow} / ${maxSpawns}
 ⏱️ Window resets in: ~${windowRemainingMin} min
 
-${threshold.level >= 95 ? '🛑 Agent spawning will pause at 100%!' : 
-  threshold.level >= 80 ? '⚠️ Consider pausing non-critical work' : 
-  '💡 Monitor closely'}`;
-        
-        console.log(`${threshold.emoji} Rate limit alert: ${highestPercent.toFixed(1)}%`);
-        await directNotify.forwardError('rate_limit', message);
+${
+  threshold.level >= 95
+    ? "🛑 Agent spawning will pause at 100%!"
+    : threshold.level >= 80
+      ? "⚠️ Consider pausing non-critical work"
+      : "💡 Monitor closely"
+}`;
+
+        console.log(
+          `${threshold.emoji} Rate limit alert: ${highestPercent.toFixed(1)}%`,
+        );
+        await directNotify.forwardError("rate_limit", message);
       }
     }
-    
+
     // Log to console periodically (every 10 ticks) even if no alert
     if (tickCount % 10 === 0 && stats.spawnsInWindow > 0) {
-      console.log(`📈 Rate limit status: ${costPercent.toFixed(1)}% cost, ${spawnPercent.toFixed(1)}% spawns (${stats.spawnsInWindow} in window)`);
+      const backoffStatus = getRateLimitStatus();
+      const perMinuteStats = spawner.getPerMinuteRateLimitStats?.();
+      console.log(
+        `📈 Rate limit status: ${costPercent.toFixed(1)}% cost, ${spawnPercent.toFixed(1)}% spawns (${stats.spawnsInWindow} in window)` +
+          (perMinuteStats
+            ? ` | Per-min: ${perMinuteStats.usage.requests} req, ${perMinuteStats.usage.concurrent} active`
+            : "") +
+          (backoffStatus.isLimited
+            ? ` | BACKOFF: ${Math.ceil(backoffStatus.remainingMs / 1000)}s remaining`
+            : ""),
+      );
     }
   } catch (err) {
-    console.error('❌ Rate limit check error:', err);
+    console.error("❌ Rate limit check error:", err);
   }
 }
 
@@ -130,25 +159,29 @@ export function isOrchestratorRunning(): boolean {
  */
 export async function startOrchestrator(): Promise<void> {
   if (isRunning) {
-    console.warn('⚠️ Orchestrator already running');
+    console.warn("⚠️ Orchestrator already running");
     return;
   }
 
   isRunning = true;
-  console.log('🎯 Orchestrator started');
-  
+  console.log("🎯 Orchestrator started");
+
   // Wait for spawner to check Claude CLI availability
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
   const canSpawn = SPAWN_AGENTS && spawner.isEnabled();
   if (SPAWN_AGENTS && !spawner.isEnabled()) {
-    console.warn('   ⚠️ HARNESS_SPAWN_AGENTS=true but Claude CLI not found!');
+    console.warn("   ⚠️ HARNESS_SPAWN_AGENTS=true but Claude CLI not found!");
   }
-  console.log(`   Spawn agents: ${canSpawn ? 'ENABLED ✅' : 'DISABLED'}`);
+  console.log(`   Spawn agents: ${canSpawn ? "ENABLED ✅" : "DISABLED"}`);
   if (!canSpawn) {
-    console.log(`      Set HARNESS_SPAWN_AGENTS=true (Claude CLI must be installed)`);
+    console.log(
+      `      Set HARNESS_SPAWN_AGENTS=true (Claude CLI must be installed)`,
+    );
   }
-  console.log(`   Run planning: ${RUN_PLANNING ? 'ENABLED' : 'DISABLED (set HARNESS_RUN_PLANNING=true)'}`);
+  console.log(
+    `   Run planning: ${RUN_PLANNING ? "ENABLED" : "DISABLED (set HARNESS_RUN_PLANNING=true)"}`,
+  );
 
   // Initial tick
   await tick();
@@ -163,25 +196,31 @@ export async function startOrchestrator(): Promise<void> {
   // Schedule planning analysis (every 2 hours)
   if (RUN_PLANNING) {
     // Check if there are already pending tasks - skip initial planning if so
-    const existingTasks = tasks.getTasks({ status: 'pending' });
-    const inProgressTasks = tasks.getTasks({ status: 'in_progress' });
-    
+    const existingTasks = tasks.getTasks({ status: "pending" });
+    const inProgressTasks = tasks.getTasks({ status: "in_progress" });
+
     if (existingTasks.length > 0 || inProgressTasks.length > 0) {
-      console.log(`📊 Skipping initial planning - ${existingTasks.length} pending, ${inProgressTasks.length} in progress`);
+      console.log(
+        `📊 Skipping initial planning - ${existingTasks.length} pending, ${inProgressTasks.length} in progress`,
+      );
     } else {
-      console.log('📊 Running initial planning analysis...');
-      runPlanning().catch(err => console.error('Initial planning error:', err));
+      console.log("📊 Running initial planning analysis...");
+      runPlanning().catch((err) =>
+        console.error("Initial planning error:", err),
+      );
     }
-    
+
     // Then schedule recurring planning (only if no pending tasks)
     setInterval(async () => {
       if (isRunning) {
-        const pending = tasks.getTasks({ status: 'pending' });
-        const inProg = tasks.getTasks({ status: 'in_progress' });
+        const pending = tasks.getTasks({ status: "pending" });
+        const inProg = tasks.getTasks({ status: "in_progress" });
         if (pending.length === 0 && inProg.length === 0) {
           await runPlanning();
         } else {
-          console.log(`📊 Skipping scheduled planning - ${pending.length} pending, ${inProg.length} in progress`);
+          console.log(
+            `📊 Skipping scheduled planning - ${pending.length} pending, ${inProg.length} in progress`,
+          );
         }
       }
     }, PLANNING_INTERVAL_MS);
@@ -204,46 +243,55 @@ export async function startOrchestrator(): Promise<void> {
 async function runPlanning(): Promise<void> {
   planningCount++;
   console.log(`📊 Planning cycle #${planningCount} starting...`);
-  
+
   try {
-    const taskListId = 'default-task-list';
-    
+    const taskListId = "default-task-list";
+
     // ============ PHASE 1: STRATEGIC PLANNING ============
-    console.log('🧠 Phase 1: Strategic Planning...');
-    const { session: stratSession, plan } = await planning.runStrategicPlanning(taskListId);
-    
+    console.log("🧠 Phase 1: Strategic Planning...");
+    const { session: stratSession, plan } =
+      await planning.runStrategicPlanning(taskListId);
+
     if (!plan) {
-      console.error('❌ Strategic planning failed - no plan generated');
-      await notify.agentError('planning', 'Strategic planning failed').catch(() => {});
+      console.error("❌ Strategic planning failed - no plan generated");
+      await notify
+        .agentError("planning", "Strategic planning failed")
+        .catch(() => {});
       return;
     }
 
     console.log(`✅ Strategic plan created: ${plan.phases.length} phases`);
-    
+
     // ============ PHASE 2: CLARIFICATION (Human approval) ============
     // First check if ANY plan is already approved in DB (e.g., from manual approval or restart)
     const db = getDb();
-    const approvedInDb = db.prepare(`
+    const approvedInDb = db
+      .prepare(
+        `
       SELECT id FROM plan_approvals 
       WHERE status = 'approved' 
       AND task_list_id = ? 
       AND expires_at > datetime('now')
       ORDER BY updated_at DESC LIMIT 1
-    `).get(taskListId) as { id: string } | undefined;
-    
+    `,
+      )
+      .get(taskListId) as { id: string } | undefined;
+
     let approved = !!approvedInDb;
     let feedback: string | undefined;
-    
+
     if (approved) {
-      console.log(`✅ Plan already approved in DB (${approvedInDb?.id}) - skipping approval wait`);
+      console.log(
+        `✅ Plan already approved in DB (${approvedInDb?.id}) - skipping approval wait`,
+      );
     } else {
-      console.log('🤝 Phase 2: Requesting human approval via Telegram...');
+      console.log("🤝 Phase 2: Requesting human approval via Telegram...");
       await notify.planningComplete(plan.phases.length).catch(() => {});
-      
+
       const result = await clarification.requestPlanApproval(
         stratSession.id,
         plan,
-        taskListId
+        taskListId,
       );
       approved = result.approved;
       feedback = result.feedback;
@@ -251,63 +299,79 @@ async function runPlanning(): Promise<void> {
 
     if (!approved) {
       console.log(`📝 Plan not approved: ${feedback}`);
-      
-      if (feedback && feedback !== 'Plan rejected' && feedback !== 'Approval timed out after 30 minutes') {
+
+      if (
+        feedback &&
+        feedback !== "Plan rejected" &&
+        feedback !== "Approval timed out after 30 minutes"
+      ) {
         // Feedback provided - could loop back to strategic planning with feedback
         // For now, just log and exit
-        console.log('💡 Feedback received. Manual re-planning required.');
-        await notify.agentError('clarification', `Plan needs revision: ${feedback}`).catch(() => {});
+        console.log("💡 Feedback received. Manual re-planning required.");
+        await notify
+          .agentError("clarification", `Plan needs revision: ${feedback}`)
+          .catch(() => {});
       }
       return;
     }
 
-    console.log('✅ Plan approved by human!');
-    
+    console.log("✅ Plan approved by human!");
+
     // Cache the approved plan for future restarts
     planning.cacheApprovedPlan(plan, taskListId);
-    console.log('💾 Approved plan cached for future sessions');
-    
+    console.log("💾 Approved plan cached for future sessions");
+
     // ============ PHASE 3: TACTICAL PLANNING (Task decomposition) ============
-    console.log('🔧 Phase 3: Tactical Planning - Creating atomic tasks...');
-    
+    console.log("🔧 Phase 3: Tactical Planning - Creating atomic tasks...");
+
     // Format approved plan for tactical agent
     const approvedPlanText = `
 ## Vision: ${plan.visionSummary}
 
 ## Phases:
-${plan.phases.map((p, i) => `
+${plan.phases
+  .map(
+    (p, i) => `
 ### Phase ${i + 1}: ${p.name}
 - Goal: ${p.goal}
 - Priority: ${p.priority}
-- Deliverables: ${p.deliverables.join(', ')}
-`).join('\n')}
+- Deliverables: ${p.deliverables.join(", ")}
+`,
+  )
+  .join("\n")}
 `;
 
-    const { tasks: atomicTasks } = await planning.runTacticalPlanning(taskListId, approvedPlanText);
-    
+    const { tasks: atomicTasks } = await planning.runTacticalPlanning(
+      taskListId,
+      approvedPlanText,
+    );
+
     if (atomicTasks.length === 0) {
-      console.error('❌ Tactical planning failed - no tasks generated');
+      console.error("❌ Tactical planning failed - no tasks generated");
       return;
     }
 
-    const maxWave = Math.max(...atomicTasks.map(t => t.wave));
-    console.log(`✅ Created ${atomicTasks.length} atomic tasks across ${maxWave} waves`);
+    const maxWave = Math.max(...atomicTasks.map((t) => t.wave));
+    console.log(
+      `✅ Created ${atomicTasks.length} atomic tasks across ${maxWave} waves`,
+    );
 
     // ============ PHASE 4: WAVE EXECUTION ============
-    console.log('🌊 Phase 4: Starting wave execution...');
-    
+    console.log("🌊 Phase 4: Starting wave execution...");
+
     // Create wave run
     const waveRun = waves.planWaves(taskListId);
     waves.startWaveRun(waveRun.id);
-    
+
     console.log(`🌊 Wave execution started: Run ID ${waveRun.id}`);
-    await notify.waveStarted?.(1, atomicTasks.filter(t => t.wave === 1).length).catch(() => {});
+    await notify
+      .waveStarted?.(1, atomicTasks.filter((t) => t.wave === 1).length)
+      .catch(() => {});
 
     events.planningCompleted(planningCount, atomicTasks.length);
     console.log(`📊 Planning cycle #${planningCount} complete`);
-    
   } catch (error) {
-    console.error('❌ Planning error:', error);
+    console.error("❌ Planning error:", error);
     events.planningCompleted(planningCount, 0);
   }
 }
@@ -318,14 +382,17 @@ ${plan.phases.map((p, i) => `
 async function runLegacyPlanning(): Promise<void> {
   planningCount++;
   console.log(`📊 Legacy planning cycle #${planningCount} starting...`);
-  
+
   try {
-    const taskListId = 'default-task-list';
+    const taskListId = "default-task-list";
     const session = await planning.runDailyPlanning(taskListId);
-    events.planningCompleted(planningCount, session.tasks_created ? JSON.parse(session.tasks_created).length : 0);
+    events.planningCompleted(
+      planningCount,
+      session.tasks_created ? JSON.parse(session.tasks_created).length : 0,
+    );
     console.log(`📊 Planning cycle #${planningCount} complete`);
   } catch (error) {
-    console.error('❌ Planning error:', error);
+    console.error("❌ Planning error:", error);
   }
 }
 
@@ -334,7 +401,7 @@ async function runLegacyPlanning(): Promise<void> {
  */
 export function stopOrchestrator(): void {
   isRunning = false;
-  console.log('🛑 Orchestrator stopped');
+  console.log("🛑 Orchestrator stopped");
 }
 
 /**
@@ -342,70 +409,76 @@ export function stopOrchestrator(): void {
  */
 async function checkForApprovedPlans(): Promise<void> {
   try {
-    const fs = await import('fs');
-    const cachePath = '/home/ned-atanasovski/.harness/approved-plan.json';
-    
+    const fs = await import("fs");
+    const cachePath = "/home/ned-atanasovski/.harness/approved-plan.json";
+
     if (!fs.existsSync(cachePath)) return;
-    
-    const cached = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
-    
+
+    const cached = JSON.parse(fs.readFileSync(cachePath, "utf-8"));
+
     // Skip if tactical tasks already created
     if (cached.tacticalTasksCreated) return;
-    
+
     // Skip if no phases
     if (!cached.phases || cached.phases.length === 0) return;
-    
-    console.log(`🔧 Found approved plan with ${cached.phases.length} phases - creating tasks directly...`);
-    
+
+    console.log(
+      `🔧 Found approved plan with ${cached.phases.length} phases - creating tasks directly...`,
+    );
+
     // Create tasks directly from phases (skip AI tactical planning)
-    const taskListId = cached.taskListId || 'default-task-list';
+    const taskListId = cached.taskListId || "default-task-list";
     let tasksCreated = 0;
-    
+
     for (let i = 0; i < cached.phases.length; i++) {
       const phase = cached.phases[i];
       const deliverables = phase.deliverables || [];
-      
+
       // Create one task per deliverable
       for (let j = 0; j < deliverables.length; j++) {
         const deliverable = deliverables[j];
         try {
           // Generate display ID
-          const displayId = `PHASE${i + 1}-TASK-${String(j + 1).padStart(2, '0')}`;
-          
+          const displayId = `PHASE${i + 1}-TASK-${String(j + 1).padStart(2, "0")}`;
+
           // Check if already exists
           const existing = tasks.getTaskByDisplayId(displayId);
           if (existing) continue;
-          
+
           const task = tasks.createTask({
             display_id: displayId,
             title: deliverable.slice(0, 200),
             description: `Phase ${i + 1}: ${phase.name}\n\nGoal: ${phase.goal}\n\nDeliverable: ${deliverable}`,
-            category: 'feature',
-            priority: phase.priority || 'P1',
-            status: 'pending',
+            category: "feature",
+            priority: phase.priority || "P1",
+            status: "pending",
             task_list_id: taskListId,
           });
-          
-          console.log(`   ✅ Created: ${task.display_id} - ${task.title.slice(0, 50)}`);
+
+          console.log(
+            `   ✅ Created: ${task.display_id} - ${task.title.slice(0, 50)}`,
+          );
           tasksCreated++;
         } catch (e) {
           console.log(`   ⚠️ Skipped duplicate: ${deliverable.slice(0, 50)}`);
         }
       }
     }
-    
-    console.log(`✅ Created ${tasksCreated} tasks from ${cached.phases.length} phases`);
-    
+
+    console.log(
+      `✅ Created ${tasksCreated} tasks from ${cached.phases.length} phases`,
+    );
+
     // Mark as done
     cached.tacticalTasksCreated = true;
     fs.writeFileSync(cachePath, JSON.stringify(cached, null, 2));
-    
+
     // Notify via Telegram
     if (tasksCreated > 0) {
       await notify.planningComplete(tasksCreated).catch(() => {});
     }
   } catch (error) {
-    console.error('❌ Error checking approved plans:', error);
+    console.error("❌ Error checking approved plans:", error);
   }
 }
 
@@ -413,11 +486,11 @@ async function checkForApprovedPlans(): Promise<void> {
  * Check if orchestrator is paused via Telegram command
  */
 function isOrchestratorPaused(): boolean {
-  return isSystemFlagEnabled('orchestrator_paused');
+  return isSystemFlagEnabled("orchestrator_paused");
 }
 
 function isSpawningPaused(): boolean {
-  return isSystemFlagEnabled('spawning_paused');
+  return isSystemFlagEnabled("spawning_paused");
 }
 
 /**
@@ -430,7 +503,9 @@ async function tick(): Promise<void> {
   // Check if paused via /stop command
   if (isOrchestratorPaused()) {
     if (tickCount % 10 === 0) {
-      console.log(`⏸️ Orchestrator paused (tick #${tickCount} skipped). Use /start to resume.`);
+      console.log(
+        `⏸️ Orchestrator paused (tick #${tickCount} skipped). Use /start to resume.`,
+      );
     }
     return;
   }
@@ -439,26 +514,32 @@ async function tick(): Promise<void> {
     let assignedInTick = 0;
 
     // 0. PROACTIVE RATE LIMIT CHECK - Alert BEFORE hitting limits
-    await crashProtect(() => checkRateLimitsProactively(), 'checkRateLimitsProactively');
+    await crashProtect(
+      () => checkRateLimitsProactively(),
+      "checkRateLimitsProactively",
+    );
 
     // 0.5. Check for newly approved plans that need tactical task creation
-    await crashProtect(() => checkForApprovedPlans(), 'checkForApprovedPlans');
+    await crashProtect(() => checkForApprovedPlans(), "checkForApprovedPlans");
 
     // 1. Check agent health (crash-protected)
-    await crashProtect(() => checkAgentHealth(), 'checkAgentHealth');
-    await crashProtect(() => reconcileRunningSessions(), 'reconcileRunningSessions');
+    await crashProtect(() => checkAgentHealth(), "checkAgentHealth");
+    await crashProtect(
+      () => reconcileRunningSessions(),
+      "reconcileRunningSessions",
+    );
 
     // 2. Run QA verification every 10th tick (crash-protected)
     if (RUN_QA && tickCount % QA_EVERY_N_TICKS === 0) {
       console.log(`🔍 QA cycle triggered (tick #${tickCount})`);
-      await crashProtect(() => qa.runQACycle(), 'runQACycle');
+      await crashProtect(() => qa.runQACycle(), "runQACycle");
     }
 
     // 3. Process failed tasks for retry (every 5th tick, crash-protected)
     if (tickCount % 5 === 0) {
       const retried = await crashProtect(
         async () => selfImprovement.processFailedTasks(),
-        'processFailedTasks'
+        "processFailedTasks",
       );
       if (retried && retried > 0) {
         console.log(`🔄 Queued ${retried} tasks for retry`);
@@ -466,10 +547,13 @@ async function tick(): Promise<void> {
     }
 
     // 4. Check wave completion and advance to next wave (crash-protected)
-    await crashProtect(() => checkWaveProgress(), 'checkWaveProgress');
+    await crashProtect(() => checkWaveProgress(), "checkWaveProgress");
 
     // 5. Assign pending tasks to idle agents (crash-protected)
-    const assignedResult = await crashProtect(() => assignTasks(), 'assignTasks');
+    const assignedResult = await crashProtect(
+      () => assignTasks(),
+      "assignTasks",
+    );
     assignedInTick = Number(assignedResult || 0);
 
     // 6. Log tick event
@@ -479,11 +563,13 @@ async function tick(): Promise<void> {
     events.cronTick(tickCount, workingAgents.length, idleAgents.length, {
       tasksAssigned: assignedInTick,
       qaCycle: tickCount % QA_EVERY_N_TICKS === 0 ? 1 : 0,
-      mode: 'legacy',
+      mode: "legacy",
     });
 
     const duration = Date.now() - startTime;
-    console.log(`⏰ Tick #${tickCount}: ${workingAgents.length} working, ${idleAgents.length} idle (${duration}ms)`);
+    console.log(
+      `⏰ Tick #${tickCount}: ${workingAgents.length} working, ${idleAgents.length} idle (${duration}ms)`,
+    );
 
     // 7. Record successful tick for stability monitoring
     recordTick(tickCount);
@@ -493,9 +579,8 @@ async function tick(): Promise<void> {
     // if (tickCount % 5 === 0) {
     //   await crashProtect(() => checkAlerts(), 'checkAlerts');
     // }
-
   } catch (error) {
-    console.error('❌ Tick error:', error);
+    console.error("❌ Tick error:", error);
     events.cronTick(tickCount, 0, 0);
   }
 }
@@ -504,19 +589,25 @@ async function tick(): Promise<void> {
  * Check wave progress and advance to next wave if current is complete
  */
 async function checkWaveProgress(): Promise<void> {
-  const activeRuns = waves.getWaveRuns().filter(r => r.status === 'running');
-  
+  const activeRuns = waves.getWaveRuns().filter((r) => r.status === "running");
+
   for (const run of activeRuns) {
     const completed = waves.checkWaveCompletion(run.id);
     if (completed) {
       const updatedRun = waves.getWaveRun(run.id);
-      if (updatedRun?.status === 'completed') {
+      if (updatedRun?.status === "completed") {
         console.log(`🏁 Wave run ${run.id} completed all waves!`);
-        await notify.waveCompleted?.(updatedRun.total_waves, updatedRun.total_waves, 0).catch(() => {});
+        await notify
+          .waveCompleted?.(updatedRun.total_waves, updatedRun.total_waves, 0)
+          .catch(() => {});
       } else if (updatedRun) {
         console.log(`🌊 Advanced to wave ${updatedRun.current_wave + 1}`);
-        const nextWaveTasks = tasks.getTasks({}).filter(t => t.wave_number === updatedRun.current_wave + 1);
-        await notify.waveStarted?.(updatedRun.current_wave + 1, nextWaveTasks.length).catch(() => {});
+        const nextWaveTasks = tasks
+          .getTasks({})
+          .filter((t) => t.wave_number === updatedRun.current_wave + 1);
+        await notify
+          .waveStarted?.(updatedRun.current_wave + 1, nextWaveTasks.length)
+          .catch(() => {});
       }
     }
   }
@@ -527,7 +618,7 @@ async function checkWaveProgress(): Promise<void> {
  */
 /**
  * Check agent health and recover from stuck/stale states
- * 
+ *
  * First Principles:
  * 1. Stale = Dead: If heartbeat is stale, the agent process is dead
  * 2. Clean up Dead: Dead agents should be reset to idle
@@ -541,58 +632,85 @@ async function checkAgentHealth(): Promise<void> {
 
   for (const agent of allAgents) {
     // Skip orchestrator and sia - they don't have heartbeats
-    if (['orchestrator', 'sia'].includes(agent.type)) continue;
+    if (["orchestrator", "sia"].includes(agent.type)) continue;
 
-    const lastHeartbeat = agent.last_heartbeat 
-      ? new Date(agent.last_heartbeat).getTime() 
+    const lastHeartbeat = agent.last_heartbeat
+      ? new Date(agent.last_heartbeat).getTime()
       : 0;
     const timeSinceHeartbeat = now - lastHeartbeat;
 
     // Case 1: Working agent with stale heartbeat → mark stuck
-    if (agent.status === 'working' && timeSinceHeartbeat > STUCK_THRESHOLD_MS) {
-      console.warn(`⚠️ Agent ${agent.id} appears stuck (${Math.floor(timeSinceHeartbeat / 60000)}min since heartbeat)`);
-      
+    if (agent.status === "working" && timeSinceHeartbeat > STUCK_THRESHOLD_MS) {
+      console.warn(
+        `⚠️ Agent ${agent.id} appears stuck (${Math.floor(timeSinceHeartbeat / 60000)}min since heartbeat)`,
+      );
+
       // Mark agent as stuck (but don't log event - we'll handle cleanup below)
-      agents.updateAgentStatus(agent.id, 'stuck', agent.current_task_id, agent.current_session_id);
+      agents.updateAgentStatus(
+        agent.id,
+        "stuck",
+        agent.current_task_id,
+        agent.current_session_id,
+      );
       ws.agentStatusChanged(agents.getAgent(agent.id));
     }
 
     // Case 2: Stuck agent → clean up and reset
-    if (agent.status === 'stuck') {
+    if (agent.status === "stuck") {
       // Only log once when transitioning to cleanup
       const stuckForMinutes = Math.floor(timeSinceHeartbeat / 60000);
-      
+
       // If stuck for more than 30 minutes, assume dead and clean up
       if (timeSinceHeartbeat > 30 * 60 * 1000) {
-        console.log(`🧹 Cleaning up dead agent ${agent.id} (stuck for ${stuckForMinutes}min)`);
-        
+        console.log(
+          `🧹 Cleaning up dead agent ${agent.id} (stuck for ${stuckForMinutes}min)`,
+        );
+
         // Reset the agent's task to pending
         if (agent.current_task_id) {
           const task = tasks.getTask(agent.current_task_id);
-          if (task && task.status === 'in_progress') {
+          if (task && task.status === "in_progress") {
             console.log(`   ↩️ Re-queuing task ${task.display_id}`);
-            tasks.updateTask(agent.current_task_id, { status: 'pending', assigned_agent_id: undefined });
+            tasks.updateTask(agent.current_task_id, {
+              status: "pending",
+              assigned_agent_id: undefined,
+            });
           }
         }
 
         // Close any open session
         if (agent.current_session_id) {
-          sessions.updateSessionStatus(agent.current_session_id, 'terminated', undefined, 'Agent stuck - cleaned up');
+          sessions.updateSessionStatus(
+            agent.current_session_id,
+            "terminated",
+            undefined,
+            "Agent stuck - cleaned up",
+          );
         }
 
         // Reset agent to idle with cleared heartbeat
-        agents.updateAgentStatus(agent.id, 'idle', null, null);
+        agents.updateAgentStatus(agent.id, "idle", null, null);
         agents.clearHeartbeat(agent.id);
         ws.agentStatusChanged(agents.getAgent(agent.id));
 
         // Log event only once during cleanup
-        events.agentError(agent.id, `Agent cleaned up after being stuck for ${stuckForMinutes} minutes`);
-        events.systemRecovery?.('orchestrator', `Recovered agent ${agent.id} from stuck state`);
+        events.agentError(
+          agent.id,
+          `Agent cleaned up after being stuck for ${stuckForMinutes} minutes`,
+        );
+        events.systemRecovery?.(
+          "orchestrator",
+          `Recovered agent ${agent.id} from stuck state`,
+        );
       }
     }
 
     // Case 3: Idle agent with ancient heartbeat → just clear it (no spam)
-    if (agent.status === 'idle' && lastHeartbeat > 0 && timeSinceHeartbeat > 60 * 60 * 1000) {
+    if (
+      agent.status === "idle" &&
+      lastHeartbeat > 0 &&
+      timeSinceHeartbeat > 60 * 60 * 1000
+    ) {
       // Clear stale heartbeat silently - this agent just hasn't been used in a while
       agents.clearHeartbeat(agent.id);
     }
@@ -616,10 +734,10 @@ async function reconcileRunningSessions(): Promise<void> {
     const task = session.task_id ? tasks.getTask(session.task_id) : null;
     const agent = agents.getAgent(session.agent_id);
 
-    const taskAligned = !!task && task.status === 'in_progress';
+    const taskAligned = !!task && task.status === "in_progress";
     const agentAligned =
       !!agent &&
-      agent.status === 'working' &&
+      agent.status === "working" &&
       agent.current_session_id === session.id &&
       agent.current_task_id === session.task_id;
 
@@ -629,17 +747,17 @@ async function reconcileRunningSessions(): Promise<void> {
 
     sessions.updateSessionStatus(
       session.id,
-      'terminated',
+      "terminated",
       undefined,
-      `Reconciliation closed orphan running session (taskAligned=${taskAligned}, agentAligned=${agentAligned})`
+      `Reconciliation closed orphan running session (taskAligned=${taskAligned}, agentAligned=${agentAligned})`,
     );
     closed++;
   }
 
   if (closed > 0) {
     events.systemRecovery?.(
-      'orchestrator',
-      `Reconciliation closed ${closed} orphan running session(s)`
+      "orchestrator",
+      `Reconciliation closed ${closed} orphan running session(s)`,
     );
   }
 }
@@ -654,7 +772,8 @@ const COOLDOWN_MULTIPLIER = 2; // Double cooldown each retry
  * Calculate retry cooldown for a task based on retry count
  */
 function getRetryCooldown(retryCount: number): number {
-  const baseCooldown = MIN_RETRY_COOLDOWN_MS * Math.pow(COOLDOWN_MULTIPLIER, retryCount);
+  const baseCooldown =
+    MIN_RETRY_COOLDOWN_MS * Math.pow(COOLDOWN_MULTIPLIER, retryCount);
   return Math.min(baseCooldown, MAX_RETRY_COOLDOWN_MS);
 }
 
@@ -664,15 +783,15 @@ function getRetryCooldown(retryCount: number): number {
 function isTaskInCooldown(taskId: string, retryCount: number): boolean {
   const lastFailed = recentFailures.get(taskId);
   if (!lastFailed) return false;
-  
+
   const cooldown = getRetryCooldown(retryCount);
   const elapsed = Date.now() - lastFailed;
-  
+
   if (elapsed < cooldown) {
     // Still in cooldown
     return true;
   }
-  
+
   // Cooldown expired, clean up
   recentFailures.delete(taskId);
   return false;
@@ -687,7 +806,7 @@ export function recordTaskFailure(taskId: string): void {
 
 /**
  * Atomically claim a task before spawning
- * 
+ *
  * CRITICAL: Prevents race conditions where two agents grab the same task.
  * Uses database transaction to ensure only one agent can claim.
  */
@@ -695,15 +814,19 @@ function atomicClaimTask(taskId: string, agentId: string): boolean {
   const db = getDb();
   try {
     // Atomic update: only claim if still pending
-    const result = db.prepare(`
+    const result = db
+      .prepare(
+        `
       UPDATE tasks 
       SET status = 'in_progress', 
           assigned_agent_id = ?,
           started_at = datetime('now'),
           updated_at = datetime('now')
       WHERE id = ? AND status = 'pending'
-    `).run(agentId, taskId);
-    
+    `,
+      )
+      .run(agentId, taskId);
+
     return result.changes > 0;
   } catch (err) {
     console.error(`❌ Failed to claim task ${taskId}:`, err);
@@ -713,7 +836,7 @@ function atomicClaimTask(taskId: string, agentId: string): boolean {
 
 /**
  * Assign pending tasks to idle agents
- * 
+ *
  * First Principles:
  * 1. ATOMIC CLAIM: Claim task in DB BEFORE spawning (prevents race conditions)
  * 2. Single Assignment: One task, one agent at a time
@@ -727,12 +850,21 @@ async function assignTasks(): Promise<number> {
     return assigned;
   }
 
+  // Check if rate limit backoff is active (shared state from spawner)
+  if (isRateLimited()) {
+    const status = getRateLimitStatus();
+    console.log(
+      `⏸️ Rate limit backoff active - skipping task assignment (${Math.ceil(status.remainingMs / 1000)}s remaining, ${status.consecutiveCount} consecutive)`,
+    );
+    return assigned;
+  }
+
   // Get pending tasks (with no unmet dependencies)
   let pendingTasks = tasks.getPendingTasks();
   if (pendingTasks.length === 0) return assigned;
 
   // Shared production-task gate (legacy + event mode).
-  pendingTasks = pendingTasks.filter(t => {
+  pendingTasks = pendingTasks.filter((t) => {
     const runnable = isRunnableProductionTask(t);
     if (!runnable) {
       console.log(`⏭️ Skipping test task: ${t.display_id}`);
@@ -747,7 +879,13 @@ async function assignTasks(): Promise<number> {
 
   // Sort tasks by priority
   const sortedTasks = pendingTasks.sort((a, b) => {
-    const priorityOrder: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3, P4: 4 };
+    const priorityOrder: Record<string, number> = {
+      P0: 0,
+      P1: 1,
+      P2: 2,
+      P3: 3,
+      P4: 4,
+    };
     return priorityOrder[a.priority] - priorityOrder[b.priority];
   });
 
@@ -769,17 +907,21 @@ async function assignTasks(): Promise<number> {
     // Claim the task BEFORE spawning to prevent multiple agents grabbing same task
     const claimed = atomicClaimTask(task.id, agent.id);
     if (!claimed) {
-      console.log(`⚠️ Task ${task.display_id} already claimed by another agent`);
+      console.log(
+        `⚠️ Task ${task.display_id} already claimed by another agent`,
+      );
       continue; // Task was grabbed by another process
     }
-    console.log(`🔒 Task ${task.display_id} atomically claimed by ${agent.name}`);
+    console.log(
+      `🔒 Task ${task.display_id} atomically claimed by ${agent.name}`,
+    );
 
     // Assign task (now just spawns, claim already done)
     await assignTaskToAgent(task, agent);
     assigned++;
 
     // Remove agent from available pool
-    const agentIndex = idleAgents.findIndex(a => a.id === agent.id);
+    const agentIndex = idleAgents.findIndex((a) => a.id === agent.id);
     if (agentIndex !== -1) {
       idleAgents.splice(agentIndex, 1);
     }
@@ -793,106 +935,151 @@ async function assignTasks(): Promise<number> {
 
 /**
  * Find a suitable agent for a task
- * 
+ *
  * RATE LIMIT OPTIMIZATION: Only use essential agents (build, qa, spec)
- * 
+ *
  * AGENT TYPE CONSTRAINTS (prevents SIA/Validation overlap):
  * - SIA: Only investigates FAILED tasks (via Crown, not assignTasks)
  * - Validation: Only verifies PENDING_VERIFICATION tasks
  * - Build/QA/Spec: Handle regular pending tasks
- * 
+ *
  * This function is ONLY called for pending tasks, so:
  * - SIA and Validation should NOT be matched here
  * - They have their own dedicated flows (Crown for SIA, QA cycle for Validation)
  */
-function findSuitableAgent(task: tasks.Task, availableAgents: agents.Agent[]): agents.Agent | null {
+function findSuitableAgent(
+  task: tasks.Task,
+  availableAgents: agents.Agent[],
+): agents.Agent | null {
   // ONLY essential worker agents for task assignment
   // SIA and Validation are EXCLUDED - they have dedicated workflows:
   // - SIA: triggered by Crown when tasks fail repeatedly
   // - Validation: triggered by QA cycle for pending_verification tasks
-  const TASK_WORKER_AGENTS = ['build_agent', 'build', 'qa_agent', 'qa', 'spec_agent', 'spec', 'architect_agent', 'architect'];
-  
+  const TASK_WORKER_AGENTS = [
+    "build_agent",
+    "build",
+    "qa_agent",
+    "qa",
+    "spec_agent",
+    "spec",
+    "architect_agent",
+    "architect",
+  ];
+
   // Debug: log available agent types
   if (availableAgents.length > 0 && availableAgents.length < 5) {
-    console.log(`🔍 Available agents: ${availableAgents.map(a => `${a.id}(${a.type})`).join(', ')}`);
+    console.log(
+      `🔍 Available agents: ${availableAgents.map((a) => `${a.id}(${a.type})`).join(", ")}`,
+    );
   }
-  
+
   // Filter to only task worker agents (excludes SIA, validation)
-  const workerAgents = availableAgents.filter(a => TASK_WORKER_AGENTS.includes(a.type));
+  const workerAgents = availableAgents.filter((a) =>
+    TASK_WORKER_AGENTS.includes(a.type),
+  );
   if (workerAgents.length === 0) {
     if (availableAgents.length > 0) {
-      console.log(`⏭️ No worker agents for ${task.display_id} - available types: ${availableAgents.map(a => a.type).join(', ')}`);
+      console.log(
+        `⏭️ No worker agents for ${task.display_id} - available types: ${availableAgents.map((a) => a.type).join(", ")}`,
+      );
     }
     return null;
   }
-  
+
   // Map task categories to preferred agent types (only task workers)
   const categoryAgentMap: Record<string, string[]> = {
-    feature: ['build_agent', 'build'],
-    bug: ['build_agent', 'build'],
-    test: ['qa_agent', 'qa'],
-    documentation: ['spec_agent', 'spec'],
-    architecture: ['architect_agent', 'architect'],
-    design: ['architect_agent', 'architect'],
+    feature: ["build_agent", "build"],
+    bug: ["build_agent", "build"],
+    test: ["qa_agent", "qa"],
+    documentation: ["spec_agent", "spec"],
+    architecture: ["architect_agent", "architect"],
+    design: ["architect_agent", "architect"],
     // All other categories default to build_agent
   };
 
-  const preferredTypes = categoryAgentMap[task.category ?? 'feature'] || ['build_agent', 'build'];
+  const preferredTypes = categoryAgentMap[task.category ?? "feature"] || [
+    "build_agent",
+    "build",
+  ];
 
   // Try to find preferred agent from worker list
   for (const type of preferredTypes) {
-    const agent = workerAgents.find(a => a.type === type);
+    const agent = workerAgents.find((a) => a.type === type);
     if (agent) return agent;
   }
 
   // Fall back to build_agent (the workhorse)
-  const buildAgent = workerAgents.find(a => a.type === 'build_agent' || a.type === 'build');
+  const buildAgent = workerAgents.find(
+    (a) => a.type === "build_agent" || a.type === "build",
+  );
   return buildAgent ?? workerAgents[0] ?? null;
 }
 
 /**
  * Assign a task to an agent
  */
-async function assignTaskToAgent(task: tasks.Task, agent: agents.Agent): Promise<void> {
+async function assignTaskToAgent(
+  task: tasks.Task,
+  agent: agents.Agent,
+): Promise<void> {
   // Log event
   events.taskAssigned(task.id, agent.id, task.title, {
-    source: 'legacy_orchestrator',
+    source: "legacy_orchestrator",
     taskDisplayId: task.display_id,
   });
 
   if (SPAWN_AGENTS) {
     // Actually spawn the agent process
     console.log(`🚀 Spawning ${agent.name} for ${task.display_id}...`);
-    
+
     // Spawn in background (don't await - let it run)
     // NOTE: Don't pass model - let spawner select based on agent type (rate limit optimization)
     // NOTE: Task is already claimed atomically in assignTasks() - no need to update status here
-    spawner.spawnAgentSession({
-      taskId: task.id,
-      agentId: agent.id,
-    }).then(result => {
-      if (result.success) {
-        console.log(`✅ ${agent.name} completed ${task.display_id}`);
-      } else {
-        console.log(`❌ ${agent.name} failed ${task.display_id}: ${result.error}`);
-        // CRITICAL: Release task claim if spawn failed early (before agent started)
-        // This prevents orphaned in_progress tasks
-        const currentTask = tasks.getTask(task.id);
-        if (currentTask && currentTask.status === 'in_progress' && !result.sessionId) {
-          console.log(`🔓 Releasing claim on ${task.display_id} (spawn failed before start)`);
-          // Use null to clear assigned_agent_id (undefined means "don't update")
-          tasks.updateTask(task.id, { status: 'pending', assigned_agent_id: null as any });
+    spawner
+      .spawnAgentSession({
+        taskId: task.id,
+        agentId: agent.id,
+      })
+      .then((result) => {
+        if (result.success) {
+          console.log(`✅ ${agent.name} completed ${task.display_id}`);
+        } else {
+          console.log(
+            `❌ ${agent.name} failed ${task.display_id}: ${result.error}`,
+          );
+          // CRITICAL: Release task claim if spawn failed early (before agent started)
+          // This prevents orphaned in_progress tasks
+          const currentTask = tasks.getTask(task.id);
+          if (
+            currentTask &&
+            currentTask.status === "in_progress" &&
+            !result.sessionId
+          ) {
+            console.log(
+              `🔓 Releasing claim on ${task.display_id} (spawn failed before start)`,
+            );
+            // Use null to clear assigned_agent_id (undefined means "don't update")
+            tasks.updateTask(task.id, {
+              status: "pending",
+              assigned_agent_id: null as any,
+            });
+          }
         }
-      }
-    }).catch(err => {
-      console.error(`❌ Spawn error for ${agent.name}:`, err);
-      // Also release claim on exception
-      const currentTask = tasks.getTask(task.id);
-      if (currentTask && currentTask.status === 'in_progress') {
-        console.log(`🔓 Releasing claim on ${task.display_id} (spawn exception)`);
-        tasks.updateTask(task.id, { status: 'pending', assigned_agent_id: null as any });
-      }
-    });
+      })
+      .catch((err) => {
+        console.error(`❌ Spawn error for ${agent.name}:`, err);
+        // Also release claim on exception
+        const currentTask = tasks.getTask(task.id);
+        if (currentTask && currentTask.status === "in_progress") {
+          console.log(
+            `🔓 Releasing claim on ${task.display_id} (spawn exception)`,
+          );
+          tasks.updateTask(task.id, {
+            status: "pending",
+            assigned_agent_id: null as any,
+          });
+        }
+      });
 
     // Broadcast task assigned (session created by spawner)
     ws.taskAssigned(tasks.getTask(task.id), agent.id);
@@ -900,7 +1087,7 @@ async function assignTaskToAgent(task: tasks.Task, agent: agents.Agent): Promise
     // Simulation mode: just create session and update agent
     // NOTE: Task status already set by atomicClaimTask() - don't call tasks.assignTask()
     const session = sessions.createSession(agent.id, task.id);
-    agents.updateAgentStatus(agent.id, 'working', task.id, session.id);
+    agents.updateAgentStatus(agent.id, "working", task.id, session.id);
 
     ws.taskAssigned(tasks.getTask(task.id), agent.id);
     ws.agentStatusChanged(agents.getAgent(agent.id));
@@ -913,7 +1100,11 @@ async function assignTaskToAgent(task: tasks.Task, agent: agents.Agent): Promise
 /**
  * Complete a task (called by agent API)
  */
-export async function completeTask(taskId: string, agentId: string, result?: string): Promise<void> {
+export async function completeTask(
+  taskId: string,
+  agentId: string,
+  result?: string,
+): Promise<void> {
   const task = tasks.getTask(taskId);
   const agent = agents.getAgent(agentId);
   if (!task || !agent) return;
@@ -922,17 +1113,17 @@ export async function completeTask(taskId: string, agentId: string, result?: str
   tasks.completeTask(taskId);
 
   // Update agent
-  agents.updateAgentStatus(agentId, 'idle', null, null);
+  agents.updateAgentStatus(agentId, "idle", null, null);
   agents.incrementTasksCompleted(agentId);
 
   // Update session
   if (agent.current_session_id) {
-    sessions.updateSessionStatus(agent.current_session_id, 'completed', result);
+    sessions.updateSessionStatus(agent.current_session_id, "completed", result);
   }
 
   // Log event
   events.taskCompleted(taskId, agentId, task.title, {
-    source: 'legacy_orchestrator',
+    source: "legacy_orchestrator",
     taskDisplayId: task.display_id,
     sessionId: agent.current_session_id || null,
   });
@@ -947,7 +1138,11 @@ export async function completeTask(taskId: string, agentId: string, result?: str
 /**
  * Fail a task (called by agent API or after max retries)
  */
-export async function failTask(taskId: string, agentId: string, error: string): Promise<void> {
+export async function failTask(
+  taskId: string,
+  agentId: string,
+  error: string,
+): Promise<void> {
   const task = tasks.getTask(taskId);
   const agent = agents.getAgent(agentId);
   if (!task || !agent) return;
@@ -960,21 +1155,26 @@ export async function failTask(taskId: string, agentId: string, error: string): 
     error,
     agentId,
     sessionId: agent.current_session_id ?? undefined,
-    source: 'legacy_orchestrator',
+    source: "legacy_orchestrator",
   });
 
   // Update agent
-  agents.updateAgentStatus(agentId, 'idle', null, null);
+  agents.updateAgentStatus(agentId, "idle", null, null);
   agents.incrementTasksFailed(agentId);
 
   // Update session
   if (agent.current_session_id) {
-    sessions.updateSessionStatus(agent.current_session_id, 'failed', undefined, error);
+    sessions.updateSessionStatus(
+      agent.current_session_id,
+      "failed",
+      undefined,
+      error,
+    );
   }
 
   // Log event
   events.taskFailed(taskId, agentId, task.title, error, {
-    source: 'legacy_orchestrator',
+    source: "legacy_orchestrator",
     taskDisplayId: task.display_id,
     sessionId: agent.current_session_id || null,
   });
@@ -985,7 +1185,9 @@ export async function failTask(taskId: string, agentId: string, error: string): 
 
   // Log with cooldown info
   const cooldown = getRetryCooldown(task.retry_count || 0);
-  console.log(`❌ Failed ${task.display_id}: ${error} (cooldown: ${cooldown / 1000}s)`);
+  console.log(
+    `❌ Failed ${task.display_id}: ${error} (cooldown: ${cooldown / 1000}s)`,
+  );
 }
 
 /**
@@ -998,15 +1200,15 @@ export async function manualTick(): Promise<{
   assignedTasks: number;
 }> {
   const startTime = Date.now();
-  
+
   // Run the tick logic
   await tick();
-  
+
   // Return status
   const workingAgents = agents.getWorkingAgents();
   const idleAgents = agents.getIdleAgents();
   const pendingTasksList = tasks.getPendingTasks();
-  
+
   return {
     workingCount: workingAgents.length,
     idleCount: idleAgents.length,

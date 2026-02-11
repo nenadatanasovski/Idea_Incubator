@@ -51,7 +51,8 @@ describe("TaskImpactService", () => {
 
   describe("addImpact", () => {
     it("should add a file impact", async () => {
-      const impact = await taskImpactService.create({ taskId: testTaskId,
+      const impact = await taskImpactService.create({
+        taskId: testTaskId,
         impactType: "file",
         operation: "UPDATE",
         targetPath: "server/routes/api.ts",
@@ -68,7 +69,8 @@ describe("TaskImpactService", () => {
     });
 
     it("should add impacts of different types", async () => {
-      const fileImpact = await taskImpactService.create({ taskId: testTaskId,
+      const fileImpact = await taskImpactService.create({
+        taskId: testTaskId,
         impactType: "file",
         operation: "CREATE",
         targetPath: "server/routes/new.ts",
@@ -76,7 +78,8 @@ describe("TaskImpactService", () => {
         source: "user",
       });
 
-      const apiImpact = await taskImpactService.create({ taskId: testTaskId,
+      const apiImpact = await taskImpactService.create({
+        taskId: testTaskId,
         impactType: "api",
         operation: "CREATE",
         targetPath: "GET /api/new",
@@ -84,7 +87,8 @@ describe("TaskImpactService", () => {
         source: "ai",
       });
 
-      const dbImpact = await taskImpactService.create({ taskId: testTaskId,
+      const dbImpact = await taskImpactService.create({
+        taskId: testTaskId,
         impactType: "database",
         operation: "UPDATE",
         targetPath: "users table",
@@ -100,7 +104,8 @@ describe("TaskImpactService", () => {
 
   describe("getImpacts", () => {
     it("should return all impacts for a task", async () => {
-      await taskImpactService.create({ taskId: testTaskId,
+      await taskImpactService.create({
+        taskId: testTaskId,
         impactType: "file",
         operation: "UPDATE",
         targetPath: "file1.ts",
@@ -108,7 +113,8 @@ describe("TaskImpactService", () => {
         source: "ai",
       });
 
-      await taskImpactService.create({ taskId: testTaskId,
+      await taskImpactService.create({
+        taskId: testTaskId,
         impactType: "file",
         operation: "CREATE",
         targetPath: "file2.ts",
@@ -122,7 +128,8 @@ describe("TaskImpactService", () => {
     });
 
     it("should filter impacts by type", async () => {
-      await taskImpactService.create({ taskId: testTaskId,
+      await taskImpactService.create({
+        taskId: testTaskId,
         impactType: "file",
         operation: "UPDATE",
         targetPath: "file.ts",
@@ -130,7 +137,8 @@ describe("TaskImpactService", () => {
         source: "ai",
       });
 
-      await taskImpactService.create({ taskId: testTaskId,
+      await taskImpactService.create({
+        taskId: testTaskId,
         impactType: "api",
         operation: "CREATE",
         targetPath: "GET /api/test",
@@ -140,8 +148,8 @@ describe("TaskImpactService", () => {
 
       // Get all impacts and filter manually (no getByTaskIdByType method)
       const allImpacts = await taskImpactService.getByTaskId(testTaskId);
-      const fileImpacts = allImpacts.filter(i => i.impactType === "file");
-      const apiImpacts = allImpacts.filter(i => i.impactType === "api");
+      const fileImpacts = allImpacts.filter((i) => i.impactType === "file");
+      const apiImpacts = allImpacts.filter((i) => i.impactType === "api");
 
       expect(fileImpacts.length).toBe(1);
       expect(apiImpacts.length).toBe(1);
@@ -150,7 +158,8 @@ describe("TaskImpactService", () => {
 
   describe("removeImpact", () => {
     it("should remove an impact", async () => {
-      const impact = await taskImpactService.create({ taskId: testTaskId,
+      const impact = await taskImpactService.create({
+        taskId: testTaskId,
         impactType: "file",
         operation: "UPDATE",
         targetPath: "file.ts",

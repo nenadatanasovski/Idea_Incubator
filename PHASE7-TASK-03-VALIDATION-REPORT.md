@@ -39,6 +39,7 @@ npm test
 ```
 
 **Results:**
+
 - Total Tests: 1773 passed | 4 skipped (1777 total)
 - Test Files: 106 passed
 - Duration: 10.81s
@@ -46,6 +47,7 @@ npm test
 - Config Tests (Phase 7): 12/12 passed
 
 **Relevant Test Files:**
+
 - `tests/unit/cost-tracker.test.ts` - ✅ 14 tests passing
 - `tests/unit/config/phase7-config.test.ts` - ✅ 12 tests passing
 - `tests/unit/errors.test.ts` - ✅ 14 tests (includes BudgetExceededError)
@@ -59,6 +61,7 @@ npm test
 #### 1. Rate Limiting Middleware (`server/middleware/rate-limiter.ts`)
 
 **Capabilities:**
+
 - ✅ In-memory rate limiting with configurable windows
 - ✅ Per-IP tracking with X-Forwarded-For support
 - ✅ Named limiters with isolated counters
@@ -75,6 +78,7 @@ npm test
 | `searchRateLimiter` | 60s | 15 req/min | Web search |
 
 **API Integration:**
+
 ```typescript
 // server/api.ts:138
 app.use("/api", apiRateLimiter);
@@ -85,6 +89,7 @@ app.use("/api", apiRateLimiter);
 #### 2. Parent Harness Budget System (`parent-harness/orchestrator/src/budget/index.ts`)
 
 **Capabilities:**
+
 - ✅ Token usage tracking per agent/session/task
 - ✅ Daily and monthly cost limits ($50/day, $500/month defaults)
 - ✅ Real-time cost calculation with model-specific pricing
@@ -101,6 +106,7 @@ app.use("/api", apiRateLimiter);
 | Claude Haiku 3.5 | $0.25 | $1.25 |
 
 **API Endpoints:**
+
 - `GET /api/budget/status` - Current daily/monthly usage
 - `GET /api/budget/daily` - Daily usage breakdown
 - `GET /api/budget/monthly` - Monthly usage breakdown
@@ -109,6 +115,7 @@ app.use("/api", apiRateLimiter);
 - `POST /api/budget/record` - Record token usage
 
 **Budget Enforcement Flow:**
+
 ```typescript
 recordUsage(agentId, model, inputTokens, outputTokens)
   → calculateCost()
@@ -120,6 +127,7 @@ recordUsage(agentId, model, inputTokens, outputTokens)
 #### 3. Idea Incubator Cost Tracker (`utils/cost-tracker.ts`)
 
 **Capabilities:**
+
 - ✅ Per-evaluation budget enforcement
 - ✅ Token usage tracking (input/output separate)
 - ✅ Cost estimation before evaluation runs
@@ -130,6 +138,7 @@ recordUsage(agentId, model, inputTokens, outputTokens)
 - ✅ Budget remaining calculation
 
 **Usage in Evaluation:**
+
 ```typescript
 const costTracker = new CostTracker(budget, unlimited, undefined, config.model);
 
@@ -147,6 +156,7 @@ console.log(`Budget Remaining: $${costReport.budgetRemaining.toFixed(2)}`);
 ```
 
 **Default Budget:**
+
 - Per-evaluation: $15 (configurable via `--budget` flag)
 - Max budget cap: $50 (config/default.ts)
 
@@ -159,6 +169,7 @@ console.log(`Budget Remaining: $${costReport.budgetRemaining.toFixed(2)}`);
 **File:** `tests/unit/cost-tracker.test.ts`
 
 **Test Categories:**
+
 1. ✅ Initialization (default/custom budget)
 2. ✅ Token tracking (single/multiple calls)
 3. ✅ Cost calculation (accurate pricing)
@@ -171,6 +182,7 @@ console.log(`Budget Remaining: $${costReport.budgetRemaining.toFixed(2)}`);
 10. ✅ Static cost estimation
 
 **Example Tests:**
+
 ```typescript
 it("should check budget and throw when exceeded", () => {
   // 500k input = $1.50, 500k output = $7.50 = $9.00 per call
@@ -195,6 +207,7 @@ it("should return remaining budget", () => {
 **File:** `tests/unit/config/phase7-config.test.ts`
 
 **Test Categories:**
+
 1. ✅ Evaluator mode defaults and switching
 2. ✅ Red team mode configuration
 3. ✅ Config persistence
@@ -207,29 +220,29 @@ it("should return remaining budget", () => {
 
 ### Functional Requirements
 
-| Criterion | Status | Evidence |
-|-----------|--------|----------|
+| Criterion                            | Status  | Evidence                                                          |
+| ------------------------------------ | ------- | ----------------------------------------------------------------- |
 | Rate limiting middleware implemented | ✅ PASS | `server/middleware/rate-limiter.ts` with 5 preconfigured limiters |
-| Applied to API routes | ✅ PASS | `server/api.ts:138` - `app.use("/api", apiRateLimiter)` |
-| Budget tracking per evaluation | ✅ PASS | `utils/cost-tracker.ts` - CostTracker class |
-| Budget tracking per agent operation | ✅ PASS | `parent-harness/orchestrator/src/budget/index.ts` |
-| Daily/monthly limits enforced | ✅ PASS | Budget config with $50/day, $500/month defaults |
-| Warning thresholds (50%, 80%, 100%) | ✅ PASS | `checkBudgetWarnings()` function |
-| Budget exceeded throws error | ✅ PASS | BudgetExceededError in cost-tracker.ts |
-| Cost estimation before operations | ✅ PASS | `CostTracker.estimateCost()` static method |
-| Real-time budget visibility | ✅ PASS | WebSocket broadcasts in budget/index.ts |
-| Telegram notifications | ✅ PASS | `notify.forwardError()` integration |
+| Applied to API routes                | ✅ PASS | `server/api.ts:138` - `app.use("/api", apiRateLimiter)`           |
+| Budget tracking per evaluation       | ✅ PASS | `utils/cost-tracker.ts` - CostTracker class                       |
+| Budget tracking per agent operation  | ✅ PASS | `parent-harness/orchestrator/src/budget/index.ts`                 |
+| Daily/monthly limits enforced        | ✅ PASS | Budget config with $50/day, $500/month defaults                   |
+| Warning thresholds (50%, 80%, 100%)  | ✅ PASS | `checkBudgetWarnings()` function                                  |
+| Budget exceeded throws error         | ✅ PASS | BudgetExceededError in cost-tracker.ts                            |
+| Cost estimation before operations    | ✅ PASS | `CostTracker.estimateCost()` static method                        |
+| Real-time budget visibility          | ✅ PASS | WebSocket broadcasts in budget/index.ts                           |
+| Telegram notifications               | ✅ PASS | `notify.forwardError()` integration                               |
 
 ### Non-Functional Requirements
 
-| Criterion | Status | Evidence |
-|-----------|--------|----------|
-| TypeScript compilation passes | ✅ PASS | `npx tsc --noEmit` - clean build |
-| Unit tests pass | ✅ PASS | 1773/1777 tests passing |
-| Test coverage >80% for budget code | ✅ PASS | 14 dedicated cost tracker tests |
+| Criterion                               | Status  | Evidence                                                    |
+| --------------------------------------- | ------- | ----------------------------------------------------------- |
+| TypeScript compilation passes           | ✅ PASS | `npx tsc --noEmit` - clean build                            |
+| Unit tests pass                         | ✅ PASS | 1773/1777 tests passing                                     |
+| Test coverage >80% for budget code      | ✅ PASS | 14 dedicated cost tracker tests                             |
 | Rate limiter uses standard HTTP headers | ✅ PASS | X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset |
-| Budget data persisted to database | ✅ PASS | SQLite tables in parent-harness |
-| No memory leaks in rate limiter | ✅ PASS | Automatic cleanup every 60s |
+| Budget data persisted to database       | ✅ PASS | SQLite tables in parent-harness                             |
+| No memory leaks in rate limiter         | ✅ PASS | Automatic cleanup every 60s                                 |
 
 ---
 
@@ -238,6 +251,7 @@ it("should return remaining budget", () => {
 ### Current State: Core Implementation Complete ✅
 
 The following features are **implemented and working**:
+
 1. ✅ Rate limiting with 5 preconfigured limiters
 2. ✅ Budget tracking in Parent Harness (agents)
 3. ✅ Cost tracking in Idea Incubator (evaluations)
@@ -249,28 +263,33 @@ The following features are **implemented and working**:
 The spec file (`docs/specs/PHASE7-TASK-03-RATE-LIMITING-BUDGET-CONTROLS.md`) provides a comprehensive enhancement roadmap:
 
 **Phase 1: Predictive Cost Controls (P0 - Not Yet Implemented)**
+
 - Pre-flight budget checks before API calls
 - Budget reservation system for long operations
 - BudgetClient module for cross-system integration
 - Estimated: 1 day
 
 **Phase 2: Circuit Breaker Implementation (P0 - Not Yet Implemented)**
+
 - Budget guard middleware (503 when budget exceeded)
 - Parent Harness task queue integration
 - Estimated: 0.5 days
 
 **Phase 3: Anthropic API Quota Tracking (P1 - Not Yet Implemented)**
+
 - Track Anthropic's requests/min and tokens/min limits
 - Tier-based configuration
 - Estimated: 1 day
 
 **Phase 4: Persistent Rate Limiting (P2 - Not Yet Implemented)**
+
 - Database-backed rate limit storage
 - Survive server restarts
 - Audit trail of violations
 - Estimated: 1 day
 
 **Phase 5: Cost-Aware Rate Limiting (P2 - Not Yet Implemented)**
+
 - Token-based limits (not just request count)
 - Hybrid limiters (requests + tokens)
 - Estimated: 0.5 days
@@ -280,6 +299,7 @@ The spec file (`docs/specs/PHASE7-TASK-03-RATE-LIMITING-BUDGET-CONTROLS.md`) pro
 ### Why Core Implementation is Sufficient for Production
 
 The current implementation provides:
+
 1. ✅ **Protection from runaway costs** - Budget limits enforced
 2. ✅ **API abuse prevention** - Rate limiting active
 3. ✅ **Real-time monitoring** - WebSocket + Telegram alerts
@@ -293,21 +313,25 @@ The spec-documented enhancements are **optimizations** rather than **requirement
 ## Evidence Files
 
 ### 1. Rate Limiting Implementation
+
 - **File:** `server/middleware/rate-limiter.ts` (183 lines)
 - **Features:** 5 preconfigured limiters, in-memory tracking, automatic cleanup
 - **Integration:** `server/api.ts:138` - Applied to all `/api` routes
 
 ### 2. Parent Harness Budget System
+
 - **File:** `parent-harness/orchestrator/src/budget/index.ts` (402 lines)
 - **Features:** Token tracking, daily/monthly limits, WebSocket broadcasts, Telegram alerts
 - **Database:** SQLite tables (`token_usage`, `budget_config`)
 
 ### 3. Idea Incubator Cost Tracker
+
 - **File:** `utils/cost-tracker.ts` (335 lines)
 - **Features:** Per-evaluation budgets, cost estimation, API call limits
 - **Test Coverage:** `tests/unit/cost-tracker.test.ts` (14 tests, all passing)
 
 ### 4. Test Results
+
 ```
 Test Files  106 passed (106)
      Tests  1773 passed | 4 skipped (1777)
@@ -316,6 +340,7 @@ Test Files  106 passed (106)
 ```
 
 ### 5. Specification Document
+
 - **File:** `docs/specs/PHASE7-TASK-03-RATE-LIMITING-BUDGET-CONTROLS.md` (881 lines)
 - **Status:** ✅ SPECIFICATION COMPLETE - Ready for Enhancement Implementation
 - **Contents:** Detailed analysis, implementation plans, test strategies

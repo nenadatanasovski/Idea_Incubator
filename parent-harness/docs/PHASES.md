@@ -9,14 +9,16 @@ Each task has its own test record, build steps, pass criteria, and validation qu
 ## Test System Integration
 
 Every task creates a test record:
+
 ```sql
-INSERT INTO test_cases (id, suite_id, name, description) 
+INSERT INTO test_cases (id, suite_id, name, description)
 VALUES ('phase_1_task_1', 'phase_1', 'Vite Setup', '...');
 ```
 
 After build steps complete, pass criteria are verified and results recorded:
+
 ```sql
-INSERT INTO test_case_results (case_id, status, ...) 
+INSERT INTO test_case_results (case_id, status, ...)
 VALUES ('phase_1_task_1', 'passed', ...);
 ```
 
@@ -37,11 +39,13 @@ Next task can only start when previous task's validation query succeeds.
 **Test Record:** `phase_1_task_1_vite_setup`
 
 **Build Steps:**
+
 - [x] 1.1.1: Run `npm create vite@latest dashboard -- --template react-ts` ✅
 - [x] 1.1.2: `cd dashboard && npm install` ✅
 - [x] 1.1.3: Verify `npm run dev` starts server ✅
 
 **Pass Criteria:**
+
 - [x] `dashboard/` folder exists ✅
 - [x] `dashboard/package.json` contains "vite", "react", "typescript" ✅
 - [x] `dashboard/src/main.tsx` exists ✅
@@ -49,8 +53,9 @@ Next task can only start when previous task's validation query succeeds.
 - [ ] Browser shows React template page (verified via dev server output)
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_1_task_1_vite_setup' AND status = 'passed';
 -- Must return 1 row
 ```
@@ -62,6 +67,7 @@ WHERE case_id = 'phase_1_task_1_vite_setup' AND status = 'passed';
 **Test Record:** `phase_1_task_2_tailwind`
 
 **Build Steps:**
+
 - [x] 1.2.1: `npm install -D tailwindcss @tailwindcss/vite` ✅ (Tailwind v4)
 - [x] 1.2.2: Configure vite.config.ts with @tailwindcss/vite plugin ✅
 - [x] 1.2.3: N/A (Tailwind v4 uses Vite plugin, no tailwind.config.js needed)
@@ -69,6 +75,7 @@ WHERE case_id = 'phase_1_task_1_vite_setup' AND status = 'passed';
 - [x] 1.2.5: Test with a Tailwind class in App.tsx ✅
 
 **Pass Criteria:**
+
 - [x] Tailwind packages installed ✅
 - [x] vite.config.ts has tailwindcss plugin ✅
 - [x] `src/index.css` contains `@import "tailwindcss"` ✅
@@ -76,8 +83,9 @@ WHERE case_id = 'phase_1_task_1_vite_setup' AND status = 'passed';
 - [x] `npm run build` succeeds ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_1_task_2_tailwind' AND status = 'passed';
 ```
 
@@ -88,6 +96,7 @@ WHERE case_id = 'phase_1_task_2_tailwind' AND status = 'passed';
 **Test Record:** `phase_1_task_3_layout`
 
 **Build Steps:**
+
 - [x] 1.3.1: Create `src/components/Layout.tsx` ✅
 - [x] 1.3.2: Implement header with logo/title ✅
 - [x] 1.3.3: Implement three-column grid (left sidebar, main, right sidebar) ✅
@@ -95,6 +104,7 @@ WHERE case_id = 'phase_1_task_2_tailwind' AND status = 'passed';
 - [x] 1.3.5: Export and use in App.tsx ✅
 
 **Pass Criteria:**
+
 - [x] `src/components/Layout.tsx` exists ✅
 - [x] Layout has `data-testid="layout-header"` ✅
 - [x] Layout has `data-testid="layout-left"` (agent status area) ✅
@@ -103,8 +113,9 @@ WHERE case_id = 'phase_1_task_2_tailwind' AND status = 'passed';
 - [x] CSS grid creates 3 columns ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_1_task_3_layout' AND status = 'passed';
 ```
 
@@ -115,6 +126,7 @@ WHERE case_id = 'phase_1_task_3_layout' AND status = 'passed';
 **Test Record:** `phase_1_task_4_agent_card`
 
 **Build Steps:**
+
 - [x] 1.4.1: Create `src/components/AgentStatusCard.tsx` ✅
 - [x] 1.4.2: Define props interface (id, name, status, currentTask, lastHeartbeat) ✅
 - [x] 1.4.3: Implement status badge (idle/working/error/stuck) ✅
@@ -123,6 +135,7 @@ WHERE case_id = 'phase_1_task_3_layout' AND status = 'passed';
 - [x] 1.4.6: Render cards in Layout left column ✅
 
 **Pass Criteria:**
+
 - [x] `src/components/AgentStatusCard.tsx` exists ✅
 - [x] Component has `data-testid="agent-card"` ✅
 - [x] Status badge shows correct color per status ✅
@@ -130,8 +143,9 @@ WHERE case_id = 'phase_1_task_3_layout' AND status = 'passed';
 - [x] Card displays: name, status, current task (if any) ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_1_task_4_agent_card' AND status = 'passed';
 ```
 
@@ -142,6 +156,7 @@ WHERE case_id = 'phase_1_task_4_agent_card' AND status = 'passed';
 **Test Record:** `phase_1_task_5_event_stream`
 
 **Build Steps:**
+
 - [x] 1.5.1: Create `src/components/EventStream.tsx` ✅
 - [x] 1.5.2: Define event interface (id, timestamp, type, message, agentId) ✅
 - [x] 1.5.3: Implement scrollable list with auto-scroll toggle ✅
@@ -150,6 +165,7 @@ WHERE case_id = 'phase_1_task_4_agent_card' AND status = 'passed';
 - [x] 1.5.6: Render in Layout main column ✅
 
 **Pass Criteria:**
+
 - [x] `src/components/EventStream.tsx` exists ✅
 - [x] Component has `data-testid="event-stream"` ✅
 - [x] Events have `data-testid="event-item"` ✅
@@ -158,8 +174,9 @@ WHERE case_id = 'phase_1_task_4_agent_card' AND status = 'passed';
 - [x] Auto-scroll toggle exists ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_1_task_5_event_stream' AND status = 'passed';
 ```
 
@@ -170,6 +187,7 @@ WHERE case_id = 'phase_1_task_5_event_stream' AND status = 'passed';
 **Test Record:** `phase_1_task_6_task_card`
 
 **Build Steps:**
+
 - [x] 1.6.1: Create `src/components/TaskCard.tsx` ✅
 - [x] 1.6.2: Define props interface (id, displayId, title, status, priority, assignedAgent) ✅
 - [x] 1.6.3: Implement priority badge (P0-P4 with colors) ✅
@@ -178,6 +196,7 @@ WHERE case_id = 'phase_1_task_5_event_stream' AND status = 'passed';
 - [x] 1.6.6: Render cards in Layout right column ✅
 
 **Pass Criteria:**
+
 - [x] `src/components/TaskCard.tsx` exists ✅
 - [x] Component has `data-testid="task-card"` ✅
 - [x] Priority badge shows P0-P4 with correct colors ✅
@@ -185,8 +204,9 @@ WHERE case_id = 'phase_1_task_5_event_stream' AND status = 'passed';
 - [x] Mock data renders 5 task cards ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_1_task_6_task_card' AND status = 'passed';
 ```
 
@@ -197,6 +217,7 @@ WHERE case_id = 'phase_1_task_6_task_card' AND status = 'passed';
 **Test Record:** `phase_1_task_7_routing`
 
 **Build Steps:**
+
 - [x] 1.7.1: `npm install react-router-dom` ✅
 - [x] 1.7.2: Create `src/pages/Dashboard.tsx` (home page) ✅
 - [x] 1.7.3: Create `src/pages/Tasks.tsx` (task board) ✅
@@ -205,6 +226,7 @@ WHERE case_id = 'phase_1_task_6_task_card' AND status = 'passed';
 - [x] 1.7.6: Add navigation links in header with active state ✅
 
 **Pass Criteria:**
+
 - [x] `react-router-dom` in package.json ✅
 - [x] `/` route renders Dashboard page ✅
 - [x] `/tasks` route renders Tasks page ✅
@@ -213,8 +235,9 @@ WHERE case_id = 'phase_1_task_6_task_card' AND status = 'passed';
 - [ ] Invalid routes show 404 or redirect (TODO)
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_1_task_7_routing' AND status = 'passed';
 ```
 
@@ -225,6 +248,7 @@ WHERE case_id = 'phase_1_task_7_routing' AND status = 'passed';
 **Test Record:** `phase_1_task_8_notifications`
 
 **Build Steps:**
+
 - [x] 1.8.1: Create `src/components/NotificationCenter.tsx` ✅
 - [x] 1.8.2: Add bell icon in header (top left as specified) ✅
 - [x] 1.8.3: Implement dropdown with notification list ✅
@@ -233,6 +257,7 @@ WHERE case_id = 'phase_1_task_7_routing' AND status = 'passed';
 - [x] 1.8.6: Add click to dismiss/mark as read functionality ✅
 
 **Pass Criteria:**
+
 - [x] `src/components/NotificationCenter.tsx` exists ✅
 - [x] Bell icon visible in header top-left ✅
 - [x] Component has `data-testid="notification-center"` ✅
@@ -241,8 +266,9 @@ WHERE case_id = 'phase_1_task_7_routing' AND status = 'passed';
 - [x] Mock notifications render ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_1_task_8_notifications' AND status = 'passed';
 ```
 
@@ -253,16 +279,18 @@ WHERE case_id = 'phase_1_task_8_notifications' AND status = 'passed';
 **All tasks must pass before Phase 2 begins.**
 
 **Final Validation:**
+
 ```sql
-SELECT 
+SELECT
   COUNT(*) as total,
   SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) as passed
-FROM test_case_results 
+FROM test_case_results
 WHERE case_id LIKE 'phase_1_task_%';
 -- Must return: total = 8, passed = 8
 ```
 
 **Verification Script:** `scripts/verify-phase-01.sh`
+
 - Runs `npm run build` and `npm run typecheck`
 - Starts preview server
 - Uses Puppeteer MCP to verify all routes
@@ -284,6 +312,7 @@ WHERE case_id LIKE 'phase_1_task_%';
 **Test Record:** `phase_2_task_1_sqlite_setup`
 
 **Build Steps:**
+
 - [x] 2.1.1: Create `orchestrator/` folder ✅
 - [x] 2.1.2: `npm init -y && npm install better-sqlite3 typescript tsx` ✅
 - [x] 2.1.3: Create `src/db/index.ts` with connection logic ✅
@@ -291,6 +320,7 @@ WHERE case_id LIKE 'phase_1_task_%';
 - [x] 2.1.5: Test connection opens successfully ✅
 
 **Pass Criteria:**
+
 - [x] `orchestrator/package.json` exists with better-sqlite3 ✅
 - [x] `orchestrator/src/db/index.ts` exists ✅
 - [x] `data/harness.db` created on first run ✅
@@ -298,8 +328,9 @@ WHERE case_id LIKE 'phase_1_task_%';
 - [x] Can execute simple query (`SELECT 1`) ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_2_task_1_sqlite_setup' AND status = 'passed';
 ```
 
@@ -310,20 +341,23 @@ WHERE case_id = 'phase_2_task_1_sqlite_setup' AND status = 'passed';
 **Test Record:** `phase_2_task_2_schema`
 
 **Build Steps:**
+
 - [x] 2.2.1: Create `src/db/migrate.ts` ✅
 - [x] 2.2.2: Read `database/schema.sql` ✅
 - [x] 2.2.3: Execute all CREATE TABLE statements ✅
 - [x] 2.2.4: Verify all tables created (33 tables) ✅
 
 **Pass Criteria:**
+
 - [x] `src/db/migrate.ts` exists ✅
 - [x] 33 tables from schema.sql created ✅
 - [x] All indexes created ✅
 - [x] `npm run migrate` executes successfully ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_2_task_2_schema' AND status = 'passed';
 ```
 
@@ -334,19 +368,22 @@ WHERE case_id = 'phase_2_task_2_schema' AND status = 'passed';
 **Test Record:** `phase_2_task_3_seed_agents`
 
 **Build Steps:**
+
 - [x] 2.3.1: Create `src/db/seed.ts` ✅
 - [x] 2.3.2: Insert 13 agents (from AGENTS.md) ✅
 - [x] 2.3.3: Set default status = 'idle' ✅
 - [x] 2.3.4: Set telegram_channel for each ✅
 
 **Pass Criteria:**
+
 - [x] 13 rows in `agents` table ✅
 - [x] All agent types present ✅
 - [x] All have telegram_channel set ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_2_task_3_seed_agents' AND status = 'passed';
 ```
 
@@ -357,20 +394,23 @@ WHERE case_id = 'phase_2_task_3_seed_agents' AND status = 'passed';
 **Test Record:** `phase_2_task_4_seed_tasks`
 
 **Build Steps:**
+
 - [x] 2.4.1: Create sample task_list ✅
 - [x] 2.4.2: Create 5 sample tasks with various priorities ✅
 - [x] 2.4.3: Add task relationships (2 dependencies) ✅
 - [x] 2.4.4: Set pass_criteria for each task ✅
 
 **Pass Criteria:**
+
 - [x] 1 row in `task_lists` table ✅
 - [x] 5 rows in `tasks` table ✅
 - [x] 2 task relationships exist ✅
 - [x] All tasks have pass_criteria JSON ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_2_task_4_seed_tasks' AND status = 'passed';
 ```
 
@@ -381,6 +421,7 @@ WHERE case_id = 'phase_2_task_4_seed_tasks' AND status = 'passed';
 **Test Record:** `phase_2_task_5_queries`
 
 **Build Steps:**
+
 - [x] 2.5.1: Create `src/db/agents.ts` with getAgents(), getAgent(id), updateAgentStatus() ✅
 - [x] 2.5.2: Create `src/db/tasks.ts` with getTasks(), getTask(id), createTask(), updateTask(), deleteTask() ✅
 - [x] 2.5.3: Create `src/db/sessions.ts` with getSessions(), getSession(id), createSession(), logIteration() ✅
@@ -388,6 +429,7 @@ WHERE case_id = 'phase_2_task_4_seed_tasks' AND status = 'passed';
 - [x] 2.5.5: TypeScript compiles successfully ✅
 
 **Pass Criteria:**
+
 - [x] All query files exist ✅
 - [x] agents.ts, tasks.ts, sessions.ts, events.ts created ✅
 - [x] Full CRUD operations for tasks ✅
@@ -395,8 +437,9 @@ WHERE case_id = 'phase_2_task_4_seed_tasks' AND status = 'passed';
 - [x] `npm run typecheck` passes ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_2_task_5_queries' AND status = 'passed';
 ```
 
@@ -407,20 +450,23 @@ WHERE case_id = 'phase_2_task_5_queries' AND status = 'passed';
 **Test Record:** `phase_2_task_6_test_seed`
 
 **Build Steps:**
+
 - [x] 2.6.1: Create test_suites for each phase (16 suites) ✅
 - [x] 2.6.2: Create test_cases for Phase 1 tasks (8 cases) ✅
 - [x] 2.6.3: Create test_steps for each case ✅
 - [x] 2.6.4: Create test_assertions for key criteria ✅
 
 **Pass Criteria:**
+
 - [x] 16 rows in `test_suites` (one per phase) ✅
 - [x] 8 rows in `test_cases` for phase_1 ✅
 - [x] Each test_case has at least 1 test_step ✅
 - [x] Key assertions defined ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_2_task_6_test_seed' AND status = 'passed';
 ```
 
@@ -429,11 +475,12 @@ WHERE case_id = 'phase_2_task_6_test_seed' AND status = 'passed';
 ## Phase 2 Completion Gate
 
 **Final Validation:**
+
 ```sql
-SELECT 
+SELECT
   COUNT(*) as total,
   SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) as passed
-FROM test_case_results 
+FROM test_case_results
 WHERE case_id LIKE 'phase_2_task_%';
 -- Must return: total = 6, passed = 6
 ```
@@ -453,6 +500,7 @@ WHERE case_id LIKE 'phase_2_task_%';
 **Test Record:** `phase_3_task_1_express`
 
 **Build Steps:**
+
 - [x] 3.1.1: `npm install express cors` ✅
 - [x] 3.1.2: `npm install -D @types/express @types/cors` ✅
 - [x] 3.1.3: Create `src/server.ts` with Express app ✅
@@ -461,14 +509,16 @@ WHERE case_id LIKE 'phase_2_task_%';
 - [x] 3.1.6: Start server on port 3333 ✅
 
 **Pass Criteria:**
+
 - [x] `src/server.ts` exists ✅
 - [x] Server starts on port 3333 ✅
 - [x] `GET /health` returns `{"status": "ok"}` ✅
 - [x] CORS headers present in response ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_3_task_1_express' AND status = 'passed';
 ```
 
@@ -479,6 +529,7 @@ WHERE case_id = 'phase_3_task_1_express' AND status = 'passed';
 **Test Record:** `phase_3_task_2_agents_api`
 
 **Build Steps:**
+
 - [x] 3.2.1: Create `src/api/agents.ts` router ✅
 - [x] 3.2.2: Implement `GET /api/agents` (list all) ✅
 - [x] 3.2.3: Implement `GET /api/agents/:id` (get one) ✅
@@ -486,14 +537,16 @@ WHERE case_id = 'phase_3_task_1_express' AND status = 'passed';
 - [x] 3.2.5: Implement `POST /api/agents/:id/heartbeat` ✅
 
 **Pass Criteria:**
+
 - [x] `GET /api/agents` returns 13 agents ✅
 - [x] `GET /api/agents/build_agent` returns single agent ✅
 - [x] `GET /api/agents/invalid` returns 404 ✅
 - [x] `PATCH /api/agents/build_agent` updates status ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_3_task_2_agents_api' AND status = 'passed';
 ```
 
@@ -504,6 +557,7 @@ WHERE case_id = 'phase_3_task_2_agents_api' AND status = 'passed';
 **Test Record:** `phase_3_task_3_tasks_api`
 
 **Build Steps:**
+
 - [x] 3.3.1: Create `src/api/tasks.ts` router ✅
 - [x] 3.3.2: Implement `GET /api/tasks` (list with filters) ✅
 - [x] 3.3.3: Implement `GET /api/tasks/:id` (get one) ✅
@@ -513,6 +567,7 @@ WHERE case_id = 'phase_3_task_2_agents_api' AND status = 'passed';
 - [x] 3.3.7: Implement `POST /api/tasks/:id/assign|complete|fail` ✅
 
 **Pass Criteria:**
+
 - [x] `GET /api/tasks` returns tasks array ✅
 - [x] `GET /api/tasks?status=pending` filters correctly ✅
 - [x] `POST /api/tasks` creates and returns 201 ✅
@@ -520,8 +575,9 @@ WHERE case_id = 'phase_3_task_2_agents_api' AND status = 'passed';
 - [x] `DELETE /api/tasks/:id` removes and returns success ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_3_task_3_tasks_api' AND status = 'passed';
 ```
 
@@ -532,6 +588,7 @@ WHERE case_id = 'phase_3_task_3_tasks_api' AND status = 'passed';
 **Test Record:** `phase_3_task_4_sessions_api`
 
 **Build Steps:**
+
 - [x] 3.4.1: Create `src/api/sessions.ts` router ✅
 - [x] 3.4.2: Implement `GET /api/sessions` (list with filters) ✅
 - [x] 3.4.3: Implement `GET /api/sessions/:id` (get with iterations) ✅
@@ -539,14 +596,16 @@ WHERE case_id = 'phase_3_task_3_tasks_api' AND status = 'passed';
 - [x] 3.4.5: Implement `POST /api/sessions/:id/terminate` (terminate session) ✅
 
 **Pass Criteria:**
+
 - [x] `GET /api/sessions` returns sessions array ✅
 - [x] `GET /api/sessions/:id` includes iterations ✅
 - [x] `POST /api/sessions/:id/iterations` logs iteration ✅
 - [x] `POST /api/sessions/:id/terminate` updates status ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_3_task_4_sessions_api' AND status = 'passed';
 ```
 
@@ -557,20 +616,23 @@ WHERE case_id = 'phase_3_task_4_sessions_api' AND status = 'passed';
 **Test Record:** `phase_3_task_5_events_api`
 
 **Build Steps:**
+
 - [x] 3.5.1: Create `src/api/events.ts` router ✅
 - [x] 3.5.2: Implement `GET /api/events` (list with filters) ✅
 - [x] 3.5.3: Support filters: type, agent_id, session_id, severity, since, limit ✅
 - [x] 3.5.4: Implement pagination (offset/limit) ✅
 
 **Pass Criteria:**
+
 - [x] `GET /api/events` returns events array ✅
 - [x] `GET /api/events?type=task:assigned` filters correctly ✅
 - [x] `GET /api/events?limit=10&offset=0` paginates ✅
 - [x] Events ordered by timestamp desc ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_3_task_5_events_api' AND status = 'passed';
 ```
 
@@ -581,6 +643,7 @@ WHERE case_id = 'phase_3_task_5_events_api' AND status = 'passed';
 **Test Record:** `phase_3_task_6_tests_api`
 
 **Build Steps:**
+
 - [x] 3.6.1: Create `src/api/tests.ts` router ✅
 - [x] 3.6.2: Implement `GET /api/tests/suites` (list suites) ✅
 - [x] 3.6.3: Implement `GET /api/tests/runs` (list runs) ✅
@@ -588,14 +651,16 @@ WHERE case_id = 'phase_3_task_5_events_api' AND status = 'passed';
 - [x] 3.6.5: Implement `POST /api/tests/runs` (trigger test run) ✅
 
 **Pass Criteria:**
+
 - [x] `GET /api/tests/suites` returns 16 suites ✅
 - [x] `GET /api/tests/runs` returns runs array ✅
 - [x] `POST /api/tests/runs` creates test run ✅
 - [x] Results include suite/case results ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_3_task_6_tests_api' AND status = 'passed';
 ```
 
@@ -606,6 +671,7 @@ WHERE case_id = 'phase_3_task_6_tests_api' AND status = 'passed';
 **Test Record:** `phase_3_task_7_error_handling`
 
 **Build Steps:**
+
 - [x] 3.7.1: Create `src/middleware/error-handler.ts` ✅
 - [x] 3.7.2: Handle 404 for unknown routes ✅
 - [x] 3.7.3: Handle 500 for server errors ✅
@@ -613,14 +679,16 @@ WHERE case_id = 'phase_3_task_6_tests_api' AND status = 'passed';
 - [x] 3.7.5: Log errors to console ✅
 
 **Pass Criteria:**
+
 - [x] Unknown route returns `{"error": "Not found", "status": 404}` ✅
 - [x] Server error returns `{"error": "...", "status": 500}` ✅
 - [x] All errors have consistent JSON structure ✅
 - [x] Errors logged to console ✅
 
 **Validation Query:**
+
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_3_task_7_error_handling' AND status = 'passed';
 ```
 
@@ -629,11 +697,12 @@ WHERE case_id = 'phase_3_task_7_error_handling' AND status = 'passed';
 ## Phase 3 Completion Gate
 
 **Final Validation:**
+
 ```sql
-SELECT 
+SELECT
   COUNT(*) as total,
   SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) as passed
-FROM test_case_results 
+FROM test_case_results
 WHERE case_id LIKE 'phase_3_task_%';
 -- Must return: total = 7, passed = 7
 ```
@@ -644,7 +713,7 @@ WHERE case_id LIKE 'phase_3_task_%';
 
 Each remaining phase follows the same structure:
 
-```
+````
 # Phase N: Name (Days X-Y)
 
 **Goal:** [description]
@@ -669,22 +738,24 @@ Each remaining phase follows the same structure:
 
 **Validation Query:**
 ```sql
-SELECT * FROM test_case_results 
+SELECT * FROM test_case_results
 WHERE case_id = 'phase_N_task_1_[slug]' AND status = 'passed';
-```
+````
 
 ---
 
 ## Phase N Completion Gate
 
 **Final Validation:**
+
 ```sql
-SELECT 
+SELECT
   COUNT(*) as total,
   SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) as passed
-FROM test_case_results 
+FROM test_case_results
 WHERE case_id LIKE 'phase_N_task_%';
 ```
+
 ```
 
 ---
@@ -717,6 +788,7 @@ WHERE case_id LIKE 'phase_N_task_%';
 # Test System Flow
 
 ```
+
 1. Agent starts task N.X
 2. Creates test_case_results record with status='running'
 3. Executes build steps (checking off as completed)
@@ -727,6 +799,7 @@ WHERE case_id LIKE 'phase_N_task_%';
 5. If all pass → status='passed'
 6. If any fail → status='failed', triggers fix loop
 7. Next task checks validation query before starting
+
 ```
 
 ---
@@ -737,3 +810,4 @@ WHERE case_id LIKE 'phase_N_task_%';
 - **Fallback:** Puppeteer MCP
 
 Used for E2E tests and UI verification.
+```

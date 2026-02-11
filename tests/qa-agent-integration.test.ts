@@ -23,9 +23,7 @@ import type {
 } from "../types/validation.js";
 
 // ── Module imports ────────────────────────────────────────────────────────────
-import {
-  getLevelConfig,
-} from "../agents/validation/level-configs.js";
+import { getLevelConfig } from "../agents/validation/level-configs.js";
 import { aggregateResults } from "../agents/validation/result-aggregator.js";
 import {
   parseThresholds,
@@ -235,7 +233,12 @@ describe("QA Agent Integration: API Test Generation (Test Runner)", () => {
 
 describe("QA Agent Integration: E2E Validation (Full Orchestrator Workflow)", () => {
   it("should define all 4 validation levels", () => {
-    const levels: ValidationLevel[] = ["QUICK", "STANDARD", "THOROUGH", "RELEASE"];
+    const levels: ValidationLevel[] = [
+      "QUICK",
+      "STANDARD",
+      "THOROUGH",
+      "RELEASE",
+    ];
     for (const level of levels) {
       const config = getLevelConfig(level);
       expect(config).toBeDefined();
@@ -689,18 +692,14 @@ describe("QA Agent Integration: Error Handling", () => {
     });
 
     it("should aggregate failed validator correctly", () => {
-      const results = [
-        createResult("typescript", false, { status: "failed" }),
-      ];
+      const results = [createResult("typescript", false, { status: "failed" })];
       const configs = [createConfig("typescript", true)];
       const { passed } = aggregateResults(results, configs);
       expect(passed).toBe(false);
     });
 
     it("should handle null duration in aggregation", () => {
-      const results = [
-        createResult("typescript", true, { durationMs: null }),
-      ];
+      const results = [createResult("typescript", true, { durationMs: null })];
       const configs = [createConfig("typescript", true)];
       const { summary } = aggregateResults(results, configs);
       expect(summary.totalDurationMs).toBe(0);
@@ -860,9 +859,7 @@ describe("QA Agent Integration: End-to-End Workflow", () => {
     expect(config.validators).toHaveLength(1);
 
     // Step 2: Simulate running validators
-    const results = [
-      createResult("typescript", true, { durationMs: 8000 }),
-    ];
+    const results = [createResult("typescript", true, { durationMs: 8000 })];
 
     // Step 3: Aggregate results
     const { passed, summary } = aggregateResults(results, config.validators);

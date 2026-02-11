@@ -7,8 +7,8 @@
  * 3. Success rate (0.2 weight) - completed sessions score higher
  */
 
-import crypto from 'crypto';
-import type { AgentSession } from '../db/sessions.js';
+import crypto from "crypto";
+import type { AgentSession } from "../db/sessions.js";
 
 export interface TaskSignature {
   hash: string;
@@ -27,11 +27,11 @@ export function generateTaskSignature(task: {
   filePatterns?: string[];
 }): TaskSignature {
   const titleNorm = task.title.toLowerCase().trim();
-  const category = task.category || 'general';
-  const patterns = (task.filePatterns || []).sort().join(',');
+  const category = task.category || "general";
+  const patterns = (task.filePatterns || []).sort().join(",");
 
   const hashInput = `${titleNorm}|${category}|${patterns}`;
-  const hash = crypto.createHash('sha256').update(hashInput).digest('hex');
+  const hash = crypto.createHash("sha256").update(hashInput).digest("hex");
 
   return { hash, title: titleNorm, category, filePatterns: task.filePatterns };
 }
@@ -49,7 +49,7 @@ export function calculateRelevance(
   context: {
     taskSignature?: string;
     currentTime: number;
-  }
+  },
 ): number {
   let score = 0.0;
 
@@ -61,7 +61,10 @@ export function calculateRelevance(
 
       if (sessionSignature === context.taskSignature) {
         score += 0.5; // Exact match
-      } else if (sessionSignature && taskSignaturesSimilar(sessionSignature, context.taskSignature)) {
+      } else if (
+        sessionSignature &&
+        taskSignaturesSimilar(sessionSignature, context.taskSignature)
+      ) {
         score += 0.3; // Partial match (first 8 chars)
       }
     } catch {
@@ -77,9 +80,9 @@ export function calculateRelevance(
   score += recencyScore;
 
   // 3. Success rate (0.2 weight)
-  if (session.status === 'completed') {
+  if (session.status === "completed") {
     score += 0.2;
-  } else if (session.status === 'running' || session.status === 'paused') {
+  } else if (session.status === "running" || session.status === "paused") {
     score += 0.1;
   }
   // failed/terminated get 0.0
@@ -93,7 +96,11 @@ export function calculateRelevance(
  * This indicates related but not identical tasks.
  */
 function taskSignaturesSimilar(sig1: string, sig2: string): boolean {
-  return sig1.length >= 8 && sig2.length >= 8 && sig1.substring(0, 8) === sig2.substring(0, 8);
+  return (
+    sig1.length >= 8 &&
+    sig2.length >= 8 &&
+    sig1.substring(0, 8) === sig2.substring(0, 8)
+  );
 }
 
 export default {

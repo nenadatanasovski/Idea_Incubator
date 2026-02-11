@@ -52,7 +52,8 @@ describe("Parallel Task Execution E2E", () => {
       const description = "Testing listless task creation from UI";
 
       // Act
-      const result = await taskCreationService.createListlessTask({ title,
+      const result = await taskCreationService.createListlessTask({
+        title,
         description,
         category: "test",
       });
@@ -82,7 +83,8 @@ describe("Parallel Task Execution E2E", () => {
       const category = "feature"; // Auto-detected
 
       // Act
-      const result = await taskCreationService.createListlessTask({ title,
+      const result = await taskCreationService.createListlessTask({
+        title,
         category,
       });
 
@@ -107,7 +109,10 @@ describe("Parallel Task Execution E2E", () => {
           category: "infrastructure" as const,
         },
         { title: "E2E-GROUP Create user types", category: "task" as const },
-        { title: "E2E-GROUP Create user API routes", category: "feature" as const },
+        {
+          title: "E2E-GROUP Create user API routes",
+          category: "feature" as const,
+        },
       ];
 
       const createdTasks = [];
@@ -429,7 +434,7 @@ describe("Integration: Full Workflow", () => {
         category: "feature",
       }),
     ]);
-    const tasks = results.map(r => r.task);
+    const tasks = results.map((r) => r.task);
 
     // Verify all in evaluation queue
     for (const task of tasks) {

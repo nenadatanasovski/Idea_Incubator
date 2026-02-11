@@ -91,7 +91,9 @@ async function runTests(): Promise<void> {
       "createdAt",
       "updatedAt",
     ];
-    const missingFields = requiredFields.filter((f) => !(metadata as Record<string, unknown>)[f]);
+    const missingFields = requiredFields.filter(
+      (f) => !(metadata as Record<string, unknown>)[f],
+    );
 
     if (missingFields.length === 0) {
       console.log(

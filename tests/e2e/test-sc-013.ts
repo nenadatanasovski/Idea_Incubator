@@ -1,8 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import {
-  updateRecentlyUpdated,
-} from "../../agents/ideation/priority-manager.js";
+import { updateRecentlyUpdated } from "../../agents/ideation/priority-manager.js";
 import {
   getIdeaFolderPath,
   createIdeaFolder,

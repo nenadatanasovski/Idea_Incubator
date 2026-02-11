@@ -14,6 +14,7 @@
 Implement dynamic score adjustment system that updates criterion scores based on debate outcomes between evaluators and red-team challengers, with arbiter verdicts determining score deltas that are applied in real-time and persisted to the database.
 
 **Problem:** The debate system currently exists (`agents/debate.ts`, `agents/arbiter.ts`) and generates score adjustments through arbiter verdicts, but the implementation has gaps:
+
 1. Score adjustments are calculated but not always properly applied to `evaluations.final_score`
 2. Migration 015 attempted to fix score propagation but issues remain
 3. Real-time score updates during debate may not reflect in database immediately
@@ -84,6 +85,7 @@ Implement dynamic score adjustment system that updates criterion scores based on
 ### Functional Requirements
 
 **FR-1: Score Adjustment Calculation**
+
 - MUST aggregate `scoreAdjustment` from all arbiter verdicts across all rounds
 - MUST cap total adjustment to [-5, +5] to prevent extreme swings
 - MUST calculate `finalScore = originalScore + cappedAdjustment`
@@ -93,6 +95,7 @@ Implement dynamic score adjustment system that updates criterion scores based on
 - SHOULD detect and flag contradictory verdicts (large swings back and forth)
 
 **FR-2: Real-Time Score Updates**
+
 - MUST update `evaluations.final_score` after EACH round completes
 - MUST broadcast score changes via WebSocket to connected clients
 - MUST emit `criterion:score-updated` event with delta information
@@ -101,6 +104,7 @@ Implement dynamic score adjustment system that updates criterion scores based on
 - SHOULD batch updates for parallel criterion debates
 
 **FR-3: Database Persistence**
+
 - MUST store `final_score` in `evaluations` table after debate completes
 - MUST preserve `initial_score` as original pre-debate score
 - MUST link score changes to `debate_rounds` entries for audit trail
@@ -110,6 +114,7 @@ Implement dynamic score adjustment system that updates criterion scores based on
 - SHOULD support score "freezing" (lock final_score from further changes)
 
 **FR-4: Confidence Adjustment**
+
 - MUST update `evaluations.confidence` based on `netConfidenceImpact`
 - MUST cap confidence to [0.0, 1.0] range
 - MUST increase confidence when evaluator wins consistently
@@ -117,6 +122,7 @@ Implement dynamic score adjustment system that updates criterion scores based on
 - SHOULD track confidence separately from score (orthogonal concerns)
 
 **FR-5: Validation & Constraints**
+
 - MUST reject individual `scoreAdjustment` values outside [-3, +3]
 - MUST validate `finalScore` is in [1, 10] before database write
 - MUST log warning if adjustment exceeds ±3 points
@@ -125,6 +131,7 @@ Implement dynamic score adjustment system that updates criterion scores based on
 - SHOULD validate that debate actually produces different outcome (not always same score)
 
 **FR-6: Fallback & Error Handling**
+
 - MUST preserve `initial_score` if debate fails completely
 - MUST set `final_score = initial_score` if no valid verdicts
 - MUST handle budget exceeded gracefully (partial debate is valid)
@@ -135,24 +142,28 @@ Implement dynamic score adjustment system that updates criterion scores based on
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Score updates MUST complete within 100ms per criterion
 - Database writes SHOULD be batched for parallel debates
 - Real-time UI updates MUST not block debate execution
 - WebSocket broadcasts SHOULD be throttled to max 10/sec per room
 
 **NFR-2: Data Integrity**
+
 - `final_score` MUST be nullable (NULL = debate not run yet)
 - Score history MUST be append-only (no destructive updates)
 - `debate_rounds.score_adjustment` MUST sum to match `final_score - initial_score`
 - Database constraints MUST enforce score ranges at schema level
 
 **NFR-3: Observability**
+
 - MUST log each score change with: criterion, round, adjustment, verdict_id
 - MUST emit metrics: avg_adjustment, max_adjustment, adjustment_stddev
 - MUST track "debate impact ratio" (how often debates change outcomes)
 - SHOULD provide dashboard showing score distributions before/after debate
 
 **NFR-4: Testability**
+
 - MUST provide test fixtures with known adjustments
 - MUST test edge cases: all +3, all -3, mixed, zero adjustments
 - MUST verify database state matches in-memory calculations
@@ -214,6 +225,7 @@ Implement dynamic score adjustment system that updates criterion scores based on
 ### Data Flow
 
 1. **Debate Initialization**
+
    ```typescript
    // agents/debate.ts: runCriterionDebate()
    const originalScore = evaluation.score;
@@ -222,11 +234,12 @@ Implement dynamic score adjustment system that updates criterion scores based on
    // Store original as initial_score (if not already set)
    await updateEvaluation(evaluationId, {
      initial_score: originalScore,
-     confidence: originalConfidence
+     confidence: originalConfidence,
    });
    ```
 
 2. **Per-Round Updates**
+
    ```typescript
    // After each round completes
    for (let round = 1; round <= config.roundsPerChallenge; round++) {
@@ -263,20 +276,21 @@ Implement dynamic score adjustment system that updates criterion scores based on
    ```
 
 3. **Final Score Commit**
+
    ```typescript
    // After all rounds complete
    const summary = summarizeDebate(rounds, originalScore);
    const finalScore = Math.max(1, Math.min(10, summary.recommendedFinalScore));
    const finalConfidence = Math.max(
      0,
-     Math.min(1, originalConfidence + summary.netConfidenceImpact)
+     Math.min(1, originalConfidence + summary.netConfidenceImpact),
    );
 
    // Final database update
    await updateEvaluation(evaluationId, {
      final_score: finalScore,
      confidence: finalConfidence,
-     debate_complete: true
+     debate_complete: true,
    });
 
    // Broadcast completion
@@ -284,13 +298,14 @@ Implement dynamic score adjustment system that updates criterion scores based on
      criterion.name,
      criterion.category,
      originalScore,
-     finalScore
+     finalScore,
    );
    ```
 
 ### Database Schema Changes
 
 **Add columns to `evaluations` table:**
+
 ```sql
 -- Migration: 018_debate_score_tracking.sql
 
@@ -312,6 +327,7 @@ CREATE INDEX idx_evaluations_debate ON evaluations(evaluation_run_id, debate_com
 ```
 
 **Optional: Score change audit table:**
+
 ```sql
 -- Track all score changes for debugging
 CREATE TABLE IF NOT EXISTS score_change_log (
@@ -338,6 +354,7 @@ CREATE INDEX idx_score_changes ON score_change_log(evaluation_id, timestamp);
 **File: `agents/debate.ts`**
 
 Add score update function:
+
 ```typescript
 /**
  * Update evaluation score in database after debate round
@@ -350,46 +367,44 @@ async function updateEvaluationScore(
     confidence?: number;
     debate_complete?: boolean;
     debate_round_count?: number;
-  }
+  },
 ): Promise<void> {
   const db = getDb();
   const fields: string[] = [];
   const values: any[] = [];
 
   if (updates.initial_score !== undefined) {
-    fields.push('initial_score = ?');
+    fields.push("initial_score = ?");
     values.push(updates.initial_score);
   }
   if (updates.final_score !== undefined) {
-    fields.push('final_score = ?');
+    fields.push("final_score = ?");
     values.push(updates.final_score);
   }
   if (updates.confidence !== undefined) {
-    fields.push('confidence = ?');
+    fields.push("confidence = ?");
     values.push(updates.confidence);
   }
   if (updates.debate_complete !== undefined) {
-    fields.push('debate_complete = ?');
+    fields.push("debate_complete = ?");
     values.push(updates.debate_complete ? 1 : 0);
   }
   if (updates.debate_round_count !== undefined) {
-    fields.push('debate_round_count = ?');
+    fields.push("debate_round_count = ?");
     values.push(updates.debate_round_count);
   }
 
-  fields.push('last_score_update = ?');
+  fields.push("last_score_update = ?");
   values.push(new Date().toISOString());
 
   values.push(evaluationId);
 
-  db.run(
-    `UPDATE evaluations SET ${fields.join(', ')} WHERE id = ?`,
-    values
-  );
+  db.run(`UPDATE evaluations SET ${fields.join(", ")} WHERE id = ?`, values);
 }
 ```
 
 Modify `runCriterionDebate()`:
+
 ```typescript
 export async function runCriterionDebate(
   criterion: CriterionDefinition,
@@ -405,7 +420,7 @@ export async function runCriterionDebate(
   // Store original score as initial_score if not already set
   await updateEvaluationScore(evaluation.id, {
     initial_score: evaluation.score,
-    confidence: evaluation.confidence
+    confidence: evaluation.confidence,
   });
 
   logInfo(`Starting debate for: ${criterion.name}`);
@@ -434,17 +449,17 @@ export async function runCriterionDebate(
     const runningSummary = summarizeDebate(rounds, evaluation.score);
     const runningScore = Math.max(
       1,
-      Math.min(10, runningSummary.recommendedFinalScore)
+      Math.min(10, runningSummary.recommendedFinalScore),
     );
     const runningConfidence = Math.max(
       0,
-      Math.min(1, evaluation.confidence + runningSummary.netConfidenceImpact)
+      Math.min(1, evaluation.confidence + runningSummary.netConfidenceImpact),
     );
 
     await updateEvaluationScore(evaluation.id, {
       final_score: runningScore,
       confidence: runningConfidence,
-      debate_round_count: round
+      debate_round_count: round,
     });
 
     // ✨ NEW: Broadcast progressive update
@@ -455,7 +470,7 @@ export async function runCriterionDebate(
         evaluation.score,
         runningScore,
         round,
-        debateConfig.roundsPerChallenge
+        debateConfig.roundsPerChallenge,
       );
     }
 
@@ -467,14 +482,14 @@ export async function runCriterionDebate(
   const finalScore = Math.max(1, Math.min(10, summary.recommendedFinalScore));
   const finalConfidence = Math.max(
     0,
-    Math.min(1, evaluation.confidence + summary.netConfidenceImpact)
+    Math.min(1, evaluation.confidence + summary.netConfidenceImpact),
   );
 
   // ✨ NEW: Mark debate as complete
   await updateEvaluationScore(evaluation.id, {
     final_score: finalScore,
     confidence: finalConfidence,
-    debate_complete: true
+    debate_complete: true,
   });
 
   // ... existing return ...
@@ -484,11 +499,12 @@ export async function runCriterionDebate(
 **File: `utils/broadcast.ts`**
 
 Add new event type:
+
 ```typescript
 export interface BroadcastEvents {
   // ... existing events ...
 
-  'score:updated': {
+  "score:updated": {
     criterion: string;
     category: string;
     originalScore: number;
@@ -507,23 +523,24 @@ export function createBroadcaster(ws: WebSocket, room: string) {
     originalScore: number,
     currentScore: number,
     round: number,
-    totalRounds: number
+    totalRounds: number,
   ) => {
-    await emit('score:updated', {
+    await emit("score:updated", {
       criterion,
       category,
       originalScore,
       currentScore,
       round,
-      totalRounds
+      totalRounds,
     });
-  }
+  };
 }
 ```
 
 ### Validation Logic
 
 **Score adjustment validation:**
+
 ```typescript
 /**
  * Validate score adjustment is within acceptable bounds
@@ -531,7 +548,7 @@ export function createBroadcaster(ws: WebSocket, room: string) {
 function validateScoreAdjustment(
   originalScore: number,
   finalScore: number,
-  netAdjustment: number
+  netAdjustment: number,
 ): { valid: boolean; warnings: string[] } {
   const warnings: string[] = [];
 
@@ -539,7 +556,7 @@ function validateScoreAdjustment(
   if (finalScore < 1 || finalScore > 10) {
     return {
       valid: false,
-      warnings: [`Final score ${finalScore} outside valid range [1, 10]`]
+      warnings: [`Final score ${finalScore} outside valid range [1, 10]`],
     };
   }
 
@@ -552,15 +569,18 @@ function validateScoreAdjustment(
   const percentChange = Math.abs((finalScore - originalScore) / originalScore);
   if (percentChange > 0.5 && originalScore > 2) {
     warnings.push(
-      `Score changed by ${(percentChange * 100).toFixed(0)}% (${originalScore} → ${finalScore})`
+      `Score changed by ${(percentChange * 100).toFixed(0)}% (${originalScore} → ${finalScore})`,
     );
   }
 
   // Verify calculation
-  const expectedFinal = Math.max(1, Math.min(10, originalScore + netAdjustment));
+  const expectedFinal = Math.max(
+    1,
+    Math.min(10, originalScore + netAdjustment),
+  );
   if (finalScore !== expectedFinal) {
     warnings.push(
-      `Score mismatch: expected ${expectedFinal}, got ${finalScore}`
+      `Score mismatch: expected ${expectedFinal}, got ${finalScore}`,
     );
   }
 
@@ -603,18 +623,21 @@ function validateScoreAdjustment(
 ## Dependencies
 
 ### Upstream (must exist first)
+
 - ✅ Debate system (`agents/debate.ts`, `agents/arbiter.ts`)
 - ✅ Database migrations (evaluations table schema)
 - ✅ WebSocket broadcasting (`utils/broadcast.ts`)
 - ✅ Evaluation orchestrator (`agents/orchestrator.ts`)
 
 ### Downstream (will use this)
+
 - Final synthesis (needs accurate final_score for recommendation)
 - API endpoints (debates.ts already reads final_score)
 - Frontend UI (will display score progression)
 - Analytics/reporting (needs score deltas for metrics)
 
 ### Parallel (can develop simultaneously)
+
 - PHASE5-TASK-02: Evidence collection (orthogonal to score updates)
 - PHASE5-TASK-01: Red-team debate system (already exists, just needs integration)
 
@@ -627,8 +650,8 @@ function validateScoreAdjustment(
 **File: `tests/unit/debate-scores.test.ts`**
 
 ```typescript
-describe('Dynamic Score Adjustment', () => {
-  it('should update final_score after debate', async () => {
+describe("Dynamic Score Adjustment", () => {
+  it("should update final_score after debate", async () => {
     const originalScore = 7;
     const adjustments = [+2, -1, +1]; // net = +2
     const expectedFinal = 9;
@@ -644,7 +667,7 @@ describe('Dynamic Score Adjustment', () => {
     expect(dbScore.initial_score).toBe(originalScore);
   });
 
-  it('should cap adjustments to ±5', async () => {
+  it("should cap adjustments to ±5", async () => {
     const originalScore = 5;
     const adjustments = [+3, +3, +3]; // net = +9, capped to +5
 
@@ -654,7 +677,7 @@ describe('Dynamic Score Adjustment', () => {
     expect(result.summary.netScoreAdjustment).toBe(5); // capped
   });
 
-  it('should clamp final score to [1, 10]', async () => {
+  it("should clamp final score to [1, 10]", async () => {
     const originalScore = 2;
     const adjustments = [-3, -3]; // net = -6, would give -4
 
@@ -663,7 +686,7 @@ describe('Dynamic Score Adjustment', () => {
     expect(result.finalScore).toBe(1); // clamped to minimum
   });
 
-  it('should preserve initial_score if debate fails', async () => {
+  it("should preserve initial_score if debate fails", async () => {
     const originalScore = 8;
 
     const result = await runMockDebate(originalScore, [], { failDebate: true });
@@ -673,12 +696,12 @@ describe('Dynamic Score Adjustment', () => {
     expect(dbScore.final_score).toBe(originalScore);
   });
 
-  it('should update confidence based on debate', async () => {
+  it("should update confidence based on debate", async () => {
     const originalConfidence = 0.7;
     const confidenceImpacts = [+0.1, -0.05, +0.15]; // net = +0.2
 
     const result = await runMockDebate(7, [+1, 0, +2], {
-      confidenceImpacts
+      confidenceImpacts,
     });
 
     expect(result.finalConfidence).toBe(0.9); // 0.7 + 0.2
@@ -691,9 +714,9 @@ describe('Dynamic Score Adjustment', () => {
 **File: `tests/integration/debate-score-persistence.test.ts`**
 
 ```typescript
-describe('Debate Score Persistence Integration', () => {
-  it('should persist scores after multi-round debate', async () => {
-    const ideaSlug = 'test-idea';
+describe("Debate Score Persistence Integration", () => {
+  it("should persist scores after multi-round debate", async () => {
+    const ideaSlug = "test-idea";
     const criterion = ALL_CRITERIA[0]; // Problem Severity
 
     // Run actual debate (mocked LLM calls)
@@ -702,7 +725,7 @@ describe('Debate Score Persistence Integration', () => {
       mockEvaluation({ score: 6, confidence: 0.6 }),
       mockIdeaContent(),
       mockCostTracker(),
-      mockBroadcaster()
+      mockBroadcaster(),
     );
 
     // Verify database updated
@@ -715,10 +738,10 @@ describe('Debate Score Persistence Integration', () => {
     const rounds = await getDebateRounds(evaluation.evaluation_run_id);
     const totalAdjustment = rounds.reduce(
       (sum, r) => sum + r.score_adjustment,
-      0
+      0,
     );
     expect(evaluation.final_score).toBe(
-      Math.max(1, Math.min(10, 6 + totalAdjustment))
+      Math.max(1, Math.min(10, 6 + totalAdjustment)),
     );
   });
 });
@@ -757,6 +780,7 @@ describe('Debate Score Persistence Integration', () => {
 ### Rollback Plan
 
 If issues arise:
+
 1. Migration 018 is reversible (DROP columns)
 2. Score update code is opt-in (can be disabled via config flag)
 3. Legacy behavior: final_score updated only at end of debate, not per-round

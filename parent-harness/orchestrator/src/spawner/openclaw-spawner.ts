@@ -1,18 +1,19 @@
 /**
  * OpenClaw Spawner - Executes tasks via OpenClaw sessions_spawn
- * 
+ *
  * This is the interface between the parent harness and OpenClaw.
  * It calls OpenClaw's gateway API to spawn sub-agents that have
  * full tool access (file, exec, browser).
- * 
+ *
  * NO API KEYS NEEDED - OpenClaw handles OAuth.
  */
 
 // Codebase root
-const CODEBASE_ROOT = '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
+const CODEBASE_ROOT =
+  "/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator";
 
 // OpenClaw Gateway
-const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'http://localhost:3030';
+const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || "http://localhost:3030";
 const GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN;
 
 export interface SpawnRequest {
@@ -37,7 +38,7 @@ export function buildAgentPrompt(
   agentType: string,
   taskTitle: string,
   taskDescription: string,
-  passCriteria?: string[]
+  passCriteria?: string[],
 ): string {
   const systemContext = `You are an autonomous AI agent working on the Vibe Platform codebase.
 
@@ -100,7 +101,7 @@ ${taskDescription}
   if (passCriteria && passCriteria.length > 0) {
     taskSection += `
 **Pass Criteria (ALL must be met):**
-${passCriteria.map((c, i) => `${i + 1}. ${c}`).join('\n')}
+${passCriteria.map((c, i) => `${i + 1}. ${c}`).join("\n")}
 `;
   }
 
@@ -118,52 +119,55 @@ ${passCriteria.map((c, i) => `${i + 1}. ${c}`).join('\n')}
 /**
  * Spawn an agent via OpenClaw Gateway API
  */
-export async function spawnViaOpenClaw(request: SpawnRequest): Promise<SpawnResponse> {
-  const { task, model = 'sonnet', timeoutSeconds = 300, label } = request;
+export async function spawnViaOpenClaw(
+  request: SpawnRequest,
+): Promise<SpawnResponse> {
+  const { task, model = "sonnet", timeoutSeconds = 300, label } = request;
 
   try {
     const response = await fetch(`${GATEWAY_URL}/api/sessions/spawn`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        ...(GATEWAY_TOKEN ? { 'Authorization': `Bearer ${GATEWAY_TOKEN}` } : {}),
+        "Content-Type": "application/json",
+        ...(GATEWAY_TOKEN ? { Authorization: `Bearer ${GATEWAY_TOKEN}` } : {}),
       },
       body: JSON.stringify({
         task,
         label: label || `harness-${Date.now()}`,
         model,
         runTimeoutSeconds: timeoutSeconds,
-        cleanup: 'delete',
+        cleanup: "delete",
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      return { 
-        success: false, 
-        error: `Gateway responded ${response.status}: ${errorText}` 
+      return {
+        success: false,
+        error: `Gateway responded ${response.status}: ${errorText}`,
       };
     }
 
-    const result = await response.json() as {
+    const result = (await response.json()) as {
       output?: string;
       result?: string;
       error?: string;
       sessionKey?: string;
     };
-    
+
     // Check for completion signals in output
-    const output = result.output || result.result || '';
-    const isComplete = output.includes('TASK_COMPLETE');
-    const isFailed = output.includes('TASK_FAILED') || result.error;
+    const output = result.output || result.result || "";
+    const isComplete = output.includes("TASK_COMPLETE");
+    const isFailed = output.includes("TASK_FAILED") || result.error;
 
     return {
       success: isComplete && !isFailed,
       output,
-      error: isFailed ? (result.error || output.split('TASK_FAILED:')[1]?.trim()) : undefined,
+      error: isFailed
+        ? result.error || output.split("TASK_FAILED:")[1]?.trim()
+        : undefined,
       sessionKey: result.sessionKey,
     };
-
   } catch (error) {
     return {
       success: false,
@@ -178,8 +182,10 @@ export async function spawnViaOpenClaw(request: SpawnRequest): Promise<SpawnResp
 export async function checkOpenClawHealth(): Promise<boolean> {
   try {
     const response = await fetch(`${GATEWAY_URL}/health`, {
-      method: 'GET',
-      headers: GATEWAY_TOKEN ? { 'Authorization': `Bearer ${GATEWAY_TOKEN}` } : {},
+      method: "GET",
+      headers: GATEWAY_TOKEN
+        ? { Authorization: `Bearer ${GATEWAY_TOKEN}` }
+        : {},
     });
     return response.ok;
   } catch {

@@ -6,7 +6,7 @@ import { BaseTechnique } from "./base.js";
 
 /**
  * Fresh Start Technique
- * 
+ *
  * Clears context pollution and retries with a clean slate.
  * Best used when:
  * - Previous attempts have polluted the context
@@ -16,8 +16,11 @@ import { BaseTechnique } from "./base.js";
 export class FreshStartTechnique extends BaseTechnique {
   name = "fresh_start";
   description = "Clear everything and retry with minimal context";
-  
-  protected targetIssueTypes: Array<FailureAnalysis["issueType"]> = ["environment", "unknown"];
+
+  protected targetIssueTypes: Array<FailureAnalysis["issueType"]> = [
+    "environment",
+    "unknown",
+  ];
   protected suitabilityKeywords = [
     "stuck",
     "loop",
@@ -32,28 +35,30 @@ export class FreshStartTechnique extends BaseTechnique {
     "state",
   ];
   protected baseScore = 0.3; // Lower base - use as last resort
-  
+
   async apply(
     task: AtomicTask,
     _context: TaskContext,
-    analysis: FailureAnalysis
+    analysis: FailureAnalysis,
   ): Promise<SIAResult> {
     // Create a fresh version of the task with minimal context
     const freshTask = this.createFreshTask(task, analysis);
-    
+
     return this.createFixedResult(freshTask);
   }
-  
+
   /**
    * Create a fresh task with minimal, clean requirements
    */
   private createFreshTask(
     task: AtomicTask,
-    _analysis: FailureAnalysis
+    _analysis: FailureAnalysis,
   ): AtomicTask {
     // Simplify requirements to core essentials
-    const essentialRequirements = this.extractEssentialRequirements(task.requirements);
-    
+    const essentialRequirements = this.extractEssentialRequirements(
+      task.requirements,
+    );
+
     // Add a clear starting point instruction
     const freshRequirements = [
       `FRESH START: Implement this task from scratch, ignoring any previous attempts`,
@@ -62,21 +67,24 @@ export class FreshStartTechnique extends BaseTechnique {
       ...essentialRequirements,
       `Focus on minimal, working implementation first`,
     ];
-    
+
     // Clear gotchas that might be causing confusion, keep only general ones
-    const safeGotchas = task.gotchas.filter(g => 
-      !g.toLowerCase().includes("previous") &&
-      !g.toLowerCase().includes("error") &&
-      g.length < 100
-    ).slice(0, 3);
-    
+    const safeGotchas = task.gotchas
+      .filter(
+        (g) =>
+          !g.toLowerCase().includes("previous") &&
+          !g.toLowerCase().includes("error") &&
+          g.length < 100,
+      )
+      .slice(0, 3);
+
     // Add fresh-start specific gotchas
     const freshGotchas = [
       "Start with the simplest possible implementation that compiles",
       "Add complexity only after basic structure works",
       ...safeGotchas,
     ];
-    
+
     return {
       ...task,
       id: `${task.id}-fresh`,
@@ -86,30 +94,30 @@ export class FreshStartTechnique extends BaseTechnique {
       validation: task.validation,
     };
   }
-  
+
   /**
    * Extract only the essential requirements
    */
   private extractEssentialRequirements(requirements: string[]): string[] {
     const essential: string[] = [];
-    
+
     for (const req of requirements) {
       // Skip meta-requirements
       if (this.isMetaRequirement(req)) {
         continue;
       }
-      
+
       // Simplify the requirement
       const simplified = this.simplifyRequirement(req);
       if (simplified) {
         essential.push(simplified);
       }
     }
-    
+
     // Deduplicate and limit
     return Array.from(new Set(essential)).slice(0, 5);
   }
-  
+
   /**
    * Check if a requirement is meta (about process, not functionality)
    */
@@ -125,11 +133,11 @@ export class FreshStartTechnique extends BaseTechnique {
       "earlier",
       "last time",
     ];
-    
+
     const reqLower = req.toLowerCase();
-    return metaKeywords.some(kw => reqLower.includes(kw));
+    return metaKeywords.some((kw) => reqLower.includes(kw));
   }
-  
+
   /**
    * Simplify a requirement to its core
    */
@@ -140,30 +148,33 @@ export class FreshStartTechnique extends BaseTechnique {
       .replace(/\b(if possible|when needed|as necessary)\b/gi, "")
       .replace(/\s+/g, " ")
       .trim();
-    
+
     // Skip if too short after simplification
     if (simplified.length < 10) {
       return null;
     }
-    
+
     // Capitalize first letter
     simplified = simplified.charAt(0).toUpperCase() + simplified.slice(1);
-    
+
     return simplified;
   }
 }
 
 /**
  * Variant: Context Pruning Technique
- * 
+ *
  * Like Fresh Start but keeps some useful context.
  * More surgical than full fresh start.
  */
 export class ContextPruningTechnique extends BaseTechnique {
   name = "context_pruning";
   description = "Remove noisy context while keeping useful parts";
-  
-  protected targetIssueTypes: Array<FailureAnalysis["issueType"]> = ["complexity", "environment"];
+
+  protected targetIssueTypes: Array<FailureAnalysis["issueType"]> = [
+    "complexity",
+    "environment",
+  ];
   protected suitabilityKeywords = [
     "context",
     "noise",
@@ -173,73 +184,79 @@ export class ContextPruningTechnique extends BaseTechnique {
     "confused",
   ];
   protected baseScore = 0.35;
-  
+
   async apply(
     task: AtomicTask,
     context: TaskContext,
-    analysis: FailureAnalysis
+    analysis: FailureAnalysis,
   ): Promise<SIAResult> {
     // Prune the task while keeping relevant context
     const prunedTask = this.pruneTask(task, context, analysis);
-    
+
     return this.createFixedResult(prunedTask);
   }
-  
+
   /**
    * Prune task to essential context
    */
   private pruneTask(
     task: AtomicTask,
     _context: TaskContext,
-    analysis: FailureAnalysis
+    analysis: FailureAnalysis,
   ): AtomicTask {
     // Keep requirements that aren't related to errors
-    const prunedRequirements = task.requirements.filter(req => {
+    const prunedRequirements = task.requirements.filter((req) => {
       const reqLower = req.toLowerCase();
-      
+
       // Keep if it's a core functional requirement
       if (this.isFunctionalRequirement(req)) {
         return true;
       }
-      
+
       // Remove if it's explicitly mentioned in error patterns
       for (const pattern of analysis.errorPatterns) {
         if (reqLower.includes(pattern.toLowerCase().substring(0, 20))) {
           return false;
         }
       }
-      
+
       return true;
     });
-    
+
     // Keep only relevant gotchas
-    const prunedGotchas = task.gotchas.filter(gotcha => {
-      const gotchaLower = gotcha.toLowerCase();
-      
-      // Keep general best practices
-      if (gotchaLower.includes("type") || 
+    const prunedGotchas = task.gotchas
+      .filter((gotcha) => {
+        const gotchaLower = gotcha.toLowerCase();
+
+        // Keep general best practices
+        if (
+          gotchaLower.includes("type") ||
           gotchaLower.includes("import") ||
-          gotchaLower.includes("syntax")) {
-        return true;
-      }
-      
-      // Remove overly specific or error-related gotchas
-      if (gotchaLower.includes("error") || 
+          gotchaLower.includes("syntax")
+        ) {
+          return true;
+        }
+
+        // Remove overly specific or error-related gotchas
+        if (
+          gotchaLower.includes("error") ||
           gotchaLower.includes("previous") ||
-          gotcha.length > 150) {
-        return false;
-      }
-      
-      return true;
-    }).slice(0, 5);
-    
+          gotcha.length > 150
+        ) {
+          return false;
+        }
+
+        return true;
+      })
+      .slice(0, 5);
+
     return {
       ...task,
       requirements: prunedRequirements,
       gotchas: prunedGotchas,
     };
   }
-  
+
   /**
    * Check if requirement is functional (describes behavior, not process)
    */
@@ -261,8 +278,8 @@ export class ContextPruningTechnique extends BaseTechnique {
       "store",
       "validate",
     ];
-    
+
     const reqLower = req.toLowerCase();
-    return functionalVerbs.some(verb => reqLower.includes(verb));
+    return functionalVerbs.some((verb) => reqLower.includes(verb));
   }
 }

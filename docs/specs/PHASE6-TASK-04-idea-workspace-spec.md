@@ -15,6 +15,7 @@
 ### 1.1 Purpose
 
 Create a comprehensive idea workspace that consolidates all idea development activities into a single, cohesive interface. This workspace enables users to:
+
 - View and edit idea documentation (README content)
 - Manage development notes through Q&A sessions
 - Link user profiles for personalized evaluations
@@ -30,6 +31,7 @@ The Idea Incubator system currently has most workspace components implemented ac
 ### 1.3 Scope
 
 **In Scope:**
+
 - Inline README content editing within workspace (PRIMARY GAP)
 - Q&A interface via modal (EXISTING - verified working)
 - Profile linking/unlinking (EXISTING - verified working)
@@ -38,6 +40,7 @@ The Idea Incubator system currently has most workspace components implemented ac
 - Workspace layout and navigation (EXISTING - verified working)
 
 **Out of Scope:**
+
 - Real-time collaborative editing
 - Version comparison and diff views
 - External integrations (GitHub, Notion, etc.)
@@ -51,9 +54,11 @@ The Idea Incubator system currently has most workspace components implemented ac
 ### 2.1 Functional Requirements
 
 #### FR-1: Idea Workspace Page
+
 **Status**: ✅ IMPLEMENTED (`frontend/src/pages/IdeaDetail.tsx`)
 
 The workspace MUST provide:
+
 - Multi-tab interface for different views (Overview, Develop, Lifecycle, Scorecard, etc.)
 - Comprehensive idea metadata display (title, type, status, tags, lifecycle stage)
 - Quick actions (Edit, Delete, Evaluate, Branch, History)
@@ -63,9 +68,11 @@ The workspace MUST provide:
 **Implementation**: IdeaDetail.tsx (818 lines) - COMPLETE
 
 #### FR-2: Q&A Development Interface
+
 **Status**: ✅ IMPLEMENTED (`frontend/src/components/DevelopmentWizard.tsx`)
 
 The Q&A interface MUST provide:
+
 - Modal-based wizard overlaying the workspace
 - Two-tab interface:
   - **Session Tab**: Guided step-by-step questioning (5-10 questions)
@@ -81,6 +88,7 @@ The Q&A interface MUST provide:
 **Implementation**: DevelopmentWizard.tsx (815 lines) - COMPLETE
 
 **Data Flow**:
+
 ```
 User clicks "Develop Idea" button
   ↓
@@ -102,9 +110,11 @@ User closes modal → AnswerHistory displays in Develop tab
 ```
 
 #### FR-3: Profile Linking
+
 **Status**: ✅ IMPLEMENTED (`frontend/src/components/ProfileSelector.tsx`)
 
 The profile system MUST provide:
+
 - One-click profile linking from workspace
 - Profile selector modal with search functionality
 - Display of currently linked profile
@@ -115,6 +125,7 @@ The profile system MUST provide:
 **Implementation**: ProfileSelector.tsx (185 lines), ProfileStatusCard.tsx (131 lines) - COMPLETE
 
 **Data Flow**:
+
 ```
 User clicks "Link Profile" button
   ↓
@@ -132,9 +143,11 @@ ProfileStatusCard displays linked profile
 ```
 
 #### FR-4: README Content Editing (INLINE)
+
 **Status**: ❌ NOT IMPLEMENTED (GAP)
 
 The README editor MUST provide:
+
 - **Inline editing mode** within Overview tab (no navigation to separate page)
 - Toggle between view and edit modes with clear UI affordance
 - Markdown text editor (textarea or Monaco-based)
@@ -147,6 +160,7 @@ The README editor MUST provide:
 **Current Limitation**: Content editing requires navigation to `/ideas/:slug/edit` page (IdeaForm.tsx)
 
 **Required Changes**:
+
 1. Add edit mode state to IdeaDetail.tsx Overview tab
 2. Create ContentEditor component (inline textarea with preview)
 3. Add Edit/Save/Cancel buttons to Overview tab header
@@ -154,9 +168,11 @@ The README editor MUST provide:
 5. Handle tab switching with unsaved changes
 
 #### FR-5: Development Notes Display
+
 **Status**: ⚠️ PARTIAL (via Q&A only)
 
 The development notes MUST:
+
 - Display Q&A answers in chronological order (IMPLEMENTED via AnswerHistory)
 - Show development.md content (synced from Q&A answers) (IMPLEMENTED via sync)
 - Optionally: Allow manual editing of development.md (NOT IMPLEMENTED)
@@ -166,9 +182,11 @@ The development notes MUST:
 **Implementation**: AnswerHistory.tsx (144 lines) - MOSTLY COMPLETE
 
 #### FR-6: Evaluation Readiness Tracking
+
 **Status**: ✅ IMPLEMENTED (`frontend/src/components/ReadinessMeter.tsx`)
 
 The readiness system MUST:
+
 - Calculate overall readiness score (0-100%)
 - Break down coverage by category (Problem, Solution, Market, etc.)
 - Identify blocking gaps (critical unanswered questions)
@@ -181,6 +199,7 @@ The readiness system MUST:
 ### 2.2 Non-Functional Requirements
 
 #### NFR-1: Performance
+
 - Workspace page load time: < 2 seconds
 - Q&A modal open time: < 500ms
 - Answer submission response: < 1 second
@@ -188,6 +207,7 @@ The readiness system MUST:
 - Inline editor mode toggle: < 100ms (instantaneous feel)
 
 #### NFR-2: Usability
+
 - Single-click access to all workspace features (no deep navigation)
 - Clear visual hierarchy (primary actions prominent)
 - Consistent UI patterns with Parent Harness dashboard
@@ -195,6 +215,7 @@ The readiness system MUST:
 - Keyboard shortcuts for common actions (Edit: E, Save: Ctrl+S)
 
 #### NFR-3: Data Integrity
+
 - Auto-save prevents data loss on network failure
 - Optimistic UI updates with rollback on error
 - Conflict detection for concurrent edits (same idea, multiple tabs)
@@ -202,6 +223,7 @@ The readiness system MUST:
 - Profile context always reflects latest profile data
 
 #### NFR-4: Accessibility
+
 - WCAG 2.1 AA compliance
 - Keyboard navigation for all features
 - Screen reader support for modal dialogs
@@ -470,28 +492,28 @@ GET    /api/ideas/:slug/synthesis    // Get synthesis results
 interface UpdateIdeaRequest {
   title?: string;
   summary?: string;
-  content?: string;        // ← Inline content editing
+  content?: string; // ← Inline content editing
   idea_type?: IdeaType;
   lifecycle_stage?: LifecycleStage;
   tags?: string[];
-  partial?: boolean;       // ← Flag for partial update
+  partial?: boolean; // ← Flag for partial update
 }
 
 // Implementation in server/routes/ideas.ts
-router.put('/:slug', async (req, res) => {
+router.put("/:slug", async (req, res) => {
   const { slug } = req.params;
   const updates = req.body;
 
   // Validate partial update
   if (updates.partial) {
     // Only update provided fields
-    const allowedFields = ['title', 'summary', 'content', 'tags'];
+    const allowedFields = ["title", "summary", "content", "tags"];
     const updateData = pick(updates, allowedFields);
 
     // Update database
     await db.query(
       `UPDATE ideas SET ${buildUpdateQuery(updateData)} WHERE slug = ?`,
-      [...Object.values(updateData), slug]
+      [...Object.values(updateData), slug],
     );
   } else {
     // Full update (existing behavior)
@@ -569,7 +591,7 @@ export default function IdeaDetail() {
     if (hasUnsavedChanges) {
       const choice = confirm(
         "You have unsaved changes. Save before switching tabs?\n\n" +
-        "OK = Save & Switch | Cancel = Stay on current tab"
+          "OK = Save & Switch | Cancel = Stay on current tab",
       );
       if (choice) {
         handleSaveContent().then(() => setActiveTab(newTab));
@@ -585,12 +607,12 @@ export default function IdeaDetail() {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
         e.preventDefault();
-        e.returnValue = '';
+        e.returnValue = "";
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 }
 ```
@@ -654,6 +676,7 @@ CREATE TABLE user_profiles (
 ### 4.1 Task Breakdown
 
 #### Task 1: Create ContentEditor Component (2 hours)
+
 - Create `frontend/src/components/ContentEditor.tsx`
 - Implement textarea with markdown input
 - Add optional side-by-side preview mode
@@ -662,12 +685,15 @@ CREATE TABLE user_profiles (
 - Style with Tailwind CSS matching workspace theme
 
 **Files to Create:**
+
 - `frontend/src/components/ContentEditor.tsx` (~150 lines)
 
 **Tests to Add:**
+
 - `frontend/src/components/ContentEditor.test.tsx` (render, onChange, onSave, keyboard shortcuts)
 
 #### Task 2: Integrate ContentEditor into IdeaDetail Overview Tab (3 hours)
+
 - Add edit mode state to IdeaDetail.tsx
 - Add Edit icon/button to Overview tab header
 - Implement edit mode toggle (view ↔ edit)
@@ -677,31 +703,38 @@ CREATE TABLE user_profiles (
 - Add beforeunload warning for unsaved changes
 
 **Files to Modify:**
+
 - `frontend/src/pages/IdeaDetail.tsx` (~50 lines added)
 
 **Tests to Update:**
+
 - `frontend/src/pages/IdeaDetail.test.tsx` (edit mode, unsaved changes)
 
 #### Task 3: Update API for Partial Content Updates (1 hour)
+
 - Enhance `PUT /api/ideas/:slug` to support partial updates
 - Add validation for partial update fields
 - Return updated idea with new content
 - Add error handling for concurrent edits (optional: optimistic locking)
 
 **Files to Modify:**
+
 - `server/routes/ideas.ts` (~30 lines modified)
 - `frontend/src/api/client.ts` (add partial flag to updateIdea)
 
 **Tests to Add:**
+
 - `tests/api/ideas-partial-update.test.ts` (partial content update)
 
 #### Task 4: Testing & Documentation (2 hours)
+
 - Manual testing: edit flow, unsaved changes, errors
 - E2E test: navigate to idea, edit content, save, verify
 - Update user documentation with inline editing workflow
 - Update PHASE6-TASK-04-VALIDATION-REPORT.md to 100% complete
 
 **Files to Create/Update:**
+
 - `tests/e2e/idea-workspace-editing.test.ts` (new E2E test)
 - `docs/user-guide/idea-workspace.md` (update with inline editing)
 - `PHASE6-TASK-04-VALIDATION-REPORT.md` (update status to 100%)
@@ -844,27 +877,27 @@ npm test
 
 ### 7.1 Technical Risks
 
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| Concurrent edits overwrite changes | Low | Medium | Add optimistic locking (version field) or last-write-wins with warning |
-| Large content causes performance issues | Low | Low | Add content length validation (max 50KB) |
-| Markdown rendering XSS vulnerability | Low | High | Use react-markdown with default sanitization (already implemented) |
-| Unsaved changes lost on browser crash | Medium | Low | Consider localStorage auto-save backup (future enhancement) |
+| Risk                                    | Probability | Impact | Mitigation                                                             |
+| --------------------------------------- | ----------- | ------ | ---------------------------------------------------------------------- |
+| Concurrent edits overwrite changes      | Low         | Medium | Add optimistic locking (version field) or last-write-wins with warning |
+| Large content causes performance issues | Low         | Low    | Add content length validation (max 50KB)                               |
+| Markdown rendering XSS vulnerability    | Low         | High   | Use react-markdown with default sanitization (already implemented)     |
+| Unsaved changes lost on browser crash   | Medium      | Low    | Consider localStorage auto-save backup (future enhancement)            |
 
 ### 7.2 UX Risks
 
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| Users forget to save changes | Medium | Low | Clear visual indicator (unsaved badge), beforeunload warning |
-| Edit mode confuses users | Low | Low | Clear UI affordance (Edit icon, mode indicator) |
-| Preview mode clutters UI | Low | Low | Make preview optional, default to textarea-only |
+| Risk                         | Probability | Impact | Mitigation                                                   |
+| ---------------------------- | ----------- | ------ | ------------------------------------------------------------ |
+| Users forget to save changes | Medium      | Low    | Clear visual indicator (unsaved badge), beforeunload warning |
+| Edit mode confuses users     | Low         | Low    | Clear UI affordance (Edit icon, mode indicator)              |
+| Preview mode clutters UI     | Low         | Low    | Make preview optional, default to textarea-only              |
 
 ### 7.3 Integration Risks
 
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| Breaking existing IdeaForm.tsx edit page | Low | Medium | Keep edit page functional, deprecate gradually |
-| Conflicts with evaluation staleness | Low | Medium | Content change updates `updated_at`, triggers re-eval check |
+| Risk                                     | Probability | Impact | Mitigation                                                  |
+| ---------------------------------------- | ----------- | ------ | ----------------------------------------------------------- |
+| Breaking existing IdeaForm.tsx edit page | Low         | Medium | Keep edit page functional, deprecate gradually              |
+| Conflicts with evaluation staleness      | Low         | Medium | Content change updates `updated_at`, triggers re-eval check |
 
 ---
 
@@ -1167,6 +1200,7 @@ describe('ContentEditor', () => {
 **Specification Version**: 1.0
 
 **Review Required From**:
+
 - [ ] Development Lead (implementation feasibility)
 - [ ] UX Designer (UI/UX patterns)
 - [ ] QA Lead (test coverage)

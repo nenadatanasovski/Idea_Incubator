@@ -66,9 +66,30 @@ describe("GET /api/observability/executions/:id/transcript", () => {
   it("filters by entryType parameter", async () => {
     // Seed with mixed entry types, filter will return only tool_call
     await seedTranscriptData(execId, [
-      { id: "t-001", sequence: 1, entryType: "message", category: "input", summary: "Message", createdAt: new Date().toISOString() },
-      { id: "t-002", sequence: 2, entryType: "tool_call", category: "execution", summary: "Tool", createdAt: new Date().toISOString() },
-      { id: "t-003", sequence: 3, entryType: "response", category: "output", summary: "Response", createdAt: new Date().toISOString() },
+      {
+        id: "t-001",
+        sequence: 1,
+        entryType: "message",
+        category: "input",
+        summary: "Message",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "t-002",
+        sequence: 2,
+        entryType: "tool_call",
+        category: "execution",
+        summary: "Tool",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "t-003",
+        sequence: 3,
+        entryType: "response",
+        category: "output",
+        summary: "Response",
+        createdAt: new Date().toISOString(),
+      },
     ]);
 
     const res = await request(app)
@@ -85,9 +106,30 @@ describe("GET /api/observability/executions/:id/transcript", () => {
   it("filters by category parameter", async () => {
     // Seed with mixed categories, filter will return only input
     await seedTranscriptData(execId, [
-      { id: "t-001", sequence: 1, entryType: "message", category: "input", summary: "Message", createdAt: new Date().toISOString() },
-      { id: "t-002", sequence: 2, entryType: "tool_call", category: "execution", summary: "Tool", createdAt: new Date().toISOString() },
-      { id: "t-003", sequence: 3, entryType: "response", category: "output", summary: "Response", createdAt: new Date().toISOString() },
+      {
+        id: "t-001",
+        sequence: 1,
+        entryType: "message",
+        category: "input",
+        summary: "Message",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "t-002",
+        sequence: 2,
+        entryType: "tool_call",
+        category: "execution",
+        summary: "Tool",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "t-003",
+        sequence: 3,
+        entryType: "response",
+        category: "output",
+        summary: "Response",
+        createdAt: new Date().toISOString(),
+      },
     ]);
 
     const res = await request(app)

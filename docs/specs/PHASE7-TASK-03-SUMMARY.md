@@ -6,33 +6,34 @@
 
 ## What Exists ✅
 
-| Component | Status | Location |
-|-----------|--------|----------|
-| Rate Limiter Middleware | ✅ Working | `server/middleware/rate-limiter.ts` |
-| Parent Harness Budget Tracker | ✅ Working | `parent-harness/orchestrator/src/budget/` |
-| Idea Incubator Cost Tracker | ✅ Working | `utils/cost-tracker.ts` |
-| Budget API Endpoints | ✅ Working | `parent-harness/orchestrator/src/api/budget.ts` |
-| WebSocket Budget Broadcasts | ✅ Working | Budget updates sent to dashboard |
-| Telegram Budget Alerts | ✅ Working | Notifications at 80%, 100% |
+| Component                     | Status     | Location                                        |
+| ----------------------------- | ---------- | ----------------------------------------------- |
+| Rate Limiter Middleware       | ✅ Working | `server/middleware/rate-limiter.ts`             |
+| Parent Harness Budget Tracker | ✅ Working | `parent-harness/orchestrator/src/budget/`       |
+| Idea Incubator Cost Tracker   | ✅ Working | `utils/cost-tracker.ts`                         |
+| Budget API Endpoints          | ✅ Working | `parent-harness/orchestrator/src/api/budget.ts` |
+| WebSocket Budget Broadcasts   | ✅ Working | Budget updates sent to dashboard                |
+| Telegram Budget Alerts        | ✅ Working | Notifications at 80%, 100%                      |
 
 ---
 
 ## What's Missing ❌
 
-| Gap | Impact | Priority |
-|-----|--------|----------|
-| Predictive cost checks (before API calls) | 🔴 Critical | P0 |
-| Circuit breaker (halt all ops at 100%) | 🔴 Critical | P0 |
-| Unified budget (Idea Inc + Parent Harness) | 🔴 Critical | P0 |
-| Anthropic API quota tracking | 🟡 High | P1 |
-| Persistent rate limits (survive restarts) | 🟠 Medium | P2 |
-| Cost-aware rate limiting (tokens, not requests) | 🟠 Medium | P2 |
+| Gap                                             | Impact      | Priority |
+| ----------------------------------------------- | ----------- | -------- |
+| Predictive cost checks (before API calls)       | 🔴 Critical | P0       |
+| Circuit breaker (halt all ops at 100%)          | 🔴 Critical | P0       |
+| Unified budget (Idea Inc + Parent Harness)      | 🔴 Critical | P0       |
+| Anthropic API quota tracking                    | 🟡 High     | P1       |
+| Persistent rate limits (survive restarts)       | 🟠 Medium   | P2       |
+| Cost-aware rate limiting (tokens, not requests) | 🟠 Medium   | P2       |
 
 ---
 
 ## Quick Wins (2 Days)
 
 ### Phase 1: Predictive Controls
+
 ```typescript
 // Before: Budget check AFTER spending money ❌
 const result = await callAnthropic(prompt);
@@ -46,6 +47,7 @@ await budgetClient.record(result.usage);
 ```
 
 ### Phase 2: Circuit Breaker
+
 ```typescript
 // middleware/budget-guard.ts
 export async function budgetGuard(req, res, next) {
@@ -125,6 +127,7 @@ app.post('/api/ideas/:slug/evaluate', budgetGuard, ...);
 ## Current Limits
 
 ### Rate Limits (per IP, per minute)
+
 - General API: **100 requests**
 - Strict (evaluations): **10 requests**
 - Auth endpoints: **5 requests**
@@ -132,11 +135,13 @@ app.post('/api/ideas/:slug/evaluate', budgetGuard, ...);
 - Web search: **15 searches**
 
 ### Budget Limits
+
 - Daily: **$50** (Parent Harness default)
 - Monthly: **$500** (Parent Harness default)
 - Per evaluation: **$15** (Idea Incubator default, max $50)
 
 ### Anthropic API Limits (Tier 1)
+
 - Requests: **50/minute**
 - Tokens: **40,000/minute**
 
@@ -145,11 +150,13 @@ app.post('/api/ideas/:slug/evaluate', budgetGuard, ...);
 ## Test Coverage
 
 ### Existing Tests ✅
+
 - Rate limiter: request counting, window reset, cleanup
 - Budget tracker: daily/monthly tracking, per-agent breakdown
 - Cost tracker: estimation, budget enforcement, API call limits
 
 ### Needed Tests ❌
+
 - [ ] Predictive budget checks
 - [ ] Budget reservations and rollbacks
 - [ ] Circuit breaker open/close
@@ -162,6 +169,7 @@ app.post('/api/ideas/:slug/evaluate', budgetGuard, ...);
 ## Configuration
 
 ### Environment Variables
+
 ```bash
 # Budget limits
 DAILY_BUDGET_USD=50
@@ -176,6 +184,7 @@ RATE_LIMIT_STORE=memory  # or: redis, database
 ```
 
 ### API Endpoints
+
 ```
 GET  /api/budget/status          # Current usage
 GET  /api/budget/daily           # Daily breakdown
@@ -192,6 +201,7 @@ GET  /api/budget/pricing         # Model pricing
 ## Implementation Checklist
 
 ### Phase 1: Predictive Controls (1 day)
+
 - [ ] Create `BudgetClient` class
 - [ ] Add pre-flight budget checks to evaluator
 - [ ] Implement budget reservation system
@@ -199,6 +209,7 @@ GET  /api/budget/pricing         # Model pricing
 - [ ] Write 8 unit tests
 
 ### Phase 2: Circuit Breaker (0.5 days)
+
 - [ ] Create `budgetGuard` middleware
 - [ ] Apply to evaluation endpoints
 - [ ] Integrate with Parent Harness task queue
@@ -206,6 +217,7 @@ GET  /api/budget/pricing         # Model pricing
 - [ ] Write 5 unit tests
 
 ### Phase 3: Anthropic Quotas (1 day)
+
 - [ ] Create `AnthropicQuotaTracker` class
 - [ ] Add requests/min limiter
 - [ ] Add tokens/min limiter
@@ -214,6 +226,7 @@ GET  /api/budget/pricing         # Model pricing
 - [ ] Write 6 unit tests
 
 ### Phase 4: Persistent Rate Limits (1 day)
+
 - [ ] Add `rate_limits` table to database
 - [ ] Migrate rate limiter to database storage
 - [ ] Add rate limit analytics endpoint
@@ -221,12 +234,14 @@ GET  /api/budget/pricing         # Model pricing
 - [ ] Write 7 unit tests
 
 ### Phase 5: Cost-Aware Limiting (0.5 days)
+
 - [ ] Create token-based rate limiter
 - [ ] Create hybrid limiter (requests + tokens)
 - [ ] Apply to evaluation endpoints
 - [ ] Write 4 unit tests
 
 ### Testing & Docs (1.5 days)
+
 - [ ] Write integration tests (10)
 - [ ] Write E2E tests (5)
 - [ ] Update README.md
@@ -237,14 +252,14 @@ GET  /api/budget/pricing         # Model pricing
 
 ## Recommended Timeline
 
-| Day | Tasks | Deliverables |
-|-----|-------|--------------|
-| 1 | Phase 1 + tests | Predictive budget checks working |
-| 2 | Phase 2 + tests | Circuit breaker working |
-| 3 | Phase 3 + tests | Anthropic quotas enforced |
-| 4 | Phase 4 + tests | Persistent rate limits |
-| 5 | Phase 5 + integration | Cost-aware limiting |
-| 6 | E2E tests + docs | Production-ready |
+| Day | Tasks                 | Deliverables                     |
+| --- | --------------------- | -------------------------------- |
+| 1   | Phase 1 + tests       | Predictive budget checks working |
+| 2   | Phase 2 + tests       | Circuit breaker working          |
+| 3   | Phase 3 + tests       | Anthropic quotas enforced        |
+| 4   | Phase 4 + tests       | Persistent rate limits           |
+| 5   | Phase 5 + integration | Cost-aware limiting              |
+| 6   | E2E tests + docs      | Production-ready                 |
 
 **Total: 6 days** (5.5 engineering + 0.5 buffer)
 
@@ -253,6 +268,7 @@ GET  /api/budget/pricing         # Model pricing
 ## Success Criteria
 
 ✅ **Task complete when:**
+
 1. No API call exceeds remaining budget (pre-flight checks)
 2. All operations halt when daily budget hits 100% (circuit breaker)
 3. Idea Incubator and Parent Harness share unified budget

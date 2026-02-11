@@ -1,10 +1,10 @@
 /**
  * Browser Helper for E2E Tests
- * 
+ *
  * Uses Puppeteer for browser automation (no Playwright dependency).
  */
 
-import puppeteer, { Browser, Page } from 'puppeteer';
+import puppeteer, { Browser, Page } from "puppeteer";
 
 export class BrowserHelper {
   private browser: Browser | null = null;
@@ -16,7 +16,7 @@ export class BrowserHelper {
   async start(): Promise<void> {
     this.browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
     this.page = await this.browser.newPage();
     await this.page.setViewport({ width: 1280, height: 800 });
@@ -38,7 +38,7 @@ export class BrowserHelper {
    */
   getPage(): Page {
     if (!this.page) {
-      throw new Error('Browser not started. Call start() first.');
+      throw new Error("Browser not started. Call start() first.");
     }
     return this.page;
   }
@@ -47,7 +47,7 @@ export class BrowserHelper {
    * Navigate to a URL
    */
   async goto(url: string): Promise<void> {
-    await this.getPage().goto(url, { waitUntil: 'networkidle0' });
+    await this.getPage().goto(url, { waitUntil: "networkidle0" });
   }
 
   /**
@@ -77,7 +77,7 @@ export class BrowserHelper {
   async getText(selector: string): Promise<string | null> {
     const element = await this.getPage().$(selector);
     if (!element) return null;
-    return element.evaluate(el => el.textContent);
+    return element.evaluate((el) => el.textContent);
   }
 
   /**
@@ -106,7 +106,7 @@ export class BrowserHelper {
    * Wait for navigation
    */
   async waitForNavigation(): Promise<void> {
-    await this.getPage().waitForNavigation({ waitUntil: 'networkidle0' });
+    await this.getPage().waitForNavigation({ waitUntil: "networkidle0" });
   }
 
   /**
@@ -120,7 +120,7 @@ export class BrowserHelper {
    * Simple wait
    */
   async wait(ms: number): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, ms));
+    await new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 

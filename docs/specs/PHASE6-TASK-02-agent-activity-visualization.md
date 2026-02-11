@@ -16,6 +16,7 @@ Create comprehensive agent activity visualization to track heartbeats, session l
 ### Context
 
 The Parent Harness orchestrates 12+ specialized agents executing autonomous tasks. Currently:
+
 - **Basic activity tracking exists** (`agent_activities` table, basic UI in `AgentActivity.tsx`)
 - **Session logs are viewable** (`SessionLogModal.tsx`, `SessionLogs.tsx`)
 - **Heartbeats are tracked** (`agent_heartbeats` table in schema)
@@ -30,6 +31,7 @@ This task unifies activity data into a comprehensive monitoring dashboard that e
 **Phase 6 Goal**: Full-featured dashboard for idea management, evaluation monitoring, and agent interaction
 
 Agent activity visualization is **critical for autonomous execution monitoring**:
+
 - Enables early detection of stuck/crashed agents (via heartbeat gaps)
 - Provides debugging context through session logs
 - Reveals error patterns across agent types
@@ -45,6 +47,7 @@ This complements PHASE3-TASK-05 (dashboard widgets) by adding deep-dive activity
 ### Functional Requirements
 
 #### FR-1: Heartbeat Timeline Visualization
+
 - **FR-1.1**: Display heartbeat timeline for each agent (last 24 hours)
 - **FR-1.2**: Visual indicators: 🟢 Active (<1 min), 🟡 Stale (1-5 min), 🟠 Stuck (5-15 min), 🔴 Dead (>15 min)
 - **FR-1.3**: Hoverable heartbeat dots showing timestamp, status, progress, current step
@@ -53,6 +56,7 @@ This complements PHASE3-TASK-05 (dashboard widgets) by adding deep-dive activity
 - **FR-1.6**: Export heartbeat data as CSV for analysis
 
 #### FR-2: Session Log Viewer
+
 - **FR-2.1**: Unified session log interface with filtering, search, and pagination
 - **FR-2.2**: Display session metadata: agent_id, task_id, status, duration, iterations
 - **FR-2.3**: Show session output/logs with syntax highlighting
@@ -63,6 +67,7 @@ This complements PHASE3-TASK-05 (dashboard widgets) by adding deep-dive activity
 - **FR-2.8**: Real-time log streaming for active sessions (WebSocket)
 
 #### FR-3: Error Correlation Dashboard
+
 - **FR-3.1**: Show errors grouped by agent, task, error type
 - **FR-3.2**: Display error timeline with frequency chart
 - **FR-3.3**: Link errors to corresponding session logs
@@ -72,6 +77,7 @@ This complements PHASE3-TASK-05 (dashboard widgets) by adding deep-dive activity
 - **FR-3.7**: Mark errors as "resolved" or "known issue"
 
 #### FR-4: Activity Stream (Unified View)
+
 - **FR-4.1**: Chronological activity stream showing all events (heartbeats, tasks, errors)
 - **FR-4.2**: Activity types: task_assigned, task_started, task_completed, task_failed, file_read, file_write, command_executed, error_occurred, heartbeat, spawned, terminated
 - **FR-4.3**: Filter by activity type, agent, severity, date range
@@ -80,6 +86,7 @@ This complements PHASE3-TASK-05 (dashboard widgets) by adding deep-dive activity
 - **FR-4.6**: Click activity to expand details panel
 
 #### FR-5: Agent Health Dashboard
+
 - **FR-5.1**: Grid view showing all agents with health status
 - **FR-5.2**: Per-agent metrics: last heartbeat, active sessions, error count, uptime percentage
 - **FR-5.3**: Health trend sparklines (heartbeat regularity over 24h)
@@ -87,6 +94,7 @@ This complements PHASE3-TASK-05 (dashboard widgets) by adding deep-dive activity
 - **FR-5.5**: Quick actions: view sessions, restart agent, view logs
 
 #### FR-6: Historical Analysis
+
 - **FR-6.1**: Activity heatmap showing agent workload by hour/day
 - **FR-6.2**: Session duration trends over time
 - **FR-6.3**: Error rate trends per agent type
@@ -96,23 +104,27 @@ This complements PHASE3-TASK-05 (dashboard widgets) by adding deep-dive activity
 ### Non-Functional Requirements
 
 #### NFR-1: Performance
+
 - Activity stream must load first 100 items in <1 second
 - Heartbeat timeline rendering: <500ms for 24h data
 - Search across logs: <2 seconds for 10k+ log entries
 - Real-time updates must not block UI rendering
 
 #### NFR-2: Scalability
+
 - Support 1M+ activity records without performance degradation
 - Pagination/lazy loading for large datasets
 - Database indexes on agent_id, created_at, activity_type
 
 #### NFR-3: Usability
+
 - Color-coded activity types for quick scanning
 - Tooltips explaining all metrics and statuses
 - Mobile-responsive layouts (stacked on <768px)
 - Keyboard shortcuts for navigation and filtering
 
 #### NFR-4: Accessibility
+
 - ARIA labels for screen readers
 - Keyboard navigation support
 - High-contrast mode compatible
@@ -127,6 +139,7 @@ This complements PHASE3-TASK-05 (dashboard widgets) by adding deep-dive activity
 #### 1.1 Database Tables (Existing)
 
 **`agent_heartbeats`** (from `parent-harness/database/schema.sql`):
+
 ```sql
 CREATE TABLE agent_heartbeats (
   id TEXT PRIMARY KEY,
@@ -147,6 +160,7 @@ CREATE TABLE agent_heartbeats (
 ```
 
 **`agent_activities`** (from `parent-harness/orchestrator/database/migrations/001_vibe_patterns.sql`):
+
 ```sql
 CREATE TABLE agent_activities (
   id TEXT PRIMARY KEY,
@@ -166,6 +180,7 @@ CREATE TABLE agent_activities (
 ```
 
 **`agent_sessions`** (existing):
+
 ```sql
 CREATE TABLE agent_sessions (
   id TEXT PRIMARY KEY,
@@ -191,15 +206,18 @@ CREATE TABLE agent_sessions (
 #### 1.2 API Endpoints (Existing)
 
 From `parent-harness/orchestrator/src/api/agents.ts`:
+
 - ✅ `GET /api/agents/activities/recent?limit=100` - Recent activities across all agents
 - ✅ `GET /api/agents/:id/activities?limit=50&type=heartbeat` - Activities for specific agent
 
 From `parent-harness/dashboard/src/pages/AgentActivity.tsx`:
+
 - ✅ Basic activity rendering with type icons and colors
 
 #### 1.3 New API Endpoints Required
 
 **Heartbeat Endpoints:**
+
 ```typescript
 GET /api/agents/:id/heartbeats?since=<ISO>&limit=100
 // Returns heartbeat timeline for agent
@@ -218,6 +236,7 @@ Response: {
 ```
 
 **Session Log Endpoints:**
+
 ```typescript
 GET /api/sessions/:id/logs?offset=0&limit=500
 // Paginated session logs with line numbers
@@ -234,6 +253,7 @@ Response: {
 ```
 
 **Error Correlation:**
+
 ```typescript
 GET /api/errors/correlation?agent_id=<id>&since=<ISO>
 // Returns errors grouped by pattern with related sessions
@@ -251,6 +271,7 @@ Response: {
 ```
 
 **Health Metrics:**
+
 ```typescript
 GET /api/agents/:id/health-metrics?window=24h
 // Returns health metrics over time window
@@ -328,7 +349,7 @@ export interface AgentActivityState {
   // UI State
   loading: boolean;
   error: string | null;
-  selectedView: 'overview' | 'timeline' | 'stream' | 'logs' | 'errors';
+  selectedView: "overview" | "timeline" | "stream" | "logs" | "errors";
 }
 
 export function useAgentActivity(options?: {
@@ -344,9 +365,9 @@ export function useAgentActivity(options?: {
     searchLogs: (sessionId: string, query: string) => Promise<void>;
     loadErrorGroups: (agentId?: string) => Promise<void>;
     setFilter: (filter: Partial<ActivityFilter>) => void;
-    exportData: (format: 'csv' | 'json') => void;
+    exportData: (format: "csv" | "json") => void;
   };
-}
+};
 ```
 
 ### 4. Real-Time Updates (WebSocket)
@@ -358,22 +379,22 @@ Extend existing WebSocket integration from `useWebSocket.ts`:
 useEffect(() => {
   const unsubscribe = subscribe((message) => {
     switch (message.type) {
-      case 'agent:heartbeat':
+      case "agent:heartbeat":
         // Add heartbeat to timeline
         addHeartbeat(message.payload);
         break;
 
-      case 'agent:activity':
+      case "agent:activity":
         // Add to activity stream
         addActivity(message.payload);
         break;
 
-      case 'session:log':
+      case "session:log":
         // Append to session logs (for active session viewer)
         appendSessionLog(message.payload);
         break;
 
-      case 'agent:error':
+      case "agent:error":
         // Update error groups
         updateErrorGroups(message.payload);
         break;
@@ -653,7 +674,7 @@ export function ErrorCorrelationPanel() {
 export function detectHeartbeatGaps(
   agentId: string,
   thresholdMs: number = 300000, // 5 minutes
-  since?: string
+  since?: string,
 ): HeartbeatGap[] {
   const sql = `
     WITH ordered_heartbeats AS (
@@ -664,7 +685,7 @@ export function detectHeartbeatGaps(
         LAG(recorded_at) OVER (PARTITION BY agent_id ORDER BY recorded_at) as prev_recorded_at
       FROM agent_heartbeats
       WHERE agent_id = ?
-        ${since ? 'AND recorded_at >= ?' : ''}
+        ${since ? "AND recorded_at >= ?" : ""}
       ORDER BY recorded_at
     )
     SELECT
@@ -680,7 +701,7 @@ export function detectHeartbeatGaps(
   const params = since ? [agentId, since, thresholdMs] : [agentId, thresholdMs];
   const gaps = query<HeartbeatGap>(sql, params);
 
-  return gaps.map(gap => ({
+  return gaps.map((gap) => ({
     ...gap,
     suspected_crash: gap.duration_ms > 900000, // >15 minutes = likely crash
   }));
@@ -699,38 +720,38 @@ export function getActivityStream(options: {
   since?: string;
   until?: string;
 }): Activity[] {
-  let sql = 'SELECT * FROM agent_activities WHERE 1=1';
+  let sql = "SELECT * FROM agent_activities WHERE 1=1";
   const params: unknown[] = [];
 
   if (options.agentId) {
-    sql += ' AND agent_id = ?';
+    sql += " AND agent_id = ?";
     params.push(options.agentId);
   }
 
   if (options.activityTypes && options.activityTypes.length > 0) {
-    sql += ` AND activity_type IN (${options.activityTypes.map(() => '?').join(',')})`;
+    sql += ` AND activity_type IN (${options.activityTypes.map(() => "?").join(",")})`;
     params.push(...options.activityTypes);
   }
 
   if (options.since) {
-    sql += ' AND created_at >= ?';
+    sql += " AND created_at >= ?";
     params.push(options.since);
   }
 
   if (options.until) {
-    sql += ' AND created_at <= ?';
+    sql += " AND created_at <= ?";
     params.push(options.until);
   }
 
-  sql += ' ORDER BY created_at DESC';
+  sql += " ORDER BY created_at DESC";
 
   if (options.limit) {
-    sql += ' LIMIT ?';
+    sql += " LIMIT ?";
     params.push(options.limit);
   }
 
   if (options.offset) {
-    sql += ' OFFSET ?';
+    sql += " OFFSET ?";
     params.push(options.offset);
   }
 
@@ -792,15 +813,18 @@ export function getActivityStream(options: {
 ## Dependencies
 
 **Upstream (Must Complete First):**
+
 - ✅ PHASE3-TASK-05: Dashboard widget updates (provides enhanced agent cards)
 - ✅ WebSocket infrastructure (COMPLETED)
 - ✅ Database schema with agent_heartbeats, agent_activities tables (COMPLETED)
 
 **Downstream (Depends on This):**
+
 - PHASE7-TASK-03: Automated alerting based on heartbeat/error patterns
 - PHASE8-TASK-02: Agent performance optimization using activity analytics
 
 **Parallel Work (Can Develop Concurrently):**
+
 - PHASE6-TASK-03: Telegram notification integration
 - PHASE6-TASK-04: Idea workspace
 
@@ -1017,18 +1041,21 @@ describe('Performance', () => {
 ## Success Metrics
 
 **Operational:**
+
 - Heartbeat gap detection accuracy: 100% (no false positives/negatives)
 - Activity stream load time: <1 second for 100 items
 - Search response time: <2 seconds for 10k+ logs
 - WebSocket message latency: <100ms (p95)
 
 **Usability:**
+
 - Users can identify stuck agents within 10 seconds
 - Error root cause visible in <5 clicks
 - 80%+ of users understand timeline without docs
 - Mobile usability score: 70%+ on Lighthouse
 
 **Reliability:**
+
 - Dashboard recovers from WebSocket disconnect: 100%
 - No crashes with missing/malformed data
 - Works with 100+ concurrent sessions
@@ -1050,6 +1077,7 @@ describe('Performance', () => {
 ## References
 
 ### Existing Code (Reuse)
+
 - `parent-harness/dashboard/src/pages/AgentActivity.tsx` - Basic activity rendering
 - `parent-harness/dashboard/src/components/SessionLogModal.tsx` - Session log modal
 - `parent-harness/dashboard/src/hooks/useAgents.ts` - Agent data fetching
@@ -1057,10 +1085,12 @@ describe('Performance', () => {
 - `parent-harness/orchestrator/src/api/agents.ts` - Agent API endpoints
 
 ### Database Schema
+
 - `parent-harness/database/schema.sql` - agent_heartbeats table
 - `parent-harness/orchestrator/database/migrations/001_vibe_patterns.sql` - agent_activities table
 
 ### Strategic Documents
+
 - `STRATEGIC_PLAN.md` - Phase 6 goals
 - `docs/specs/PHASE3-TASK-05-dashboard-widget-updates.md` - Widget patterns
 - `parent-harness/docs/PHASES.md` - Implementation phases

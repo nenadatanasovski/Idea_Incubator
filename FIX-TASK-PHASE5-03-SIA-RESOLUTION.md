@@ -11,18 +11,21 @@
 ## Investigation Summary
 
 ### 1. Task Status Check
+
 ```sql
 SELECT display_id, spec_link, status, retry_count FROM tasks WHERE display_id = 'PHASE5-TASK-03';
 -- Result: spec_link was NULL, status = 'blocked', retry_count = 5
 ```
 
 ### 2. Specification Discovery
+
 - **Spec File:** `docs/specs/PHASE5-TASK-03-dynamic-score-adjustment.md` (788 lines)
 - **Validation Report:** `PHASE5-TASK-03-VALIDATION-REPORT.md` shows ✅ PASS
 - **Status:** Specification is comprehensive and complete
 - **Implementation Status:** Core functionality already implemented (6/7 P0 criteria, 2/5 P1 criteria)
 
 ### 3. Agent Session History
+
 ```
 18031bf6 | spec_agent | failed | 2026-02-08 06:51:27 | "You've hit your limit"
 e4c2b742 | spec_agent | failed | 2026-02-08 06:48:57 | "You've hit your limit"
@@ -41,20 +44,26 @@ fc6d3fbf | spec_agent | failed | 2026-02-08 06:46:51 | "You've hit your limit"
 ## Root Cause Analysis
 
 ### The Problem
+
 The orchestrator workflow requires `tasks.spec_link` to be populated for task progression:
+
 1. **spec_agent** creates specification → should update `spec_link` field
 2. **orchestrator** checks `spec_link` to know spec phase is complete
 3. **WITHOUT spec_link** → orchestrator keeps retrying spec_agent
 4. **Rate limiting** → spec_agent hits API limits and fails
 
 ### Why It Happened
+
 Spec agent sessions (081de685, 5088cd09) completed successfully and created the specification file, but **failed to update the database** with the file path. This is a systemic orchestrator bug affecting multiple tasks:
+
 - TASK-029 (Clarification Agent)
 - PHASE3-TASK-03 (Agent Session Tracking)
 - PHASE5-TASK-03 (Dynamic Score Adjustment)
 
 ### Task Completion Status
+
 According to the QA validation report:
+
 - ✅ **Core functionality complete** (6/7 P0 criteria implemented)
 - ✅ **Score adjustments working correctly** (calculation, capping, persistence)
 - ✅ **Database constraints enforced** (score ranges, confidence bounds)
@@ -68,6 +77,7 @@ According to the QA validation report:
 ## Resolution Applied
 
 ### Fix
+
 ```sql
 UPDATE tasks
 SET spec_link = 'docs/specs/PHASE5-TASK-03-dynamic-score-adjustment.md',
@@ -77,6 +87,7 @@ WHERE display_id = 'PHASE5-TASK-03';
 ```
 
 ### Verification
+
 ```sql
 SELECT display_id, spec_link, status, retry_count FROM tasks WHERE display_id = 'PHASE5-TASK-03';
 -- Result: PHASE5-TASK-03 | docs/specs/PHASE5-TASK-03-dynamic-score-adjustment.md | pending | 0
@@ -89,6 +100,7 @@ SELECT display_id, spec_link, status, retry_count FROM tasks WHERE display_id = 
 ## Systemic Issue: Orchestrator Bug
 
 ### The Pattern (3+ Tasks Affected)
+
 1. Spec agent creates specification file
 2. Spec agent session completes successfully
 3. **Database NOT updated** with spec_link
@@ -96,13 +108,16 @@ SELECT display_id, spec_link, status, retry_count FROM tasks WHERE display_id = 
 5. Rate limiting causes failure cascade
 
 ### Recommended Fix
+
 The orchestrator needs validation logic after spec_agent sessions:
+
 1. Parse spec_agent stdout/output for specification file path
 2. Extract file path from agent's completion message
 3. Update `tasks.spec_link` automatically
 4. Validate file exists before advancing task status
 
 ### Code Location
+
 - **Orchestrator:** `parent-harness/orchestrator/src/orchestrator/index.ts`
 - **Session Handler:** Agent completion hooks should update task metadata
 - **Validation:** Add post-spec-agent hook to verify spec_link is set
@@ -112,28 +127,34 @@ The orchestrator needs validation logic after spec_agent sessions:
 ## Prevention Strategy
 
 ### Short-Term (Manual)
+
 When SIA detects blocked tasks with missing spec_link:
+
 1. Search for specification file: `glob **/TASK-ID*.md`
 2. Verify specification quality (completeness, pass criteria)
 3. Link specification: `UPDATE tasks SET spec_link = '...' WHERE display_id = '...'`
 4. Reset retry counter: `SET retry_count = 0, status = 'pending'`
 
 ### Long-Term (Automated)
+
 Orchestrator enhancement:
+
 ```typescript
 async function postSpecAgentHook(session: AgentSession, task: Task) {
-  if (session.agent === 'spec_agent' && session.status === 'completed') {
+  if (session.agent === "spec_agent" && session.status === "completed") {
     // Parse output for specification path
     const specPath = extractSpecPath(session.output);
 
     if (specPath && fs.existsSync(specPath)) {
-      await db.run(
-        `UPDATE tasks SET spec_link = ? WHERE id = ?`,
-        [specPath, task.id]
-      );
+      await db.run(`UPDATE tasks SET spec_link = ? WHERE id = ?`, [
+        specPath,
+        task.id,
+      ]);
       logger.info(`Auto-linked spec: ${specPath} → ${task.display_id}`);
     } else {
-      logger.warn(`Spec agent completed but no spec file found: ${task.display_id}`);
+      logger.warn(
+        `Spec agent completed but no spec file found: ${task.display_id}`,
+      );
     }
   }
 }
@@ -144,16 +165,20 @@ async function postSpecAgentHook(session: AgentSession, task: Task) {
 ## Impact Assessment
 
 ### This Task (PHASE5-TASK-03)
+
 - ✅ **Unblocked** - Task can now progress to build phase
 - ✅ **No code changes needed** - Implementation already complete
 - ⚠️ **Optional enhancements** remain (per-round updates, dedicated tests)
 
 ### Other Blocked Tasks
+
 Similar pattern likely affects:
+
 - Any task where spec_agent completed but task remains blocked
 - Check for: `spec_link IS NULL AND retry_count >= 3`
 
 ### Query to Find Similar Issues
+
 ```sql
 SELECT t.display_id, t.status, t.retry_count, t.spec_link,
        COUNT(s.id) as session_count,

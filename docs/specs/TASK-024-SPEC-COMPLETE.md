@@ -3,6 +3,7 @@
 ## Overview
 
 Task 2.6 in PHASES.md (Create Test System Tables Seed) is **partially complete**. According to PHASES.md, there should be 16 test suites (one per phase) with complete test data, but currently:
+
 - **✅ Complete**: 1 test suite (`phase_1_frontend_shell`) with 8 test cases, 21 test steps, 28 test assertions
 - **❌ Missing**: 15 test suites (phases 2-16) with complete test case data
 
@@ -13,12 +14,14 @@ This specification addresses completing the test system seed data to enable prop
 ### What Exists ✅
 
 **Database State**:
+
 - 1 test suite: `phase_1_frontend_shell` (Phase 1: Frontend Shell)
 - 8 test cases for Phase 1 tasks (task_1 through task_8)
 - 21 test steps across all Phase 1 cases
 - 28 test assertions for key pass criteria
 
 **Implementation Files**:
+
 - `parent-harness/orchestrator/src/db/seed-phase1-tests.ts` - Complete Phase 1 test data seeding
 - `parent-harness/orchestrator/src/db/seed.ts` - Main seed script that calls `seedPhase1Tests()`
 - `parent-harness/orchestrator/src/db/verify-phase1-seed.ts` - Phase 1 verification script
@@ -26,6 +29,7 @@ This specification addresses completing the test system seed data to enable prop
 ### What's Missing ❌
 
 According to PHASES.md Task 2.6 pass criteria:
+
 - **16 test suites** (one per phase) - Currently only 1 exists
 - **Test cases for Phase 2-16 tasks** - 0 exist
 - **Test steps for each case** - 0 exist
@@ -35,24 +39,24 @@ According to PHASES.md Task 2.6 pass criteria:
 
 ### Task Breakdown from PHASES.md
 
-| Phase | Name | Tasks | Suite ID |
-|-------|------|-------|----------|
-| 1 | Frontend Shell | 8 | `phase_1_frontend_shell` ✅ |
-| 2 | Data Model | 6 | `phase_2_data_model` ⚠️ |
-| 3 | Backend API | 7 | `phase_3_backend_api` ⚠️ |
-| 4 | Frontend + API | 7 | `phase_4_frontend_api` ⚠️ |
-| 5 | WebSocket | 7 | `phase_5_websocket` ⚠️ |
-| 6 | Telegram Bot | 7 | `phase_6_telegram_bot` ⚠️ |
-| 7 | Orchestrator | 8 | `phase_7_orchestrator` ⚠️ |
-| 8 | Clarification Agent | 6 | `phase_8_clarification` ⚠️ |
-| 9 | Agent Spawner | 7 | `phase_9_agent_spawner` ⚠️ |
-| 10 | Agent Memory | 5 | `phase_10_agent_memory` ⚠️ |
-| 11 | QA Validation | 6 | `phase_11_qa_validation` ⚠️ |
-| 12 | Human Sim Agent | 6 | `phase_12_human_sim` ⚠️ |
-| 13 | Wave Execution | 6 | `phase_13_wave_execution` ⚠️ |
-| 14 | Planning Agent | 6 | `phase_14_planning_agent` ⚠️ |
-| 15 | Self-Improvement | 5 | `phase_15_self_improvement` ⚠️ |
-| 16 | Polish | 9 | `phase_16_polish` ⚠️ |
+| Phase | Name                | Tasks | Suite ID                       |
+| ----- | ------------------- | ----- | ------------------------------ |
+| 1     | Frontend Shell      | 8     | `phase_1_frontend_shell` ✅    |
+| 2     | Data Model          | 6     | `phase_2_data_model` ⚠️        |
+| 3     | Backend API         | 7     | `phase_3_backend_api` ⚠️       |
+| 4     | Frontend + API      | 7     | `phase_4_frontend_api` ⚠️      |
+| 5     | WebSocket           | 7     | `phase_5_websocket` ⚠️         |
+| 6     | Telegram Bot        | 7     | `phase_6_telegram_bot` ⚠️      |
+| 7     | Orchestrator        | 8     | `phase_7_orchestrator` ⚠️      |
+| 8     | Clarification Agent | 6     | `phase_8_clarification` ⚠️     |
+| 9     | Agent Spawner       | 7     | `phase_9_agent_spawner` ⚠️     |
+| 10    | Agent Memory        | 5     | `phase_10_agent_memory` ⚠️     |
+| 11    | QA Validation       | 6     | `phase_11_qa_validation` ⚠️    |
+| 12    | Human Sim Agent     | 6     | `phase_12_human_sim` ⚠️        |
+| 13    | Wave Execution      | 6     | `phase_13_wave_execution` ⚠️   |
+| 14    | Planning Agent      | 6     | `phase_14_planning_agent` ⚠️   |
+| 15    | Self-Improvement    | 5     | `phase_15_self_improvement` ⚠️ |
+| 16    | Polish              | 9     | `phase_16_polish` ⚠️           |
 
 ## Requirements
 
@@ -175,365 +179,387 @@ New file following the exact pattern of `seed-phase1-tests.ts`:
 **Purpose**: Seed Phase 2 test cases (6 tasks: 2.1-2.6)
 
 **Structure**:
+
 ```typescript
-import { run, query, getOne } from './index.js';
+import { run, query, getOne } from "./index.js";
 
 export function seedPhase2Tests(): void {
-  console.log('🧪 Seeding Phase 2 test data...');
+  console.log("🧪 Seeding Phase 2 test data...");
 
-  const suiteId = 'phase_2_data_model';
+  const suiteId = "phase_2_data_model";
 
   // Create Phase 2 test suite
-  run(`
+  run(
+    `
     INSERT INTO test_suites (id, name, description, type, source, phase, enabled)
     VALUES (?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       name = excluded.name,
       description = excluded.description
-  `, [
-    suiteId,
-    'Phase 2: Data Model',
-    'Database ready with schema and seed data',
-    'verification',
-    'phases',
-    2,
-    1
-  ]);
+  `,
+    [
+      suiteId,
+      "Phase 2: Data Model",
+      "Database ready with schema and seed data",
+      "verification",
+      "phases",
+      2,
+      1,
+    ],
+  );
 
   // Define test cases array with steps and assertions
   const testCases = [
     // Task 2.1: SQLite Database Setup
     {
-      id: 'phase_2_task_1_sqlite_setup',
-      name: 'SQLite Database Setup',
-      description: 'Verify database connection and initialization',
-      priority: 'P0' as const,
+      id: "phase_2_task_1_sqlite_setup",
+      name: "SQLite Database Setup",
+      description: "Verify database connection and initialization",
+      priority: "P0" as const,
       steps: [
         {
-          name: 'Check database file exists',
-          command: 'test -f parent-harness/data/harness.db',
+          name: "Check database file exists",
+          command: "test -f parent-harness/data/harness.db",
           expectedExitCode: 0,
           assertions: [
             {
-              type: 'exists' as const,
-              target: 'parent-harness/data/harness.db',
-              errorMessage: 'Database file should exist'
-            }
-          ]
+              type: "exists" as const,
+              target: "parent-harness/data/harness.db",
+              errorMessage: "Database file should exist",
+            },
+          ],
         },
         {
-          name: 'Verify database connection works',
+          name: "Verify database connection works",
           command: 'sqlite3 parent-harness/data/harness.db "SELECT 1"',
           expectedExitCode: 0,
-          expectedOutputContains: '1',
+          expectedOutputContains: "1",
           assertions: [
             {
-              type: 'equals' as const,
-              target: 'exit_code',
-              expectedValue: '0',
-              errorMessage: 'Database should be accessible'
-            }
-          ]
+              type: "equals" as const,
+              target: "exit_code",
+              expectedValue: "0",
+              errorMessage: "Database should be accessible",
+            },
+          ],
         },
         {
-          name: 'Check database module exists',
-          command: 'test -f parent-harness/orchestrator/src/db/index.ts',
+          name: "Check database module exists",
+          command: "test -f parent-harness/orchestrator/src/db/index.ts",
           expectedExitCode: 0,
           assertions: [
             {
-              type: 'exists' as const,
-              target: 'parent-harness/orchestrator/src/db/index.ts',
-              errorMessage: 'Database module should exist'
-            }
-          ]
-        }
-      ]
+              type: "exists" as const,
+              target: "parent-harness/orchestrator/src/db/index.ts",
+              errorMessage: "Database module should exist",
+            },
+          ],
+        },
+      ],
     },
     // Task 2.2: Run Schema (33 tables)
     {
-      id: 'phase_2_task_2_schema',
-      name: 'Run Schema',
-      description: 'Verify all 33 tables from schema.sql are created',
-      priority: 'P0' as const,
+      id: "phase_2_task_2_schema",
+      name: "Run Schema",
+      description: "Verify all 33 tables from schema.sql are created",
+      priority: "P0" as const,
       steps: [
         {
-          name: 'Count tables in database',
-          command: 'sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM sqlite_master WHERE type=\'table\' AND name NOT LIKE \'sqlite_%\'"',
+          name: "Count tables in database",
+          command:
+            "sqlite3 parent-harness/data/harness.db \"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'\"",
           expectedExitCode: 0,
-          expectedOutputContains: '33',
+          expectedOutputContains: "33",
           assertions: [
             {
-              type: 'contains' as const,
-              target: 'stdout',
-              expectedValue: '33',
-              errorMessage: 'Should have 33 tables'
-            }
-          ]
+              type: "contains" as const,
+              target: "stdout",
+              expectedValue: "33",
+              errorMessage: "Should have 33 tables",
+            },
+          ],
         },
         {
-          name: 'Verify agents table exists',
-          command: 'sqlite3 parent-harness/data/harness.db "SELECT name FROM sqlite_master WHERE type=\'table\' AND name=\'agents\'"',
+          name: "Verify agents table exists",
+          command:
+            "sqlite3 parent-harness/data/harness.db \"SELECT name FROM sqlite_master WHERE type='table' AND name='agents'\"",
           expectedExitCode: 0,
-          expectedOutputContains: 'agents',
+          expectedOutputContains: "agents",
           assertions: [
             {
-              type: 'contains' as const,
-              target: 'stdout',
-              expectedValue: 'agents',
-              errorMessage: 'agents table should exist'
-            }
-          ]
+              type: "contains" as const,
+              target: "stdout",
+              expectedValue: "agents",
+              errorMessage: "agents table should exist",
+            },
+          ],
         },
         {
-          name: 'Verify tasks table exists',
-          command: 'sqlite3 parent-harness/data/harness.db "SELECT name FROM sqlite_master WHERE type=\'table\' AND name=\'tasks\'"',
+          name: "Verify tasks table exists",
+          command:
+            "sqlite3 parent-harness/data/harness.db \"SELECT name FROM sqlite_master WHERE type='table' AND name='tasks'\"",
           expectedExitCode: 0,
-          expectedOutputContains: 'tasks',
+          expectedOutputContains: "tasks",
           assertions: [
             {
-              type: 'contains' as const,
-              target: 'stdout',
-              expectedValue: 'tasks',
-              errorMessage: 'tasks table should exist'
-            }
-          ]
-        }
-      ]
+              type: "contains" as const,
+              target: "stdout",
+              expectedValue: "tasks",
+              errorMessage: "tasks table should exist",
+            },
+          ],
+        },
+      ],
     },
     // Task 2.3: Seed Agents (13 agents)
     {
-      id: 'phase_2_task_3_seed_agents',
-      name: 'Seed Agents',
-      description: 'Verify 13 agents are seeded with correct types and telegram channels',
-      priority: 'P0' as const,
+      id: "phase_2_task_3_seed_agents",
+      name: "Seed Agents",
+      description:
+        "Verify 13 agents are seeded with correct types and telegram channels",
+      priority: "P0" as const,
       steps: [
         {
-          name: 'Count agents in database',
-          command: 'sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM agents"',
+          name: "Count agents in database",
+          command:
+            'sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM agents"',
           expectedExitCode: 0,
-          expectedOutputContains: '13',
+          expectedOutputContains: "13",
           assertions: [
             {
-              type: 'contains' as const,
-              target: 'stdout',
-              expectedValue: '13',
-              errorMessage: 'Should have 13 agents'
-            }
-          ]
+              type: "contains" as const,
+              target: "stdout",
+              expectedValue: "13",
+              errorMessage: "Should have 13 agents",
+            },
+          ],
         },
         {
-          name: 'Verify all agents have telegram_channel',
-          command: 'sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM agents WHERE telegram_channel IS NOT NULL AND telegram_channel != \'\'"',
+          name: "Verify all agents have telegram_channel",
+          command:
+            "sqlite3 parent-harness/data/harness.db \"SELECT COUNT(*) FROM agents WHERE telegram_channel IS NOT NULL AND telegram_channel != ''\"",
           expectedExitCode: 0,
-          expectedOutputContains: '13',
+          expectedOutputContains: "13",
           assertions: [
             {
-              type: 'contains' as const,
-              target: 'stdout',
-              expectedValue: '13',
-              errorMessage: 'All agents should have telegram_channel'
-            }
-          ]
+              type: "contains" as const,
+              target: "stdout",
+              expectedValue: "13",
+              errorMessage: "All agents should have telegram_channel",
+            },
+          ],
         },
         {
-          name: 'Verify orchestrator agent exists',
-          command: 'sqlite3 parent-harness/data/harness.db "SELECT id FROM agents WHERE id=\'orchestrator\'"',
+          name: "Verify orchestrator agent exists",
+          command:
+            "sqlite3 parent-harness/data/harness.db \"SELECT id FROM agents WHERE id='orchestrator'\"",
           expectedExitCode: 0,
-          expectedOutputContains: 'orchestrator',
+          expectedOutputContains: "orchestrator",
           assertions: [
             {
-              type: 'contains' as const,
-              target: 'stdout',
-              expectedValue: 'orchestrator',
-              errorMessage: 'orchestrator agent should exist'
-            }
-          ]
-        }
-      ]
+              type: "contains" as const,
+              target: "stdout",
+              expectedValue: "orchestrator",
+              errorMessage: "orchestrator agent should exist",
+            },
+          ],
+        },
+      ],
     },
     // Task 2.4: Seed Sample Tasks
     {
-      id: 'phase_2_task_4_seed_tasks',
-      name: 'Seed Sample Tasks',
-      description: 'Verify task_lists table has rows and sample tasks exist',
-      priority: 'P1' as const,
+      id: "phase_2_task_4_seed_tasks",
+      name: "Seed Sample Tasks",
+      description: "Verify task_lists table has rows and sample tasks exist",
+      priority: "P1" as const,
       steps: [
         {
-          name: 'Check task_lists has at least 1 row',
-          command: 'sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM task_lists"',
+          name: "Check task_lists has at least 1 row",
+          command:
+            'sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM task_lists"',
           expectedExitCode: 0,
           assertions: [
             {
-              type: 'truthy' as const,
-              target: 'stdout',
-              errorMessage: 'task_lists should have at least 1 row'
-            }
-          ]
+              type: "truthy" as const,
+              target: "stdout",
+              errorMessage: "task_lists should have at least 1 row",
+            },
+          ],
         },
         {
-          name: 'Check tasks table has at least 5 rows',
-          command: 'sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM tasks"',
+          name: "Check tasks table has at least 5 rows",
+          command:
+            'sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM tasks"',
           expectedExitCode: 0,
           assertions: [
             {
-              type: 'truthy' as const,
-              target: 'stdout',
-              errorMessage: 'tasks should have at least 5 rows'
-            }
-          ]
+              type: "truthy" as const,
+              target: "stdout",
+              errorMessage: "tasks should have at least 5 rows",
+            },
+          ],
         },
         {
-          name: 'Verify task relationships exist',
-          command: 'sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM task_relationships"',
+          name: "Verify task relationships exist",
+          command:
+            'sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM task_relationships"',
           expectedExitCode: 0,
           assertions: [
             {
-              type: 'truthy' as const,
-              target: 'stdout',
-              errorMessage: 'task_relationships should have rows'
-            }
-          ]
-        }
-      ]
+              type: "truthy" as const,
+              target: "stdout",
+              errorMessage: "task_relationships should have rows",
+            },
+          ],
+        },
+      ],
     },
     // Task 2.5: Create Query Functions
     {
-      id: 'phase_2_task_5_queries',
-      name: 'Create Query Functions',
-      description: 'Verify TypeScript query modules exist (agents.ts, tasks.ts, sessions.ts, events.ts)',
-      priority: 'P0' as const,
+      id: "phase_2_task_5_queries",
+      name: "Create Query Functions",
+      description:
+        "Verify TypeScript query modules exist (agents.ts, tasks.ts, sessions.ts, events.ts)",
+      priority: "P0" as const,
       steps: [
         {
-          name: 'Check agents.ts exists',
-          command: 'test -f parent-harness/orchestrator/src/db/agents.ts',
+          name: "Check agents.ts exists",
+          command: "test -f parent-harness/orchestrator/src/db/agents.ts",
           expectedExitCode: 0,
           assertions: [
             {
-              type: 'exists' as const,
-              target: 'parent-harness/orchestrator/src/db/agents.ts',
-              errorMessage: 'agents.ts should exist'
-            }
-          ]
+              type: "exists" as const,
+              target: "parent-harness/orchestrator/src/db/agents.ts",
+              errorMessage: "agents.ts should exist",
+            },
+          ],
         },
         {
-          name: 'Check tasks.ts exists',
-          command: 'test -f parent-harness/orchestrator/src/db/tasks.ts',
+          name: "Check tasks.ts exists",
+          command: "test -f parent-harness/orchestrator/src/db/tasks.ts",
           expectedExitCode: 0,
           assertions: [
             {
-              type: 'exists' as const,
-              target: 'parent-harness/orchestrator/src/db/tasks.ts',
-              errorMessage: 'tasks.ts should exist'
-            }
-          ]
+              type: "exists" as const,
+              target: "parent-harness/orchestrator/src/db/tasks.ts",
+              errorMessage: "tasks.ts should exist",
+            },
+          ],
         },
         {
-          name: 'Check sessions.ts exists',
-          command: 'test -f parent-harness/orchestrator/src/db/sessions.ts',
+          name: "Check sessions.ts exists",
+          command: "test -f parent-harness/orchestrator/src/db/sessions.ts",
           expectedExitCode: 0,
           assertions: [
             {
-              type: 'exists' as const,
-              target: 'parent-harness/orchestrator/src/db/sessions.ts',
-              errorMessage: 'sessions.ts should exist'
-            }
-          ]
+              type: "exists" as const,
+              target: "parent-harness/orchestrator/src/db/sessions.ts",
+              errorMessage: "sessions.ts should exist",
+            },
+          ],
         },
         {
-          name: 'Check events.ts exists',
-          command: 'test -f parent-harness/orchestrator/src/db/events.ts',
+          name: "Check events.ts exists",
+          command: "test -f parent-harness/orchestrator/src/db/events.ts",
           expectedExitCode: 0,
           assertions: [
             {
-              type: 'exists' as const,
-              target: 'parent-harness/orchestrator/src/db/events.ts',
-              errorMessage: 'events.ts should exist'
-            }
-          ]
-        }
-      ]
+              type: "exists" as const,
+              target: "parent-harness/orchestrator/src/db/events.ts",
+              errorMessage: "events.ts should exist",
+            },
+          ],
+        },
+      ],
     },
     // Task 2.6: Create Test System Tables Seed
     {
-      id: 'phase_2_task_6_test_seed',
-      name: 'Create Test System Tables Seed',
-      description: 'Verify 16 test suites exist and Phase 1 has 8 test cases',
-      priority: 'P0' as const,
+      id: "phase_2_task_6_test_seed",
+      name: "Create Test System Tables Seed",
+      description: "Verify 16 test suites exist and Phase 1 has 8 test cases",
+      priority: "P0" as const,
       steps: [
         {
-          name: 'Count test suites with source=phases',
-          command: 'sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM test_suites WHERE source=\'phases\'"',
+          name: "Count test suites with source=phases",
+          command:
+            "sqlite3 parent-harness/data/harness.db \"SELECT COUNT(*) FROM test_suites WHERE source='phases'\"",
           expectedExitCode: 0,
-          expectedOutputContains: '16',
+          expectedOutputContains: "16",
           assertions: [
             {
-              type: 'contains' as const,
-              target: 'stdout',
-              expectedValue: '16',
-              errorMessage: 'Should have 16 test suites'
-            }
-          ]
+              type: "contains" as const,
+              target: "stdout",
+              expectedValue: "16",
+              errorMessage: "Should have 16 test suites",
+            },
+          ],
         },
         {
-          name: 'Count Phase 1 test cases',
-          command: 'sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM test_cases WHERE suite_id=\'phase_1_frontend_shell\'"',
+          name: "Count Phase 1 test cases",
+          command:
+            "sqlite3 parent-harness/data/harness.db \"SELECT COUNT(*) FROM test_cases WHERE suite_id='phase_1_frontend_shell'\"",
           expectedExitCode: 0,
-          expectedOutputContains: '8',
+          expectedOutputContains: "8",
           assertions: [
             {
-              type: 'contains' as const,
-              target: 'stdout',
-              expectedValue: '8',
-              errorMessage: 'Phase 1 should have 8 test cases'
-            }
-          ]
+              type: "contains" as const,
+              target: "stdout",
+              expectedValue: "8",
+              errorMessage: "Phase 1 should have 8 test cases",
+            },
+          ],
         },
         {
-          name: 'Verify test steps exist for Phase 1',
-          command: 'sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM test_steps WHERE case_id LIKE \'phase_1_task_%\'"',
+          name: "Verify test steps exist for Phase 1",
+          command:
+            "sqlite3 parent-harness/data/harness.db \"SELECT COUNT(*) FROM test_steps WHERE case_id LIKE 'phase_1_task_%'\"",
           expectedExitCode: 0,
           assertions: [
             {
-              type: 'truthy' as const,
-              target: 'stdout',
-              errorMessage: 'Phase 1 should have test steps'
-            }
-          ]
+              type: "truthy" as const,
+              target: "stdout",
+              errorMessage: "Phase 1 should have test steps",
+            },
+          ],
         },
         {
-          name: 'Verify test assertions exist for Phase 1',
-          command: 'sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM test_assertions WHERE step_id IN (SELECT id FROM test_steps WHERE case_id LIKE \'phase_1_task_%\')"',
+          name: "Verify test assertions exist for Phase 1",
+          command:
+            "sqlite3 parent-harness/data/harness.db \"SELECT COUNT(*) FROM test_assertions WHERE step_id IN (SELECT id FROM test_steps WHERE case_id LIKE 'phase_1_task_%')\"",
           expectedExitCode: 0,
           assertions: [
             {
-              type: 'truthy' as const,
-              target: 'stdout',
-              errorMessage: 'Phase 1 should have test assertions'
-            }
-          ]
-        }
-      ]
-    }
+              type: "truthy" as const,
+              target: "stdout",
+              errorMessage: "Phase 1 should have test assertions",
+            },
+          ],
+        },
+      ],
+    },
   ];
 
   // Insert test cases, steps, and assertions (same pattern as Phase 1)
   for (const testCase of testCases) {
     // Insert test case
-    run(`
+    run(
+      `
       INSERT INTO test_cases (id, suite_id, name, description, priority, enabled)
       VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         name = excluded.name,
         description = excluded.description,
         priority = excluded.priority
-    `, [
-      testCase.id,
-      suiteId,
-      testCase.name,
-      testCase.description,
-      testCase.priority,
-      1
-    ]);
+    `,
+      [
+        testCase.id,
+        suiteId,
+        testCase.name,
+        testCase.description,
+        testCase.priority,
+        1,
+      ],
+    );
 
     console.log(`  📝 Created case: ${testCase.id}`);
 
@@ -542,7 +568,8 @@ export function seedPhase2Tests(): void {
       const step = testCase.steps[stepIdx];
       const stepId = `${testCase.id}_step_${stepIdx + 1}`;
 
-      run(`
+      run(
+        `
         INSERT INTO test_steps (id, case_id, sequence, name, command, expected_exit_code, expected_output_contains)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
@@ -550,23 +577,30 @@ export function seedPhase2Tests(): void {
           command = excluded.command,
           expected_exit_code = excluded.expected_exit_code,
           expected_output_contains = excluded.expected_output_contains
-      `, [
-        stepId,
-        testCase.id,
-        stepIdx + 1,
-        step.name,
-        step.command,
-        step.expectedExitCode ?? 0,
-        step.expectedOutputContains ?? null
-      ]);
+      `,
+        [
+          stepId,
+          testCase.id,
+          stepIdx + 1,
+          step.name,
+          step.command,
+          step.expectedExitCode ?? 0,
+          step.expectedOutputContains ?? null,
+        ],
+      );
 
       // Insert assertions
       if (step.assertions) {
-        for (let assertIdx = 0; assertIdx < step.assertions.length; assertIdx++) {
+        for (
+          let assertIdx = 0;
+          assertIdx < step.assertions.length;
+          assertIdx++
+        ) {
           const assertion = step.assertions[assertIdx];
           const assertionId = `${stepId}_assert_${assertIdx + 1}`;
 
-          run(`
+          run(
+            `
             INSERT INTO test_assertions (id, step_id, sequence, assertion_type, target, expected_value, error_message)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
@@ -574,40 +608,45 @@ export function seedPhase2Tests(): void {
               target = excluded.target,
               expected_value = excluded.expected_value,
               error_message = excluded.error_message
-          `, [
-            assertionId,
-            stepId,
-            assertIdx + 1,
-            assertion.type,
-            assertion.target,
-            (assertion as any).expectedValue ?? null,
-            assertion.errorMessage
-          ]);
+          `,
+            [
+              assertionId,
+              stepId,
+              assertIdx + 1,
+              assertion.type,
+              assertion.target,
+              (assertion as any).expectedValue ?? null,
+              assertion.errorMessage,
+            ],
+          );
         }
       }
     }
   }
 
   // Count what we created
-  const caseCount = getOne<{ count: number }>(
-    'SELECT COUNT(*) as count FROM test_cases WHERE suite_id = ?',
-    [suiteId]
-  )?.count || 0;
+  const caseCount =
+    getOne<{ count: number }>(
+      "SELECT COUNT(*) as count FROM test_cases WHERE suite_id = ?",
+      [suiteId],
+    )?.count || 0;
 
-  const stepCount = getOne<{ count: number }>(
-    `SELECT COUNT(*) as count FROM test_steps
+  const stepCount =
+    getOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM test_steps
      WHERE case_id IN (SELECT id FROM test_cases WHERE suite_id = ?)`,
-    [suiteId]
-  )?.count || 0;
+      [suiteId],
+    )?.count || 0;
 
-  const assertionCount = getOne<{ count: number }>(
-    `SELECT COUNT(*) as count FROM test_assertions
+  const assertionCount =
+    getOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM test_assertions
      WHERE step_id IN (
        SELECT id FROM test_steps
        WHERE case_id IN (SELECT id FROM test_cases WHERE suite_id = ?)
      )`,
-    [suiteId]
-  )?.count || 0;
+      [suiteId],
+    )?.count || 0;
 
   console.log(`\n✅ Phase 2 seed complete:`);
   console.log(`   - 1 suite: ${suiteId}`);
@@ -629,57 +668,141 @@ export default seedPhase2Tests;
 New lightweight file to create all 16 test suite records with proper metadata:
 
 ```typescript
-import { run, getOne } from './index.js';
+import { run, getOne } from "./index.js";
 
 /**
  * Create all 16 test suite records for PHASES.md phases
  * This ensures the suite hierarchy exists before detailed test case seeding
  */
 export function seedAllTestSuites(): void {
-  console.log('🧪 Seeding all 16 test suite records...');
+  console.log("🧪 Seeding all 16 test suite records...");
 
   const allPhases = [
-    { phase: 1, id: 'phase_1_frontend_shell', name: 'Frontend Shell', description: 'Static dashboard that can be tested independently' },
-    { phase: 2, id: 'phase_2_data_model', name: 'Data Model', description: 'Database ready with schema and seed data' },
-    { phase: 3, id: 'phase_3_backend_api', name: 'Backend API', description: 'REST API serving real data' },
-    { phase: 4, id: 'phase_4_frontend_api', name: 'Frontend + API', description: 'Dashboard connected to real API' },
-    { phase: 5, id: 'phase_5_websocket', name: 'WebSocket', description: 'Real-time updates via WebSocket' },
-    { phase: 6, id: 'phase_6_telegram_bot', name: 'Telegram Bot', description: 'Agent notifications via Telegram' },
-    { phase: 7, id: 'phase_7_orchestrator', name: 'Orchestrator', description: 'Task assignment and orchestration logic' },
-    { phase: 8, id: 'phase_8_clarification', name: 'Clarification Agent', description: 'Ask clarifying questions for vague tasks' },
-    { phase: 9, id: 'phase_9_agent_spawner', name: 'Agent Spawner', description: 'Spawn agent instances dynamically' },
-    { phase: 10, id: 'phase_10_agent_memory', name: 'Agent Memory', description: 'Persistent agent memory and context' },
-    { phase: 11, id: 'phase_11_qa_validation', name: 'QA Validation', description: 'Automated QA validation loops' },
-    { phase: 12, id: 'phase_12_human_sim', name: 'Human Sim Agent', description: 'Multi-persona usability testing' },
-    { phase: 13, id: 'phase_13_wave_execution', name: 'Wave Execution', description: 'Parallel task execution in waves' },
-    { phase: 14, id: 'phase_14_planning_agent', name: 'Planning Agent', description: 'Strategic planning and task breakdown' },
-    { phase: 15, id: 'phase_15_self_improvement', name: 'Self-Improvement', description: 'Platform improves itself autonomously' },
-    { phase: 16, id: 'phase_16_polish', name: 'Polish', description: 'Final polish and production readiness' },
+    {
+      phase: 1,
+      id: "phase_1_frontend_shell",
+      name: "Frontend Shell",
+      description: "Static dashboard that can be tested independently",
+    },
+    {
+      phase: 2,
+      id: "phase_2_data_model",
+      name: "Data Model",
+      description: "Database ready with schema and seed data",
+    },
+    {
+      phase: 3,
+      id: "phase_3_backend_api",
+      name: "Backend API",
+      description: "REST API serving real data",
+    },
+    {
+      phase: 4,
+      id: "phase_4_frontend_api",
+      name: "Frontend + API",
+      description: "Dashboard connected to real API",
+    },
+    {
+      phase: 5,
+      id: "phase_5_websocket",
+      name: "WebSocket",
+      description: "Real-time updates via WebSocket",
+    },
+    {
+      phase: 6,
+      id: "phase_6_telegram_bot",
+      name: "Telegram Bot",
+      description: "Agent notifications via Telegram",
+    },
+    {
+      phase: 7,
+      id: "phase_7_orchestrator",
+      name: "Orchestrator",
+      description: "Task assignment and orchestration logic",
+    },
+    {
+      phase: 8,
+      id: "phase_8_clarification",
+      name: "Clarification Agent",
+      description: "Ask clarifying questions for vague tasks",
+    },
+    {
+      phase: 9,
+      id: "phase_9_agent_spawner",
+      name: "Agent Spawner",
+      description: "Spawn agent instances dynamically",
+    },
+    {
+      phase: 10,
+      id: "phase_10_agent_memory",
+      name: "Agent Memory",
+      description: "Persistent agent memory and context",
+    },
+    {
+      phase: 11,
+      id: "phase_11_qa_validation",
+      name: "QA Validation",
+      description: "Automated QA validation loops",
+    },
+    {
+      phase: 12,
+      id: "phase_12_human_sim",
+      name: "Human Sim Agent",
+      description: "Multi-persona usability testing",
+    },
+    {
+      phase: 13,
+      id: "phase_13_wave_execution",
+      name: "Wave Execution",
+      description: "Parallel task execution in waves",
+    },
+    {
+      phase: 14,
+      id: "phase_14_planning_agent",
+      name: "Planning Agent",
+      description: "Strategic planning and task breakdown",
+    },
+    {
+      phase: 15,
+      id: "phase_15_self_improvement",
+      name: "Self-Improvement",
+      description: "Platform improves itself autonomously",
+    },
+    {
+      phase: 16,
+      id: "phase_16_polish",
+      name: "Polish",
+      description: "Final polish and production readiness",
+    },
   ];
 
   for (const phaseData of allPhases) {
-    run(`
+    run(
+      `
       INSERT INTO test_suites (id, name, description, type, source, phase, enabled)
       VALUES (?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         name = excluded.name,
         description = excluded.description,
         phase = excluded.phase
-    `, [
-      phaseData.id,
-      `Phase ${phaseData.phase}: ${phaseData.name}`,
-      phaseData.description,
-      'verification',
-      'phases',
-      phaseData.phase,
-      1
-    ]);
+    `,
+      [
+        phaseData.id,
+        `Phase ${phaseData.phase}: ${phaseData.name}`,
+        phaseData.description,
+        "verification",
+        "phases",
+        phaseData.phase,
+        1,
+      ],
+    );
   }
 
-  const suiteCount = getOne<{ count: number }>(
-    'SELECT COUNT(*) as count FROM test_suites WHERE source = ?',
-    ['phases']
-  )?.count || 0;
+  const suiteCount =
+    getOne<{ count: number }>(
+      "SELECT COUNT(*) as count FROM test_suites WHERE source = ?",
+      ["phases"],
+    )?.count || 0;
 
   console.log(`✅ Created ${suiteCount} test suites`);
 }
@@ -697,30 +820,108 @@ export default seedAllTestSuites;
 Update to call new seed functions. Remove the inline suite creation (lines 85-107) and replace with calls to modular seed functions:
 
 ```typescript
-import db from './index.js';
-import { v4 as uuidv4 } from 'uuid';
-import { seedAllTestSuites } from './seed-all-suites.js';
-import { seedPhase1Tests } from './seed-phase1-tests.js';
-import { seedPhase2Tests } from './seed-phase2-tests.js';
+import db from "./index.js";
+import { v4 as uuidv4 } from "uuid";
+import { seedAllTestSuites } from "./seed-all-suites.js";
+import { seedPhase1Tests } from "./seed-phase1-tests.js";
+import { seedPhase2Tests } from "./seed-phase2-tests.js";
 
-console.log('🌱 Seeding database...');
+console.log("🌱 Seeding database...");
 
 try {
   // Seed 13 agents
   const agents = [
-    { id: 'orchestrator', name: 'Orchestrator', type: 'orchestrator', model: 'haiku', telegram_channel: '@vibe-orchestrator' },
-    { id: 'planning_agent', name: 'Planning Agent', type: 'planning', model: 'opus', telegram_channel: '@vibe-planning' },
-    { id: 'build_agent', name: 'Build Agent', type: 'build', model: 'opus', telegram_channel: '@vibe-build' },
-    { id: 'spec_agent', name: 'Spec Agent', type: 'spec', model: 'opus', telegram_channel: '@vibe-spec' },
-    { id: 'qa_agent', name: 'QA Agent', type: 'qa', model: 'opus', telegram_channel: '@vibe-qa' },
-    { id: 'task_agent', name: 'Task Agent', type: 'task', model: 'sonnet', telegram_channel: '@vibe-task' },
-    { id: 'sia_agent', name: 'SIA', type: 'sia', model: 'opus', telegram_channel: '@vibe-sia' },
-    { id: 'research_agent', name: 'Research Agent', type: 'research', model: 'sonnet', telegram_channel: '@vibe-research' },
-    { id: 'evaluator_agent', name: 'Evaluator Agent', type: 'evaluator', model: 'opus', telegram_channel: '@vibe-evaluator' },
-    { id: 'decomposition_agent', name: 'Decomposition Agent', type: 'decomposition', model: 'sonnet', telegram_channel: '@vibe-decomposition' },
-    { id: 'validation_agent', name: 'Validation Agent', type: 'validation', model: 'sonnet', telegram_channel: '@vibe-validation' },
-    { id: 'clarification_agent', name: 'Clarification Agent', type: 'clarification', model: 'sonnet', telegram_channel: '@vibe-clarification' },
-    { id: 'human_sim_agent', name: 'Human Sim Agent', type: 'human_sim', model: 'sonnet', telegram_channel: '@vibe-human-sim' },
+    {
+      id: "orchestrator",
+      name: "Orchestrator",
+      type: "orchestrator",
+      model: "haiku",
+      telegram_channel: "@vibe-orchestrator",
+    },
+    {
+      id: "planning_agent",
+      name: "Planning Agent",
+      type: "planning",
+      model: "opus",
+      telegram_channel: "@vibe-planning",
+    },
+    {
+      id: "build_agent",
+      name: "Build Agent",
+      type: "build",
+      model: "opus",
+      telegram_channel: "@vibe-build",
+    },
+    {
+      id: "spec_agent",
+      name: "Spec Agent",
+      type: "spec",
+      model: "opus",
+      telegram_channel: "@vibe-spec",
+    },
+    {
+      id: "qa_agent",
+      name: "QA Agent",
+      type: "qa",
+      model: "opus",
+      telegram_channel: "@vibe-qa",
+    },
+    {
+      id: "task_agent",
+      name: "Task Agent",
+      type: "task",
+      model: "sonnet",
+      telegram_channel: "@vibe-task",
+    },
+    {
+      id: "sia_agent",
+      name: "SIA",
+      type: "sia",
+      model: "opus",
+      telegram_channel: "@vibe-sia",
+    },
+    {
+      id: "research_agent",
+      name: "Research Agent",
+      type: "research",
+      model: "sonnet",
+      telegram_channel: "@vibe-research",
+    },
+    {
+      id: "evaluator_agent",
+      name: "Evaluator Agent",
+      type: "evaluator",
+      model: "opus",
+      telegram_channel: "@vibe-evaluator",
+    },
+    {
+      id: "decomposition_agent",
+      name: "Decomposition Agent",
+      type: "decomposition",
+      model: "sonnet",
+      telegram_channel: "@vibe-decomposition",
+    },
+    {
+      id: "validation_agent",
+      name: "Validation Agent",
+      type: "validation",
+      model: "sonnet",
+      telegram_channel: "@vibe-validation",
+    },
+    {
+      id: "clarification_agent",
+      name: "Clarification Agent",
+      type: "clarification",
+      model: "sonnet",
+      telegram_channel: "@vibe-clarification",
+    },
+    {
+      id: "human_sim_agent",
+      name: "Human Sim Agent",
+      type: "human_sim",
+      model: "sonnet",
+      telegram_channel: "@vibe-human-sim",
+    },
   ];
 
   const insertAgent = db.getDb().prepare(`
@@ -729,25 +930,64 @@ try {
   `);
 
   for (const agent of agents) {
-    insertAgent.run(agent.id, agent.name, agent.type, agent.model, agent.telegram_channel);
+    insertAgent.run(
+      agent.id,
+      agent.name,
+      agent.type,
+      agent.model,
+      agent.telegram_channel,
+    );
   }
   console.log(`✅ Seeded ${agents.length} agents`);
 
   // Seed a sample task list
   const taskListId = uuidv4();
-  db.run(`
+  db.run(
+    `
     INSERT INTO task_lists (id, name, description, status)
     VALUES (?, 'Sample Task List', 'Initial task list for testing', 'draft')
-  `, [taskListId]);
-  console.log('✅ Seeded 1 task list');
+  `,
+    [taskListId],
+  );
+  console.log("✅ Seeded 1 task list");
 
   // Seed 5 sample tasks
   const tasks = [
-    { displayId: 'TASK-001', title: 'Set up authentication endpoint', category: 'feature', status: 'pending', priority: 'P1' },
-    { displayId: 'TASK-002', title: 'Fix database migration issue', category: 'bug', status: 'pending', priority: 'P0' },
-    { displayId: 'TASK-003', title: 'Add unit tests for user service', category: 'test', status: 'pending', priority: 'P2' },
-    { displayId: 'TASK-004', title: 'Update API documentation', category: 'documentation', status: 'pending', priority: 'P3' },
-    { displayId: 'TASK-005', title: 'Implement WebSocket reconnection', category: 'feature', status: 'pending', priority: 'P2' },
+    {
+      displayId: "TASK-001",
+      title: "Set up authentication endpoint",
+      category: "feature",
+      status: "pending",
+      priority: "P1",
+    },
+    {
+      displayId: "TASK-002",
+      title: "Fix database migration issue",
+      category: "bug",
+      status: "pending",
+      priority: "P0",
+    },
+    {
+      displayId: "TASK-003",
+      title: "Add unit tests for user service",
+      category: "test",
+      status: "pending",
+      priority: "P2",
+    },
+    {
+      displayId: "TASK-004",
+      title: "Update API documentation",
+      category: "documentation",
+      status: "pending",
+      priority: "P3",
+    },
+    {
+      displayId: "TASK-005",
+      title: "Implement WebSocket reconnection",
+      category: "feature",
+      status: "pending",
+      priority: "P2",
+    },
   ];
 
   const insertTask = db.getDb().prepare(`
@@ -761,37 +1001,52 @@ try {
     taskIds.push(id);
     const passCriteria = JSON.stringify([
       `${task.title} is implemented`,
-      'All tests pass',
-      'Code reviewed',
+      "All tests pass",
+      "Code reviewed",
     ]);
-    insertTask.run(id, task.displayId, task.title, task.category, task.status, task.priority, taskListId, passCriteria);
+    insertTask.run(
+      id,
+      task.displayId,
+      task.title,
+      task.category,
+      task.status,
+      task.priority,
+      taskListId,
+      passCriteria,
+    );
   }
   console.log(`✅ Seeded ${tasks.length} tasks`);
 
   // Add some task dependencies
   if (taskIds.length >= 3) {
-    db.run(`
+    db.run(
+      `
       INSERT INTO task_relationships (id, source_task_id, target_task_id, relationship_type)
       VALUES (?, ?, ?, 'depends_on')
-    `, [uuidv4(), taskIds[2], taskIds[0]]); // Task 3 depends on Task 1
+    `,
+      [uuidv4(), taskIds[2], taskIds[0]],
+    ); // Task 3 depends on Task 1
 
-    db.run(`
+    db.run(
+      `
       INSERT INTO task_relationships (id, source_task_id, target_task_id, relationship_type)
       VALUES (?, ?, ?, 'depends_on')
-    `, [uuidv4(), taskIds[4], taskIds[1]]); // Task 5 depends on Task 2
+    `,
+      [uuidv4(), taskIds[4], taskIds[1]],
+    ); // Task 5 depends on Task 2
 
-    console.log('✅ Seeded 2 task relationships');
+    console.log("✅ Seeded 2 task relationships");
   }
 
   // Seed test suites and test cases
-  seedAllTestSuites();     // Creates all 16 suite records
-  seedPhase1Tests();       // Seeds Phase 1 test cases, steps, assertions
-  seedPhase2Tests();       // Seeds Phase 2 test cases, steps, assertions
+  seedAllTestSuites(); // Creates all 16 suite records
+  seedPhase1Tests(); // Seeds Phase 1 test cases, steps, assertions
+  seedPhase2Tests(); // Seeds Phase 2 test cases, steps, assertions
 
   db.close();
-  console.log('🎉 Seeding complete');
+  console.log("🎉 Seeding complete");
 } catch (error) {
-  console.error('❌ Seeding failed:', error);
+  console.error("❌ Seeding failed:", error);
   process.exit(1);
 }
 ```
@@ -801,62 +1056,66 @@ try {
 New verification script to validate seed data completeness:
 
 ```typescript
-import { getOne, query } from './index.js';
+import { getOne, query } from "./index.js";
 
 /**
  * Verification script for test system seed data
  * Validates that all required test suites, cases, steps, and assertions exist
  */
 
-console.log('🔍 Verifying test system seed data...\n');
+console.log("🔍 Verifying test system seed data...\n");
 
 let hasErrors = false;
 
 // 1. Verify 16 test suites exist
-const suiteCount = getOne<{ count: number }>(
-  'SELECT COUNT(*) as count FROM test_suites WHERE source = ?',
-  ['phases']
-)?.count || 0;
+const suiteCount =
+  getOne<{ count: number }>(
+    "SELECT COUNT(*) as count FROM test_suites WHERE source = ?",
+    ["phases"],
+  )?.count || 0;
 
 if (suiteCount === 16) {
-  console.log('✅ Test suites: 16/16');
+  console.log("✅ Test suites: 16/16");
 } else {
   console.log(`❌ Test suites: ${suiteCount}/16 (expected 16)`);
   hasErrors = true;
 }
 
 // 2. Verify Phase 1 test cases
-const phase1Cases = getOne<{ count: number }>(
-  'SELECT COUNT(*) as count FROM test_cases WHERE suite_id = ?',
-  ['phase_1_frontend_shell']
-)?.count || 0;
+const phase1Cases =
+  getOne<{ count: number }>(
+    "SELECT COUNT(*) as count FROM test_cases WHERE suite_id = ?",
+    ["phase_1_frontend_shell"],
+  )?.count || 0;
 
 if (phase1Cases === 8) {
-  console.log('✅ Phase 1 test cases: 8/8');
+  console.log("✅ Phase 1 test cases: 8/8");
 } else {
   console.log(`❌ Phase 1 test cases: ${phase1Cases}/8 (expected 8)`);
   hasErrors = true;
 }
 
 // 3. Verify Phase 2 test cases
-const phase2Cases = getOne<{ count: number }>(
-  'SELECT COUNT(*) as count FROM test_cases WHERE suite_id = ?',
-  ['phase_2_data_model']
-)?.count || 0;
+const phase2Cases =
+  getOne<{ count: number }>(
+    "SELECT COUNT(*) as count FROM test_cases WHERE suite_id = ?",
+    ["phase_2_data_model"],
+  )?.count || 0;
 
 if (phase2Cases === 6) {
-  console.log('✅ Phase 2 test cases: 6/6');
+  console.log("✅ Phase 2 test cases: 6/6");
 } else {
   console.log(`❌ Phase 2 test cases: ${phase2Cases}/6 (expected 6)`);
   hasErrors = true;
 }
 
 // 4. Verify Phase 1 test steps
-const phase1Steps = getOne<{ count: number }>(
-  `SELECT COUNT(*) as count FROM test_steps
+const phase1Steps =
+  getOne<{ count: number }>(
+    `SELECT COUNT(*) as count FROM test_steps
    WHERE case_id IN (SELECT id FROM test_cases WHERE suite_id = ?)`,
-  ['phase_1_frontend_shell']
-)?.count || 0;
+    ["phase_1_frontend_shell"],
+  )?.count || 0;
 
 if (phase1Steps >= 21) {
   console.log(`✅ Phase 1 test steps: ${phase1Steps} (expected ≥21)`);
@@ -866,11 +1125,12 @@ if (phase1Steps >= 21) {
 }
 
 // 5. Verify Phase 2 test steps
-const phase2Steps = getOne<{ count: number }>(
-  `SELECT COUNT(*) as count FROM test_steps
+const phase2Steps =
+  getOne<{ count: number }>(
+    `SELECT COUNT(*) as count FROM test_steps
    WHERE case_id IN (SELECT id FROM test_cases WHERE suite_id = ?)`,
-  ['phase_2_data_model']
-)?.count || 0;
+    ["phase_2_data_model"],
+  )?.count || 0;
 
 if (phase2Steps >= 6) {
   console.log(`✅ Phase 2 test steps: ${phase2Steps} (expected ≥6)`);
@@ -880,14 +1140,15 @@ if (phase2Steps >= 6) {
 }
 
 // 6. Verify Phase 1 test assertions
-const phase1Assertions = getOne<{ count: number }>(
-  `SELECT COUNT(*) as count FROM test_assertions
+const phase1Assertions =
+  getOne<{ count: number }>(
+    `SELECT COUNT(*) as count FROM test_assertions
    WHERE step_id IN (
      SELECT id FROM test_steps
      WHERE case_id IN (SELECT id FROM test_cases WHERE suite_id = ?)
    )`,
-  ['phase_1_frontend_shell']
-)?.count || 0;
+    ["phase_1_frontend_shell"],
+  )?.count || 0;
 
 if (phase1Assertions >= 28) {
   console.log(`✅ Phase 1 test assertions: ${phase1Assertions} (expected ≥28)`);
@@ -897,14 +1158,15 @@ if (phase1Assertions >= 28) {
 }
 
 // 7. Verify Phase 2 test assertions
-const phase2Assertions = getOne<{ count: number }>(
-  `SELECT COUNT(*) as count FROM test_assertions
+const phase2Assertions =
+  getOne<{ count: number }>(
+    `SELECT COUNT(*) as count FROM test_assertions
    WHERE step_id IN (
      SELECT id FROM test_steps
      WHERE case_id IN (SELECT id FROM test_cases WHERE suite_id = ?)
    )`,
-  ['phase_2_data_model']
-)?.count || 0;
+    ["phase_2_data_model"],
+  )?.count || 0;
 
 if (phase2Assertions >= 10) {
   console.log(`✅ Phase 2 test assertions: ${phase2Assertions} (expected ≥10)`);
@@ -918,24 +1180,24 @@ const phase2CasesWithSteps = query<{ case_id: string; step_count: number }>(
   `SELECT case_id, COUNT(*) as step_count
    FROM test_steps
    WHERE case_id LIKE 'phase_2_task_%'
-   GROUP BY case_id`
+   GROUP BY case_id`,
 );
 
 const phase2CasesWithoutSteps = 6 - phase2CasesWithSteps.length;
 if (phase2CasesWithoutSteps === 0) {
-  console.log('✅ All Phase 2 test cases have steps');
+  console.log("✅ All Phase 2 test cases have steps");
 } else {
   console.log(`❌ ${phase2CasesWithoutSteps} Phase 2 test cases missing steps`);
   hasErrors = true;
 }
 
-console.log('\n' + '='.repeat(50));
+console.log("\n" + "=".repeat(50));
 
 if (hasErrors) {
-  console.log('❌ Verification FAILED - see errors above');
+  console.log("❌ Verification FAILED - see errors above");
   process.exit(1);
 } else {
-  console.log('✅ Verification PASSED - all test seed data complete');
+  console.log("✅ Verification PASSED - all test seed data complete");
   process.exit(0);
 }
 ```
@@ -959,48 +1221,67 @@ Add npm scripts for running seed and verification:
 ## Pass Criteria
 
 ### 1. All 16 Test Suites Created
+
 **Verification Method**:
+
 ```bash
 sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM test_suites WHERE source = 'phases';"
 ```
+
 **Expected Output**: `16`
 
 **Test Query**:
+
 ```sql
 SELECT id, name, phase FROM test_suites WHERE source = 'phases' ORDER BY phase;
 ```
+
 **Expected**: 16 rows with phase numbers 1-16
 
 ### 2. Phase 1 Test Data Complete
+
 **Verification Method**:
+
 ```bash
 sqlite3 parent-harness/data/harness.db "SELECT COUNT(DISTINCT tc.id) as case_count, COUNT(DISTINCT ts.id) as step_count, COUNT(DISTINCT ta.id) as assertion_count FROM test_cases tc LEFT JOIN test_steps ts ON tc.id = ts.case_id LEFT JOIN test_assertions ta ON ts.id = ta.step_id WHERE tc.suite_id = 'phase_1_frontend_shell';"
 ```
+
 **Expected Output**: `case_count=8, step_count=21, assertion_count=28`
 
 ### 3. Phase 2 Test Data Complete
+
 **Verification Method**:
+
 ```bash
 sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM test_cases WHERE suite_id = 'phase_2_data_model';"
 ```
+
 **Expected Output**: `6`
 
 ### 4. Each Phase 2 Test Case Has Steps
+
 **Verification Method**:
+
 ```bash
 sqlite3 parent-harness/data/harness.db "SELECT case_id, COUNT(*) as step_count FROM test_steps WHERE case_id LIKE 'phase_2_task_%' GROUP BY case_id;"
 ```
+
 **Expected Output**: 6 rows (one per test case) with step_count ≥ 1
 
 ### 5. Key Assertions Defined for Phase 2
+
 **Verification Method**:
+
 ```bash
 sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM test_assertions WHERE step_id IN (SELECT id FROM test_steps WHERE case_id LIKE 'phase_2_task_%');"
 ```
+
 **Expected Output**: ≥10 (at least 10 assertions total across Phase 2)
 
 ### 6. Validation Query Works
+
 **Verification Method**:
+
 ```sql
 SELECT
   COUNT(*) as total,
@@ -1009,37 +1290,48 @@ FROM test_case_results tcr
 JOIN test_cases tc ON tcr.case_id = tc.id
 WHERE tc.suite_id = 'phase_2_data_model';
 ```
+
 **Expected**: Query runs without error (may return total=0, passed=0 initially)
 
 ### 7. Seed Script Is Idempotent
+
 **Verification Method**:
+
 ```bash
 cd parent-harness/orchestrator
 npm run seed
 npm run seed  # Run twice
 echo $?       # Should be 0
 ```
+
 **Expected**: Second run completes successfully with no duplicate records or errors
 
 ### 8. TypeScript Compiles Successfully
+
 **Verification Method**:
+
 ```bash
 cd parent-harness/orchestrator
 npm run typecheck
 ```
+
 **Expected**: No TypeScript errors
 
 ### 9. Verification Script Passes
+
 **Verification Method**:
+
 ```bash
 cd parent-harness/orchestrator
 npm run verify:test-seed
 ```
+
 **Expected Output**: `✅ Verification PASSED - all test seed data complete`
 
 ## Dependencies
 
 ### Required Before This Task
+
 - ✅ Phase 2 Task 2.1: SQLite Database Setup (complete)
 - ✅ Phase 2 Task 2.2: Run Schema (complete - 33 tables exist)
 - ✅ `parent-harness/orchestrator/src/db/index.ts` (complete)
@@ -1047,12 +1339,14 @@ npm run verify:test-seed
 - ✅ `parent-harness/orchestrator/src/db/seed-phase1-tests.ts` (complete - reference implementation)
 
 ### Blocks These Tasks
+
 - Phase 3+ tasks that rely on test system for validation
 - Build Agent validation of pass criteria
 - QA Agent querying test results
 - Orchestrator tracking task completion via test results
 
 ### External Dependencies
+
 - better-sqlite3 (already installed)
 - TypeScript + tsx (already installed)
 - Node.js 18+ runtime
@@ -1061,6 +1355,7 @@ npm run verify:test-seed
 ## Implementation Notes
 
 ### Execution Order
+
 1. Create `seed-all-suites.ts` (creates 16 suite records)
 2. Create `seed-phase2-tests.ts` (adds Phase 2 test cases/steps/assertions)
 3. Update `seed.ts` to import and call new functions
@@ -1069,20 +1364,25 @@ npm run verify:test-seed
 6. Run seed script and verify output
 
 ### Testing Strategy
+
 1. **Unit test**: Run individual seed functions and check counts
 2. **Integration test**: Run full `npm run seed` and validate all tables
 3. **Idempotency test**: Run seed twice and ensure no duplicates
 4. **Verification test**: Run `npm run verify:test-seed` and check exit code
 
 ### Rollback Plan
+
 If seed data is incorrect:
+
 ```sql
 DELETE FROM test_suites WHERE source = 'phases';
 -- CASCADE will delete all test_cases, test_steps, test_assertions
 ```
+
 Then re-run: `npm run seed`
 
 ### Performance Considerations
+
 - Use transactions for batch inserts (wrapped in `run()` function)
 - Use `ON CONFLICT` for idempotency instead of DELETE+INSERT
 - Seed scripts should complete in <2 seconds total
@@ -1090,7 +1390,9 @@ Then re-run: `npm run seed`
 ## Codebase Patterns to Follow
 
 ### Pattern 1: Seed Function Structure
+
 Follow `seed-phase1-tests.ts`:
+
 - Export function with clear name (`seedPhase2Tests`)
 - Use `ON CONFLICT` for idempotency
 - Console log progress with emojis
@@ -1098,7 +1400,9 @@ Follow `seed-phase1-tests.ts`:
 - Support direct execution with `import.meta.url` check
 
 ### Pattern 2: Test Case Definition
+
 Each test case should have:
+
 - Unique ID following pattern `phase_N_task_M_[slug]`
 - Descriptive name and description
 - Appropriate priority (P0 for critical, P1 for important, P2 for nice-to-have)
@@ -1106,7 +1410,9 @@ Each test case should have:
 - 1-3 assertions per step for key pass criteria
 
 ### Pattern 3: Database Queries
+
 Use helper functions from `index.ts`:
+
 - `run()` for INSERT/UPDATE/DELETE
 - `query()` for SELECT returning multiple rows
 - `getOne()` for SELECT returning single row
@@ -1119,21 +1425,25 @@ None - requirements are clear from PHASES.md and existing implementation.
 ## Alternative Approaches Considered
 
 ### Approach 1: Single Monolithic Seed Script
+
 **Pros**: One file to maintain
 **Cons**: Hard to debug, slow to run, difficult to extend
 **Decision**: ❌ Rejected - not maintainable as project grows
 
 ### Approach 2: Separate Script Per Phase (16 files)
+
 **Pros**: Maximum separation of concerns
 **Cons**: Too many files, repetitive boilerplate code
 **Decision**: ❌ Rejected - too granular
 
 ### Approach 3: Hybrid (Suites + Detailed Phase Data) ✅ CHOSEN
+
 **Pros**: Scalable, maintainable, follows existing pattern
 **Cons**: Multiple files to maintain
 **Decision**: ✅ Accepted - best balance of modularity and maintainability
 
 ### Approach 4: Generate Test Data from PHASES.md Parsing
+
 **Pros**: Single source of truth, automatic updates
 **Cons**: Complex parser, fragile to PHASES.md format changes
 **Decision**: ❌ Rejected - over-engineered for current needs

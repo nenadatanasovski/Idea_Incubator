@@ -81,10 +81,13 @@ export class ArchitectAgent extends ObservableAgent {
    * Main method to generate architecture from requirements
    */
   async generateArchitecture(input: ArchitectInput): Promise<ArchitectOutput> {
-    const taskId = `arch-gen-${input.projectName.toLowerCase().replace(/\s+/g, '-')}`;
+    const taskId = `arch-gen-${input.projectName.toLowerCase().replace(/\s+/g, "-")}`;
     const startTime = Date.now();
 
-    await this.logTaskStart(taskId, `Generate architecture for ${input.projectName}`);
+    await this.logTaskStart(
+      taskId,
+      `Generate architecture for ${input.projectName}`,
+    );
 
     try {
       // Phase 1: Requirements Analysis
@@ -102,7 +105,10 @@ export class ArchitectAgent extends ObservableAgent {
       // Phase 2: Architecture Design
       await this.logPhaseStart("architecture-design");
 
-      const architecture = await this.designArchitecture(input, analyzedRequirements);
+      const architecture = await this.designArchitecture(
+        input,
+        analyzedRequirements,
+      );
 
       await this.logPhaseEnd("architecture-design", {
         componentsDesigned: architecture.components.length,
@@ -141,7 +147,7 @@ export class ArchitectAgent extends ObservableAgent {
     } catch (error) {
       await this.logError(
         `Architecture generation failed: ${error instanceof Error ? error.message : String(error)}`,
-        taskId
+        taskId,
       );
       await this.logTaskEnd(taskId, "failed");
       throw error;
@@ -172,8 +178,10 @@ export class ArchitectAgent extends ObservableAgent {
     if (input.requirements.toLowerCase().includes("frontend")) {
       components.push("frontend");
     }
-    if (input.requirements.toLowerCase().includes("backend") ||
-        input.requirements.toLowerCase().includes("api")) {
+    if (
+      input.requirements.toLowerCase().includes("backend") ||
+      input.requirements.toLowerCase().includes("api")
+    ) {
       components.push("backend");
     }
     if (input.requirements.toLowerCase().includes("database")) {
@@ -181,8 +189,10 @@ export class ArchitectAgent extends ObservableAgent {
     }
 
     // Identify quality attributes
-    if (input.requirements.toLowerCase().includes("performance") ||
-        input.requirements.toLowerCase().includes("fast")) {
+    if (
+      input.requirements.toLowerCase().includes("performance") ||
+      input.requirements.toLowerCase().includes("fast")
+    ) {
       qualityAttributes.push({
         name: "Performance",
         category: "performance",
@@ -192,12 +202,15 @@ export class ArchitectAgent extends ObservableAgent {
       });
     }
 
-    if (input.requirements.toLowerCase().includes("secure") ||
-        input.requirements.toLowerCase().includes("security")) {
+    if (
+      input.requirements.toLowerCase().includes("secure") ||
+      input.requirements.toLowerCase().includes("security")
+    ) {
       qualityAttributes.push({
         name: "Security",
         category: "security",
-        requirement: "System must protect user data and prevent unauthorized access",
+        requirement:
+          "System must protect user data and prevent unauthorized access",
         measurement: "Pass security audit, implement authentication",
         priority: "must-have",
       });
@@ -220,20 +233,22 @@ export class ArchitectAgent extends ObservableAgent {
       components: string[];
       qualityAttributes: QualityAttribute[];
       constraints: string[];
-    }
+    },
   ): Promise<ArchitectureDoc> {
     // Design components
-    const components: ComponentSpec[] = analyzed.components.map((name, idx) => ({
-      id: `comp-${idx + 1}`,
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      type: this.getComponentType(name),
-      description: `${name.charAt(0).toUpperCase() + name.slice(1)} component`,
-      responsibilities: [`Handle ${name} functionality`],
-      dependencies: [],
-      interfaces: [],
-      technology: this.suggestTechnology(name, input.preferences?.techStack),
-      designPatterns: [],
-    }));
+    const components: ComponentSpec[] = analyzed.components.map(
+      (name, idx) => ({
+        id: `comp-${idx + 1}`,
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        type: this.getComponentType(name),
+        description: `${name.charAt(0).toUpperCase() + name.slice(1)} component`,
+        responsibilities: [`Handle ${name} functionality`],
+        dependencies: [],
+        interfaces: [],
+        technology: this.suggestTechnology(name, input.preferences?.techStack),
+        designPatterns: [],
+      }),
+    );
 
     // Design tech stack
     const techStack: TechStackDecision = this.designTechStack(input, analyzed);
@@ -250,7 +265,10 @@ export class ArchitectAgent extends ObservableAgent {
     };
 
     // Identify risks
-    const risks: ArchitectureRisk[] = this.identifyRisks(components, analyzed.constraints);
+    const risks: ArchitectureRisk[] = this.identifyRisks(
+      components,
+      analyzed.constraints,
+    );
 
     const architecture: ArchitectureDoc = {
       projectName: input.projectName,
@@ -280,9 +298,12 @@ export class ArchitectAgent extends ObservableAgent {
    */
   private getComponentType(name: string): ComponentSpec["type"] {
     const nameLower = name.toLowerCase();
-    if (nameLower.includes("frontend") || nameLower.includes("ui")) return "frontend";
-    if (nameLower.includes("backend") || nameLower.includes("api")) return "backend";
-    if (nameLower.includes("database") || nameLower.includes("db")) return "database";
+    if (nameLower.includes("frontend") || nameLower.includes("ui"))
+      return "frontend";
+    if (nameLower.includes("backend") || nameLower.includes("api"))
+      return "backend";
+    if (nameLower.includes("database") || nameLower.includes("db"))
+      return "database";
     if (nameLower.includes("service")) return "service";
     return "library";
   }
@@ -290,7 +311,10 @@ export class ArchitectAgent extends ObservableAgent {
   /**
    * Suggest technology for a component
    */
-  private suggestTechnology(componentName: string, preferences?: string[]): string {
+  private suggestTechnology(
+    componentName: string,
+    preferences?: string[],
+  ): string {
     const nameLower = componentName.toLowerCase();
 
     // Check preferences first
@@ -315,15 +339,18 @@ export class ArchitectAgent extends ObservableAgent {
    */
   private designTechStack(
     input: ArchitectInput,
-    analyzed: { components: string[] }
+    analyzed: { components: string[] },
   ): TechStackDecision {
     const techStack: TechStackDecision = {};
 
     if (analyzed.components.includes("frontend")) {
       techStack.frontend = {
-        name: input.preferences?.techStack?.find(t =>
-          t.toLowerCase().includes("react") || t.toLowerCase().includes("vue")
-        ) || "React",
+        name:
+          input.preferences?.techStack?.find(
+            (t) =>
+              t.toLowerCase().includes("react") ||
+              t.toLowerCase().includes("vue"),
+          ) || "React",
         rationale: "Popular, well-supported, component-based framework",
         alternatives: ["Vue.js", "Angular", "Svelte"],
         tradeoffs: ["Learning curve", "Bundle size"],
@@ -354,7 +381,10 @@ export class ArchitectAgent extends ObservableAgent {
   /**
    * Identify architectural risks
    */
-  private identifyRisks(components: ComponentSpec[], constraints: string[]): ArchitectureRisk[] {
+  private identifyRisks(
+    components: ComponentSpec[],
+    constraints: string[],
+  ): ArchitectureRisk[] {
     const risks: ArchitectureRisk[] = [];
 
     // Generic risks based on complexity
@@ -371,7 +401,10 @@ export class ArchitectAgent extends ObservableAgent {
 
     // Add more risk analysis based on constraints
     for (const constraint of constraints) {
-      if (constraint.toLowerCase().includes("timeline") || constraint.toLowerCase().includes("time")) {
+      if (
+        constraint.toLowerCase().includes("timeline") ||
+        constraint.toLowerCase().includes("time")
+      ) {
         risks.push({
           id: `risk-${risks.length + 1}`,
           category: "business",
@@ -395,39 +428,64 @@ export class ArchitectAgent extends ObservableAgent {
     // Replace placeholders
     doc = doc.replace("{projectName}", architecture.projectName);
     doc = doc.replace("{version}", architecture.version);
-    doc = doc.replace("{lastModified}", architecture.metadata.lastModified.toISOString());
+    doc = doc.replace(
+      "{lastModified}",
+      architecture.metadata.lastModified.toISOString(),
+    );
     doc = doc.replace("{overview}", architecture.overview);
     doc = doc.replace("{systemContext}", architecture.systemContext);
 
     // Components section
     const componentsSection = architecture.components
-      .map(c => formatComponentAsMarkdown(c))
+      .map((c) => formatComponentAsMarkdown(c))
       .join("\n\n");
     doc = doc.replace("{components}", componentsSection);
 
     // Tech stack section
     const techStackSection = Object.entries(architecture.techStack)
-      .map(([key, value]) => formatTechChoiceAsMarkdown(key, value as TechChoice))
+      .map(([key, value]) =>
+        formatTechChoiceAsMarkdown(key, value as TechChoice),
+      )
       .join("\n\n");
     doc = doc.replace("{techStack}", techStackSection);
 
     // Simplified placeholders
-    doc = doc.replace("{apiContracts}", architecture.apiContracts.length > 0
-      ? JSON.stringify(architecture.apiContracts, null, 2)
-      : "No API contracts defined yet");
-    doc = doc.replace("{databaseSchema}", JSON.stringify(architecture.databaseSchema, null, 2));
-    doc = doc.replace("{deploymentArchitecture}", architecture.deploymentArchitecture
-      ? JSON.stringify(architecture.deploymentArchitecture, null, 2)
-      : "To be defined");
-    doc = doc.replace("{qualityAttributes}", architecture.qualityAttributes
-      .map(qa => `- **${qa.name}** (${qa.priority}): ${qa.requirement}`)
-      .join("\n"));
-    doc = doc.replace("{constraints}", architecture.constraints
-      .map(c => `- ${c}`)
-      .join("\n") || "None specified");
-    doc = doc.replace("{risks}", architecture.risks
-      .map(r => `- **${r.id}**: ${r.description} (${r.impact} impact, ${r.probability} probability)\n  - Mitigation: ${r.mitigation}`)
-      .join("\n\n"));
+    doc = doc.replace(
+      "{apiContracts}",
+      architecture.apiContracts.length > 0
+        ? JSON.stringify(architecture.apiContracts, null, 2)
+        : "No API contracts defined yet",
+    );
+    doc = doc.replace(
+      "{databaseSchema}",
+      JSON.stringify(architecture.databaseSchema, null, 2),
+    );
+    doc = doc.replace(
+      "{deploymentArchitecture}",
+      architecture.deploymentArchitecture
+        ? JSON.stringify(architecture.deploymentArchitecture, null, 2)
+        : "To be defined",
+    );
+    doc = doc.replace(
+      "{qualityAttributes}",
+      architecture.qualityAttributes
+        .map((qa) => `- **${qa.name}** (${qa.priority}): ${qa.requirement}`)
+        .join("\n"),
+    );
+    doc = doc.replace(
+      "{constraints}",
+      architecture.constraints.map((c) => `- ${c}`).join("\n") ||
+        "None specified",
+    );
+    doc = doc.replace(
+      "{risks}",
+      architecture.risks
+        .map(
+          (r) =>
+            `- **${r.id}**: ${r.description} (${r.impact} impact, ${r.probability} probability)\n  - Mitigation: ${r.mitigation}`,
+        )
+        .join("\n\n"),
+    );
 
     // Placeholders for recommendations and next steps
     doc = doc.replace("{recommendations}", "See recommendations section");
@@ -443,12 +501,16 @@ export class ArchitectAgent extends ObservableAgent {
     const recommendations: string[] = [];
 
     recommendations.push("Start with MVP scope focusing on core features");
-    recommendations.push("Implement comprehensive testing strategy from the start");
+    recommendations.push(
+      "Implement comprehensive testing strategy from the start",
+    );
     recommendations.push("Set up CI/CD pipeline early");
     recommendations.push("Document API contracts before implementation");
 
     if (architecture.risks.length > 0) {
-      recommendations.push("Address high-priority risks before implementation begins");
+      recommendations.push(
+        "Address high-priority risks before implementation begins",
+      );
     }
 
     return recommendations;

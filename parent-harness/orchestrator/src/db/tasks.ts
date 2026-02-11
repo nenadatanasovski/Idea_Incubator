@@ -1,5 +1,5 @@
-import { query, getOne, run } from './index.js';
-import { v4 as uuidv4 } from 'uuid';
+import { query, getOne, run } from "./index.js";
+import { v4 as uuidv4 } from "uuid";
 
 export interface Task {
   id: string;
@@ -7,8 +7,14 @@ export interface Task {
   title: string;
   description: string | null;
   category: string | null;
-  status: 'pending' | 'in_progress' | 'pending_verification' | 'completed' | 'failed' | 'blocked';
-  priority: 'P0' | 'P1' | 'P2' | 'P3' | 'P4';
+  status:
+    | "pending"
+    | "in_progress"
+    | "pending_verification"
+    | "completed"
+    | "failed"
+    | "blocked";
+  priority: "P0" | "P1" | "P2" | "P3" | "P4";
   assigned_agent_id: string | null;
   task_list_id: string;
   parent_task_id: string | null;
@@ -31,8 +37,8 @@ export interface CreateTaskInput {
   title: string;
   description?: string;
   category?: string;
-  priority?: Task['priority'];
-  status?: Task['status'];
+  priority?: Task["priority"];
+  status?: Task["status"];
   task_list_id?: string;
   parent_task_id?: string;
   pass_criteria?: string[];
@@ -49,32 +55,32 @@ export interface TaskFailureInput {
  * Get all tasks
  */
 export function getTasks(filters?: {
-  status?: Task['status'];
-  priority?: Task['priority'];
+  status?: Task["status"];
+  priority?: Task["priority"];
   assignedAgentId?: string;
   taskListId?: string;
 }): Task[] {
-  let sql = 'SELECT * FROM tasks WHERE 1=1';
+  let sql = "SELECT * FROM tasks WHERE 1=1";
   const params: unknown[] = [];
 
   if (filters?.status) {
-    sql += ' AND status = ?';
+    sql += " AND status = ?";
     params.push(filters.status);
   }
   if (filters?.priority) {
-    sql += ' AND priority = ?';
+    sql += " AND priority = ?";
     params.push(filters.priority);
   }
   if (filters?.assignedAgentId) {
-    sql += ' AND assigned_agent_id = ?';
+    sql += " AND assigned_agent_id = ?";
     params.push(filters.assignedAgentId);
   }
   if (filters?.taskListId) {
-    sql += ' AND task_list_id = ?';
+    sql += " AND task_list_id = ?";
     params.push(filters.taskListId);
   }
 
-  sql += ' ORDER BY priority ASC, created_at ASC';
+  sql += " ORDER BY priority ASC, created_at ASC";
   return query<Task>(sql, params);
 }
 
@@ -82,13 +88,13 @@ export function getTasks(filters?: {
  * Get a single task by ID
  */
 export function getTask(id: string): Task | undefined {
-  return getOne<Task>('SELECT * FROM tasks WHERE id = ?', [id]);
+  return getOne<Task>("SELECT * FROM tasks WHERE id = ?", [id]);
 }
 
 function normalizeFailureReason(error?: string): string {
-  const trimmed = (error || '').trim();
+  const trimmed = (error || "").trim();
   if (!trimmed) {
-    return 'Unclassified failure';
+    return "Unclassified failure";
   }
   return trimmed.slice(0, 2000);
 }
@@ -97,7 +103,7 @@ function normalizeFailureReason(error?: string): string {
  * Get a task by display ID
  */
 export function getTaskByDisplayId(displayId: string): Task | undefined {
-  return getOne<Task>('SELECT * FROM tasks WHERE display_id = ?', [displayId]);
+  return getOne<Task>("SELECT * FROM tasks WHERE display_id = ?", [displayId]);
 }
 
 /**
@@ -121,31 +127,38 @@ export function getPendingTasks(): Task[] {
 /**
  * Create a new task
  */
-export function createTask(input: CreateTaskInput & { wave_number?: number }): Task {
+export function createTask(
+  input: CreateTaskInput & { wave_number?: number },
+): Task {
   const id = uuidv4();
-  const passCriteria = input.pass_criteria ? JSON.stringify(input.pass_criteria) : null;
-  const taskListId = input.task_list_id ?? null;  // Allow NULL for FK
-  const status = input.status ?? 'pending';
+  const passCriteria = input.pass_criteria
+    ? JSON.stringify(input.pass_criteria)
+    : null;
+  const taskListId = input.task_list_id ?? null; // Allow NULL for FK
+  const status = input.status ?? "pending";
 
-  run(`
+  run(
+    `
     INSERT INTO tasks (
       id, display_id, title, description, category, 
       priority, task_list_id, parent_task_id, pass_criteria, status, retry_count, wave_number
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
-  `, [
-    id,
-    input.display_id,
-    input.title,
-    input.description ?? null,
-    input.category ?? null,
-    input.priority ?? 'P2',
-    taskListId,
-    input.parent_task_id ?? null,
-    passCriteria,
-    status,
-    input.wave_number ?? null,
-  ]);
+  `,
+    [
+      id,
+      input.display_id,
+      input.title,
+      input.description ?? null,
+      input.category ?? null,
+      input.priority ?? "P2",
+      taskListId,
+      input.parent_task_id ?? null,
+      passCriteria,
+      status,
+      input.wave_number ?? null,
+    ],
+  );
 
   return getTask(id)!;
 }
@@ -155,52 +168,64 @@ export function createTask(input: CreateTaskInput & { wave_number?: number }): T
  */
 export function updateTask(
   id: string,
-  updates: Partial<Pick<Task, 'title' | 'description' | 'status' | 'priority' | 'assigned_agent_id' | 'spec_content' | 'implementation_plan' | 'retry_count'>>
+  updates: Partial<
+    Pick<
+      Task,
+      | "title"
+      | "description"
+      | "status"
+      | "priority"
+      | "assigned_agent_id"
+      | "spec_content"
+      | "implementation_plan"
+      | "retry_count"
+    >
+  >,
 ): Task | undefined {
-  const setClauses: string[] = ['updated_at = datetime(\'now\')'];
+  const setClauses: string[] = ["updated_at = datetime('now')"];
   const params: unknown[] = [];
 
   if (updates.title !== undefined) {
-    setClauses.push('title = ?');
+    setClauses.push("title = ?");
     params.push(updates.title);
   }
   if (updates.description !== undefined) {
-    setClauses.push('description = ?');
+    setClauses.push("description = ?");
     params.push(updates.description);
   }
   if (updates.status !== undefined) {
-    setClauses.push('status = ?');
+    setClauses.push("status = ?");
     params.push(updates.status);
-    
-    if (updates.status === 'in_progress') {
-      setClauses.push('started_at = datetime(\'now\')');
-    } else if (updates.status === 'completed' || updates.status === 'failed') {
-      setClauses.push('completed_at = datetime(\'now\')');
+
+    if (updates.status === "in_progress") {
+      setClauses.push("started_at = datetime('now')");
+    } else if (updates.status === "completed" || updates.status === "failed") {
+      setClauses.push("completed_at = datetime('now')");
     }
   }
   if (updates.priority !== undefined) {
-    setClauses.push('priority = ?');
+    setClauses.push("priority = ?");
     params.push(updates.priority);
   }
   if (updates.assigned_agent_id !== undefined) {
-    setClauses.push('assigned_agent_id = ?');
+    setClauses.push("assigned_agent_id = ?");
     params.push(updates.assigned_agent_id);
   }
   if (updates.spec_content !== undefined) {
-    setClauses.push('spec_content = ?');
+    setClauses.push("spec_content = ?");
     params.push(updates.spec_content);
   }
   if (updates.implementation_plan !== undefined) {
-    setClauses.push('implementation_plan = ?');
+    setClauses.push("implementation_plan = ?");
     params.push(updates.implementation_plan);
   }
   if (updates.retry_count !== undefined) {
-    setClauses.push('retry_count = ?');
+    setClauses.push("retry_count = ?");
     params.push(updates.retry_count);
   }
 
   params.push(id);
-  run(`UPDATE tasks SET ${setClauses.join(', ')} WHERE id = ?`, params);
+  run(`UPDATE tasks SET ${setClauses.join(", ")} WHERE id = ?`, params);
 
   return getTask(id);
 }
@@ -209,7 +234,7 @@ export function updateTask(
  * Delete a task
  */
 export function deleteTask(id: string): boolean {
-  const result = run('DELETE FROM tasks WHERE id = ?', [id]);
+  const result = run("DELETE FROM tasks WHERE id = ?", [id]);
   return result.changes > 0;
 }
 
@@ -218,7 +243,7 @@ export function deleteTask(id: string): boolean {
  */
 export function assignTask(taskId: string, agentId: string): Task | undefined {
   return updateTask(taskId, {
-    status: 'in_progress',
+    status: "in_progress",
     assigned_agent_id: agentId,
   });
 }
@@ -227,7 +252,7 @@ export function assignTask(taskId: string, agentId: string): Task | undefined {
  * Complete a task
  */
 export function completeTask(taskId: string): Task | undefined {
-  return updateTask(taskId, { status: 'completed' });
+  return updateTask(taskId, { status: "completed" });
 }
 
 /**
@@ -242,7 +267,7 @@ export function failTask(taskId: string): Task | undefined {
  */
 export function failTaskWithContext(
   taskId: string,
-  failure: TaskFailureInput
+  failure: TaskFailureInput,
 ): Task | undefined {
   const existing = getTask(taskId);
   if (!existing) {
@@ -250,7 +275,7 @@ export function failTaskWithContext(
   }
 
   // Already failed: keep idempotent semantics to prevent duplicate increments.
-  if (existing.status === 'failed') {
+  if (existing.status === "failed") {
     return existing;
   }
 
@@ -263,7 +288,7 @@ export function failTaskWithContext(
           updated_at = datetime('now')
       WHERE id = ?
     `,
-    [taskId]
+    [taskId],
   );
 
   const updated = getTask(taskId);
@@ -292,11 +317,11 @@ export function failTaskWithContext(
         attemptId,
         taskId,
         updated.retry_count,
-        failure.agentId || 'system',
+        failure.agentId || "system",
         failure.sessionId ?? null,
         retryError,
-        failure.source ?? 'runtime',
-      ]
+        failure.source ?? "runtime",
+      ],
     );
   } catch {
     // Backward compatibility with older task_retry_attempts schema (without `source`).
@@ -316,10 +341,10 @@ export function failTaskWithContext(
         attemptId,
         taskId,
         updated.retry_count,
-        failure.agentId || 'system',
+        failure.agentId || "system",
         failure.sessionId ?? null,
         retryError,
-      ]
+      ],
     );
   }
 

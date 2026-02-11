@@ -18,11 +18,13 @@ The task was failing QA validation **not due to any code issues**, but due to a 
 ## What Was Fixed Previously
 
 The original issue described:
+
 > In tests/task-agent/task-version-service.test.ts, lines 205-206 attempt to call diff.from() and diff.to() as functions, but the diff property is typed as `{ from: unknown; to: unknown; }` (an object, not a callable). This causes TS2349 "This expression is not callable" errors.
 
 **This was already resolved** with the correct implementation:
 
 ### Type Definition (`types/task-version.ts:39`)
+
 ```typescript
 export interface VersionDiff {
   fromVersion: number;
@@ -32,6 +34,7 @@ export interface VersionDiff {
 ```
 
 ### Service Implementation (`server/services/task-agent/task-version-service.ts:238`)
+
 ```typescript
 async diff(taskId: string, fromVersion: number, toVersion: number): Promise<VersionDiff> {
   // ... implementation correctly builds changes array
@@ -42,6 +45,7 @@ async diff(taskId: string, fromVersion: number, toVersion: number): Promise<Vers
 ```
 
 ### Test Usage (`tests/task-agent/task-version-service.test.ts:239-240`)
+
 ```typescript
 expect(diff.changes.some((c) => c.field === "title")).toBe(true);
 expect(diff.changes.some((c) => c.field === "priority")).toBe(true);
@@ -52,6 +56,7 @@ The tests correctly use `.some()` array method on `diff.changes` - there are **n
 ## What Was Wrong
 
 The task was stuck in a retry loop because:
+
 1. Previous QA validation attempts failed (possibly due to temporary issues, database corruption, or race conditions)
 2. Each failure incremented the retry_count to 6
 3. The task status became "blocked"
@@ -77,17 +82,20 @@ WHERE display_id = 'FIX-TASK-022-9IRY'
 ## Lessons Learned
 
 ### For QA Agent
+
 - **Always validate current state** before marking a task as failed
 - Run actual tests/build commands rather than trusting previous failure status
 - Don't fail tasks solely based on retry_count or "blocked" status
 - Verify the original error still exists before retrying
 
 ### For Orchestrator
+
 - Tasks stuck in "blocked" status with high retry_count should trigger investigation
 - Consider implementing a "force re-validate" mechanism for blocked tasks
 - Add monitoring for tasks that fail QA repeatedly but have no actual code issues
 
 ### For Task System
+
 - The gap between code state and database state caused false negatives
 - Need better synchronization between git commits and task status updates
 - Consider adding validation checkpoints that verify pass criteria independently

@@ -17,6 +17,7 @@ Create a specialized frontend component generator module that transforms compone
 ### Problem Statement
 
 **Current State:**
+
 - Backend generator exists (VIBE-P13-003) for API routes at `parent-harness/orchestrator/src/spawner/generators/backend.ts`
 - Database schema generator (VIBE-P10-006) handles data layer
 - **BUT** no automated frontend component generation
@@ -26,6 +27,7 @@ Create a specialized frontend component generator module that transforms compone
 - Test coverage gaps due to manual test writing
 
 **Desired State:**
+
 - Single generator creates complete React components from specs
 - Automatic framework detection (React vs Vue)
 - TypeScript prop types and state interfaces generated
@@ -54,13 +56,14 @@ The Frontend Component Generator is the **"UI Code Factory"** that accelerates f
 #### 1. Component Specification Input
 
 **Input Format:**
+
 ```typescript
 interface ComponentSpec {
   /** Component name (PascalCase) */
   name: string;
 
   /** Component type */
-  type: 'functional' | 'hook';
+  type: "functional" | "hook";
 
   /** Props definition */
   props: PropDefinition[];
@@ -72,7 +75,7 @@ interface ComponentSpec {
   events?: EventDefinition[];
 
   /** Styling approach (auto-detected if not specified) */
-  styling?: 'tailwind' | 'css-modules' | 'styled-components';
+  styling?: "tailwind" | "css-modules" | "styled-components";
 
   /** Component description for docs */
   description?: string;
@@ -104,32 +107,34 @@ interface EventDefinition {
 ```
 
 **Example Spec:**
+
 ```typescript
 const spec: ComponentSpec = {
-  name: 'StatusBadge',
-  type: 'functional',
-  description: 'Display status with color-coded badge',
+  name: "StatusBadge",
+  type: "functional",
+  description: "Display status with color-coded badge",
   props: [
     {
-      name: 'status',
+      name: "status",
       type: "'pending' | 'completed' | 'failed'",
       required: true,
-      description: 'Current status'
+      description: "Current status",
     },
     {
-      name: 'size',
+      name: "size",
       type: "'sm' | 'md' | 'lg'",
       required: false,
-      defaultValue: 'md'
+      defaultValue: "md",
     },
   ],
-  styling: 'tailwind',
+  styling: "tailwind",
 };
 ```
 
 #### 2. Framework Detection
 
 **React Detection:**
+
 - Check `package.json` for `"react"` dependency and version
 - Look for existing `.tsx` files in dashboard/src/components
 - Check for React-specific patterns (`useState`, `useEffect`, etc.)
@@ -140,29 +145,31 @@ const spec: ComponentSpec = {
 #### 3. Pattern Detection
 
 **Analyze Existing Components:**
+
 ```typescript
 interface ProjectPatterns {
   /** Import style */
-  importStyle: 'named' | 'default' | 'namespace';
+  importStyle: "named" | "default" | "namespace";
 
   /** Export style */
-  exportStyle: 'named' | 'default' | 'both';
+  exportStyle: "named" | "default" | "both";
 
   /** Props interface naming */
-  propsNaming: 'ComponentNameProps' | 'Props' | 'IComponentNameProps';
+  propsNaming: "ComponentNameProps" | "Props" | "IComponentNameProps";
 
   /** Styling approach used */
-  stylingApproach: 'tailwind' | 'css-modules' | 'styled-components';
+  stylingApproach: "tailwind" | "css-modules" | "styled-components";
 
   /** Testing library */
-  testLibrary: 'vitest' | 'jest' | 'testing-library';
+  testLibrary: "vitest" | "jest" | "testing-library";
 
   /** File naming convention */
-  fileNaming: 'PascalCase' | 'kebab-case';
+  fileNaming: "PascalCase" | "kebab-case";
 }
 ```
 
 **Detection Strategy:**
+
 1. Read 3-5 existing components from `parent-harness/dashboard/src/components/`
 2. Analyze import/export patterns (detected: named exports)
 3. Check prop interface naming (detected: `ComponentNameProps` pattern)
@@ -171,6 +178,7 @@ interface ProjectPatterns {
 6. Extract file naming (detected: PascalCase for `.tsx` files)
 
 **Detected Patterns from TaskCard.tsx and AgentStatusCard.tsx:**
+
 - ✅ Named imports: `import { useState } from 'react'`
 - ✅ Named exports: `export function ComponentName() { ... }`
 - ✅ Props naming: `interface ComponentNameProps { ... }`
@@ -182,30 +190,28 @@ interface ProjectPatterns {
 #### 4. Component Generation
 
 **React Functional Component (TypeScript):**
+
 ```tsx
-import { useState } from 'react';
+import { useState } from "react";
 
 interface StatusBadgeProps {
-  status: 'pending' | 'completed' | 'failed';
-  size?: 'sm' | 'md' | 'lg';
+  status: "pending" | "completed" | "failed";
+  size?: "sm" | "md" | "lg";
 }
 
 const statusColors = {
-  pending: 'bg-yellow-500 text-black',
-  completed: 'bg-green-500 text-white',
-  failed: 'bg-red-500 text-white',
+  pending: "bg-yellow-500 text-black",
+  completed: "bg-green-500 text-white",
+  failed: "bg-red-500 text-white",
 };
 
 const sizeClasses = {
-  sm: 'px-1.5 py-0.5 text-xs',
-  md: 'px-2 py-1 text-sm',
-  lg: 'px-3 py-1.5 text-base',
+  sm: "px-1.5 py-0.5 text-xs",
+  md: "px-2 py-1 text-sm",
+  lg: "px-3 py-1.5 text-base",
 };
 
-export function StatusBadge({
-  status,
-  size = 'md',
-}: StatusBadgeProps) {
+export function StatusBadge({ status, size = "md" }: StatusBadgeProps) {
   return (
     <span
       data-testid="status-badge"
@@ -222,6 +228,7 @@ export default StatusBadge;
 #### 5. Styling Generation
 
 **Tailwind CSS (Primary Approach):**
+
 - Use `className` attributes with Tailwind utility classes
 - Follow existing color/spacing patterns from TaskCard.tsx and AgentStatusCard.tsx
 - Generate color maps for variant props (status, priority, etc.)
@@ -229,53 +236,55 @@ export default StatusBadge;
 - Use data attributes for testing: `data-testid="component-name"`
 
 **Pattern from Existing Components:**
+
 ```tsx
 // Color mapping objects (detected pattern)
 const statusColors: Record<string, string> = {
-  pending: 'text-gray-400',
-  in_progress: 'text-blue-400',
-  completed: 'text-green-400',
+  pending: "text-gray-400",
+  in_progress: "text-blue-400",
+  completed: "text-green-400",
 };
 
 // Consistent spacing and colors
-className="bg-gray-700 rounded-lg p-3 mb-3"
+className = "bg-gray-700 rounded-lg p-3 mb-3";
 ```
 
 #### 6. Test Generation
 
 **Vitest + React Testing Library:**
-```tsx
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { StatusBadge } from './StatusBadge';
 
-describe('StatusBadge', () => {
-  it('renders status text', () => {
+```tsx
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { StatusBadge } from "./StatusBadge";
+
+describe("StatusBadge", () => {
+  it("renders status text", () => {
     render(<StatusBadge status="pending" />);
 
-    expect(screen.getByTestId('status-badge')).toBeInTheDocument();
-    expect(screen.getByText('pending')).toBeInTheDocument();
+    expect(screen.getByTestId("status-badge")).toBeInTheDocument();
+    expect(screen.getByText("pending")).toBeInTheDocument();
   });
 
-  it('applies correct color for status', () => {
+  it("applies correct color for status", () => {
     const { container } = render(<StatusBadge status="completed" />);
 
-    const badge = screen.getByTestId('status-badge');
-    expect(badge).toHaveClass('bg-green-500');
+    const badge = screen.getByTestId("status-badge");
+    expect(badge).toHaveClass("bg-green-500");
   });
 
-  it('applies default size when not specified', () => {
+  it("applies default size when not specified", () => {
     const { container } = render(<StatusBadge status="pending" />);
 
-    const badge = screen.getByTestId('status-badge');
-    expect(badge).toHaveClass('px-2', 'py-1', 'text-sm');
+    const badge = screen.getByTestId("status-badge");
+    expect(badge).toHaveClass("px-2", "py-1", "text-sm");
   });
 
-  it('applies custom size when specified', () => {
+  it("applies custom size when specified", () => {
     const { container } = render(<StatusBadge status="pending" size="lg" />);
 
-    const badge = screen.getByTestId('status-badge');
-    expect(badge).toHaveClass('px-3', 'py-1.5', 'text-base');
+    const badge = screen.getByTestId("status-badge");
+    expect(badge).toHaveClass("px-3", "py-1.5", "text-base");
   });
 });
 ```
@@ -283,16 +292,19 @@ describe('StatusBadge', () => {
 ### Non-Functional Requirements
 
 #### Performance
+
 - Generator completes in < 500ms for standard components
 - Pattern detection scans max 5 files to avoid slowdown
 - Caches pattern detection results per directory
 
 #### Reliability
+
 - Validates TypeScript syntax before writing files
 - Handles missing dependencies gracefully
 - Provides clear error messages on failure
 
 #### Maintainability
+
 - Template-based generation for easy updates
 - Separation of concerns (detection, generation, writing)
 - Well-documented code with examples
@@ -355,11 +367,11 @@ describe('StatusBadge', () => {
 
 export interface ComponentSpec {
   name: string;
-  type: 'functional' | 'hook';
+  type: "functional" | "hook";
   props: PropDefinition[];
   state?: StateDefinition[];
   events?: EventDefinition[];
-  styling?: 'tailwind' | 'css-modules' | 'styled-components';
+  styling?: "tailwind" | "css-modules" | "styled-components";
   description?: string;
   dependencies?: string[];
 }
@@ -396,14 +408,14 @@ export interface GeneratedComponent {
 }
 
 export interface ProjectPatterns {
-  framework: 'react';
-  importStyle: 'named' | 'default';
-  exportStyle: 'named' | 'default' | 'both';
+  framework: "react";
+  importStyle: "named" | "default";
+  exportStyle: "named" | "default" | "both";
   propsNaming: string;
-  stylingApproach: 'tailwind' | 'css-modules' | 'styled-components';
+  stylingApproach: "tailwind" | "css-modules" | "styled-components";
   usesTypeScript: boolean;
-  testLibrary: 'vitest' | 'jest';
-  fileNaming: 'PascalCase' | 'kebab-case';
+  testLibrary: "vitest" | "jest";
+  fileNaming: "PascalCase" | "kebab-case";
 }
 
 // ============================================================================
@@ -415,7 +427,7 @@ export interface ProjectPatterns {
  */
 export function generateFrontendComponent(
   spec: ComponentSpec,
-  targetDirectory?: string
+  targetDirectory?: string,
 ): GeneratedComponent {
   const patterns = detectProjectPatterns(targetDirectory);
   return generateReactComponent(spec, patterns);
@@ -426,20 +438,20 @@ export function generateFrontendComponent(
 // ============================================================================
 
 function detectProjectPatterns(directory?: string): ProjectPatterns {
-  const targetDir = directory || 'parent-harness/dashboard/src/components';
+  const targetDir = directory || "parent-harness/dashboard/src/components";
 
   // Read existing components for pattern analysis
   const existingComponents = readExistingComponents(targetDir);
 
   return {
-    framework: 'react',
-    importStyle: 'named', // import { useState } from 'react'
-    exportStyle: 'both',  // export function + export default
-    propsNaming: 'ComponentNameProps',
-    stylingApproach: 'tailwind',
+    framework: "react",
+    importStyle: "named", // import { useState } from 'react'
+    exportStyle: "both", // export function + export default
+    propsNaming: "ComponentNameProps",
+    stylingApproach: "tailwind",
     usesTypeScript: true,
-    testLibrary: 'vitest',
-    fileNaming: 'PascalCase',
+    testLibrary: "vitest",
+    fileNaming: "PascalCase",
   };
 }
 
@@ -449,7 +461,7 @@ function detectProjectPatterns(directory?: string): ProjectPatterns {
 
 function generateReactComponent(
   spec: ComponentSpec,
-  patterns: ProjectPatterns
+  patterns: ProjectPatterns,
 ): GeneratedComponent {
   const componentCode = buildReactComponentCode(spec, patterns);
   const testCode = generateTestFile(spec, patterns);
@@ -462,7 +474,7 @@ function generateReactComponent(
 
 function buildReactComponentCode(
   spec: ComponentSpec,
-  patterns: ProjectPatterns
+  patterns: ProjectPatterns,
 ): string {
   const imports = buildImports(spec, patterns);
   const propsInterface = buildPropsInterface(spec, patterns);
@@ -496,12 +508,12 @@ function buildImports(spec: ComponentSpec, patterns: ProjectPatterns): string {
   const reactImports: string[] = [];
 
   if (spec.state && spec.state.length > 0) {
-    reactImports.push('useState');
+    reactImports.push("useState");
   }
 
-  let imports = '';
+  let imports = "";
   if (reactImports.length > 0) {
-    imports += `import { ${reactImports.join(', ')} } from 'react';\n`;
+    imports += `import { ${reactImports.join(", ")} } from 'react';\n`;
   }
 
   // Add dependency imports
@@ -514,30 +526,33 @@ function buildImports(spec: ComponentSpec, patterns: ProjectPatterns): string {
   return imports;
 }
 
-function buildPropsInterface(spec: ComponentSpec, patterns: ProjectPatterns): string {
+function buildPropsInterface(
+  spec: ComponentSpec,
+  patterns: ProjectPatterns,
+): string {
   let code = `interface ${spec.name}Props {\n`;
 
   for (const prop of spec.props) {
     if (prop.description) {
       code += `  /** ${prop.description} */\n`;
     }
-    const optional = prop.required ? '' : '?';
+    const optional = prop.required ? "" : "?";
     code += `  ${prop.name}${optional}: ${prop.type};\n`;
   }
 
-  code += '}';
+  code += "}";
   return code;
 }
 
 function buildColorMaps(spec: ComponentSpec): string {
   // Generate color mapping objects for enum-like props
-  const enumProps = spec.props.filter(p =>
-    p.type.includes('|') && !p.type.includes('void')
+  const enumProps = spec.props.filter(
+    (p) => p.type.includes("|") && !p.type.includes("void"),
   );
 
-  let maps = '';
+  let maps = "";
   for (const prop of enumProps) {
-    const values = prop.type.split('|').map(v => v.trim().replace(/'/g, ''));
+    const values = prop.type.split("|").map((v) => v.trim().replace(/'/g, ""));
     const mapName = `${prop.name}Colors`;
 
     maps += `\nconst ${mapName} = {\n`;
@@ -545,33 +560,34 @@ function buildColorMaps(spec: ComponentSpec): string {
       // Default color scheme
       maps += `  ${value}: 'bg-gray-500 text-white',\n`;
     }
-    maps += '};\n';
+    maps += "};\n";
   }
 
   return maps;
 }
 
 function buildStateHooks(state: StateDefinition[]): string {
-  if (state.length === 0) return '';
+  if (state.length === 0) return "";
 
-  let code = '';
+  let code = "";
   for (const s of state) {
-    const initialValue = typeof s.initialValue === 'string'
-      ? `'${s.initialValue}'`
-      : JSON.stringify(s.initialValue);
+    const initialValue =
+      typeof s.initialValue === "string"
+        ? `'${s.initialValue}'`
+        : JSON.stringify(s.initialValue);
 
     code += `  const [${s.name}, set${capitalize(s.name)}] = useState<${s.type}>(${initialValue});\n`;
   }
 
-  return code + '\n';
+  return code + "\n";
 }
 
 function buildEventHandlers(events: EventDefinition[]): string {
-  if (events.length === 0) return '';
+  if (events.length === 0) return "";
 
-  let code = '';
+  let code = "";
   for (const event of events) {
-    const params = event.args.map(a => `${a.name}: ${a.type}`).join(', ');
+    const params = event.args.map((a) => `${a.name}: ${a.type}`).join(", ");
     code += `  const ${event.name} = async (${params}) => {\n`;
     code += `    // TODO: Implement ${event.name}\n`;
     code += `  };\n\n`;
@@ -592,8 +608,11 @@ function buildJSX(spec: ComponentSpec, patterns: ProjectPatterns): string {
 
 function buildPropsDestructuring(spec: ComponentSpec): string {
   return spec.props
-    .map(p => `  ${p.name}${p.defaultValue !== undefined ? ` = ${JSON.stringify(p.defaultValue)}` : ''}`)
-    .join(',\n');
+    .map(
+      (p) =>
+        `  ${p.name}${p.defaultValue !== undefined ? ` = ${JSON.stringify(p.defaultValue)}` : ""}`,
+    )
+    .join(",\n");
 }
 
 // ============================================================================
@@ -602,7 +621,7 @@ function buildPropsDestructuring(spec: ComponentSpec): string {
 
 function generateTestFile(
   spec: ComponentSpec,
-  patterns: ProjectPatterns
+  patterns: ProjectPatterns,
 ): string {
   const mockProps = buildMockProps(spec);
 
@@ -633,15 +652,15 @@ function buildMockProps(spec: ComponentSpec): Record<string, any> {
 
   for (const prop of spec.props) {
     if (prop.required) {
-      if (prop.type.includes('string')) {
-        props[prop.name] = 'test-value';
-      } else if (prop.type.includes('number')) {
+      if (prop.type.includes("string")) {
+        props[prop.name] = "test-value";
+      } else if (prop.type.includes("number")) {
         props[prop.name] = 42;
-      } else if (prop.type.includes('boolean')) {
+      } else if (prop.type.includes("boolean")) {
         props[prop.name] = true;
-      } else if (prop.type.includes('|')) {
+      } else if (prop.type.includes("|")) {
         // Union type - pick first value
-        const firstValue = prop.type.split('|')[0].trim().replace(/'/g, '');
+        const firstValue = prop.type.split("|")[0].trim().replace(/'/g, "");
         props[prop.name] = firstValue;
       }
     }
@@ -659,7 +678,7 @@ function capitalize(str: string): string {
 }
 
 function toKebabCase(str: string): string {
-  return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+  return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
 }
 
 function readExistingComponents(directory: string): string[] {
@@ -677,7 +696,7 @@ function readExistingComponents(directory: string): string[] {
 export function writeComponentFiles(
   componentName: string,
   generated: GeneratedComponent,
-  targetDirectory: string
+  targetDirectory: string,
 ): { componentPath: string; testPath: string } {
   const componentPath = `${targetDirectory}/${componentName}.tsx`;
   const testPath = `${targetDirectory}/${componentName}.test.tsx`;
@@ -696,8 +715,8 @@ The frontend generator integrates with the spawner infrastructure:
 
 ```typescript
 // parent-harness/orchestrator/src/spawner/feature-orchestrator.ts
-import { generateFrontendComponent } from './generators/frontend.js';
-import { generateBackendEndpoint } from './generators/backend.js';
+import { generateFrontendComponent } from "./generators/frontend.js";
+import { generateBackendEndpoint } from "./generators/backend.js";
 
 export async function orchestrateFeature(featureSpec: FeatureSpec) {
   // 1. Generate database schema (if needed)
@@ -706,8 +725,11 @@ export async function orchestrateFeature(featureSpec: FeatureSpec) {
   const backendCode = generateBackendEndpoint(featureSpec.api);
 
   // 3. Generate frontend components
-  const frontendComponents = featureSpec.ui.components.map(compSpec =>
-    generateFrontendComponent(compSpec, 'parent-harness/dashboard/src/components')
+  const frontendComponents = featureSpec.ui.components.map((compSpec) =>
+    generateFrontendComponent(
+      compSpec,
+      "parent-harness/dashboard/src/components",
+    ),
   );
 
   // 4. Validate cross-layer consistency
@@ -722,22 +744,24 @@ export async function orchestrateFeature(featureSpec: FeatureSpec) {
 ### 1. ✅ Generator Creates Valid React TSX Component from Spec
 
 **Test:**
+
 ```typescript
 const spec: ComponentSpec = {
-  name: 'UserCard',
-  type: 'functional',
+  name: "UserCard",
+  type: "functional",
   props: [
-    { name: 'name', type: 'string', required: true },
-    { name: 'email', type: 'string', required: true },
-    { name: 'avatar', type: 'string', required: false },
+    { name: "name", type: "string", required: true },
+    { name: "email", type: "string", required: true },
+    { name: "avatar", type: "string", required: false },
   ],
-  styling: 'tailwind',
+  styling: "tailwind",
 };
 
 const result = generateFrontendComponent(spec);
 ```
 
 **Expected Output:**
+
 - Valid TypeScript syntax (compiles without errors)
 - Exports `UserCard` component (named export)
 - Accepts `UserCardProps` interface with name, email, avatar?
@@ -746,6 +770,7 @@ const result = generateFrontendComponent(spec);
 - Includes `data-testid` attribute
 
 **Validation:**
+
 ```bash
 # Write to temp file
 echo "${result.componentCode}" > /tmp/UserCard.tsx
@@ -756,11 +781,13 @@ npx tsc --noEmit --jsx preserve /tmp/UserCard.tsx
 ### 2. ✅ Generated Component Includes TypeScript Prop Types
 
 **Test:**
+
 ```typescript
 const result = generateFrontendComponent(spec);
 ```
 
 **Expected:**
+
 - Contains `interface UserCardProps { ... }`
 - All props from spec are present in interface
 - Required props have no `?` marker
@@ -768,21 +795,24 @@ const result = generateFrontendComponent(spec);
 - TypeScript types match spec exactly
 
 **Validation:**
+
 ```typescript
-expect(result.componentCode).toContain('interface UserCardProps');
-expect(result.componentCode).toContain('name: string;');
-expect(result.componentCode).toContain('email: string;');
-expect(result.componentCode).toContain('avatar?: string;');
+expect(result.componentCode).toContain("interface UserCardProps");
+expect(result.componentCode).toContain("name: string;");
+expect(result.componentCode).toContain("email: string;");
+expect(result.componentCode).toContain("avatar?: string;");
 ```
 
 ### 3. ✅ Corresponding Test File Generated with at Least Render Test
 
 **Test:**
+
 ```typescript
 const result = generateFrontendComponent(spec);
 ```
 
 **Expected:**
+
 - `result.testCode` is non-empty
 - Contains import: `import { UserCard } from './UserCard'`
 - Contains at least one test: `it('renders component', () => { ... })`
@@ -792,18 +822,20 @@ const result = generateFrontendComponent(spec);
 - Test uses `data-testid` for querying
 
 **Validation:**
+
 ```typescript
 expect(result.testCode).toContain("import { UserCard }");
 expect(result.testCode).toContain("it('renders component'");
-expect(result.testCode).toContain('render(<UserCard');
+expect(result.testCode).toContain("render(<UserCard");
 expect(result.testCode).toContain("from 'vitest'");
-expect(result.testCode).toContain('getByTestId');
+expect(result.testCode).toContain("getByTestId");
 ```
 
 ### 4. ✅ Component Follows Project Existing Patterns (Detected Automatically)
 
 **Test:**
 Given existing components in `parent-harness/dashboard/src/components/`:
+
 - Use named exports: `export function ComponentName() { ... }`
 - Props interface naming: `ComponentNameProps`
 - Tailwind CSS for styling
@@ -811,29 +843,36 @@ Given existing components in `parent-harness/dashboard/src/components/`:
 - Both named and default exports
 
 **Expected:**
+
 ```typescript
-const patterns = detectProjectPatterns('parent-harness/dashboard/src/components');
-const result = generateFrontendComponent(spec, 'parent-harness/dashboard/src/components');
+const patterns = detectProjectPatterns(
+  "parent-harness/dashboard/src/components",
+);
+const result = generateFrontendComponent(
+  spec,
+  "parent-harness/dashboard/src/components",
+);
 
 // Generated code should match patterns
-expect(patterns.exportStyle).toBe('both');
-expect(result.componentCode).toContain('export function UserCard');
-expect(result.componentCode).toContain('export default UserCard');
+expect(patterns.exportStyle).toBe("both");
+expect(result.componentCode).toContain("export function UserCard");
+expect(result.componentCode).toContain("export default UserCard");
 
-expect(patterns.propsNaming).toBe('ComponentNameProps');
-expect(result.componentCode).toContain('interface UserCardProps');
+expect(patterns.propsNaming).toBe("ComponentNameProps");
+expect(result.componentCode).toContain("interface UserCardProps");
 
-expect(patterns.stylingApproach).toBe('tailwind');
+expect(patterns.stylingApproach).toBe("tailwind");
 expect(result.componentCode).toContain('className="');
 
-expect(patterns.testLibrary).toBe('vitest');
+expect(patterns.testLibrary).toBe("vitest");
 expect(result.testCode).toContain("from 'vitest'");
 
-expect(patterns.fileNaming).toBe('PascalCase');
+expect(patterns.fileNaming).toBe("PascalCase");
 // Files should be UserCard.tsx and UserCard.test.tsx
 ```
 
 **Validation:**
+
 - Pattern detection analyzes TaskCard.tsx and AgentStatusCard.tsx
 - Generated code matches detected patterns
 - Uses consistent naming conventions
@@ -844,6 +883,7 @@ expect(patterns.fileNaming).toBe('PascalCase');
 ## Dependencies
 
 ### Direct Dependencies
+
 - **VIBE-P13-003** (Backend Generator) - Similar architecture pattern at `parent-harness/orchestrator/src/spawner/generators/backend.ts`
 - **TypeScript** - For syntax validation and type generation
 - **File System** - Read existing components from `parent-harness/dashboard/src/components/`
@@ -851,10 +891,12 @@ expect(patterns.fileNaming).toBe('PascalCase');
 - **Vitest 4.0.18** - Test framework
 
 ### Dependent Tasks
+
 - **VIBE-P13-005** (Feature Orchestration Layer) - Will use this generator for UI components
 - **VIBE-P14-003** (E2E Test Framework) - Will generate E2E tests for components
 
 ### External Dependencies
+
 ```json
 {
   "dependencies": {
@@ -868,12 +910,14 @@ expect(patterns.fileNaming).toBe('PascalCase');
 ## Implementation Notes
 
 ### Phase 1: Core Structure (3-4 hours)
+
 1. Create `frontend.ts` module with types
 2. Implement `detectProjectPatterns()` function
 3. Build basic React template generator
 4. Write pattern detection tests
 
 ### Phase 2: React Generator (3-4 hours)
+
 1. Implement `buildPropsInterface()`
 2. Implement `buildStateHooks()`
 3. Implement `buildEventHandlers()`
@@ -881,17 +925,20 @@ expect(patterns.fileNaming).toBe('PascalCase');
 5. Test with example components
 
 ### Phase 3: Test Generator (2-3 hours)
+
 1. Implement `generateTestFile()`
 2. Support Vitest + React Testing Library
 3. Generate basic render tests
 4. Generate prop validation tests
 
 ### Phase 4: Integration (1 hour)
+
 1. Add `writeComponentFiles()` function
 2. Integrate with spawner/feature-orchestrator
 3. End-to-end test with full component generation
 
 ### Future Enhancements (Not in Scope)
+
 - Vue 3 Composition API support
 - Advanced state management (Zustand, Redux)
 - Storybook story generation
@@ -907,40 +954,40 @@ expect(patterns.fileNaming).toBe('PascalCase');
 **File:** `tests/unit/generators/frontend.test.ts`
 
 ```typescript
-describe('generateFrontendComponent', () => {
-  it('generates valid React component', () => {
+describe("generateFrontendComponent", () => {
+  it("generates valid React component", () => {
     const spec: ComponentSpec = {
-      name: 'TestComp',
-      type: 'functional',
-      props: []
+      name: "TestComp",
+      type: "functional",
+      props: [],
     };
     const result = generateFrontendComponent(spec);
 
-    expect(result.componentCode).toContain('export function TestComp');
-    expect(result.componentCode).toContain('export default TestComp');
+    expect(result.componentCode).toContain("export function TestComp");
+    expect(result.componentCode).toContain("export default TestComp");
   });
 
-  it('includes prop types', () => {
+  it("includes prop types", () => {
     const spec: ComponentSpec = {
-      name: 'UserCard',
-      type: 'functional',
+      name: "UserCard",
+      type: "functional",
       props: [
-        { name: 'name', type: 'string', required: true },
-        { name: 'email', type: 'string', required: false },
+        { name: "name", type: "string", required: true },
+        { name: "email", type: "string", required: false },
       ],
     };
     const result = generateFrontendComponent(spec);
 
-    expect(result.componentCode).toContain('interface UserCardProps');
-    expect(result.componentCode).toContain('name: string;');
-    expect(result.componentCode).toContain('email?: string;');
+    expect(result.componentCode).toContain("interface UserCardProps");
+    expect(result.componentCode).toContain("name: string;");
+    expect(result.componentCode).toContain("email?: string;");
   });
 
-  it('generates test file', () => {
+  it("generates test file", () => {
     const spec: ComponentSpec = {
-      name: 'TestComp',
-      type: 'functional',
-      props: []
+      name: "TestComp",
+      type: "functional",
+      props: [],
     };
     const result = generateFrontendComponent(spec);
 
@@ -949,11 +996,11 @@ describe('generateFrontendComponent', () => {
     expect(result.testCode).toContain("from 'vitest'");
   });
 
-  it('includes data-testid attribute', () => {
+  it("includes data-testid attribute", () => {
     const spec: ComponentSpec = {
-      name: 'StatusBadge',
-      type: 'functional',
-      props: []
+      name: "StatusBadge",
+      type: "functional",
+      props: [],
     };
     const result = generateFrontendComponent(spec);
 
@@ -961,25 +1008,33 @@ describe('generateFrontendComponent', () => {
   });
 });
 
-describe('detectProjectPatterns', () => {
-  it('detects React projects', () => {
-    const patterns = detectProjectPatterns('parent-harness/dashboard/src/components');
-    expect(patterns.framework).toBe('react');
+describe("detectProjectPatterns", () => {
+  it("detects React projects", () => {
+    const patterns = detectProjectPatterns(
+      "parent-harness/dashboard/src/components",
+    );
+    expect(patterns.framework).toBe("react");
   });
 
-  it('detects Tailwind usage', () => {
-    const patterns = detectProjectPatterns('parent-harness/dashboard/src/components');
-    expect(patterns.stylingApproach).toBe('tailwind');
+  it("detects Tailwind usage", () => {
+    const patterns = detectProjectPatterns(
+      "parent-harness/dashboard/src/components",
+    );
+    expect(patterns.stylingApproach).toBe("tailwind");
   });
 
-  it('detects Vitest', () => {
-    const patterns = detectProjectPatterns('parent-harness/dashboard/src/components');
-    expect(patterns.testLibrary).toBe('vitest');
+  it("detects Vitest", () => {
+    const patterns = detectProjectPatterns(
+      "parent-harness/dashboard/src/components",
+    );
+    expect(patterns.testLibrary).toBe("vitest");
   });
 
-  it('detects PascalCase naming', () => {
-    const patterns = detectProjectPatterns('parent-harness/dashboard/src/components');
-    expect(patterns.fileNaming).toBe('PascalCase');
+  it("detects PascalCase naming", () => {
+    const patterns = detectProjectPatterns(
+      "parent-harness/dashboard/src/components",
+    );
+    expect(patterns.fileNaming).toBe("PascalCase");
   });
 });
 ```
@@ -989,32 +1044,36 @@ describe('detectProjectPatterns', () => {
 **File:** `tests/integration/frontend-generator.test.ts`
 
 ```typescript
-it('generates and validates complete component', async () => {
+it("generates and validates complete component", async () => {
   const spec: ComponentSpec = {
-    name: 'GeneratedTestCard',
-    type: 'functional',
+    name: "GeneratedTestCard",
+    type: "functional",
     props: [
-      { name: 'title', type: 'string', required: true },
-      { name: 'count', type: 'number', required: true },
+      { name: "title", type: "string", required: true },
+      { name: "count", type: "number", required: true },
     ],
-    styling: 'tailwind',
+    styling: "tailwind",
   };
 
   const result = generateFrontendComponent(spec);
 
   // Write to temp directory
-  const tempDir = '/tmp/test-components';
+  const tempDir = "/tmp/test-components";
   await fs.mkdir(tempDir, { recursive: true });
   await fs.writeFile(`${tempDir}/GeneratedTestCard.tsx`, result.componentCode);
   await fs.writeFile(`${tempDir}/GeneratedTestCard.test.tsx`, result.testCode);
 
   // Validate TypeScript compilation
-  const { exitCode } = await exec(`npx tsc --noEmit ${tempDir}/GeneratedTestCard.tsx`);
+  const { exitCode } = await exec(
+    `npx tsc --noEmit ${tempDir}/GeneratedTestCard.tsx`,
+  );
   expect(exitCode).toBe(0);
 
   // Run generated tests
-  const testResult = await exec(`npx vitest run ${tempDir}/GeneratedTestCard.test.tsx`);
-  expect(testResult.stdout).toContain('✓');
+  const testResult = await exec(
+    `npx vitest run ${tempDir}/GeneratedTestCard.test.tsx`,
+  );
+  expect(testResult.stdout).toContain("✓");
 });
 ```
 
@@ -1023,19 +1082,22 @@ it('generates and validates complete component', async () => {
 ## Risk Assessment
 
 ### High Risk
+
 - **Pattern Detection Accuracy** - May not correctly infer all patterns
-  - *Mitigation:* Test with TaskCard.tsx and AgentStatusCard.tsx, use hardcoded defaults based on these files
+  - _Mitigation:_ Test with TaskCard.tsx and AgentStatusCard.tsx, use hardcoded defaults based on these files
 
 ### Medium Risk
+
 - **Complex State Logic** - Hard to generate non-trivial state management
-  - *Mitigation:* Focus on simple useState patterns, mark complex logic with TODO
+  - _Mitigation:_ Focus on simple useState patterns, mark complex logic with TODO
 
 - **Styling Variations** - Many ways to style components
-  - *Mitigation:* Focus on Tailwind (detected from existing components)
+  - _Mitigation:_ Focus on Tailwind (detected from existing components)
 
 ### Low Risk
+
 - **Test Quality** - Generated tests may be too basic
-  - *Mitigation:* Generate basic smoke tests, developers add detailed tests later
+  - _Mitigation:_ Generate basic smoke tests, developers add detailed tests later
 
 ---
 

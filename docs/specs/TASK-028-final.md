@@ -45,18 +45,21 @@ The solution adds explicit `as any[]` type assertions to all database query resu
 ### Functional Requirements
 
 **FR1: Resolve All TS2571 Type Errors** ✅ SATISFIED
+
 - Fix TS2571 errors at lines 315, 342, 343, 378, 394
 - Add proper type assertions to database query results
 - Maintain existing test functionality and assertions
 - Preserve test coverage and behavior
 
 **FR2: Type Safety Without Compromise** ✅ SATISFIED
+
 - Use appropriate type assertions without losing type checking
 - Ensure TypeScript understands query response structure
 - Maintain consistency with existing test patterns
 - No `@ts-ignore` or `@ts-expect-error` suppressions
 
 **FR3: Test Integrity** ✅ SATISFIED
+
 - All existing tests continue to pass
 - No changes to test logic or assertions
 - No changes to expected behavior or outcomes
@@ -65,12 +68,14 @@ The solution adds explicit `as any[]` type assertions to all database query resu
 ### Non-Functional Requirements
 
 **NFR1: Code Quality** ✅ SATISFIED
+
 - Follow existing test file conventions
 - Maintain readability and clarity
 - Use consistent type assertion patterns
 - Preserve test documentation and comments
 
 **NFR2: Compilation Success** ✅ SATISFIED
+
 - TypeScript compilation succeeds with `npx tsc --noEmit`
 - No new type errors introduced
 - No warnings generated from changes
@@ -118,7 +123,7 @@ The implemented solution adds explicit type assertions:
 const result = await query("SELECT * FROM table WHERE id = ?", [id]);
 
 // After (resolves TS2571)
-const result = await query("SELECT * FROM table WHERE id = ?", [id]) as any[];
+const result = (await query("SELECT * FROM table WHERE id = ?", [id])) as any[];
 ```
 
 **Rationale for `as any[]`:**
@@ -133,21 +138,21 @@ const result = await query("SELECT * FROM table WHERE id = ?", [id]) as any[];
 
 Type assertions were added to all 13 query result assignments:
 
-| Line Range | Test Description | Type Assertion |
-|------------|-----------------|----------------|
-| 49-51 | Message bus log format | `as any[]` |
-| 71-73 | Python timestamp format | `as any[]` |
-| 109-112 | Transcript entry format | `as any[]` |
-| 137-139 | Wave event entries | `as any[]` |
-| 170-172 | Tool use format | `as any[]` |
-| 189-191 | Tool error handling | `as any[]` |
-| 209-212 | Blocked tools | `as any[]` |
-| 242-245 | Assertion results | `as any[]` |
-| 273-275 | Failed assertions | `as any[]` |
-| 306-308 | Skill traces (line 315 error) | `as any[]` |
-| 337-340 | Agent instances (lines 342-343 errors) | `as any[]` |
-| 369-376 | Transcript-tool linking (line 378 error) | `as any[]` |
-| 389-392 | Execution-wave linking (line 394 error) | `as any[]` |
+| Line Range | Test Description                         | Type Assertion |
+| ---------- | ---------------------------------------- | -------------- |
+| 49-51      | Message bus log format                   | `as any[]`     |
+| 71-73      | Python timestamp format                  | `as any[]`     |
+| 109-112    | Transcript entry format                  | `as any[]`     |
+| 137-139    | Wave event entries                       | `as any[]`     |
+| 170-172    | Tool use format                          | `as any[]`     |
+| 189-191    | Tool error handling                      | `as any[]`     |
+| 209-212    | Blocked tools                            | `as any[]`     |
+| 242-245    | Assertion results                        | `as any[]`     |
+| 273-275    | Failed assertions                        | `as any[]`     |
+| 306-308    | Skill traces (line 315 error)            | `as any[]`     |
+| 337-340    | Agent instances (lines 342-343 errors)   | `as any[]`     |
+| 369-376    | Transcript-tool linking (line 378 error) | `as any[]`     |
+| 389-392    | Execution-wave linking (line 394 error)  | `as any[]`     |
 
 ---
 
@@ -156,9 +161,11 @@ Type assertions were added to all 13 query result assignments:
 ### Files Modified
 
 **Primary File:**
+
 - `tests/integration/observability/python-producer-api.test.ts`
 
 **Changes Made:**
+
 - Added `as any[]` type assertions to 13 query result assignments
 - No logic changes
 - No test behavior changes
@@ -167,6 +174,7 @@ Type assertions were added to all 13 query result assignments:
 ### Example Changes
 
 **Before (Line 306-308):**
+
 ```typescript
 const result = await query("SELECT * FROM skill_traces WHERE id = ?", [
   pythonSkillTrace.id,
@@ -174,10 +182,11 @@ const result = await query("SELECT * FROM skill_traces WHERE id = ?", [
 ```
 
 **After (Line 306-308):**
+
 ```typescript
-const result = await query("SELECT * FROM skill_traces WHERE id = ?", [
+const result = (await query("SELECT * FROM skill_traces WHERE id = ?", [
   pythonSkillTrace.id,
-]) as any[];
+])) as any[];
 ```
 
 This pattern was consistently applied across all query calls in the file.
@@ -189,6 +198,7 @@ This pattern was consistently applied across all query calls in the file.
 ### ✅ PC1: All TS2571 Errors Resolved
 
 **Command:**
+
 ```bash
 npx tsc --noEmit 2>&1 | grep "python-producer-api.test.ts" | grep "TS2571"
 ```
@@ -196,11 +206,13 @@ npx tsc --noEmit 2>&1 | grep "python-producer-api.test.ts" | grep "TS2571"
 **Expected:** No output (0 matches)
 
 **Status:** ✅ PASSED
+
 - No TS2571 errors at lines 315, 342, 343, 378, 394
 - No new type errors introduced
 - Clean TypeScript compilation
 
 **Verification:**
+
 ```bash
 $ npm run typecheck 2>&1 | grep "python-producer-api" || echo "No errors"
 No errors
@@ -209,6 +221,7 @@ No errors
 ### ✅ PC2: TypeScript Compilation Succeeds
 
 **Command:**
+
 ```bash
 npx tsc --noEmit
 echo $?
@@ -217,11 +230,13 @@ echo $?
 **Expected:** Exit code 0
 
 **Status:** ✅ PASSED
+
 - TypeScript compilation completes successfully
 - No compilation errors
 - All types properly resolved
 
 **Verification:**
+
 ```bash
 $ npm run typecheck 2>&1 | grep -E "(error|TS[0-9]+)" | wc -l
 0
@@ -230,6 +245,7 @@ $ npm run typecheck 2>&1 | grep -E "(error|TS[0-9]+)" | wc -l
 ### ✅ PC3: All Tests Remain Functional
 
 **Command:**
+
 ```bash
 npm test -- tests/integration/observability/python-producer-api.test.ts --run
 ```
@@ -237,6 +253,7 @@ npm test -- tests/integration/observability/python-producer-api.test.ts --run
 **Expected:** All 18 tests functional (note: integration tests excluded by default)
 
 **Status:** ✅ PASSED
+
 - Test file structure intact
 - All 18 test cases defined:
   - Message Bus Log Format (2 tests)
@@ -248,6 +265,7 @@ npm test -- tests/integration/observability/python-producer-api.test.ts --run
   - Cross-Source Data Consistency (2 tests)
 
 **Verification:**
+
 ```bash
 $ grep -c "it(" tests/integration/observability/python-producer-api.test.ts
 18
@@ -256,6 +274,7 @@ $ grep -c "it(" tests/integration/observability/python-producer-api.test.ts
 ### ✅ PC4: No Test Behavior Changes
 
 **Status:** ✅ PASSED
+
 - All test assertions unchanged
 - No test logic modified
 - Mock data structures unchanged
@@ -276,15 +295,18 @@ $ grep -c "it(" tests/integration/observability/python-producer-api.test.ts
 ### File Dependencies
 
 **Primary File:**
+
 - `tests/integration/observability/python-producer-api.test.ts` (modified)
 
 **Related Files:**
+
 - `database/db.js` (mocked, not modified)
 - Other integration tests using similar patterns
 
 ### Pattern Consistency
 
 This fix aligns with existing type assertion patterns in:
+
 - `tests/integration/observability/api-to-db.test.ts`
 - `tests/integration/anthropic-client.test.ts`
 - Other integration tests with mocked database queries
@@ -300,12 +322,14 @@ This fix aligns with existing type assertion patterns in:
 **Specification:** See `docs/specs/TASK-028-python-producer-api-types.md`
 
 **Pros:**
+
 - Better type safety
 - Catches typos in property names
 - Self-documenting code
 - IDE autocomplete support
 
 **Cons:**
+
 - Requires maintaining separate type definitions file
 - More complex for test context
 - Overhead for mocked data
@@ -318,9 +342,10 @@ This fix aligns with existing type assertion patterns in:
 **Description:** Runtime type checking with type guards
 
 **Example:**
+
 ```typescript
 function isMessageBusLog(obj: unknown): obj is MessageBusLogRecord {
-  return typeof obj === 'object' && obj !== null && 'event_type' in obj;
+  return typeof obj === "object" && obj !== null && "event_type" in obj;
 }
 ```
 
@@ -345,6 +370,7 @@ function isMessageBusLog(obj: unknown): obj is MessageBusLogRecord {
 ### Current State (2026-02-08)
 
 **TypeScript Compilation:**
+
 ```bash
 $ npm run typecheck
 ✓ TypeScript compilation successful
@@ -354,18 +380,21 @@ $ npm run typecheck 2>&1 | grep -E "(error|TS[0-9]+)" | wc -l
 ```
 
 **Type Assertions Present:**
+
 ```bash
 $ grep -c "as any\[\]" tests/integration/observability/python-producer-api.test.ts
 13
 ```
 
 **No TS2571 Errors:**
+
 ```bash
 $ npx tsc --noEmit 2>&1 | grep "python-producer-api.test.ts" | grep "TS2571"
 (no output - errors resolved)
 ```
 
 **Test File Structure:**
+
 ```bash
 $ grep -c "describe(" tests/integration/observability/python-producer-api.test.ts
 7
@@ -381,6 +410,7 @@ $ grep -c "it(" tests/integration/observability/python-producer-api.test.ts
 ### Low Risk ✅
 
 **Why this is low risk:**
+
 - Changes isolated to test file only
 - No production code affected
 - Type assertions don't change runtime behavior
@@ -390,16 +420,19 @@ $ grep -c "it(" tests/integration/observability/python-producer-api.test.ts
 ### Mitigated Risks
 
 **Risk 1: Type assertions masking real type errors**
+
 - **Mitigation:** Tests validate expected structure with assertions
 - **Mitigation:** Mock data defines explicit shapes
 - **Mitigation:** Runtime behavior unchanged
 
 **Risk 2: Inconsistent type assertion patterns**
+
 - **Mitigation:** Pattern matches existing test conventions
 - **Mitigation:** Applied consistently throughout file
 - **Mitigation:** Documented in specification
 
 **Risk 3: Future refactoring complications**
+
 - **Mitigation:** Type assertions are explicit and searchable
 - **Mitigation:** When proper types added, assertions easily replaced
 - **Mitigation:** Alternative specification available for future enhancement
@@ -417,6 +450,7 @@ While the current solution is complete and functional, future improvements could
 **Reference:** See `docs/specs/TASK-028-python-producer-api-types.md` for full specification
 
 **Benefits:**
+
 - Better type safety
 - Catches property name typos
 - IDE autocomplete support
@@ -429,6 +463,7 @@ While the current solution is complete and functional, future improvements could
 **Description:** Define common test data shapes in `tests/__types__/`
 
 **Benefits:**
+
 - Reuse across integration tests
 - Reduce type assertion duplication
 - Centralized type definitions
@@ -440,6 +475,7 @@ While the current solution is complete and functional, future improvements could
 **Description:** Generate TypeScript types from SQL schema using `sql-ts` or `kysely-codegen`
 
 **Benefits:**
+
 - Types stay in sync with database schema
 - Catch schema changes in tests
 - No manual type maintenance
@@ -451,6 +487,7 @@ While the current solution is complete and functional, future improvements could
 **Description:** Enable `strict: true` in tsconfig for test files
 
 **Benefits:**
+
 - Catch more type errors at compile time
 - Improve overall type safety
 - Better development experience
@@ -496,6 +533,7 @@ TASK-028 has been **successfully completed** with all pass criteria satisfied:
 ✅ Consistent with existing codebase patterns
 
 The implemented solution using `as any[]` type assertions is:
+
 - **Simple** - Minimal code changes, easy to understand
 - **Effective** - Resolves all compilation errors
 - **Maintainable** - Consistent pattern throughout file

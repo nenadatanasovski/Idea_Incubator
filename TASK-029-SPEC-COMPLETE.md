@@ -40,6 +40,7 @@ Created comprehensive technical specification for TASK-029 (Clarification Agent)
 ## Key Findings
 
 ### ✅ Infrastructure Ready
+
 - Clarification system fully implemented (`clarification/index.ts`)
 - Vagueness detector exists (`vagueness-detector.ts`)
 - Question engine available (`question-engine.ts`)
@@ -48,11 +49,13 @@ Created comprehensive technical specification for TASK-029 (Clarification Agent)
 - Telegram bot configured (`@vibe-clarification`)
 
 ### ❌ Missing Components
+
 1. **Automatic triggering** - No hook on task creation
 2. **Source filtering** - No bypass for agent-created tasks
 3. **Answer enrichment** - Answers not integrated into task descriptions
 
 ### 🎯 Solution Approach
+
 - Add vagueness check hook to POST /api/tasks endpoint (async, non-blocking)
 - Create vagueness-checker service (pattern + length scoring)
 - Create workflow trigger (question generation + clarification request)
@@ -88,9 +91,11 @@ All 5 pass criteria are clearly defined and testable:
 ## Technical Decisions
 
 ### Decision 1: Basic Questions in v1, Advanced in v2
+
 **Rationale:** Start with hardcoded clarifying questions to validate workflow. Add full QuestionEngine.analyzeGaps() integration after workflow proven.
 
 **v1 Questions:**
+
 1. What specific outcome or deliverable do you expect?
 2. Which files, components, or systems should be modified?
 3. How will you verify this task is complete?
@@ -98,15 +103,18 @@ All 5 pass criteria are clearly defined and testable:
 **v2 Enhancement:** Dynamic questions based on gap analysis
 
 ### Decision 2: Conservative Vagueness Threshold (0.4)
+
 **Rationale:** Better to miss some vague tasks than annoy users with false positives. Can tune down to 0.3 if false negative rate is high.
 
 **Scoring Formula:**
+
 ```
 score = (pattern_score × 0.5) + (length_penalty × 0.3) + (gap_score × 0.2)
 threshold = 0.4
 ```
 
 ### Decision 3: Async Vagueness Check (Non-Blocking)
+
 **Rationale:** Don't slow down API response. Use `setImmediate()` to check vagueness after task created and response sent.
 
 ---
@@ -114,13 +122,16 @@ threshold = 0.4
 ## Related Documentation
 
 **Previous Specifications:**
+
 - `TASK-029-clarification-agent.md` (24KB) - Comprehensive spec with full QuestionEngine integration
 - `TASK-029-clarification-agent-implementation.md` (21KB) - Implementation-focused spec with TypeScript examples
 
 **Final Specification:**
+
 - `TASK-029-clarification-agent-final-spec.md` (19KB) - Consolidated, actionable spec ready for Build Agent
 
 **Source Documents:**
+
 - `parent-harness/docs/CRITICAL_GAPS.md` - Gap #1 definition
 - `parent-harness/orchestrator/src/clarification/index.ts` - Existing clarification system
 - `agents/ideation/vagueness-detector.ts` - Existing vagueness detection
@@ -143,6 +154,7 @@ threshold = 0.4
 **Overall Risk:** LOW
 
 **Rationale:**
+
 - All infrastructure exists and is proven
 - Small surface area (4 new/modified components)
 - Clear pass criteria with verification commands
@@ -159,6 +171,7 @@ threshold = 0.4
 **Specification Status:** ✅ COMPLETE AND READY FOR IMPLEMENTATION
 
 **Spec Quality:**
+
 - ✅ Clear problem statement
 - ✅ Detailed technical design
 - ✅ Complete code examples

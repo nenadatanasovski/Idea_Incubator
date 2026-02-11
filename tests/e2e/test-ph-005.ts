@@ -2,9 +2,7 @@
  * TEST-PH-005: Bulk classify all documents
  */
 
-import {
-  classifyAllDocuments,
-} from "../../agents/ideation/document-classifier.js";
+import { classifyAllDocuments } from "../../agents/ideation/document-classifier.js";
 import * as fs from "fs";
 import * as path from "path";
 

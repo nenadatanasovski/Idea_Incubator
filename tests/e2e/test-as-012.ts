@@ -21,11 +21,8 @@ async function runTest() {
   console.log("TEST-AS-012: Testing renameIdeaFolder implementation\n");
 
   // Import the function dynamically
-  const {
-    createIdeaFolder,
-    renameIdeaFolder,
-    parseFrontmatter,
-  } = await import("../../agents/ideation/unified-artifact-store.js");
+  const { createIdeaFolder, renameIdeaFolder, parseFrontmatter } =
+    await import("../../agents/ideation/unified-artifact-store.js");
 
   const testUserSlug = "test-user-as012";
   const oldSlug = "old-idea-name";

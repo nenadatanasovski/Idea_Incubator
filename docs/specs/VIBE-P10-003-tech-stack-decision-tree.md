@@ -16,12 +16,14 @@ Implement a rule-based decision engine that analyzes project requirements and re
 ### Problem Statement
 
 **Current State:**
+
 - Technology selection is ad-hoc or based on developer preferences
 - No systematic evaluation of tradeoffs (performance vs ease-of-use, cost vs scalability)
 - Inconsistent recommendations across similar projects
 - Architect Agent lacks decision-making framework for tech stack choices
 
 **Desired State:**
+
 - Rule-based decision engine evaluates requirements and outputs recommendations
 - Each technology choice includes rationale explaining why it's optimal
 - Consistent, reproducible decisions for similar project profiles
@@ -50,23 +52,23 @@ The Tech Stack Decision Tree serves as the **"Technology Advisor"** for the Arch
 ```typescript
 interface ProjectRequirements {
   // Team & Experience
-  teamSize: 'solo' | 'small' | 'medium' | 'large'; // 1, 2-5, 6-15, 16+
-  teamExperience: 'junior' | 'mixed' | 'senior';
+  teamSize: "solo" | "small" | "medium" | "large"; // 1, 2-5, 6-15, 16+
+  teamExperience: "junior" | "mixed" | "senior";
 
   // Application Characteristics
-  complexity: 'simple' | 'moderate' | 'complex';
-  expectedUsers: 'few' | 'moderate' | 'high' | 'enterprise'; // <100, 100-10k, 10k-100k, 100k+
-  performanceNeeds: 'standard' | 'high' | 'realtime';
+  complexity: "simple" | "moderate" | "complex";
+  expectedUsers: "few" | "moderate" | "high" | "enterprise"; // <100, 100-10k, 10k-100k, 100k+
+  performanceNeeds: "standard" | "high" | "realtime";
 
   // Data & Architecture
-  dataStructure: 'simple' | 'relational' | 'document' | 'mixed';
-  dataScale: 'small' | 'medium' | 'large'; // <1GB, 1-100GB, >100GB
+  dataStructure: "simple" | "relational" | "document" | "mixed";
+  dataScale: "small" | "medium" | "large"; // <1GB, 1-100GB, >100GB
   needsRelationships: boolean;
 
   // Deployment & Operations
-  budget: 'minimal' | 'moderate' | 'flexible';
-  deploymentComplexity: 'simple' | 'moderate' | 'advanced';
-  scalabilityNeeds: 'none' | 'horizontal' | 'vertical' | 'both';
+  budget: "minimal" | "moderate" | "flexible";
+  deploymentComplexity: "simple" | "moderate" | "advanced";
+  scalabilityNeeds: "none" | "horizontal" | "vertical" | "both";
 
   // Optional Constraints
   existingInfrastructure?: string; // e.g., "AWS", "Vercel"
@@ -89,11 +91,11 @@ interface TechStackRecommendation {
 
 interface TechnologyChoice {
   name: string; // e.g., "React", "PostgreSQL"
-  category: 'frontend' | 'backend' | 'database' | 'hosting';
+  category: "frontend" | "backend" | "database" | "hosting";
   rationale: string; // Why this choice is optimal
   tradeoffs: string[]; // What you gain vs. what you lose
-  learningCurve: 'easy' | 'moderate' | 'steep';
-  ecosystem: 'mature' | 'growing' | 'niche';
+  learningCurve: "easy" | "moderate" | "steep";
+  ecosystem: "mature" | "growing" | "niche";
   alternatives: string[]; // Other options considered
 }
 ```
@@ -237,22 +239,25 @@ class TechStackDecisionTree {
    * Get decision rationale for a specific choice
    */
   explainChoice(
-    category: 'frontend' | 'backend' | 'database' | 'hosting',
+    category: "frontend" | "backend" | "database" | "hosting",
     choice: string,
-    requirements: ProjectRequirements
+    requirements: ProjectRequirements,
   ): string;
 
   /**
    * Test if requirements satisfy a specific rule
    */
-  private evaluateRule(rule: DecisionRule, requirements: ProjectRequirements): boolean;
+  private evaluateRule(
+    rule: DecisionRule,
+    requirements: ProjectRequirements,
+  ): boolean;
 
   /**
    * Rank technologies by match score
    */
   private rankChoices(
     category: string,
-    requirements: ProjectRequirements
+    requirements: ProjectRequirements,
   ): TechnologyChoice[];
 }
 ```
@@ -280,7 +285,7 @@ if (requirements.mustAvoid) {
   // Filter out mustAvoid technologies from candidates
 }
 
-if (requirements.existingInfrastructure === 'AWS') {
+if (requirements.existingInfrastructure === "AWS") {
   // Boost AWS hosting score, consider AWS-native services
 }
 ```
@@ -363,8 +368,12 @@ TechStackRecommendation (output with rationale)
 **File:** `src/agents/architect/decision-tree.ts` (NEW)
 
 ```typescript
-import { ProjectRequirements, TechStackRecommendation, TechnologyChoice } from './types';
-import { DECISION_RULES, DecisionRule } from './rules';
+import {
+  ProjectRequirements,
+  TechStackRecommendation,
+  TechnologyChoice,
+} from "./types";
+import { DECISION_RULES, DecisionRule } from "./rules";
 
 export class TechStackDecisionTree {
   /**
@@ -375,18 +384,18 @@ export class TechStackDecisionTree {
     const normalizedReqs = this.validateRequirements(requirements);
 
     // Evaluate each category
-    const frontend = this.selectBest('frontend', normalizedReqs);
-    const backend = this.selectBest('backend', normalizedReqs);
-    const database = this.selectBest('database', normalizedReqs);
-    const hosting = this.selectBest('hosting', normalizedReqs);
+    const frontend = this.selectBest("frontend", normalizedReqs);
+    const backend = this.selectBest("backend", normalizedReqs);
+    const database = this.selectBest("database", normalizedReqs);
+    const hosting = this.selectBest("hosting", normalizedReqs);
 
     // Calculate overall confidence (average of category confidences)
-    const confidence = (
-      frontend.confidence +
-      backend.confidence +
-      database.confidence +
-      hosting.confidence
-    ) / 4;
+    const confidence =
+      (frontend.confidence +
+        backend.confidence +
+        database.confidence +
+        hosting.confidence) /
+      4;
 
     // Find alternative complete stacks
     const alternativeStacks = this.findAlternativeStacks(normalizedReqs);
@@ -406,7 +415,7 @@ export class TechStackDecisionTree {
    */
   private selectBest(
     category: string,
-    requirements: ProjectRequirements
+    requirements: ProjectRequirements,
   ): TechnologyChoice {
     const ranked = this.rankChoices(category, requirements);
     const winner = ranked[0];
@@ -414,7 +423,7 @@ export class TechStackDecisionTree {
     // Enhance with metadata
     return {
       ...winner,
-      alternatives: ranked.slice(1, 4).map(t => t.name),
+      alternatives: ranked.slice(1, 4).map((t) => t.name),
     };
   }
 
@@ -423,7 +432,7 @@ export class TechStackDecisionTree {
    */
   private rankChoices(
     category: string,
-    requirements: ProjectRequirements
+    requirements: ProjectRequirements,
   ): TechnologyChoice[] {
     const rules = DECISION_RULES[category];
     const scores: Map<string, number> = new Map();
@@ -446,7 +455,7 @@ export class TechStackDecisionTree {
     // Convert to TechnologyChoice objects
     const choices: TechnologyChoice[] = [];
     for (const [name, score] of scores.entries()) {
-      const tech = rules.find(r => r.technology === name);
+      const tech = rules.find((r) => r.technology === name);
       if (!tech) continue;
 
       choices.push({
@@ -470,7 +479,7 @@ export class TechStackDecisionTree {
    */
   private evaluateRule(
     rule: DecisionRule,
-    requirements: ProjectRequirements
+    requirements: ProjectRequirements,
   ): boolean {
     // Check hard constraints first
     if (requirements.mustAvoid?.includes(rule.technology)) {
@@ -483,19 +492,20 @@ export class TechStackDecisionTree {
 
     // Evaluate rule conditions
     for (const condition of rule.conditions) {
-      const reqValue = requirements[condition.field as keyof ProjectRequirements];
+      const reqValue =
+        requirements[condition.field as keyof ProjectRequirements];
 
       switch (condition.operator) {
-        case 'equals':
+        case "equals":
           if (reqValue !== condition.value) return false;
           break;
-        case 'in':
+        case "in":
           if (!condition.value.includes(reqValue)) return false;
           break;
-        case 'greaterThan':
+        case "greaterThan":
           if (reqValue <= condition.value) return false;
           break;
-        case 'lessThan':
+        case "lessThan":
           if (reqValue >= condition.value) return false;
           break;
       }
@@ -508,20 +518,20 @@ export class TechStackDecisionTree {
    * Validate requirements and apply defaults
    */
   private validateRequirements(
-    requirements: ProjectRequirements
+    requirements: ProjectRequirements,
   ): ProjectRequirements {
     return {
-      teamSize: requirements.teamSize || 'small',
-      teamExperience: requirements.teamExperience || 'mixed',
-      complexity: requirements.complexity || 'moderate',
-      expectedUsers: requirements.expectedUsers || 'moderate',
-      performanceNeeds: requirements.performanceNeeds || 'standard',
-      dataStructure: requirements.dataStructure || 'relational',
-      dataScale: requirements.dataScale || 'small',
+      teamSize: requirements.teamSize || "small",
+      teamExperience: requirements.teamExperience || "mixed",
+      complexity: requirements.complexity || "moderate",
+      expectedUsers: requirements.expectedUsers || "moderate",
+      performanceNeeds: requirements.performanceNeeds || "standard",
+      dataStructure: requirements.dataStructure || "relational",
+      dataScale: requirements.dataScale || "small",
       needsRelationships: requirements.needsRelationships ?? true,
-      budget: requirements.budget || 'moderate',
-      deploymentComplexity: requirements.deploymentComplexity || 'simple',
-      scalabilityNeeds: requirements.scalabilityNeeds || 'none',
+      budget: requirements.budget || "moderate",
+      deploymentComplexity: requirements.deploymentComplexity || "simple",
+      scalabilityNeeds: requirements.scalabilityNeeds || "none",
       ...requirements,
     };
   }
@@ -530,7 +540,7 @@ export class TechStackDecisionTree {
    * Find alternative complete stacks
    */
   private findAlternativeStacks(
-    requirements: ProjectRequirements
+    requirements: ProjectRequirements,
   ): TechStackRecommendation[] {
     // Simplified: return top 2 alternatives
     // Full implementation would generate complete alternative stacks
@@ -546,196 +556,213 @@ export class TechStackDecisionTree {
 ```typescript
 export interface DecisionRule {
   technology: string;
-  category: 'frontend' | 'backend' | 'database' | 'hosting';
+  category: "frontend" | "backend" | "database" | "hosting";
   weight: number; // 0-100 (rule priority)
   conditions: RuleCondition[];
   rationale: string;
   tradeoffs: string[];
-  learningCurve: 'easy' | 'moderate' | 'steep';
-  ecosystem: 'mature' | 'growing' | 'niche';
+  learningCurve: "easy" | "moderate" | "steep";
+  ecosystem: "mature" | "growing" | "niche";
 }
 
 export interface RuleCondition {
   field: string; // Key from ProjectRequirements
-  operator: 'equals' | 'in' | 'greaterThan' | 'lessThan';
+  operator: "equals" | "in" | "greaterThan" | "lessThan";
   value: any;
 }
 
 export const DECISION_RULES: Record<string, DecisionRule[]> = {
   frontend: [
     {
-      technology: 'React',
-      category: 'frontend',
+      technology: "React",
+      category: "frontend",
       weight: 90,
       conditions: [
-        { field: 'teamSize', operator: 'in', value: ['medium', 'large'] },
+        { field: "teamSize", operator: "in", value: ["medium", "large"] },
       ],
-      rationale: 'Largest ecosystem and hiring pool, battle-tested at enterprise scale',
-      tradeoffs: ['Heavier bundle size', 'More boilerplate than alternatives'],
-      learningCurve: 'moderate',
-      ecosystem: 'mature',
+      rationale:
+        "Largest ecosystem and hiring pool, battle-tested at enterprise scale",
+      tradeoffs: ["Heavier bundle size", "More boilerplate than alternatives"],
+      learningCurve: "moderate",
+      ecosystem: "mature",
     },
     {
-      technology: 'React',
-      category: 'frontend',
+      technology: "React",
+      category: "frontend",
       weight: 85,
       conditions: [
-        { field: 'complexity', operator: 'in', value: ['moderate', 'complex'] },
+        { field: "complexity", operator: "in", value: ["moderate", "complex"] },
       ],
-      rationale: 'Rich component ecosystem handles complex UI requirements',
-      tradeoffs: ['State management complexity', 'Performance tuning needed'],
-      learningCurve: 'moderate',
-      ecosystem: 'mature',
+      rationale: "Rich component ecosystem handles complex UI requirements",
+      tradeoffs: ["State management complexity", "Performance tuning needed"],
+      learningCurve: "moderate",
+      ecosystem: "mature",
     },
     {
-      technology: 'Vue',
-      category: 'frontend',
+      technology: "Vue",
+      category: "frontend",
       weight: 80,
       conditions: [
-        { field: 'teamSize', operator: 'equals', value: 'small' },
-        { field: 'teamExperience', operator: 'in', value: ['junior', 'mixed'] },
+        { field: "teamSize", operator: "equals", value: "small" },
+        { field: "teamExperience", operator: "in", value: ["junior", "mixed"] },
       ],
-      rationale: 'Gentle learning curve with excellent documentation, perfect for small teams',
-      tradeoffs: ['Smaller ecosystem than React', 'Fewer senior developers'],
-      learningCurve: 'easy',
-      ecosystem: 'mature',
+      rationale:
+        "Gentle learning curve with excellent documentation, perfect for small teams",
+      tradeoffs: ["Smaller ecosystem than React", "Fewer senior developers"],
+      learningCurve: "easy",
+      ecosystem: "mature",
     },
     {
-      technology: 'Svelte',
-      category: 'frontend',
+      technology: "Svelte",
+      category: "frontend",
       weight: 85,
       conditions: [
-        { field: 'performanceNeeds', operator: 'equals', value: 'high' },
+        { field: "performanceNeeds", operator: "equals", value: "high" },
       ],
-      rationale: 'No virtual DOM means faster runtime and smaller bundle sizes',
-      tradeoffs: ['Smaller ecosystem', 'Less enterprise adoption'],
-      learningCurve: 'easy',
-      ecosystem: 'growing',
+      rationale: "No virtual DOM means faster runtime and smaller bundle sizes",
+      tradeoffs: ["Smaller ecosystem", "Less enterprise adoption"],
+      learningCurve: "easy",
+      ecosystem: "growing",
     },
     // Add more frontend rules...
   ],
 
   backend: [
     {
-      technology: 'Express',
-      category: 'backend',
+      technology: "Express",
+      category: "backend",
       weight: 75,
       conditions: [
-        { field: 'complexity', operator: 'equals', value: 'simple' },
+        { field: "complexity", operator: "equals", value: "simple" },
       ],
-      rationale: 'Minimal and flexible, perfect for simple APIs with minimal overhead',
-      tradeoffs: ['Manual validation setup', 'No built-in structure'],
-      learningCurve: 'easy',
-      ecosystem: 'mature',
+      rationale:
+        "Minimal and flexible, perfect for simple APIs with minimal overhead",
+      tradeoffs: ["Manual validation setup", "No built-in structure"],
+      learningCurve: "easy",
+      ecosystem: "mature",
     },
     {
-      technology: 'Fastify',
-      category: 'backend',
+      technology: "Fastify",
+      category: "backend",
       weight: 90,
       conditions: [
-        { field: 'performanceNeeds', operator: 'in', value: ['high', 'realtime'] },
+        {
+          field: "performanceNeeds",
+          operator: "in",
+          value: ["high", "realtime"],
+        },
       ],
-      rationale: '2x faster than Express with built-in schema validation',
-      tradeoffs: ['Smaller middleware ecosystem', 'Less Stack Overflow answers'],
-      learningCurve: 'moderate',
-      ecosystem: 'growing',
+      rationale: "2x faster than Express with built-in schema validation",
+      tradeoffs: [
+        "Smaller middleware ecosystem",
+        "Less Stack Overflow answers",
+      ],
+      learningCurve: "moderate",
+      ecosystem: "growing",
     },
     {
-      technology: 'NestJS',
-      category: 'backend',
+      technology: "NestJS",
+      category: "backend",
       weight: 95,
       conditions: [
-        { field: 'teamSize', operator: 'in', value: ['medium', 'large'] },
-        { field: 'complexity', operator: 'equals', value: 'complex' },
+        { field: "teamSize", operator: "in", value: ["medium", "large"] },
+        { field: "complexity", operator: "equals", value: "complex" },
       ],
-      rationale: 'Enterprise-ready architecture with dependency injection and modules',
-      tradeoffs: ['Steep learning curve', 'Over-engineered for small apps'],
-      learningCurve: 'steep',
-      ecosystem: 'mature',
+      rationale:
+        "Enterprise-ready architecture with dependency injection and modules",
+      tradeoffs: ["Steep learning curve", "Over-engineered for small apps"],
+      learningCurve: "steep",
+      ecosystem: "mature",
     },
     // Add more backend rules...
   ],
 
   database: [
     {
-      technology: 'PostgreSQL',
-      category: 'database',
+      technology: "PostgreSQL",
+      category: "database",
       weight: 95,
       conditions: [
-        { field: 'needsRelationships', operator: 'equals', value: true },
+        { field: "needsRelationships", operator: "equals", value: true },
       ],
-      rationale: 'ACID guarantees with JSON support, best of both SQL and NoSQL worlds',
-      tradeoffs: ['More setup than SQLite', 'Schema migrations required'],
-      learningCurve: 'moderate',
-      ecosystem: 'mature',
+      rationale:
+        "ACID guarantees with JSON support, best of both SQL and NoSQL worlds",
+      tradeoffs: ["More setup than SQLite", "Schema migrations required"],
+      learningCurve: "moderate",
+      ecosystem: "mature",
     },
     {
-      technology: 'SQLite',
-      category: 'database',
+      technology: "SQLite",
+      category: "database",
       weight: 85,
       conditions: [
-        { field: 'dataScale', operator: 'equals', value: 'small' },
-        { field: 'expectedUsers', operator: 'equals', value: 'few' },
+        { field: "dataScale", operator: "equals", value: "small" },
+        { field: "expectedUsers", operator: "equals", value: "few" },
       ],
-      rationale: 'Zero-config file-based database, perfect for MVPs and prototypes',
-      tradeoffs: ['Limited concurrency', 'No built-in replication'],
-      learningCurve: 'easy',
-      ecosystem: 'mature',
+      rationale:
+        "Zero-config file-based database, perfect for MVPs and prototypes",
+      tradeoffs: ["Limited concurrency", "No built-in replication"],
+      learningCurve: "easy",
+      ecosystem: "mature",
     },
     {
-      technology: 'MongoDB',
-      category: 'database',
+      technology: "MongoDB",
+      category: "database",
       weight: 80,
       conditions: [
-        { field: 'dataStructure', operator: 'equals', value: 'document' },
-        { field: 'needsRelationships', operator: 'equals', value: false },
+        { field: "dataStructure", operator: "equals", value: "document" },
+        { field: "needsRelationships", operator: "equals", value: false },
       ],
-      rationale: 'Flexible schema with native JSON, fast for read-heavy applications',
-      tradeoffs: ['No multi-document ACID', 'Easy to create schema debt'],
-      learningCurve: 'moderate',
-      ecosystem: 'mature',
+      rationale:
+        "Flexible schema with native JSON, fast for read-heavy applications",
+      tradeoffs: ["No multi-document ACID", "Easy to create schema debt"],
+      learningCurve: "moderate",
+      ecosystem: "mature",
     },
     // Add more database rules...
   ],
 
   hosting: [
     {
-      technology: 'Vercel',
-      category: 'hosting',
+      technology: "Vercel",
+      category: "hosting",
       weight: 90,
       conditions: [
-        { field: 'frontend', operator: 'in', value: ['React', 'Next.js'] },
-        { field: 'budget', operator: 'in', value: ['moderate', 'flexible'] },
+        { field: "frontend", operator: "in", value: ["React", "Next.js"] },
+        { field: "budget", operator: "in", value: ["moderate", "flexible"] },
       ],
-      rationale: 'Zero-config deploys with edge functions, optimal for Next.js apps',
-      tradeoffs: ['Expensive at scale', 'Serverless cold starts'],
-      learningCurve: 'easy',
-      ecosystem: 'mature',
+      rationale:
+        "Zero-config deploys with edge functions, optimal for Next.js apps",
+      tradeoffs: ["Expensive at scale", "Serverless cold starts"],
+      learningCurve: "easy",
+      ecosystem: "mature",
     },
     {
-      technology: 'Railway',
-      category: 'hosting',
+      technology: "Railway",
+      category: "hosting",
       weight: 85,
       conditions: [
-        { field: 'budget', operator: 'in', value: ['minimal', 'moderate'] },
+        { field: "budget", operator: "in", value: ["minimal", "moderate"] },
       ],
-      rationale: 'Simple pricing with built-in databases, excellent developer experience',
-      tradeoffs: ['Limited global network', 'Fewer regions than AWS'],
-      learningCurve: 'easy',
-      ecosystem: 'growing',
+      rationale:
+        "Simple pricing with built-in databases, excellent developer experience",
+      tradeoffs: ["Limited global network", "Fewer regions than AWS"],
+      learningCurve: "easy",
+      ecosystem: "growing",
     },
     {
-      technology: 'AWS',
-      category: 'hosting',
+      technology: "AWS",
+      category: "hosting",
       weight: 95,
       conditions: [
-        { field: 'scalabilityNeeds', operator: 'equals', value: 'both' },
-        { field: 'expectedUsers', operator: 'equals', value: 'enterprise' },
+        { field: "scalabilityNeeds", operator: "equals", value: "both" },
+        { field: "expectedUsers", operator: "equals", value: "enterprise" },
       ],
-      rationale: 'Unlimited scale with every service imaginable, enterprise-grade',
-      tradeoffs: ['Complex setup', 'Steep learning curve', 'Cost management'],
-      learningCurve: 'steep',
-      ecosystem: 'mature',
+      rationale:
+        "Unlimited scale with every service imaginable, enterprise-grade",
+      tradeoffs: ["Complex setup", "Steep learning curve", "Cost management"],
+      learningCurve: "steep",
+      ecosystem: "mature",
     },
     // Add more hosting rules...
   ],
@@ -753,7 +780,7 @@ Add the interfaces defined in FR-1 to this file.
 **File:** `src/agents/architect-agent.ts` (MODIFY EXISTING)
 
 ```typescript
-import { TechStackDecisionTree } from './architect/decision-tree';
+import { TechStackDecisionTree } from "./architect/decision-tree";
 
 export class ArchitectAgent {
   private decisionTree: TechStackDecisionTree;
@@ -788,6 +815,7 @@ export class ArchitectAgent {
 **No database changes required** - Decision tree operates in-memory with statically defined rules.
 
 Future enhancement could add:
+
 - `architecture_decisions` table to log recommendations
 - `rule_effectiveness` table to track which recommendations succeeded
 
@@ -811,7 +839,7 @@ Allow users to override default rules:
 
 ```typescript
 // Load custom rules from config file
-const customRules = loadCustomRules('./architect-rules.yaml');
+const customRules = loadCustomRules("./architect-rules.yaml");
 const tree = new TechStackDecisionTree(customRules);
 ```
 
@@ -836,15 +864,16 @@ trackRecommendationOutcome({
 **Scenario:** Missing required fields or invalid values
 
 **Recovery:**
+
 ```typescript
 try {
   const recommendation = tree.evaluate(requirements);
 } catch (error) {
   if (error instanceof ValidationError) {
     return {
-      error: 'Invalid requirements',
+      error: "Invalid requirements",
       details: error.validationErrors,
-      suggestion: 'Provide teamSize, complexity, and dataStructure',
+      suggestion: "Provide teamSize, complexity, and dataStructure",
     };
   }
 }
@@ -855,9 +884,12 @@ try {
 **Scenario:** Requirements don't match any rules (impossible constraints)
 
 **Recovery:**
+
 ```typescript
 if (recommendation.confidence < 0.3) {
-  console.warn('Low confidence recommendation - requirements may be contradictory');
+  console.warn(
+    "Low confidence recommendation - requirements may be contradictory",
+  );
   return recommendation; // Still return best effort
 }
 ```
@@ -867,6 +899,7 @@ if (recommendation.confidence < 0.3) {
 **Scenario:** mustUse includes "MongoDB" but dataStructure = "relational"
 
 **Recovery:**
+
 ```typescript
 // Prioritize hard constraints (mustUse) over recommendations
 // Include warning in rationale: "Note: MongoDB not ideal for relational data"
@@ -977,143 +1010,143 @@ if (recommendation.confidence < 0.3) {
 
 ```typescript
 // decision-tree.test.ts
-describe('TechStackDecisionTree', () => {
+describe("TechStackDecisionTree", () => {
   let tree: TechStackDecisionTree;
 
   beforeEach(() => {
     tree = new TechStackDecisionTree();
   });
 
-  describe('Frontend Decisions', () => {
-    it('recommends React for large teams', () => {
+  describe("Frontend Decisions", () => {
+    it("recommends React for large teams", () => {
       const reqs: ProjectRequirements = {
-        teamSize: 'large',
-        teamExperience: 'mixed',
-        complexity: 'moderate',
-        expectedUsers: 'moderate',
-        performanceNeeds: 'standard',
-        dataStructure: 'relational',
-        dataScale: 'medium',
+        teamSize: "large",
+        teamExperience: "mixed",
+        complexity: "moderate",
+        expectedUsers: "moderate",
+        performanceNeeds: "standard",
+        dataStructure: "relational",
+        dataScale: "medium",
         needsRelationships: true,
-        budget: 'moderate',
-        deploymentComplexity: 'simple',
-        scalabilityNeeds: 'horizontal',
+        budget: "moderate",
+        deploymentComplexity: "simple",
+        scalabilityNeeds: "horizontal",
       };
 
       const result = tree.evaluate(reqs);
-      expect(result.frontend.name).toBe('React');
-      expect(result.frontend.rationale).toContain('ecosystem');
+      expect(result.frontend.name).toBe("React");
+      expect(result.frontend.rationale).toContain("ecosystem");
     });
 
-    it('recommends Vue for small junior teams', () => {
+    it("recommends Vue for small junior teams", () => {
       const reqs: ProjectRequirements = {
-        teamSize: 'small',
-        teamExperience: 'junior',
-        complexity: 'simple',
+        teamSize: "small",
+        teamExperience: "junior",
+        complexity: "simple",
         // ... rest of required fields
       };
 
       const result = tree.evaluate(reqs);
-      expect(result.frontend.name).toBe('Vue');
-      expect(result.frontend.learningCurve).toBe('easy');
+      expect(result.frontend.name).toBe("Vue");
+      expect(result.frontend.learningCurve).toBe("easy");
     });
 
-    it('recommends Svelte for high performance needs', () => {
+    it("recommends Svelte for high performance needs", () => {
       const reqs: ProjectRequirements = {
-        performanceNeeds: 'high',
-        complexity: 'simple',
+        performanceNeeds: "high",
+        complexity: "simple",
         // ... rest of required fields
       };
 
       const result = tree.evaluate(reqs);
-      expect(result.frontend.name).toBe('Svelte');
-      expect(result.frontend.rationale).toContain('faster runtime');
+      expect(result.frontend.name).toBe("Svelte");
+      expect(result.frontend.rationale).toContain("faster runtime");
     });
   });
 
-  describe('Backend Decisions', () => {
-    it('recommends Fastify for high performance', () => {
+  describe("Backend Decisions", () => {
+    it("recommends Fastify for high performance", () => {
       const reqs: ProjectRequirements = {
-        performanceNeeds: 'realtime',
-        expectedUsers: 'high',
+        performanceNeeds: "realtime",
+        expectedUsers: "high",
         // ...
       };
 
       const result = tree.evaluate(reqs);
-      expect(result.backend.name).toBe('Fastify');
+      expect(result.backend.name).toBe("Fastify");
     });
 
-    it('recommends NestJS for complex enterprise apps', () => {
+    it("recommends NestJS for complex enterprise apps", () => {
       const reqs: ProjectRequirements = {
-        teamSize: 'large',
-        teamExperience: 'senior',
-        complexity: 'complex',
+        teamSize: "large",
+        teamExperience: "senior",
+        complexity: "complex",
         // ...
       };
 
       const result = tree.evaluate(reqs);
-      expect(result.backend.name).toBe('NestJS');
+      expect(result.backend.name).toBe("NestJS");
     });
   });
 
-  describe('Database Decisions', () => {
-    it('recommends PostgreSQL for relational data', () => {
+  describe("Database Decisions", () => {
+    it("recommends PostgreSQL for relational data", () => {
       const reqs: ProjectRequirements = {
-        dataStructure: 'relational',
+        dataStructure: "relational",
         needsRelationships: true,
-        dataScale: 'medium',
+        dataScale: "medium",
         // ...
       };
 
       const result = tree.evaluate(reqs);
-      expect(result.database.name).toBe('PostgreSQL');
+      expect(result.database.name).toBe("PostgreSQL");
     });
 
-    it('recommends SQLite for small MVP projects', () => {
+    it("recommends SQLite for small MVP projects", () => {
       const reqs: ProjectRequirements = {
-        dataScale: 'small',
-        expectedUsers: 'few',
-        deploymentComplexity: 'simple',
+        dataScale: "small",
+        expectedUsers: "few",
+        deploymentComplexity: "simple",
         // ...
       };
 
       const result = tree.evaluate(reqs);
-      expect(result.database.name).toBe('SQLite');
-    });
-  });
-
-  describe('Constraint Handling', () => {
-    it('honors mustUse constraints', () => {
-      const reqs: ProjectRequirements = {
-        teamSize: 'small',
-        mustUse: ['MongoDB'],
-        dataStructure: 'relational', // Would normally suggest PostgreSQL
-        // ...
-      };
-
-      const result = tree.evaluate(reqs);
-      expect(result.database.name).toBe('MongoDB');
-    });
-
-    it('respects mustAvoid constraints', () => {
-      const reqs: ProjectRequirements = {
-        teamSize: 'large',
-        mustAvoid: ['React'],
-        complexity: 'complex', // Would normally suggest React
-        // ...
-      };
-
-      const result = tree.evaluate(reqs);
-      expect(result.frontend.name).not.toBe('React');
+      expect(result.database.name).toBe("SQLite");
     });
   });
 
-  describe('Edge Cases', () => {
-    it('handles missing optional fields with defaults', () => {
+  describe("Constraint Handling", () => {
+    it("honors mustUse constraints", () => {
       const reqs: ProjectRequirements = {
-        teamSize: 'small',
-        complexity: 'simple',
-        dataStructure: 'relational',
+        teamSize: "small",
+        mustUse: ["MongoDB"],
+        dataStructure: "relational", // Would normally suggest PostgreSQL
+        // ...
+      };
+
+      const result = tree.evaluate(reqs);
+      expect(result.database.name).toBe("MongoDB");
+    });
+
+    it("respects mustAvoid constraints", () => {
+      const reqs: ProjectRequirements = {
+        teamSize: "large",
+        mustAvoid: ["React"],
+        complexity: "complex", // Would normally suggest React
+        // ...
+      };
+
+      const result = tree.evaluate(reqs);
+      expect(result.frontend.name).not.toBe("React");
+    });
+  });
+
+  describe("Edge Cases", () => {
+    it("handles missing optional fields with defaults", () => {
+      const reqs: ProjectRequirements = {
+        teamSize: "small",
+        complexity: "simple",
+        dataStructure: "relational",
         // Missing many optional fields
       } as any;
 
@@ -1121,12 +1154,12 @@ describe('TechStackDecisionTree', () => {
       expect(result.confidence).toBeGreaterThan(0.5);
     });
 
-    it('returns low confidence for contradictory requirements', () => {
+    it("returns low confidence for contradictory requirements", () => {
       const reqs: ProjectRequirements = {
-        budget: 'minimal',
-        scalabilityNeeds: 'both',
-        expectedUsers: 'enterprise',
-        deploymentComplexity: 'simple',
+        budget: "minimal",
+        scalabilityNeeds: "both",
+        expectedUsers: "enterprise",
+        deploymentComplexity: "simple",
         // Contradictory: minimal budget but enterprise scale
         // ...
       };
@@ -1142,56 +1175,56 @@ describe('TechStackDecisionTree', () => {
 
 ```typescript
 // integration.test.ts
-describe('Decision Tree Integration', () => {
-  it('generates complete tech stack for startup MVP', () => {
+describe("Decision Tree Integration", () => {
+  it("generates complete tech stack for startup MVP", () => {
     const tree = new TechStackDecisionTree();
     const reqs: ProjectRequirements = {
-      teamSize: 'solo',
-      teamExperience: 'mixed',
-      complexity: 'simple',
-      expectedUsers: 'few',
-      performanceNeeds: 'standard',
-      dataStructure: 'relational',
-      dataScale: 'small',
+      teamSize: "solo",
+      teamExperience: "mixed",
+      complexity: "simple",
+      expectedUsers: "few",
+      performanceNeeds: "standard",
+      dataStructure: "relational",
+      dataScale: "small",
       needsRelationships: true,
-      budget: 'minimal',
-      deploymentComplexity: 'simple',
-      scalabilityNeeds: 'none',
+      budget: "minimal",
+      deploymentComplexity: "simple",
+      scalabilityNeeds: "none",
     };
 
     const result = tree.evaluate(reqs);
 
     // Expect lightweight stack for MVP
-    expect(result.frontend.name).toBe('Vue'); // Easy learning
-    expect(result.backend.name).toBe('Express'); // Simple
-    expect(result.database.name).toBe('SQLite'); // Zero config
-    expect(result.hosting.name).toBe('Railway'); // Budget-friendly
+    expect(result.frontend.name).toBe("Vue"); // Easy learning
+    expect(result.backend.name).toBe("Express"); // Simple
+    expect(result.database.name).toBe("SQLite"); // Zero config
+    expect(result.hosting.name).toBe("Railway"); // Budget-friendly
     expect(result.confidence).toBeGreaterThan(0.7);
   });
 
-  it('generates enterprise-grade stack', () => {
+  it("generates enterprise-grade stack", () => {
     const tree = new TechStackDecisionTree();
     const reqs: ProjectRequirements = {
-      teamSize: 'large',
-      teamExperience: 'senior',
-      complexity: 'complex',
-      expectedUsers: 'enterprise',
-      performanceNeeds: 'realtime',
-      dataStructure: 'relational',
-      dataScale: 'large',
+      teamSize: "large",
+      teamExperience: "senior",
+      complexity: "complex",
+      expectedUsers: "enterprise",
+      performanceNeeds: "realtime",
+      dataStructure: "relational",
+      dataScale: "large",
       needsRelationships: true,
-      budget: 'flexible',
-      deploymentComplexity: 'advanced',
-      scalabilityNeeds: 'both',
+      budget: "flexible",
+      deploymentComplexity: "advanced",
+      scalabilityNeeds: "both",
     };
 
     const result = tree.evaluate(reqs);
 
     // Expect enterprise stack
-    expect(result.frontend.name).toBe('React'); // Ecosystem
-    expect(result.backend.name).toBe('NestJS'); // Architecture
-    expect(result.database.name).toBe('PostgreSQL'); // ACID + scale
-    expect(result.hosting.name).toBe('AWS'); // Unlimited scale
+    expect(result.frontend.name).toBe("React"); // Ecosystem
+    expect(result.backend.name).toBe("NestJS"); // Architecture
+    expect(result.database.name).toBe("PostgreSQL"); // ACID + scale
+    expect(result.hosting.name).toBe("AWS"); // Unlimited scale
     expect(result.confidence).toBeGreaterThan(0.8);
   });
 });

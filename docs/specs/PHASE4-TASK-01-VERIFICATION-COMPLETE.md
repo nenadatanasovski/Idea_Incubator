@@ -40,6 +40,7 @@ npm test -- knowledge-base.test.ts
 **Result:** ✅ **PASS** - 31/31 tests passing
 
 ### Test Coverage:
+
 - ✅ Confidence tracking configuration (5 tests)
 - ✅ Duplicate detection and similarity matching (5 tests)
 - ✅ Knowledge types (gotcha, pattern, decision) (3 tests)
@@ -58,6 +59,7 @@ npm test -- knowledge-base.test.ts
 ### 3.1 Knowledge Base Tables (database/ideas.db)
 
 **Table: knowledge_entries**
+
 ```sql
 CREATE TABLE knowledge_entries (
     id TEXT PRIMARY KEY,
@@ -74,7 +76,9 @@ CREATE TABLE knowledge_entries (
     updated_at TEXT DEFAULT (datetime('now'))
 );
 ```
+
 **Indexes:**
+
 - `idx_knowledge_type` on type
 - `idx_knowledge_confidence` on confidence
 
@@ -83,6 +87,7 @@ CREATE TABLE knowledge_entries (
 ---
 
 **Table: claude_md_proposals**
+
 ```sql
 CREATE TABLE claude_md_proposals (
     id TEXT PRIMARY KEY,
@@ -96,7 +101,9 @@ CREATE TABLE claude_md_proposals (
     FOREIGN KEY (knowledge_entry_id) REFERENCES knowledge_entries(id)
 );
 ```
+
 **Indexes:**
+
 - `idx_proposals_status` on status
 
 **Status:** ✅ Verified
@@ -104,6 +111,7 @@ CREATE TABLE claude_md_proposals (
 ---
 
 **Table: gotcha_applications**
+
 ```sql
 CREATE TABLE gotcha_applications (
     id TEXT PRIMARY KEY,
@@ -115,7 +123,9 @@ CREATE TABLE gotcha_applications (
     FOREIGN KEY (knowledge_entry_id) REFERENCES knowledge_entries(id)
 );
 ```
+
 **Indexes:**
+
 - `idx_applications_entry` on knowledge_entry_id
 - `idx_applications_execution` on execution_id
 
@@ -136,6 +146,7 @@ CREATE TABLE gotcha_applications (
 ### 3.3 Parent Harness Memory System (parent-harness/data/harness.db)
 
 **Table: agent_memory**
+
 ```sql
 CREATE TABLE agent_memory (
     id TEXT PRIMARY KEY,
@@ -152,7 +163,9 @@ CREATE TABLE agent_memory (
     UNIQUE(agent_id, type, key)
 );
 ```
+
 **Indexes:**
+
 - `idx_agent_memory_agent` on agent_id
 - `idx_agent_memory_type` on type
 
@@ -165,6 +178,7 @@ CREATE TABLE agent_memory (
 ### 4.1 Core Modules
 
 **File:** `agents/knowledge-base/index.ts`
+
 - ✅ Central knowledge base module
 - ✅ Re-exports SIA knowledge functionality
 - ✅ Comprehensive type exports
@@ -175,6 +189,7 @@ CREATE TABLE agent_memory (
 - ✅ CLAUDE.md update system
 
 **File:** `agents/knowledge-base/queries.ts`
+
 - ✅ High-level query functions
 - ✅ `getRelevantGotchas()` - context-aware retrieval
 - ✅ `getRelevantPatterns()` - pattern matching
@@ -183,11 +198,13 @@ CREATE TABLE agent_memory (
 - ✅ `getKnowledgeStats()` - analytics
 
 **File:** `agents/sia/knowledge-writer.ts`
+
 - ✅ Write operations for knowledge entries
 - ✅ Integration with memory graph system
 - ✅ Dual storage (knowledge_entries + memory_blocks)
 
 **File:** `agents/sia/db.ts`
+
 - ✅ Database CRUD operations
 - ✅ Query filtering (type, confidence, file patterns)
 - ✅ Proposal management
@@ -199,6 +216,7 @@ CREATE TABLE agent_memory (
 **File:** `server/routes/knowledge.ts`
 
 **Endpoints:**
+
 1. ✅ `GET /api/knowledge` - Query with filters
 2. ✅ `GET /api/knowledge/stats` - Statistics
 3. ✅ `GET /api/knowledge/recent` - Recent entries
@@ -218,6 +236,7 @@ CREATE TABLE agent_memory (
 ### 4.3 Supporting Infrastructure
 
 **Confidence Tracking:**
+
 - ✅ `agents/sia/confidence-tracker.ts` - Confidence scoring system
 - ✅ Initial confidence calculation with boosts
 - ✅ Promotion/demotion candidate selection
@@ -225,11 +244,13 @@ CREATE TABLE agent_memory (
 - ✅ Time-based decay
 
 **Duplicate Detection:**
+
 - ✅ `agents/sia/duplicate-detector.ts` - Similarity matching
 - ✅ Levenshtein distance calculation
 - ✅ Merge functionality
 
 **CLAUDE.md Integration:**
+
 - ✅ `agents/sia/claude-md-updater.ts` - Proposal system
 - ✅ Automatic promotion eligibility checks
 - ✅ Pending proposal generation
@@ -241,6 +262,7 @@ CREATE TABLE agent_memory (
 The knowledge base is integrated with the broader Memory Graph System:
 
 **Tables (database/ideas.db):**
+
 - ✅ `memory_blocks` (migration 115)
 - ✅ `memory_graph_changes` (migration 116)
 - ✅ `memory_block_sources` (migration 120)
@@ -248,6 +270,7 @@ The knowledge base is integrated with the broader Memory Graph System:
 - ✅ `graph_snapshots` (migration 119)
 
 **Documentation:**
+
 - ✅ `parent-harness/docs/MEMORY_SYSTEM.md` - Comprehensive architecture
 
 ---
@@ -258,15 +281,15 @@ The knowledge base is integrated with the broader Memory Graph System:
 
 **Requirement:** "Knowledge Base system for storing patterns, gotchas, error recovery strategies"
 
-| Component | Status |
-|-----------|--------|
-| Patterns storage | ✅ knowledge_entries with type='pattern' |
-| Gotchas storage | ✅ knowledge_entries with type='gotcha' |
-| Error recovery strategies | ✅ knowledge_entries with type='decision' |
-| File pattern matching | ✅ file_patterns_json field |
-| Action type filtering | ✅ action_types_json field |
-| Confidence tracking | ✅ confidence field + tracker module |
-| Source attribution | ✅ source_execution_id, source_task_id, source_agent_type |
+| Component                 | Status                                                    |
+| ------------------------- | --------------------------------------------------------- |
+| Patterns storage          | ✅ knowledge_entries with type='pattern'                  |
+| Gotchas storage           | ✅ knowledge_entries with type='gotcha'                   |
+| Error recovery strategies | ✅ knowledge_entries with type='decision'                 |
+| File pattern matching     | ✅ file_patterns_json field                               |
+| Action type filtering     | ✅ action_types_json field                                |
+| Confidence tracking       | ✅ confidence field + tracker module                      |
+| Source attribution        | ✅ source_execution_id, source_task_id, source_agent_type |
 
 ---
 
@@ -274,14 +297,14 @@ The knowledge base is integrated with the broader Memory Graph System:
 
 Based on STRATEGIC_PLAN.md (lines 248-288):
 
-| Deliverable | Component | Status |
-|-------------|-----------|--------|
-| Long-term Agent Memory | agent_memory table (harness.db) | ✅ Implemented |
-| Knowledge entries | knowledge_entries table | ✅ Implemented |
-| Task signature hashing | For future implementation | ⚠️ Deferred |
-| Technique Effectiveness | For future sub-task | ⚠️ Deferred |
-| SIA Intervention System | sia_attempts table | ✅ Implemented |
-| Build Intervention Tracking | build_interventions table | ✅ Implemented |
+| Deliverable                 | Component                       | Status         |
+| --------------------------- | ------------------------------- | -------------- |
+| Long-term Agent Memory      | agent_memory table (harness.db) | ✅ Implemented |
+| Knowledge entries           | knowledge_entries table         | ✅ Implemented |
+| Task signature hashing      | For future implementation       | ⚠️ Deferred    |
+| Technique Effectiveness     | For future sub-task             | ⚠️ Deferred    |
+| SIA Intervention System     | sia_attempts table              | ✅ Implemented |
+| Build Intervention Tracking | build_interventions table       | ✅ Implemented |
 
 **Note:** PHASE4-TASK-01 specifically focuses on "Knowledge Base system" (first deliverable). Additional Phase 4 features (technique effectiveness, matching algorithms) are separate sub-tasks.
 
@@ -317,6 +340,7 @@ Based on STRATEGIC_PLAN.md (lines 248-288):
 ## 9. Known Limitations & Future Work
 
 ### Not in Scope for PHASE4-TASK-01:
+
 1. ⚠️ Knowledge API router not mounted in server (can be added when needed)
 2. ⚠️ Task signature hashing (deferred to future sub-task)
 3. ⚠️ Technique effectiveness table (separate Phase 4 sub-task)
@@ -324,6 +348,7 @@ Based on STRATEGIC_PLAN.md (lines 248-288):
 5. ⚠️ Auto-escalation logic (future enhancement)
 
 ### Recommendations:
+
 1. Mount knowledge router in `server/api.ts` when external API access is needed
 2. Create PHASE4-TASK-02 for technique effectiveness tracking
 3. Create PHASE4-TASK-03 for matching algorithms and auto-escalation
@@ -335,6 +360,7 @@ Based on STRATEGIC_PLAN.md (lines 248-288):
 **Status:** ✅ **TASK_COMPLETE**
 
 **Justification:**
+
 - All core requirements met (patterns, gotchas, error recovery storage)
 - Database schema fully implemented and verified
 - TypeScript modules comprehensive and tested
@@ -351,6 +377,7 @@ PHASE4-TASK-01 successfully delivers a robust knowledge base system for storing 
 ## Appendix: File Locations
 
 ### Core Implementation
+
 - `agents/knowledge-base/index.ts` - Main module
 - `agents/knowledge-base/queries.ts` - Query helpers
 - `agents/sia/db.ts` - Database operations
@@ -360,18 +387,22 @@ PHASE4-TASK-01 successfully delivers a robust knowledge base system for storing 
 - `agents/sia/claude-md-updater.ts` - Proposal system
 
 ### API Layer
+
 - `server/routes/knowledge.ts` - REST API (11 endpoints)
 
 ### Tests
+
 - `tests/knowledge-base.test.ts` - Unit tests (31 tests)
 
 ### Database
+
 - `database/migrations/031_sia.sql` - Knowledge tables migration
 - `database/migrations/131_build_interventions.sql` - Build interventions
 - `database/migrations/132_sia_intervention_tables.sql` - SIA attempts
 - `parent-harness/orchestrator/src/memory/index.ts` - Agent memory system
 
 ### Documentation
+
 - `parent-harness/docs/MEMORY_SYSTEM.md` - Memory architecture
 - `STRATEGIC_PLAN.md` - Phase 4 roadmap
 

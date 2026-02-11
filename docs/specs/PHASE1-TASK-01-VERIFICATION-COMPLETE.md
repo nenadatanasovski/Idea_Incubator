@@ -10,6 +10,7 @@
 ## Executive Summary
 
 This task has been **fully implemented and tested**. The system successfully:
+
 1. Parses Q&A pairs from `development.md` files
 2. Classifies questions to question bank IDs
 3. Syncs answers to `idea_answers` table
@@ -24,13 +25,13 @@ All acceptance criteria are met, tests pass, and comprehensive specifications ex
 
 ### 1. Implementation Files ✅
 
-| Component | File | Status |
-|-----------|------|--------|
-| Parser | `questions/parser.ts` | ✅ Implemented |
-| Classifier | `questions/classifier.ts` | ✅ Implemented |
-| Sync Integration | `scripts/sync.ts` | ✅ Implemented |
-| Answer Storage | `questions/readiness.ts` | ✅ Implemented |
-| Database Schema | `database/migrations/008_dynamic_questioning.sql` | ✅ Migrated |
+| Component        | File                                              | Status         |
+| ---------------- | ------------------------------------------------- | -------------- |
+| Parser           | `questions/parser.ts`                             | ✅ Implemented |
+| Classifier       | `questions/classifier.ts`                         | ✅ Implemented |
+| Sync Integration | `scripts/sync.ts`                                 | ✅ Implemented |
+| Answer Storage   | `questions/readiness.ts`                          | ✅ Implemented |
+| Database Schema  | `database/migrations/008_dynamic_questioning.sql` | ✅ Migrated    |
 
 ### 2. Test Coverage ✅
 
@@ -43,6 +44,7 @@ Duration    3ms
 ```
 
 **Test Cases:**
+
 - ✅ Find development.md in test idea folder
 - ✅ Contain Q&A pairs in Q:/A: format
 - ✅ Parse at least 5 Q&A pairs from test file
@@ -70,6 +72,7 @@ CREATE TABLE IF NOT EXISTS idea_answers (
 ```
 
 **Indexes:**
+
 - ✅ `idx_answers_idea` on `idea_id`
 - ✅ `idx_answers_question` on `question_id`
 
@@ -93,7 +96,7 @@ if (devResult.synced > 0) {
 function computeIdeaHash(ideaPath: string): string {
   const filesToHash = [
     path.join(ideaPath, "README.md"),
-    path.join(ideaPath, "development.md"),  // ← Included
+    path.join(ideaPath, "development.md"), // ← Included
   ];
   // ... hash calculation
 }
@@ -104,6 +107,7 @@ function computeIdeaHash(ideaPath: string): string {
 **File:** `questions/parser.ts:27-83`
 
 **Supported Formats:**
+
 - Pattern 1: `**Q:** question **A:** answer` (bold format)
 - Pattern 2: `### Question` heading with answer below
 - Pattern 3: `Q: question\nA: answer` (simple format)
@@ -111,6 +115,7 @@ function computeIdeaHash(ideaPath: string): string {
 - Pattern 5: `**Question?** Answer` (bold question)
 
 **Features:**
+
 - ✅ Deduplication (normalized lowercase comparison)
 - ✅ Answer cleaning (removes markdown artifacts)
 - ✅ Length validation (min 10 chars)
@@ -122,6 +127,7 @@ function computeIdeaHash(ideaPath: string): string {
 **File:** `questions/classifier.ts`
 
 **Mapping Examples:**
+
 - "What technical skills do you have?" → `FT3_SKILLS`
 - "What is your financial runway?" → `FT5_RUNWAY`
 - "How big is the market?" → `M1_TAM`
@@ -140,6 +146,7 @@ Development Answers:
 ```
 
 **Sync Summary Statistics:**
+
 - `result.developmentSynced` - Successfully mapped answers
 - `result.developmentFailed` - Unmapped questions
 - Included in overall sync summary
@@ -153,6 +160,7 @@ Development Answers:
 **Criterion:** System must parse Q&A pairs from `development.md` files
 
 **Evidence:**
+
 - Parser extracts ≥5 Q&A pairs from test file
 - Supports multiple format patterns
 - Test: `tests/sync-development.test.ts:26-35` ✅ PASS
@@ -162,6 +170,7 @@ Development Answers:
 **Criterion:** Map free-form questions to structured question IDs
 
 **Evidence:**
+
 - Classifier maps questions using keyword patterns
 - Coverage: 100+ patterns across Problem, Solution, Market, Feasibility, Risk, Fit
 - Unmapped questions logged gracefully
@@ -172,6 +181,7 @@ Development Answers:
 **Criterion:** Persist answers to database with correct schema
 
 **Evidence:**
+
 - Saves via `saveAnswer()` function
 - Sets `answer_source = 'user'`
 - Sets `confidence = 0.9`
@@ -183,6 +193,7 @@ Development Answers:
 **Criterion:** Integrate with `npm run sync` command
 
 **Evidence:**
+
 - Called from `scripts/sync.ts:186-191, 217-223`
 - Runs after idea metadata sync
 - Statistics included in sync summary
@@ -194,6 +205,7 @@ Development Answers:
 **Criterion:** Gracefully handle errors and edge cases
 
 **Evidence:**
+
 - Missing development.md → Skipped (no error)
 - Empty file (<100 chars) → Skipped
 - Neo4j unavailable → SQLite-only mode
@@ -205,6 +217,7 @@ Development Answers:
 **Criterion:** Display sync results to user
 
 **Evidence:**
+
 - Console output includes "Development Answers:" section
 - Shows "Synced: X" and "Could not map: Y"
 - Included in main sync summary
@@ -228,6 +241,7 @@ Two comprehensive specifications exist:
    - Comprehensive technical specification
 
 Both documents include:
+
 - Overview and purpose
 - Functional and non-functional requirements
 - Technical design and architecture
@@ -247,6 +261,7 @@ Both documents include:
 This task is part of Phase 1: Close Evaluation Data Flow Gaps
 
 ### Completed Tasks ✅
+
 - **PHASE1-TASK-01** (this task): Markdown→database sync for Q&A
 - **PHASE1-TASK-04**: Profile context delivery to evaluators
 - **PHASE1-TASK-03**: Pre-evaluation web research
@@ -308,31 +323,34 @@ sqlite3 database/vibe.db "
 
 ## Performance Metrics
 
-| Metric | Value |
-|--------|-------|
-| Parse time (typical file 2-5 KB) | <100ms |
-| Classify time per question | <5ms |
-| Database insert per answer | <20ms |
-| Total sync time per idea | <1 second |
-| LLM API calls during sync | 0 (disabled) |
-| Memory usage | <10 MB per idea |
+| Metric                           | Value           |
+| -------------------------------- | --------------- |
+| Parse time (typical file 2-5 KB) | <100ms          |
+| Classify time per question       | <5ms            |
+| Database insert per answer       | <20ms           |
+| Total sync time per idea         | <1 second       |
+| LLM API calls during sync        | 0 (disabled)    |
+| Memory usage                     | <10 MB per idea |
 
 ---
 
 ## Known Limitations
 
 ### L1: Manual Question Classification
+
 - **Issue:** Some questions cannot be auto-classified
 - **Impact:** Counted in `developmentFailed`
 - **Workaround:** Logged for manual review
 - **Future:** Train ML classifier on manual mappings
 
 ### L2: No Answer Versioning
+
 - **Issue:** Re-sync overwrites previous answers
 - **Impact:** Answer history lost
 - **Future:** Add `answer_history` table
 
 ### L3: Limited Table Format Support
+
 - **Issue:** Only simple pipe-delimited tables supported
 - **Impact:** Complex tables may not parse
 - **Future:** Add advanced table parsing

@@ -6,7 +6,12 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import request from "supertest";
-import { createTestApp, resetMocks, getMocks, mockSkillTraces } from "../__utils__/test-server";
+import {
+  createTestApp,
+  resetMocks,
+  getMocks,
+  mockSkillTraces,
+} from "../__utils__/test-server";
 import { testSkillTraces } from "../__fixtures__/observability-fixtures";
 import type { Express } from "express";
 

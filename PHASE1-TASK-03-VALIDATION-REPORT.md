@@ -12,6 +12,7 @@
 PHASE1-TASK-03 has been **successfully validated**. The pre-evaluation web research phase is fully implemented, tested, and operational. All 10 pass criteria are met, TypeScript compilation succeeds, and dedicated test suites pass completely.
 
 **Validation Results:**
+
 - ✅ TypeScript compilation: PASS (no errors)
 - ✅ Unit tests: 20/20 passing (tests/ideation/web-search.test.ts)
 - ✅ All 10 pass criteria: VERIFIED
@@ -25,11 +26,13 @@ PHASE1-TASK-03 has been **successfully validated**. The pre-evaluation web resea
 ### PC1: Research Phase Executes Before Evaluators ✅ PASS
 
 **Evidence:**
+
 - **File:** `scripts/evaluate.ts:295-362`
 - **Implementation:** Research phase runs after profile context loading (line 275), before evaluator execution (line 566)
 - **Logging:** "--- Starting Research Phase ---" (line 298)
 
 **Verification:**
+
 ```typescript
 // Line 295-296: Research phase declaration
 let research: ResearchResult | null = null;
@@ -40,41 +43,53 @@ if (!shouldSkipResearch()) {
 
 // Line 566: Evaluators receive research results
 const v2Result = await runAllSpecializedEvaluators(
-  slug, ideaId, ideaContent, costTracker, broadcaster,
-  profileContext, structuredContext, research, strategicContext
+  slug,
+  ideaId,
+  ideaContent,
+  costTracker,
+  broadcaster,
+  profileContext,
+  structuredContext,
+  research,
+  strategicContext,
 );
 ```
 
 ### PC2: Claims Extraction Works ✅ PASS
 
 **Evidence:**
+
 - **File:** `utils/claims-extractor.ts:27`
 - **Function:** `extractClaimsFromContent(content, costTracker)`
 - **Interface:** `ExtractedClaims` (line 11) with domain, technology, competitors, marketSize, targetMarket, keyAssumptions
 
 **Verification:**
+
 ```typescript
 // scripts/evaluate.ts:313-319
 const userClaims = await extractClaimsFromContent(ideaContent, costTracker);
 logInfo(
-  `Extracted claims: domain="${userClaims.domain}", ${userClaims.competitors.length} competitors, tech: ${userClaims.technology.join(", ")}`
+  `Extracted claims: domain="${userClaims.domain}", ${userClaims.competitors.length} competitors, tech: ${userClaims.technology.join(", ")}`,
 );
 ```
 
 ### PC3: Web Search Executes via Claude Native Tool ✅ PASS
 
 **Evidence:**
+
 - **File:** `agents/research.ts:95`
 - **Function:** `conductPreEvaluationResearch()`
 - **Implementation:** Uses `runClaudeCliWithPrompt()` with WebSearch tool enabled
 
 **Verification:**
+
 - Research agent imports and calls `runClaudeCliWithPrompt()`
 - Script integration at `scripts/evaluate.ts:321-326`
 
 ### PC4: Research Results Structured Correctly ✅ PASS
 
 **Evidence:**
+
 - **File:** `agents/research.ts:52`
 - **Interface:** `ResearchResult` with required fields:
   - `marketSize: { verified, sources }`
@@ -85,6 +100,7 @@ logInfo(
   - `searchesPerformed: number`
 
 **Verification:**
+
 - Interface definition includes all required fields
 - Source URLs preserved in all sections
 - Geographic analysis optional but typed
@@ -92,10 +108,12 @@ logInfo(
 ### PC5: Market Evaluator Receives Full Research Context ✅ PASS
 
 **Evidence:**
+
 - **File:** `agents/specialized-evaluators.ts:363`
 - **Implementation:** `formatResearchForCategory(research ?? null, category)`
 
 **Verification:**
+
 ```typescript
 // Line 19: Import research formatting
 import { type ResearchResult, formatResearchForCategory } from "./research.js";
@@ -107,21 +125,25 @@ const researchSection = formatResearchForCategory(research ?? null, category);
 ### PC6: Solution Evaluator Receives Tech Feasibility ✅ PASS
 
 **Evidence:**
+
 - Same implementation as PC5
 - `formatResearchForCategory()` returns tech feasibility for "Solution" category
 - Empty string for categories other than Market/Solution
 
 **Verification:**
+
 - Function called with category parameter
 - Research formatted appropriately per category
 
 ### PC7: Geographic Analysis When Location Available ✅ PASS
 
 **Evidence:**
+
 - **File:** `scripts/evaluate.ts:300-310`
 - **Implementation:** Creator location extracted from profile, passed to research function
 
 **Verification:**
+
 ```typescript
 // Lines 300-310: Extract creator location from profile
 let creatorLocation: CreatorLocation | undefined;
@@ -134,17 +156,22 @@ if (profileContext?.profile?.country) {
 
 // Line 321-325: Pass to research function
 research = await conductPreEvaluationResearch(
-  ideaContent, userClaims, costTracker, creatorLocation
+  ideaContent,
+  userClaims,
+  costTracker,
+  creatorLocation,
 );
 ```
 
 ### PC8: Graceful Degradation on Research Failure ✅ PASS
 
 **Evidence:**
+
 - **File:** `scripts/evaluate.ts:356-359`
 - **Implementation:** try/catch with warning log, proceeds with `research = null`
 
 **Verification:**
+
 ```typescript
 try {
   // ... research execution
@@ -158,17 +185,20 @@ try {
 ### PC9: Cost Tracking for Research ✅ PASS
 
 **Evidence:**
+
 - **Implementation:** `costTracker` parameter passed through entire research chain
 - `extractClaimsFromContent(ideaContent, costTracker)` (line 313)
 - `conductPreEvaluationResearch(..., costTracker, ...)` (line 321)
 
 **Verification:**
+
 - Research functions accept `costTracker: CostTracker` parameter
 - All AI operations tracked (claims extraction + web searches)
 
 ### PC10: Research Phase Logged and Visible ✅ PASS
 
 **Evidence:**
+
 - **File:** `scripts/evaluate.ts:328-354`
 - **Logs:**
   - Competitors found (line 328-332)
@@ -179,9 +209,12 @@ try {
   - Search count (line 353-355)
 
 **Verification:**
+
 ```typescript
 if (research.competitors.discovered.length > 0) {
-  logInfo(`Research found ${research.competitors.discovered.length} additional competitors`);
+  logInfo(
+    `Research found ${research.competitors.discovered.length} additional competitors`,
+  );
 }
 if (research.marketSize.verified) {
   logInfo(`Market size verified: ${research.marketSize.verified}`);
@@ -190,7 +223,9 @@ if (research.techFeasibility.assessment !== "unknown") {
   logInfo(`Tech feasibility: ${research.techFeasibility.assessment}`);
 }
 // ... geographic analysis logging
-console.log(`Research phase completed (${research.searchesPerformed} searches)\n`);
+console.log(
+  `Research phase completed (${research.searchesPerformed} searches)\n`,
+);
 ```
 
 ---
@@ -202,6 +237,7 @@ console.log(`Research phase completed (${research.searchesPerformed} searches)\n
 **Test File:** `tests/ideation/web-search.test.ts`
 
 **Results:**
+
 ```
 ✓ tests/ideation/web-search.test.ts  (20 tests) 5ms
 
@@ -211,6 +247,7 @@ Test Files  1 passed (1)
 ```
 
 **Coverage Areas:**
+
 - Search strategy selection
 - Query building from claims
 - Result parsing and validation
@@ -233,6 +270,7 @@ Test Files  1 passed (1)
 **Result:** SUCCESS (no errors)
 
 **Verification:**
+
 - All type definitions correct
 - Imports resolve properly
 - No type mismatches
@@ -240,12 +278,14 @@ Test Files  1 passed (1)
 ### Code Structure ✅ PASS
 
 **Key Files Verified:**
+
 1. `agents/research.ts` (21,470 bytes) - Research agent implementation
 2. `utils/claims-extractor.ts` (7,765 bytes) - Claims extraction
 3. `scripts/evaluate.ts` - Integration point (lines 295-362, 566-576)
 4. `agents/specialized-evaluators.ts` - Research consumption (line 363)
 
 **Architecture:**
+
 ```
 Evaluation Pipeline (scripts/evaluate.ts)
   └─ Profile Context Loading
@@ -312,17 +352,20 @@ Evaluation Pipeline (scripts/evaluate.ts)
 ### Test Suite Status
 
 **Overall Test Results:**
+
 - Total: 1777 tests
 - Passed: 1669 tests (94.3%)
 - Failed: 30 tests (1.7%)
 - Skipped: 4 tests
 
 **Failed Tests:** Unrelated to research functionality
+
 - Profile service tests (missing `account_profiles` table)
 - Task queue persistence tests (missing `task_queue` table)
 - Spec context loader tests (missing `ideation_sessions` table)
 
 **Analysis:** These failures are unrelated to PHASE1-TASK-03. They stem from missing database tables in other subsystems. The web research functionality is fully operational as evidenced by:
+
 1. 100% pass rate on research-specific tests (20/20)
 2. Successful TypeScript compilation
 3. All pass criteria verified
@@ -348,6 +391,7 @@ PHASE1-TASK-03 is **fully implemented, tested, and operational**. All 10 pass cr
 10. ✅ Provides comprehensive logging for transparency
 
 **Quality Metrics:**
+
 - TypeScript: ✅ Compiles without errors
 - Tests: ✅ 20/20 web search tests passing
 - Integration: ✅ Confirmed in evaluate.ts and specialized-evaluators.ts
@@ -366,6 +410,7 @@ Evaluations now include evidence-based external validation, preventing inflated 
 ## Verification Artifacts
 
 **Files Inspected:**
+
 - `agents/research.ts` (21,470 bytes) ✓
 - `utils/claims-extractor.ts` (7,765 bytes) ✓
 - `scripts/evaluate.ts` (integration points) ✓
@@ -374,6 +419,7 @@ Evaluations now include evidence-based external validation, preventing inflated 
 - `docs/specs/PHASE1-TASK-03-pre-evaluation-web-research.md` ✓
 
 **Commands Executed:**
+
 ```bash
 npx tsc --noEmit                              # ✅ PASS
 npm test -- tests/ideation/web-search.test.ts # ✅ 20/20 PASS
@@ -396,6 +442,7 @@ npm test                                      # ✅ 1669/1777 PASS (94.3%)
 5. ✅ **Integration:** Research phase still integrated in evaluation pipeline
 
 **Test Run Results:**
+
 ```
 ✓ tests/ideation/web-search.test.ts  (20 tests) 3ms
 

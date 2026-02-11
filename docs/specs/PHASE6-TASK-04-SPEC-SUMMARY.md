@@ -24,6 +24,7 @@
 **Decision**: Create **minimal viable implementation** to complete Phase 6, defer ambitious enhancements to Phase 7.
 
 **Rationale**:
+
 - Existing workspace (`IdeaDetail.tsx`) is fully functional with Q&A, profiles, tabs
 - Users can already edit via separate page (`/ideas/:slug/edit`)
 - Inline editing improves UX but isn't a functional blocker
@@ -32,11 +33,13 @@
 ### 2. Specification Approach
 
 **Three existing documents analyzed**:
+
 1. `PHASE6-TASK-04-idea-workspace-spec.md` (1,182 lines) - Inline editing focused
 2. `PHASE6-TASK-04-idea-workspace.md` (659 lines) - Dual-pane workspace vision
 3. `PHASE6-TASK-04-VALIDATION-REPORT.md` - 85% completion evidence
 
 **Decision**: Consolidate into single **FINAL-SPEC.md** that:
+
 - Acknowledges 85% completion
 - Focuses on inline editing (15% gap)
 - References ambitious design for Phase 7
@@ -45,18 +48,21 @@
 ### 3. Technical Design
 
 **Component**: New `ContentEditor.tsx` component (~150 lines)
+
 - Controlled textarea for markdown input
 - Optional side-by-side preview toggle
 - Save/Cancel buttons with keyboard shortcuts
 - Integration with existing IdeaDetail state
 
 **Integration**: Minimal modifications to `IdeaDetail.tsx` (~100 lines)
+
 - Add edit mode state (4 variables)
 - Add edit handlers (3 functions)
 - Modify Overview tab rendering (replace content section)
 - Add navigation guards (unsaved changes warnings)
 
 **API**: Reuse existing `PUT /api/ideas/:slug` endpoint
+
 - Verify partial update support (`{ content, partial: true }`)
 - May need minor enhancement (already documented in spec)
 
@@ -67,6 +73,7 @@
 **Total Time**: 1-2 days (8-12 hours)
 
 **Breakdown**:
+
 - Day 1 Morning: Create ContentEditor component + tests (2-3 hours)
 - Day 1 Afternoon: Integrate into IdeaDetail + manual testing (3-4 hours)
 - Day 2 Morning: API verification + integration tests (2-3 hours)
@@ -85,6 +92,7 @@
 **Total**: 27 testable pass criteria
 
 **Critical Path**:
+
 1. ContentEditor renders and handles basic editing ✅
 2. Save persists to database ✅
 3. Cancel discards changes ✅
@@ -98,6 +106,7 @@
 **Overall Risk**: LOW
 
 **Identified Risks**:
+
 - Concurrent edits (Low probability, Medium impact) → Accept last-write-wins for v1.0
 - Large content lag (Low probability, Low impact) → Limit content to 50KB
 - Test regressions (Low probability, High impact) → Run full suite before commit
@@ -120,9 +129,11 @@
 ## Deliverables
 
 ### Primary Deliverable
+
 - ✅ `docs/specs/PHASE6-TASK-04-FINAL-SPEC.md` - Complete technical specification
 
 ### Specification Contents
+
 1. **Overview** - Context, scope, current state (85% complete)
 2. **Requirements** - 5 functional + 3 non-functional requirement groups
 3. **Technical Design** - Component architecture, data flow, code examples
@@ -137,6 +148,7 @@
 12. **Approval & Sign-off** - Ready for implementation
 
 ### Supporting Analysis
+
 - ✅ Existing code reviewed (IdeaDetail.tsx, validation report)
 - ✅ API endpoints verified (PUT /api/ideas/:slug)
 - ✅ Component patterns identified (ContentEditor design)
@@ -170,6 +182,7 @@
 ### Future Work (Phase 7+)
 
 **Defer these enhancements** (documented in spec Section 9):
+
 - Dual-pane workspace layout
 - Version history & diff viewer
 - Artifacts panel integration

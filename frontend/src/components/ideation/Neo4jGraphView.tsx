@@ -1,14 +1,14 @@
 /**
  * Neo4j Graph Visualization
- * 
+ *
  * Displays memory blocks and links from Neo4j as a force-directed graph.
  * Uses the same reagraph library as the main graph view.
  */
 
-import { useMemo, useState, useCallback } from 'react';
-import { GraphCanvas, lightTheme } from 'reagraph';
-import { useMemoryBlocks, useBlockLinks } from '../../hooks/useMemoryGraph';
-import type { MemoryBlock, BlockType } from '../../api/memory-graph';
+import { useMemo, useState, useCallback } from "react";
+import { GraphCanvas, lightTheme } from "reagraph";
+import { useMemoryBlocks, useBlockLinks } from "../../hooks/useMemoryGraph";
+import type { MemoryBlock, BlockType } from "../../api/memory-graph";
 
 interface Neo4jGraphViewProps {
   sessionId: string;
@@ -18,45 +18,53 @@ interface Neo4jGraphViewProps {
 
 // Colors for different block types (ARCH-001)
 const BLOCK_TYPE_COLORS: Record<BlockType, string> = {
-  knowledge: '#3B82F6',   // blue
-  decision: '#8B5CF6',    // purple
-  assumption: '#F59E0B',  // amber
-  question: '#F97316',    // orange
-  requirement: '#EF4444', // red
-  task: '#22C55E',        // green
-  proposal: '#6366F1',    // indigo
-  artifact: '#6B7280',    // gray
-  evidence: '#14B8A6',    // teal
+  knowledge: "#3B82F6", // blue
+  decision: "#8B5CF6", // purple
+  assumption: "#F59E0B", // amber
+  question: "#F97316", // orange
+  requirement: "#EF4444", // red
+  task: "#22C55E", // green
+  proposal: "#6366F1", // indigo
+  artifact: "#6B7280", // gray
+  evidence: "#14B8A6", // teal
 };
 
 const BLOCK_TYPE_ICONS: Record<BlockType, string> = {
-  knowledge: '📚',
-  decision: '⚖️',
-  assumption: '🤔',
-  question: '❓',
-  requirement: '📋',
-  task: '✅',
-  proposal: '💡',
-  artifact: '📦',
-  evidence: '🔍',
+  knowledge: "📚",
+  decision: "⚖️",
+  assumption: "🤔",
+  question: "❓",
+  requirement: "📋",
+  task: "✅",
+  proposal: "💡",
+  artifact: "📦",
+  evidence: "🔍",
 };
 
-export function Neo4jGraphView({ sessionId, onSelectBlock, className = '' }: Neo4jGraphViewProps) {
-  const { blocks, loading: blocksLoading, error: blocksError } = useMemoryBlocks({
+export function Neo4jGraphView({
+  sessionId,
+  onSelectBlock,
+  className = "",
+}: Neo4jGraphViewProps) {
+  const {
+    blocks,
+    loading: blocksLoading,
+    error: blocksError,
+  } = useMemoryBlocks({
     session_id: sessionId,
     limit: 100,
   });
 
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
-  
+
   // Get links for the graph
-  const { links } = useBlockLinks(selectedBlockId || '', 'both');
+  const { links } = useBlockLinks(selectedBlockId || "", "both");
 
   // Transform blocks to reagraph nodes
   const nodes = useMemo(() => {
-    return blocks.map(block => ({
+    return blocks.map((block) => ({
       id: block.id,
-      label: block.title || block.content.substring(0, 30) + '...',
+      label: block.title || block.content.substring(0, 30) + "...",
       fill: BLOCK_TYPE_COLORS[block.type],
       data: block,
     }));
@@ -66,8 +74,8 @@ export function Neo4jGraphView({ sessionId, onSelectBlock, className = '' }: Neo
   const edges = useMemo(() => {
     // For now, show links only when a block is selected
     if (!links || links.length === 0) return [];
-    
-    return links.map(link => ({
+
+    return links.map((link) => ({
       id: link.id,
       source: link.source_block_id,
       target: link.target_block_id,
@@ -75,12 +83,15 @@ export function Neo4jGraphView({ sessionId, onSelectBlock, className = '' }: Neo
     }));
   }, [links]);
 
-  const handleNodeClick = useCallback((node: { id: string; data?: MemoryBlock }) => {
-    setSelectedBlockId(node.id);
-    if (node.data) {
-      onSelectBlock?.(node.data);
-    }
-  }, [onSelectBlock]);
+  const handleNodeClick = useCallback(
+    (node: { id: string; data?: MemoryBlock }) => {
+      setSelectedBlockId(node.id);
+      if (node.data) {
+        onSelectBlock?.(node.data);
+      }
+    },
+    [onSelectBlock],
+  );
 
   if (blocksLoading) {
     return (
@@ -152,7 +163,7 @@ export function Neo4jGraphView({ sessionId, onSelectBlock, className = '' }: Neo
       {/* Selected Block Info */}
       {selectedBlockId && (
         <SelectedBlockPanel
-          block={blocks.find(b => b.id === selectedBlockId)}
+          block={blocks.find((b) => b.id === selectedBlockId)}
           linksCount={links.length}
           onClose={() => setSelectedBlockId(null)}
         />
@@ -167,7 +178,11 @@ interface SelectedBlockPanelProps {
   onClose: () => void;
 }
 
-function SelectedBlockPanel({ block, linksCount, onClose }: SelectedBlockPanelProps) {
+function SelectedBlockPanel({
+  block,
+  linksCount,
+  onClose,
+}: SelectedBlockPanelProps) {
   if (!block) return null;
 
   return (
@@ -178,22 +193,20 @@ function SelectedBlockPanel({ block, linksCount, onClose }: SelectedBlockPanelPr
       >
         ✕
       </button>
-      
+
       <div className="flex items-start gap-2 mb-2">
         <span className="text-2xl">{BLOCK_TYPE_ICONS[block.type]}</span>
         <div>
           <div className="font-medium text-gray-900">
-            {block.title || 'Untitled'}
+            {block.title || "Untitled"}
           </div>
           <div className="text-xs text-gray-500">
             {block.type} • {block.status} • {linksCount} links
           </div>
         </div>
       </div>
-      
-      <p className="text-sm text-gray-600 line-clamp-3">
-        {block.content}
-      </p>
+
+      <p className="text-sm text-gray-600 line-clamp-3">{block.content}</p>
     </div>
   );
 }

@@ -80,6 +80,7 @@ The specification for PHASE2-TASK-04 has been **successfully completed** and mee
 ### 1. Intelligent Failure Classification
 
 The specification introduces a sophisticated **FailureAnalyzer** service that classifies errors into 7 categories:
+
 - `transient` - Network errors, rate limits
 - `code_error` - TypeScript/compilation errors
 - `test_failure` - Test assertion failures
@@ -91,6 +92,7 @@ The specification introduces a sophisticated **FailureAnalyzer** service that cl
 ### 2. Category-Specific Retry Strategies
 
 Different failure types get different retry delays:
+
 - **Transient errors:** Fast retry (30s → 2m → 5m)
 - **Code errors:** Medium delay (2m → 5m → 15m)
 - **Timeouts:** Long delay (5m → 15m → 30m)
@@ -99,6 +101,7 @@ Different failure types get different retry delays:
 ### 3. Progressive Recovery Actions
 
 Automated escalation based on failure count:
+
 1. **First failure:** Retry with guidance
 2. **Second failure:** Retry with enhanced guidance
 3. **Third failure:** Request spec clarification (for code/test errors)
@@ -108,6 +111,7 @@ Automated escalation based on failure count:
 ### 4. Persistent Retry State
 
 The system survives orchestrator restarts:
+
 - `scheduled_retries` table stores retry schedule
 - `next_retry_at` timestamp enables resume on startup
 - `initializeRetrySystem()` restores pending retries
@@ -116,6 +120,7 @@ The system survives orchestrator restarts:
 ### 5. Real-Time Observability
 
 WebSocket events for dashboard integration:
+
 - `task:retry_scheduled` - Retry scheduled with next attempt time
 - `task:retry_executed` - Retry executed
 - `task:retry_exhausted` - Max retries exceeded
@@ -163,6 +168,7 @@ The specification includes **complete implementation code** for:
 The specification includes:
 
 ### Unit Tests
+
 - **FailureAnalyzer tests:** 3 test cases
   - Transient error classification
   - TypeScript error with location extraction
@@ -178,11 +184,13 @@ The specification includes:
   - Due retry retrieval
 
 ### Integration Tests
+
 - **E2E retry workflow:** 6-step flow validation
 - **Spec refresh workflow:** Multi-failure scenario
 - **Max retries workflow:** Task blocking verification
 
 ### Manual Testing
+
 - 7 manual test scenarios covering all recovery paths
 
 ---
@@ -208,6 +216,7 @@ The specification includes:
 ```
 
 **Indexes:**
+
 - `idx_scheduled_retries_pending` - Optimizes due retry queries
 - `idx_scheduled_retries_task` - Fast task history lookup
 

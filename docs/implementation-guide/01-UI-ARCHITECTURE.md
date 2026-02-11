@@ -65,12 +65,12 @@ Problem: No persistent view of idea state
 
 ### Key Design Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Chat position | Left panel, always visible | Primary interaction method |
-| Content area | Right panel, tabs for views | Context without navigation |
-| Phase indicator | Header, always visible | User always knows where they are |
-| Agent activity | Integrated into chat | Transparency about what's happening |
+| Decision        | Choice                      | Rationale                           |
+| --------------- | --------------------------- | ----------------------------------- |
+| Chat position   | Left panel, always visible  | Primary interaction method          |
+| Content area    | Right panel, tabs for views | Context without navigation          |
+| Phase indicator | Header, always visible      | User always knows where they are    |
+| Agent activity  | Integrated into chat        | Transparency about what's happening |
 
 ---
 
@@ -87,9 +87,13 @@ interface UnifiedLayoutProps {
   children: React.ReactNode;
 }
 
-export function UnifiedLayout({ ideaId, currentPhase, children }: UnifiedLayoutProps) {
+export function UnifiedLayout({
+  ideaId,
+  currentPhase,
+  children,
+}: UnifiedLayoutProps) {
   const [chatExpanded, setChatExpanded] = useState(true);
-  
+
   return (
     <div className="h-screen flex flex-col">
       {/* Fixed Header */}
@@ -99,27 +103,25 @@ export function UnifiedLayout({ ideaId, currentPhase, children }: UnifiedLayoutP
         <PhaseIndicator phase={currentPhase} />
         <UserMenu />
       </header>
-      
+
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Chat Panel */}
-        <aside 
+        <aside
           className={cn(
             "border-r bg-gray-50 transition-all duration-200 flex flex-col",
-            chatExpanded ? "w-80" : "w-12"
+            chatExpanded ? "w-80" : "w-12",
           )}
         >
-          <ChatPanel 
+          <ChatPanel
             ideaId={ideaId}
             expanded={chatExpanded}
             onToggle={() => setChatExpanded(!chatExpanded)}
           />
         </aside>
-        
+
         {/* Content Area */}
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
+        <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>
   );
@@ -142,15 +144,18 @@ interface ChatPanelProps {
 export function ChatPanel({ ideaId, expanded, onToggle }: ChatPanelProps) {
   const { messages, sendMessage, isStreaming } = useChat(ideaId);
   const { currentPhase, agentActivity } = useIdeaState(ideaId);
-  
+
   if (!expanded) {
     return (
-      <button onClick={onToggle} className="w-full h-full flex items-center justify-center">
+      <button
+        onClick={onToggle}
+        className="w-full h-full flex items-center justify-center"
+      >
         <MessageSquare className="w-5 h-5" />
       </button>
     );
   }
-  
+
   return (
     <div className="flex flex-col h-full">
       {/* Chat Header */}
@@ -160,7 +165,7 @@ export function ChatPanel({ ideaId, expanded, onToggle }: ChatPanelProps) {
           <ChevronLeft className="w-4 h-4" />
         </button>
       </div>
-      
+
       {/* Agent Activity Indicator */}
       {agentActivity && (
         <div className="px-3 py-2 bg-blue-50 border-b text-sm">
@@ -170,18 +175,18 @@ export function ChatPanel({ ideaId, expanded, onToggle }: ChatPanelProps) {
           </div>
         </div>
       )}
-      
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        {messages.map(msg => (
+        {messages.map((msg) => (
           <ChatMessage key={msg.id} message={msg} />
         ))}
         {isStreaming && <StreamingIndicator />}
       </div>
-      
+
       {/* Input */}
       <div className="border-t p-3">
-        <ChatInput 
+        <ChatInput
           onSend={sendMessage}
           disabled={isStreaming}
           placeholder={getPlaceholderForPhase(currentPhase)}
@@ -193,10 +198,14 @@ export function ChatPanel({ ideaId, expanded, onToggle }: ChatPanelProps) {
 
 function getPlaceholderForPhase(phase: Phase): string {
   switch (phase) {
-    case 'ideation': return "Share your thoughts...";
-    case 'specification': return "Ask about requirements...";
-    case 'build': return "Give feedback on progress...";
-    default: return "Type a message...";
+    case "ideation":
+      return "Share your thoughts...";
+    case "specification":
+      return "Ask about requirements...";
+    case "build":
+      return "Give feedback on progress...";
+    default:
+      return "Type a message...";
   }
 }
 ```
@@ -208,7 +217,7 @@ function getPlaceholderForPhase(phase: Phase): string {
 The content area shows different views based on phase and user selection:
 
 ```tsx
-type ContentTab = 'graph' | 'artifacts' | 'spec' | 'tasks' | 'evaluation';
+type ContentTab = "graph" | "artifacts" | "spec" | "tasks" | "evaluation";
 
 interface ContentAreaProps {
   ideaId: string;
@@ -218,34 +227,34 @@ interface ContentAreaProps {
 export function ContentArea({ ideaId, phase }: ContentAreaProps) {
   const availableTabs = getTabsForPhase(phase);
   const [activeTab, setActiveTab] = useState(availableTabs[0]);
-  
+
   return (
     <div className="h-full flex flex-col">
       {/* Tab Header */}
       <div className="h-12 border-b flex items-center px-4 gap-2 shrink-0">
-        {availableTabs.map(tab => (
+        {availableTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={cn(
               "px-3 py-1.5 rounded-md text-sm font-medium transition",
-              activeTab === tab 
+              activeTab === tab
                 ? "bg-primary-100 text-primary-700"
-                : "text-gray-600 hover:bg-gray-100"
+                : "text-gray-600 hover:bg-gray-100",
             )}
           >
             {getTabLabel(tab)}
           </button>
         ))}
       </div>
-      
+
       {/* Tab Content */}
       <div className="flex-1 overflow-auto p-4">
-        {activeTab === 'graph' && <MemoryGraphView ideaId={ideaId} />}
-        {activeTab === 'artifacts' && <ArtifactsView ideaId={ideaId} />}
-        {activeTab === 'spec' && <SpecificationView ideaId={ideaId} />}
-        {activeTab === 'tasks' && <TaskProgressView ideaId={ideaId} />}
-        {activeTab === 'evaluation' && <EvaluationView ideaId={ideaId} />}
+        {activeTab === "graph" && <MemoryGraphView ideaId={ideaId} />}
+        {activeTab === "artifacts" && <ArtifactsView ideaId={ideaId} />}
+        {activeTab === "spec" && <SpecificationView ideaId={ideaId} />}
+        {activeTab === "tasks" && <TaskProgressView ideaId={ideaId} />}
+        {activeTab === "evaluation" && <EvaluationView ideaId={ideaId} />}
       </div>
     </div>
   );
@@ -253,18 +262,18 @@ export function ContentArea({ ideaId, phase }: ContentAreaProps) {
 
 function getTabsForPhase(phase: Phase): ContentTab[] {
   switch (phase) {
-    case 'ideation':
-      return ['graph', 'artifacts'];
-    case 'clarify':
-      return ['graph', 'artifacts', 'evaluation'];
-    case 'specification':
-      return ['spec', 'graph', 'artifacts'];
-    case 'build':
-      return ['tasks', 'spec', 'artifacts'];
-    case 'deployed':
-      return ['tasks', 'evaluation', 'artifacts'];
+    case "ideation":
+      return ["graph", "artifacts"];
+    case "clarify":
+      return ["graph", "artifacts", "evaluation"];
+    case "specification":
+      return ["spec", "graph", "artifacts"];
+    case "build":
+      return ["tasks", "spec", "artifacts"];
+    case "deployed":
+      return ["tasks", "evaluation", "artifacts"];
     default:
-      return ['graph'];
+      return ["graph"];
   }
 }
 ```
@@ -287,11 +296,11 @@ interface MemoryGraphViewProps {
 export function MemoryGraphView({ ideaId }: MemoryGraphViewProps) {
   const { nodes, edges, loading } = useMemoryGraph(ideaId);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
-  
+
   if (loading) {
     return <GraphSkeleton />;
   }
-  
+
   return (
     <div className="h-full flex">
       {/* Graph Visualization */}
@@ -303,11 +312,11 @@ export function MemoryGraphView({ ideaId }: MemoryGraphViewProps) {
           selectedNode={selectedNode}
         />
       </div>
-      
+
       {/* Node Inspector (when selected) */}
       {selectedNode && (
         <aside className="w-72 border-l p-4 overflow-y-auto">
-          <NodeInspector 
+          <NodeInspector
             nodeId={selectedNode}
             onClose={() => setSelectedNode(null)}
           />
@@ -327,22 +336,22 @@ When a user clicks a node in the graph, they can ask about it in the chat:
 function NodeInspector({ nodeId, onClose }: NodeInspectorProps) {
   const node = useNode(nodeId);
   const { sendMessage } = useChat();
-  
+
   const askAboutNode = () => {
     sendMessage(`Tell me more about: ${node.title}`);
   };
-  
+
   return (
     <div>
       <div className="flex justify-between items-start">
         <h3 className="font-medium">{node.title}</h3>
         <button onClick={onClose}>×</button>
       </div>
-      
+
       <p className="text-sm text-gray-600 mt-2">{node.content}</p>
-      
+
       <div className="mt-4 space-y-2">
-        <button 
+        <button
           onClick={askAboutNode}
           className="w-full btn btn-secondary btn-sm"
         >
@@ -381,7 +390,7 @@ Primary: Chat + Spec Preview
 ```tsx
 export function SpecificationPhaseContent({ ideaId }: { ideaId: string }) {
   const { spec, isGenerating } = useSpec(ideaId);
-  
+
   return (
     <div className="h-full flex flex-col">
       {/* Spec generation status */}
@@ -391,7 +400,7 @@ export function SpecificationPhaseContent({ ideaId }: { ideaId: string }) {
           <Progress value={spec?.progress || 0} />
         </div>
       )}
-      
+
       {/* Spec preview */}
       <div className="flex-1 overflow-auto p-4">
         {spec ? (
@@ -414,19 +423,19 @@ Primary: Chat + Task Progress
 ```tsx
 export function BuildPhaseContent({ ideaId }: { ideaId: string }) {
   const { tasks, currentTask, buildStatus } = useBuildProgress(ideaId);
-  
+
   return (
     <div className="h-full flex flex-col">
       {/* Build status header */}
       <div className="p-4 border-b">
         <BuildStatusBanner status={buildStatus} />
       </div>
-      
+
       {/* Task list */}
       <div className="flex-1 overflow-auto">
         <TaskList tasks={tasks} currentTask={currentTask} />
       </div>
-      
+
       {/* Current task details (if any) */}
       {currentTask && (
         <div className="border-t p-4">
@@ -448,24 +457,24 @@ Show what agents are doing within the chat stream:
 
 ```tsx
 // Message types
-type ChatMessageType = 
-  | 'user'           // User message
-  | 'assistant'      // AI response
-  | 'system'         // System notification
-  | 'agent-activity' // Agent doing something
-  | 'phase-change'   // Phase transition
+type ChatMessageType =
+  | "user" // User message
+  | "assistant" // AI response
+  | "system" // System notification
+  | "agent-activity" // Agent doing something
+  | "phase-change"; // Phase transition
 
 interface AgentActivityMessage {
-  type: 'agent-activity';
-  agent: string;        // 'ideation' | 'spec' | 'build' | 'sia'
-  action: string;       // 'extracting-knowledge' | 'generating-tasks' | etc.
+  type: "agent-activity";
+  agent: string; // 'ideation' | 'spec' | 'build' | 'sia'
+  action: string; // 'extracting-knowledge' | 'generating-tasks' | etc.
   details?: string;
   timestamp: Date;
 }
 
 // Render in chat
 function ChatMessage({ message }: { message: ChatMessage }) {
-  if (message.type === 'agent-activity') {
+  if (message.type === "agent-activity") {
     return (
       <div className="flex items-center gap-2 py-2 px-3 bg-gray-50 rounded text-sm text-gray-600">
         <AgentIcon agent={message.agent} className="w-4 h-4" />
@@ -476,7 +485,7 @@ function ChatMessage({ message }: { message: ChatMessage }) {
       </div>
     );
   }
-  
+
   // ... other message types
 }
 ```
@@ -509,12 +518,14 @@ function PhaseChangeMessage({ from, to, reason }: PhaseChangeProps) {
 **File:** `frontend/src/components/UnifiedLayout.tsx`
 
 **Acceptance Criteria:**
+
 - [ ] Fixed header with logo, idea selector, phase indicator, user menu
 - [ ] Resizable chat panel (min 280px, max 400px)
 - [ ] Content area fills remaining space
 - [ ] Responsive: chat collapses to icon on mobile
 
 **Test:**
+
 ```typescript
 describe('UnifiedLayout', () => {
   it('renders header with all elements', () => {
@@ -523,7 +534,7 @@ describe('UnifiedLayout', () => {
     expect(screen.getByTestId('idea-selector')).toBeInTheDocument();
     expect(screen.getByTestId('phase-indicator')).toBeInTheDocument();
   });
-  
+
   it('toggles chat panel', async () => {
     render(<UnifiedLayout ideaId="test" currentPhase="ideation">content</UnifiedLayout>);
     const toggleBtn = screen.getByTestId('chat-toggle');
@@ -540,6 +551,7 @@ describe('UnifiedLayout', () => {
 **File:** `frontend/src/components/ChatPanel.tsx`
 
 **Acceptance Criteria:**
+
 - [ ] Displays message history
 - [ ] Shows streaming responses
 - [ ] Agent activity indicator when agents are working
@@ -547,17 +559,18 @@ describe('UnifiedLayout', () => {
 - [ ] Scrolls to bottom on new message
 
 **Test:**
+
 ```typescript
 describe('ChatPanel', () => {
   it('shows agent activity when active', () => {
     const { rerender } = render(
       <ChatPanel ideaId="test" expanded={true} onToggle={jest.fn()} />
     );
-    
+
     // Simulate agent activity
     mockUseIdeaState.mockReturnValue({ agentActivity: 'Extracting knowledge...' });
     rerender(<ChatPanel ideaId="test" expanded={true} onToggle={jest.fn()} />);
-    
+
     expect(screen.getByText('Extracting knowledge...')).toBeInTheDocument();
   });
 });
@@ -570,6 +583,7 @@ describe('ChatPanel', () => {
 **File:** `frontend/src/components/graph/MemoryGraphView.tsx`
 
 **Acceptance Criteria:**
+
 - [ ] Graph displays nodes and edges from API
 - [ ] Click node to select and show inspector
 - [ ] Inspector has "Ask about this" button
@@ -577,20 +591,21 @@ describe('ChatPanel', () => {
 - [ ] Graph updates when new knowledge is extracted
 
 **Test:**
+
 ```typescript
 describe('MemoryGraphView', () => {
   it('allows asking about a node via chat', async () => {
     const sendMessage = jest.fn();
     mockUseChat.mockReturnValue({ sendMessage, messages: [], isStreaming: false });
-    
+
     render(<MemoryGraphView ideaId="test" />);
-    
+
     // Click a node
     await userEvent.click(screen.getByTestId('node-1'));
-    
+
     // Click "Ask about this"
     await userEvent.click(screen.getByText('Ask about this'));
-    
+
     expect(sendMessage).toHaveBeenCalledWith(expect.stringContaining('Tell me more about'));
   });
 });
@@ -603,12 +618,14 @@ describe('MemoryGraphView', () => {
 **File:** `frontend/src/components/ContentArea.tsx`
 
 **Acceptance Criteria:**
+
 - [ ] Shows correct tabs for each phase
 - [ ] Default tab is appropriate for phase
 - [ ] Tab content loads lazily
 - [ ] Switching tabs preserves scroll position
 
 **Test:**
+
 ```typescript
 describe('ContentArea', () => {
   it('shows graph and artifacts tabs during ideation', () => {
@@ -617,7 +634,7 @@ describe('ContentArea', () => {
     expect(screen.getByText('Artifacts')).toBeInTheDocument();
     expect(screen.queryByText('Tasks')).not.toBeInTheDocument();
   });
-  
+
   it('shows tasks tab during build', () => {
     render(<ContentArea ideaId="test" phase="build" />);
     expect(screen.getByText('Tasks')).toBeInTheDocument();
@@ -633,6 +650,7 @@ describe('ContentArea', () => {
 **File:** `frontend/src/components/BuildProgressView.tsx`
 
 **Acceptance Criteria:**
+
 - [ ] Shows task list with status indicators
 - [ ] Current task is highlighted
 - [ ] Completed tasks show checkmark
@@ -640,6 +658,7 @@ describe('ContentArea', () => {
 - [ ] Progress bar shows overall completion
 
 **Test:**
+
 ```typescript
 describe('BuildProgressView', () => {
   it('highlights current task', () => {
@@ -648,9 +667,9 @@ describe('BuildProgressView', () => {
       { id: '2', name: 'Database', status: 'running' },
       { id: '3', name: 'API', status: 'pending' },
     ];
-    
+
     render(<BuildProgressView tasks={tasks} currentTaskId="2" />);
-    
+
     expect(screen.getByTestId('task-1')).toHaveClass('bg-green-50');
     expect(screen.getByTestId('task-2')).toHaveClass('bg-blue-50', 'ring-2');
     expect(screen.getByTestId('task-3')).toHaveClass('bg-gray-50');
@@ -671,14 +690,17 @@ describe('BuildProgressView', () => {
 
 ```tsx
 // In App.tsx routing
-<Route path="/idea/:slug" element={
-  <FeatureFlag flag="unified-layout">
-    <UnifiedIdeaPage />
-    <FallbackComponent>
-      <IdeaDetailPhased />
-    </FallbackComponent>
-  </FeatureFlag>
-} />
+<Route
+  path="/idea/:slug"
+  element={
+    <FeatureFlag flag="unified-layout">
+      <UnifiedIdeaPage />
+      <FallbackComponent>
+        <IdeaDetailPhased />
+      </FallbackComponent>
+    </FeatureFlag>
+  }
+/>
 ```
 
 ---
@@ -693,6 +715,7 @@ The cohesive UI design centers on:
 4. **Memory graph integration** — visual representation of knowledge
 
 This creates a unified experience where users can:
+
 - Chat throughout the entire journey
 - See their idea grow in the graph
 - Track progress through phases
@@ -700,4 +723,4 @@ This creates a unified experience where users can:
 
 ---
 
-*Next: [02-PIPELINE-ORCHESTRATION.md](./02-PIPELINE-ORCHESTRATION.md) — Critical integration layer*
+_Next: [02-PIPELINE-ORCHESTRATION.md](./02-PIPELINE-ORCHESTRATION.md) — Critical integration layer_

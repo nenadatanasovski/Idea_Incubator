@@ -18,6 +18,7 @@ Build an intelligent E2E test generator that parses acceptance criteria from tas
 ### Problem Statement
 
 **Current State:**
+
 - ✅ Playwright E2E framework fully operational (VIBE-P14-003)
 - ✅ Test utilities and fixtures available
 - ✅ 4 manually-written test suites exist
@@ -28,6 +29,7 @@ Build an intelligent E2E test generator that parses acceptance criteria from tas
 - ❌ High barrier to test coverage for new features
 
 **Desired State:**
+
 - Task specifications with Gherkin-style acceptance criteria auto-generate Playwright tests
 - Generator parses Given/When/Then clauses into test steps
 - Common actions ("click", "fill", "navigate") map to correct Playwright commands
@@ -55,9 +57,11 @@ The E2E Test Generator is the **"Requirements-to-Tests Compiler"** that bridges 
 ### Functional Requirements
 
 #### FR1: Gherkin Parser
+
 **Description:** Parse Gherkin-style acceptance criteria from task specifications
 
 **Input Format:**
+
 ```gherkin
 Scenario: User creates a new idea
   Given the user is on the ideas list page
@@ -71,6 +75,7 @@ Scenario: User creates a new idea
 ```
 
 **Parser Output:**
+
 ```typescript
 interface ParsedScenario {
   name: string;
@@ -79,7 +84,7 @@ interface ParsedScenario {
 }
 
 interface Step {
-  keyword: 'Given' | 'When' | 'Then' | 'And' | 'But';
+  keyword: "Given" | "When" | "Then" | "And" | "But";
   action: string;
   parameters: Record<string, string | number>;
   rawText: string;
@@ -87,6 +92,7 @@ interface Step {
 ```
 
 **Acceptance Criteria:**
+
 - ✅ Parses `Scenario:` and `Scenario Outline:` declarations
 - ✅ Recognizes `Given`, `When`, `Then`, `And`, `But` keywords
 - ✅ Extracts string parameters from quotes ("New Idea", 'My Test Idea')
@@ -99,38 +105,40 @@ interface Step {
 ---
 
 #### FR2: Action Mapping Engine
+
 **Description:** Map parsed steps to Playwright commands based on action verbs
 
 **Action Categories:**
 
-| Action Pattern | Playwright Command | Example |
-|----------------|-------------------|---------|
-| **Navigation** | | |
-| "goes to {url}" | `page.goto(url)` | Given user goes to "/ideas" |
-| "navigates to {page}" | `page.goto(pathMap[page])` | When user navigates to ideas page |
-| "is on {page}" | `expect(page).toHaveURL(url)` | Given user is on dashboard |
-| **Interaction** | | |
-| "clicks {element}" | `page.click(selector)` | When user clicks "Submit" |
-| "fills {field} with {value}" | `page.fill(selector, value)` | When user fills "email" with "test@example.com" |
-| "selects {option} from {dropdown}" | `page.selectOption(selector, option)` | When user selects "Admin" from role dropdown |
-| "checks {checkbox}" | `page.check(selector)` | When user checks "Accept terms" |
-| "uploads {file} to {field}" | `page.setInputFiles(selector, file)` | When user uploads "photo.jpg" to avatar |
-| "presses {key}" | `page.press(selector, key)` | When user presses "Enter" |
-| **Waiting** | | |
-| "waits for {element}" | `page.waitForSelector(selector)` | When user waits for loading spinner |
-| "waits {n} seconds" | `page.waitForTimeout(n * 1000)` | And user waits 2 seconds |
-| **Assertions** | | |
-| "should see {text}" | `expect(page.locator('text={text}')).toBeVisible()` | Then user should see "Success" |
-| "should not see {text}" | `expect(page.locator('text={text}')).not.toBeVisible()` | Then user should not see "Error" |
-| "{element} should be visible" | `expect(page.locator(selector)).toBeVisible()` | Then submit button should be visible |
-| "{element} should be disabled" | `expect(page.locator(selector)).toBeDisabled()` | Then form should be disabled |
-| "should have {count} {items}" | `expect(page.locator(selector)).toHaveCount(count)` | Then should have 5 ideas |
-| **State** | | |
-| "is logged in" | `await login(page)` | Given user is logged in |
-| "has {role} role" | `await setupRole(page, role)` | Given user has admin role |
-| "database has {entity}" | `await seedDatabase(entity)` | Given database has test idea |
+| Action Pattern                     | Playwright Command                                      | Example                                         |
+| ---------------------------------- | ------------------------------------------------------- | ----------------------------------------------- |
+| **Navigation**                     |                                                         |                                                 |
+| "goes to {url}"                    | `page.goto(url)`                                        | Given user goes to "/ideas"                     |
+| "navigates to {page}"              | `page.goto(pathMap[page])`                              | When user navigates to ideas page               |
+| "is on {page}"                     | `expect(page).toHaveURL(url)`                           | Given user is on dashboard                      |
+| **Interaction**                    |                                                         |                                                 |
+| "clicks {element}"                 | `page.click(selector)`                                  | When user clicks "Submit"                       |
+| "fills {field} with {value}"       | `page.fill(selector, value)`                            | When user fills "email" with "test@example.com" |
+| "selects {option} from {dropdown}" | `page.selectOption(selector, option)`                   | When user selects "Admin" from role dropdown    |
+| "checks {checkbox}"                | `page.check(selector)`                                  | When user checks "Accept terms"                 |
+| "uploads {file} to {field}"        | `page.setInputFiles(selector, file)`                    | When user uploads "photo.jpg" to avatar         |
+| "presses {key}"                    | `page.press(selector, key)`                             | When user presses "Enter"                       |
+| **Waiting**                        |                                                         |                                                 |
+| "waits for {element}"              | `page.waitForSelector(selector)`                        | When user waits for loading spinner             |
+| "waits {n} seconds"                | `page.waitForTimeout(n * 1000)`                         | And user waits 2 seconds                        |
+| **Assertions**                     |                                                         |                                                 |
+| "should see {text}"                | `expect(page.locator('text={text}')).toBeVisible()`     | Then user should see "Success"                  |
+| "should not see {text}"            | `expect(page.locator('text={text}')).not.toBeVisible()` | Then user should not see "Error"                |
+| "{element} should be visible"      | `expect(page.locator(selector)).toBeVisible()`          | Then submit button should be visible            |
+| "{element} should be disabled"     | `expect(page.locator(selector)).toBeDisabled()`         | Then form should be disabled                    |
+| "should have {count} {items}"      | `expect(page.locator(selector)).toHaveCount(count)`     | Then should have 5 ideas                        |
+| **State**                          |                                                         |                                                 |
+| "is logged in"                     | `await login(page)`                                     | Given user is logged in                         |
+| "has {role} role"                  | `await setupRole(page, role)`                           | Given user has admin role                       |
+| "database has {entity}"            | `await seedDatabase(entity)`                            | Given database has test idea                    |
 
 **Acceptance Criteria:**
+
 - ✅ Recognizes 20+ common action patterns
 - ✅ Extracts element selectors from action text
 - ✅ Generates appropriate Playwright command for each action
@@ -142,9 +150,11 @@ interface Step {
 ---
 
 #### FR3: Selector Strategy
+
 **Description:** Generate robust element selectors from natural language descriptions
 
 **Selector Priority Order:**
+
 1. **Data Test IDs** (highest priority) - `[data-testid="submit-button"]`
 2. **ARIA Roles** - `page.getByRole('button', { name: 'Submit' })`
 3. **Label Text** - `page.getByLabel('Email')`
@@ -154,15 +164,16 @@ interface Step {
 
 **Selector Generation Rules:**
 
-| Element Description | Generated Selector | Rationale |
-|---------------------|-------------------|-----------|
-| "Submit button" | `page.getByRole('button', { name: /submit/i })` | Role + text match |
-| "email field" | `page.getByLabel('Email')` or `[name="email"]` | Label or name attribute |
-| "loading spinner" | `[data-testid="loading-spinner"]` | Data test ID |
-| "first idea card" | `page.locator('[data-testid="idea-card"]').first()` | Positional selector |
-| "idea titled 'X'" | `page.locator('[data-testid="idea-card"]').filter({ hasText: 'X' })` | Filter by content |
+| Element Description | Generated Selector                                                   | Rationale               |
+| ------------------- | -------------------------------------------------------------------- | ----------------------- |
+| "Submit button"     | `page.getByRole('button', { name: /submit/i })`                      | Role + text match       |
+| "email field"       | `page.getByLabel('Email')` or `[name="email"]`                       | Label or name attribute |
+| "loading spinner"   | `[data-testid="loading-spinner"]`                                    | Data test ID            |
+| "first idea card"   | `page.locator('[data-testid="idea-card"]').first()`                  | Positional selector     |
+| "idea titled 'X'"   | `page.locator('[data-testid="idea-card"]').filter({ hasText: 'X' })` | Filter by content       |
 
 **Acceptance Criteria:**
+
 - ✅ Generates selectors using Playwright locator API (not CSS strings)
 - ✅ Prefers accessibility-friendly selectors (roles, labels)
 - ✅ Uses data-testid when available
@@ -174,61 +185,67 @@ interface Step {
 ---
 
 #### FR4: Test File Generation
+
 **Description:** Generate complete Playwright test files from parsed scenarios
 
 **Generated File Structure:**
+
 ```typescript
 // Generated from: VIBE-P14-004-acceptance-criteria.md
 // Scenario: User creates a new idea
 // Generated: 2026-02-09T15:30:00Z
 
-import { test, expect } from './fixtures';
+import { test, expect } from "./fixtures";
 import {
   waitForLoadingComplete,
   sendChatMessage,
-  navigateToIdea
-} from './utils';
+  navigateToIdea,
+} from "./utils";
 
-test.describe('User creates a new idea', () => {
+test.describe("User creates a new idea", () => {
   test.beforeEach(async ({ page, setupMocks }) => {
     await setupMocks(page);
   });
 
-  test('should create new idea successfully', async ({ page }) => {
+  test("should create new idea successfully", async ({ page }) => {
     // Given the user is on the ideas list page
-    await page.goto('/ideas');
+    await page.goto("/ideas");
     await waitForLoadingComplete(page);
 
     // When the user clicks the "New Idea" button
-    await page.getByRole('button', { name: /new idea/i }).click();
+    await page.getByRole("button", { name: /new idea/i }).click();
 
     // And the user fills in "title" with "My Test Idea"
-    await page.getByLabel('Title').fill('My Test Idea');
+    await page.getByLabel("Title").fill("My Test Idea");
 
     // And the user fills in "description" with "A great idea"
-    await page.getByLabel('Description').fill('A great idea');
+    await page.getByLabel("Description").fill("A great idea");
 
     // And the user clicks the "Create" button
-    await page.getByRole('button', { name: /create/i }).click();
+    await page.getByRole("button", { name: /create/i }).click();
 
     // Then the user should see "Idea created successfully"
-    await expect(page.getByText('Idea created successfully')).toBeVisible();
+    await expect(page.getByText("Idea created successfully")).toBeVisible();
 
     // And the idea "My Test Idea" should appear in the ideas list
     await expect(
-      page.locator('[data-testid="idea-card"]').filter({ hasText: 'My Test Idea' })
+      page
+        .locator('[data-testid="idea-card"]')
+        .filter({ hasText: "My Test Idea" }),
     ).toBeVisible();
   });
 });
 ```
 
 **File Metadata:**
+
 - Source spec file reference
 - Generation timestamp
 - Generator version
 - Warning: "Auto-generated - do not edit manually"
 
 **Acceptance Criteria:**
+
 - ✅ Imports correct fixtures and utilities
 - ✅ Uses `test.describe` for scenario grouping
 - ✅ Includes `beforeEach` with mock setup
@@ -241,9 +258,11 @@ test.describe('User creates a new idea', () => {
 ---
 
 #### FR5: Data-Driven Test Generation
+
 **Description:** Generate parameterized tests from Scenario Outlines with data tables
 
 **Input (Gherkin):**
+
 ```gherkin
 Scenario Outline: User login with various credentials
   Given the user is on the login page
@@ -261,22 +280,37 @@ Scenario Outline: User login with various credentials
 ```
 
 **Output (Playwright):**
+
 ```typescript
-test.describe('User login with various credentials', () => {
+test.describe("User login with various credentials", () => {
   const testCases = [
-    { email: 'valid@example.com', password: 'correct123', message: 'Welcome back!' },
-    { email: 'invalid@test.com', password: 'wrong', message: 'Invalid credentials' },
-    { email: 'missing@test.com', password: '', message: 'Password is required' },
-    { email: '', password: 'password123', message: 'Email is required' },
+    {
+      email: "valid@example.com",
+      password: "correct123",
+      message: "Welcome back!",
+    },
+    {
+      email: "invalid@test.com",
+      password: "wrong",
+      message: "Invalid credentials",
+    },
+    {
+      email: "missing@test.com",
+      password: "",
+      message: "Password is required",
+    },
+    { email: "", password: "password123", message: "Email is required" },
   ];
 
   testCases.forEach(({ email, password, message }) => {
-    test(`should show "${message}" for email="${email}" password="${password}"`, async ({ page }) => {
+    test(`should show "${message}" for email="${email}" password="${password}"`, async ({
+      page,
+    }) => {
       // Test implementation with parameter substitution
-      await page.goto('/login');
-      await page.getByLabel('Email').fill(email);
-      await page.getByLabel('Password').fill(password);
-      await page.getByRole('button', { name: /login/i }).click();
+      await page.goto("/login");
+      await page.getByLabel("Email").fill(email);
+      await page.getByLabel("Password").fill(password);
+      await page.getByRole("button", { name: /login/i }).click();
       await expect(page.getByText(message)).toBeVisible();
     });
   });
@@ -284,6 +318,7 @@ test.describe('User login with various credentials', () => {
 ```
 
 **Acceptance Criteria:**
+
 - ✅ Parses Examples tables into array of test cases
 - ✅ Substitutes `<parameter>` placeholders with actual values
 - ✅ Generates one test per table row
@@ -295,51 +330,56 @@ test.describe('User login with various credentials', () => {
 ---
 
 #### FR6: Page Object Integration
+
 **Description:** Generate tests using existing page object methods when available
 
 **Example Page Object:**
+
 ```typescript
 // frontend/e2e/pages/ideas.page.ts
 export class IdeasPage extends BasePage {
   async createIdea(title: string, description: string) {
-    await this.page.getByRole('button', { name: /new idea/i }).click();
-    await this.page.getByLabel('Title').fill(title);
-    await this.page.getByLabel('Description').fill(description);
-    await this.page.getByRole('button', { name: /create/i }).click();
+    await this.page.getByRole("button", { name: /new idea/i }).click();
+    await this.page.getByLabel("Title").fill(title);
+    await this.page.getByLabel("Description").fill(description);
+    await this.page.getByRole("button", { name: /create/i }).click();
   }
 
   async expectIdeaVisible(title: string) {
     await expect(
-      this.page.locator('[data-testid="idea-card"]').filter({ hasText: title })
+      this.page.locator('[data-testid="idea-card"]').filter({ hasText: title }),
     ).toBeVisible();
   }
 }
 ```
 
 **Generated Test (with POM):**
+
 ```typescript
-test('should create new idea successfully', async ({ page }) => {
+test("should create new idea successfully", async ({ page }) => {
   const ideasPage = new IdeasPage(page);
 
   // Given the user is on the ideas list page
-  await ideasPage.navigate('/ideas');
+  await ideasPage.navigate("/ideas");
 
   // When the user creates a new idea
-  await ideasPage.createIdea('My Test Idea', 'A great idea');
+  await ideasPage.createIdea("My Test Idea", "A great idea");
 
   // Then the idea should be visible
-  await expect(page.getByText('Idea created successfully')).toBeVisible();
-  await ideasPage.expectIdeaVisible('My Test Idea');
+  await expect(page.getByText("Idea created successfully")).toBeVisible();
+  await ideasPage.expectIdeaVisible("My Test Idea");
 });
 ```
 
 **Page Object Detection:**
+
 - Scan `frontend/e2e/pages/` for existing page objects
 - Match step descriptions to page object method names
 - Use page object methods when >80% action match
 - Fall back to direct Playwright commands if no match
 
 **Acceptance Criteria:**
+
 - ✅ Detects available page objects in `frontend/e2e/pages/`
 - ✅ Maps multi-step actions to single page object method when possible
 - ✅ Imports and instantiates page objects correctly
@@ -350,27 +390,31 @@ test('should create new idea successfully', async ({ page }) => {
 ---
 
 #### FR7: Fixture and Utility Integration
+
 **Description:** Leverage existing test fixtures and utilities from VIBE-P14-003
 
 **Available Fixtures:**
+
 - `mockIdea`, `mockSession`, `mockBuildSession`
 - `setupMocks(page)` - API route mocking
 
 **Available Utilities:**
+
 - `waitForElement()`, `waitForText()`, `waitForNetworkIdle()`
 - `sendChatMessage()`, `waitForAIResponse()`
 - `navigateToIdea()`, `getBuildTasks()`
 
 **Integration Rules:**
 
-| Gherkin Step | Maps To Utility | Generated Code |
-|--------------|----------------|----------------|
-| "waits for AI response" | `waitForAIResponse()` | `await waitForAIResponse(page);` |
-| "sends message {text}" | `sendChatMessage()` | `await sendChatMessage(page, text);` |
-| "navigates to idea {slug}" | `navigateToIdea()` | `await navigateToIdea(page, slug);` |
-| "waits for page ready" | `waitForLoadingComplete()` | `await waitForLoadingComplete(page);` |
+| Gherkin Step               | Maps To Utility            | Generated Code                        |
+| -------------------------- | -------------------------- | ------------------------------------- |
+| "waits for AI response"    | `waitForAIResponse()`      | `await waitForAIResponse(page);`      |
+| "sends message {text}"     | `sendChatMessage()`        | `await sendChatMessage(page, text);`  |
+| "navigates to idea {slug}" | `navigateToIdea()`         | `await navigateToIdea(page, slug);`   |
+| "waits for page ready"     | `waitForLoadingComplete()` | `await waitForLoadingComplete(page);` |
 
 **Acceptance Criteria:**
+
 - ✅ Automatically imports utilities when referenced
 - ✅ Prefers utilities over raw Playwright for matched actions
 - ✅ Uses `setupMocks` in `beforeEach` for all tests
@@ -382,23 +426,27 @@ test('should create new idea successfully', async ({ page }) => {
 ### Non-Functional Requirements
 
 #### NFR1: Performance
+
 - Generator processes 100-line spec in <5 seconds
 - Generated test files compile with TypeScript in <2 seconds
 - No memory leaks during batch generation (100+ specs)
 
 #### NFR2: Code Quality
+
 - Generated tests pass ESLint with zero warnings
 - TypeScript strict mode compatible
 - Consistent formatting (Prettier-compliant)
 - No hardcoded delays (use waitFor patterns)
 
 #### NFR3: Maintainability
+
 - Generator code has 80%+ test coverage
 - Action mappings configurable via JSON/YAML
 - Clear error messages for unparseable specs
 - Generated code includes source traceability comments
 
 #### NFR4: Extensibility
+
 - Plugin system for custom action mappings
 - Hooks for pre/post generation transforms
 - Support for custom Gherkin keywords
@@ -501,7 +549,7 @@ export interface Scenario {
 }
 
 export interface Step {
-  keyword: 'Given' | 'When' | 'Then' | 'And' | 'But';
+  keyword: "Given" | "When" | "Then" | "And" | "But";
   text: string;
   action: ParsedAction;
   location: SourceLocation;
@@ -516,12 +564,12 @@ export interface ParsedAction {
 }
 
 export type ActionType =
-  | 'navigation'
-  | 'interaction'
-  | 'assertion'
-  | 'wait'
-  | 'state'
-  | 'unknown';
+  | "navigation"
+  | "interaction"
+  | "assertion"
+  | "wait"
+  | "state"
+  | "unknown";
 
 export interface DataTable {
   headers: string[];
@@ -558,7 +606,10 @@ export interface PlaywrightCommand {
 export interface ActionMapping {
   pattern: RegExp;
   type: ActionType;
-  handler: (match: RegExpMatchArray, context: GeneratorContext) => PlaywrightCommand;
+  handler: (
+    match: RegExpMatchArray,
+    context: GeneratorContext,
+  ) => PlaywrightCommand;
   examples?: string[];
 }
 
@@ -572,7 +623,7 @@ export interface GeneratorContext {
 
 export interface GeneratorConfig {
   outputDir: string;
-  selectorStrategy: 'data-testid' | 'role' | 'label' | 'mixed';
+  selectorStrategy: "data-testid" | "role" | "label" | "mixed";
   usePageObjects: boolean;
   useUtilities: boolean;
   generateComments: boolean;
@@ -593,7 +644,7 @@ interface SourceLocation {
 
 export class GherkinParser {
   parse(text: string, source: string): Scenario[] {
-    const lines = text.split('\n').map(line => line.trimEnd());
+    const lines = text.split("\n").map((line) => line.trimEnd());
     const scenarios: Scenario[] = [];
     let currentScenario: Scenario | null = null;
 
@@ -620,7 +671,7 @@ export class GherkinParser {
 
     const [, keyword, text] = match;
     return {
-      keyword: keyword as Step['keyword'],
+      keyword: keyword as Step["keyword"],
       text: text.trim(),
       action: this.parseAction(text.trim()),
       location: { source, line: lineNum },
@@ -638,7 +689,7 @@ export class GherkinParser {
 
     return {
       type: this.classifyAction(text),
-      verb: text.split(' ')[0].toLowerCase(),
+      verb: text.split(" ")[0].toLowerCase(),
       target: this.extractTarget(text),
       parameters,
       rawText: text,
@@ -647,11 +698,11 @@ export class GherkinParser {
 
   private classifyAction(text: string): ActionType {
     const lower = text.toLowerCase();
-    if (/^(navigates?|goes?|visits?|is on)/.test(lower)) return 'navigation';
-    if (/^(clicks?|fills?|selects?|checks?)/.test(lower)) return 'interaction';
-    if (/^(should|expects?|must)/.test(lower)) return 'assertion';
-    if (/^(waits?|pauses?)/.test(lower)) return 'wait';
-    return 'unknown';
+    if (/^(navigates?|goes?|visits?|is on)/.test(lower)) return "navigation";
+    if (/^(clicks?|fills?|selects?|checks?)/.test(lower)) return "interaction";
+    if (/^(should|expects?|must)/.test(lower)) return "assertion";
+    if (/^(waits?|pauses?)/.test(lower)) return "wait";
+    return "unknown";
   }
 
   private isScenarioDeclaration(line: string): boolean {
@@ -663,22 +714,28 @@ export class GherkinParser {
   }
 
   private isComment(line: string): boolean {
-    return line.trim().startsWith('#');
+    return line.trim().startsWith("#");
   }
 
   private isEmpty(line: string): boolean {
-    return line.trim() === '';
+    return line.trim() === "";
   }
 
   private extractTarget(text: string): string | undefined {
-    const match = text.match(/(button|field|link|checkbox|dropdown|form|input|page)/i);
+    const match = text.match(
+      /(button|field|link|checkbox|dropdown|form|input|page)/i,
+    );
     return match ? match[1] : undefined;
   }
 
-  private createScenario(line: string, lineNum: number, source: string): Scenario {
+  private createScenario(
+    line: string,
+    lineNum: number,
+    source: string,
+  ): Scenario {
     const match = line.match(/Scenario( Outline)?:\s*(.+)/);
     return {
-      name: match ? match[2].trim() : 'Unnamed',
+      name: match ? match[2].trim() : "Unnamed",
       tags: [],
       steps: [],
       location: { source, line: lineNum },
@@ -695,9 +752,9 @@ export class GherkinParser {
 export const defaultMappings: ActionMapping[] = [
   {
     pattern: /^(?:user )?goes to "([^"]+)"$/i,
-    type: 'navigation',
+    type: "navigation",
     handler: (match) => ({
-      method: 'page.goto',
+      method: "page.goto",
       args: [match[1]],
       comment: `Navigate to ${match[1]}`,
       awaitRequired: true,
@@ -705,22 +762,22 @@ export const defaultMappings: ActionMapping[] = [
   },
   {
     pattern: /^(?:user )?clicks? (?:the )?"([^"]+)"$/i,
-    type: 'interaction',
+    type: "interaction",
     handler: (match) => ({
-      method: 'page.getByRole',
-      args: ['button', { name: new RegExp(match[1], 'i') }],
-      chainedMethod: 'click',
+      method: "page.getByRole",
+      args: ["button", { name: new RegExp(match[1], "i") }],
+      chainedMethod: "click",
       comment: `Click "${match[1]}"`,
       awaitRequired: true,
     }),
   },
   {
     pattern: /^(?:user )?fills? (?:in )?"([^"]+)" with "([^"]+)"$/i,
-    type: 'interaction',
+    type: "interaction",
     handler: (match) => ({
-      method: 'page.getByLabel',
+      method: "page.getByLabel",
       args: [match[1]],
-      chainedMethod: 'fill',
+      chainedMethod: "fill",
       chainedArgs: [match[2]],
       comment: `Fill "${match[1]}" with "${match[2]}"`,
       awaitRequired: true,
@@ -728,11 +785,11 @@ export const defaultMappings: ActionMapping[] = [
   },
   {
     pattern: /^(?:user )?should see "([^"]+)"$/i,
-    type: 'assertion',
+    type: "assertion",
     handler: (match) => ({
-      method: 'expect',
+      method: "expect",
       args: [`page.getByText('${match[1]}')`],
-      chainedMethod: 'toBeVisible',
+      chainedMethod: "toBeVisible",
       comment: `Verify "${match[1]}" visible`,
       awaitRequired: true,
     }),
@@ -746,26 +803,26 @@ export const defaultMappings: ActionMapping[] = [
 
 ### Critical Requirements
 
-| # | Criterion | Validation Method | Priority |
-|---|-----------|-------------------|----------|
-| 1 | Parses Gherkin Given/When/Then syntax | Parser unit tests pass for 20+ scenarios | P0 |
-| 2 | Maps 20+ common actions to Playwright commands | Action mapper covers navigation, interaction, assertion, wait, state | P0 |
-| 3 | Generates executable test files | Generated tests run with `npx playwright test` without errors | P0 |
-| 4 | Uses page object methods when available | 60%+ of steps use POM in generated tests | P1 |
-| 5 | Integrates with existing fixtures/utilities | `setupMocks`, `waitForAIResponse` used correctly | P0 |
-| 6 | Supports data-driven tests from Examples tables | Scenario Outline generates parameterized tests | P1 |
-| 7 | Generated code passes TypeScript compilation | `tsc --noEmit` exits with code 0 | P0 |
-| 8 | Handles unknown actions gracefully | Unmapped steps generate TODO comments, not syntax errors | P1 |
+| #   | Criterion                                       | Validation Method                                                    | Priority |
+| --- | ----------------------------------------------- | -------------------------------------------------------------------- | -------- |
+| 1   | Parses Gherkin Given/When/Then syntax           | Parser unit tests pass for 20+ scenarios                             | P0       |
+| 2   | Maps 20+ common actions to Playwright commands  | Action mapper covers navigation, interaction, assertion, wait, state | P0       |
+| 3   | Generates executable test files                 | Generated tests run with `npx playwright test` without errors        | P0       |
+| 4   | Uses page object methods when available         | 60%+ of steps use POM in generated tests                             | P1       |
+| 5   | Integrates with existing fixtures/utilities     | `setupMocks`, `waitForAIResponse` used correctly                     | P0       |
+| 6   | Supports data-driven tests from Examples tables | Scenario Outline generates parameterized tests                       | P1       |
+| 7   | Generated code passes TypeScript compilation    | `tsc --noEmit` exits with code 0                                     | P0       |
+| 8   | Handles unknown actions gracefully              | Unmapped steps generate TODO comments, not syntax errors             | P1       |
 
 ### Test Coverage Requirements
 
-| Component | Coverage Target |
-|-----------|----------------|
-| Gherkin Parser | 90%+ |
-| Action Mapper | 85%+ |
-| Selector Generator | 80%+ |
-| Test Generator | 85%+ |
-| Integration Tests | 5+ E2E scenarios |
+| Component          | Coverage Target  |
+| ------------------ | ---------------- |
+| Gherkin Parser     | 90%+             |
+| Action Mapper      | 85%+             |
+| Selector Generator | 80%+             |
+| Test Generator     | 85%+             |
+| Integration Tests  | 5+ E2E scenarios |
 
 ---
 
@@ -773,50 +830,55 @@ export const defaultMappings: ActionMapping[] = [
 
 ### External Dependencies
 
-| Dependency | Version | Purpose |
-|------------|---------|---------|
-| `@playwright/test` | ^1.58.1 | E2E framework (already installed) |
-| `handlebars` | ^4.7.8 | Template engine |
-| `commander` | ^11.1.0 | CLI interface |
-| `zod` | ^3.22.4 | Schema validation (already in project) |
+| Dependency         | Version | Purpose                                |
+| ------------------ | ------- | -------------------------------------- |
+| `@playwright/test` | ^1.58.1 | E2E framework (already installed)      |
+| `handlebars`       | ^4.7.8  | Template engine                        |
+| `commander`        | ^11.1.0 | CLI interface                          |
+| `zod`              | ^3.22.4 | Schema validation (already in project) |
 
 ### Internal Dependencies
 
-| Module | Purpose | Status |
-|--------|---------|--------|
-| VIBE-P14-003 | E2E framework | ✅ Complete |
-| `frontend/e2e/fixtures.ts` | Test fixtures | ✅ Available |
-| `frontend/e2e/utils.ts` | Test utilities | ✅ Available |
+| Module                     | Purpose        | Status       |
+| -------------------------- | -------------- | ------------ |
+| VIBE-P14-003               | E2E framework  | ✅ Complete  |
+| `frontend/e2e/fixtures.ts` | Test fixtures  | ✅ Available |
+| `frontend/e2e/utils.ts`    | Test utilities | ✅ Available |
 
 ---
 
 ## Implementation Plan
 
 ### Phase 1: Parser Foundation (4 hours)
+
 - Implement `GherkinParser` class
 - Parse Scenario/Scenario Outline
 - Extract steps and data tables
 - Write 20+ parser unit tests
 
 ### Phase 2: Action Mapping (4 hours)
+
 - Implement `ActionMapper` class
 - Create 20+ default action patterns
 - Implement selector generation
 - Write 30+ action mapping tests
 
 ### Phase 3: Code Generation (4 hours)
+
 - Implement `TestGenerator` class
 - Create test file templates
 - Generate imports, fixtures, test body
 - Write 15+ generation tests
 
 ### Phase 4: Integration Layer (3 hours)
+
 - Implement page object detector
 - Match utilities to actions
 - Inject fixtures automatically
 - Write integration tests
 
 ### Phase 5: CLI and Tooling (3 hours)
+
 - Build `generate-e2e-tests` CLI
 - Add validation command
 - Write documentation

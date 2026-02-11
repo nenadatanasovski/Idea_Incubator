@@ -52,17 +52,27 @@ beforeAll(async () => {
 
   // DEBUG: verify DB has tables
   const db = await getDb();
-  const tables = db.exec("SELECT COUNT(*) FROM sqlite_master WHERE type='table'");
+  const tables = db.exec(
+    "SELECT COUNT(*) FROM sqlite_master WHERE type='table'",
+  );
   const count = tables.length > 0 ? tables[0].values[0][0] : 0;
-  console.error(`[SETUP] DB has ${count} tables. DB identity: ${(db as any).__debugId || 'unknown'}`);
+  console.error(
+    `[SETUP] DB has ${count} tables. DB identity: ${(db as any).__debugId || "unknown"}`,
+  );
   if (Number(count) < 10) {
-    console.error(`[SETUP] WARNING: DB has only ${count} tables after migrations!`);
+    console.error(
+      `[SETUP] WARNING: DB has only ${count} tables after migrations!`,
+    );
     // Try to check if migrations module has a different db reference
     const { getDb: getDb2 } = await import("../database/db.js");
     const db2 = await getDb2();
-    const tables2 = db2.exec("SELECT COUNT(*) FROM sqlite_master WHERE type='table'");
+    const tables2 = db2.exec(
+      "SELECT COUNT(*) FROM sqlite_master WHERE type='table'",
+    );
     const count2 = tables2.length > 0 ? tables2[0].values[0][0] : 0;
-    console.error(`[SETUP] Dynamic import DB has ${count2} tables. Same ref: ${db === db2}`);
+    console.error(
+      `[SETUP] Dynamic import DB has ${count2} tables. Same ref: ${db === db2}`,
+    );
   }
 
   // Suppress console output during tests unless DEBUG is set
@@ -75,19 +85,27 @@ beforeAll(async () => {
 afterAll(async () => {
   // DEBUG: check DB before restoring mocks
   const dbBefore = await getDb();
-  const tablesBeforeRestore = dbBefore.exec("SELECT COUNT(*) FROM sqlite_master WHERE type='table'");
-  const countBefore = tablesBeforeRestore.length > 0 ? tablesBeforeRestore[0].values[0][0] : 0;
+  const tablesBeforeRestore = dbBefore.exec(
+    "SELECT COUNT(*) FROM sqlite_master WHERE type='table'",
+  );
+  const countBefore =
+    tablesBeforeRestore.length > 0 ? tablesBeforeRestore[0].values[0][0] : 0;
 
   // Clean up
   vi.restoreAllMocks();
 
   // DEBUG: check DB after restoring mocks
   const dbAfter = await getDb();
-  const tablesAfterRestore = dbAfter.exec("SELECT COUNT(*) FROM sqlite_master WHERE type='table'");
-  const countAfter = tablesAfterRestore.length > 0 ? tablesAfterRestore[0].values[0][0] : 0;
+  const tablesAfterRestore = dbAfter.exec(
+    "SELECT COUNT(*) FROM sqlite_master WHERE type='table'",
+  );
+  const countAfter =
+    tablesAfterRestore.length > 0 ? tablesAfterRestore[0].values[0][0] : 0;
 
   if (countBefore !== countAfter) {
-    console.error(`[SETUP afterAll] DB tables changed: ${countBefore} -> ${countAfter} after vi.restoreAllMocks()`);
+    console.error(
+      `[SETUP afterAll] DB tables changed: ${countBefore} -> ${countAfter} after vi.restoreAllMocks()`,
+    );
   }
   console.error(`[SETUP afterAll] DB tables: ${countAfter}`);
 });

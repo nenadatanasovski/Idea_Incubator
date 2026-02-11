@@ -6,13 +6,13 @@
 
 ## Summary
 
-| Metric | Value |
-|--------|-------|
-| Test Files | 106 passed / 106 total |
-| Tests | 1773 passed / 1777 total (4 skipped) |
-| TypeScript Compilation | Clean (zero errors) |
-| Duration | 10.91s |
-| Failures | **0** |
+| Metric                 | Value                                |
+| ---------------------- | ------------------------------------ |
+| Test Files             | 106 passed / 106 total               |
+| Tests                  | 1773 passed / 1777 total (4 skipped) |
+| TypeScript Compilation | Clean (zero errors)                  |
+| Duration               | 10.91s                               |
+| Failures               | **0**                                |
 
 ## Result: ALL TESTS PASS
 
@@ -22,11 +22,11 @@ The full E2E test suite runs to completion with **zero failures** and **zero Typ
 
 These tests are intentionally skipped (`test.skip` / conditional skip), not failures:
 
-| Test File | Skipped | Reason |
-|-----------|---------|--------|
-| `tests/ideation/data-models.test.ts` | 1 | Intentionally skipped test |
-| `tests/api/observability/analytics.test.ts` | 1 | Intentionally skipped test |
-| `tests/task-agent/task-impact-service.test.ts` | 2 | Intentionally skipped tests |
+| Test File                                      | Skipped | Reason                      |
+| ---------------------------------------------- | ------- | --------------------------- |
+| `tests/ideation/data-models.test.ts`           | 1       | Intentionally skipped test  |
+| `tests/api/observability/analytics.test.ts`    | 1       | Intentionally skipped test  |
+| `tests/task-agent/task-impact-service.test.ts` | 2       | Intentionally skipped tests |
 
 ## Expected Stderr Output (Not Failures)
 
@@ -43,6 +43,7 @@ Some tests produce stderr output as part of expected error-handling behavior:
 ## Test File Inventory (106 files)
 
 ### Build Agent (9 files, 254 tests)
+
 - `tests/build-agent/acceptance.test.ts` — 19 tests
 - `tests/build-agent/checkpoint-manager.test.ts` — 35 tests
 - `tests/build-agent/code-generator.test.ts` — 22 tests
@@ -55,6 +56,7 @@ Some tests produce stderr output as part of expected error-handling behavior:
 - `tests/build-agent/validation-runner.test.ts` — 35 tests
 
 ### Task Agent (11 files, 132 tests)
+
 - `tests/task-agent/atomicity-validator.test.ts` — 10 tests
 - `tests/task-agent/cascade-analyzer-service.test.ts` — 7 tests
 - `tests/task-agent/display-id-generator.test.ts` — 17 tests
@@ -71,6 +73,7 @@ Some tests produce stderr output as part of expected error-handling behavior:
 - `tests/task-agent/task-version-service.test.ts` — 11 tests
 
 ### Ideation (13 files, 295 tests)
+
 - `tests/ideation/api-endpoints.test.ts` — 28 tests
 - `tests/ideation/communication-classifier.test.ts` — 10 tests
 - `tests/ideation/data-models.test.ts` — 23 tests (1 skipped)
@@ -87,6 +90,7 @@ Some tests produce stderr output as part of expected error-handling behavior:
 - `tests/ideation/witty-interjections.test.ts` — 19 tests
 
 ### Specification Agent (6 files, 141 tests)
+
 - `tests/specification/brief-parser.test.ts` — 12 tests
 - `tests/specification/claude-client.test.ts` — 13 tests
 - `tests/specification/context-loader.test.ts` — 18 tests
@@ -96,6 +100,7 @@ Some tests produce stderr output as part of expected error-handling behavior:
 - `tests/spec-agent/acceptance.test.ts` — 23 tests
 
 ### Observability / API (12 files, 157 tests)
+
 - `tests/api/observability/activity.test.ts` — 11 tests
 - `tests/api/observability/analytics.test.ts` — 17 tests (1 skipped)
 - `tests/api/observability/assertions.test.ts` — 10 tests
@@ -113,6 +118,7 @@ Some tests produce stderr output as part of expected error-handling behavior:
 - `tests/unit/observability/unified-event-emitter.test.ts` — 22 tests
 
 ### Graph (5 files, 97 tests)
+
 - `tests/graph/block-extractor.test.ts` — 13 tests
 - `tests/graph/graph-prompt-processor.test.ts` — 31 tests
 - `tests/graph/graph-tab-integration.test.ts` — 34 tests
@@ -120,11 +126,13 @@ Some tests produce stderr output as part of expected error-handling behavior:
 - `tests/graph/phase9-project-folder.test.ts` — 9 tests
 
 ### Frontend (3 files, 37 tests)
+
 - `tests/frontend/ideation-integration.test.ts` — 14 tests
 - `tests/frontend/ideationReducer.test.ts` — 19 tests
 - `tests/frontend/memory-graph-api.test.ts` — 4 tests
 
 ### Unit Tests (misc) (19 files, 274 tests)
+
 - `tests/unit/agents/redteam-extended.test.ts` — 18 tests
 - `tests/unit/agents/specialized-evaluators.test.ts` — 15 tests
 - `tests/unit/analysis-prompt-builder-supersession.test.ts` — 8 tests
@@ -150,6 +158,7 @@ Some tests produce stderr output as part of expected error-handling behavior:
 - `tests/unit/utils/profile-context.test.ts` — 21 tests
 
 ### Integration / Other (8 files, 185 tests)
+
 - `tests/api-counter.test.ts` — 15 tests
 - `tests/avatar.test.ts` — 4 tests
 - `tests/knowledge-base.test.ts` — 31 tests

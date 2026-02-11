@@ -61,6 +61,7 @@ Implement automatic vagueness detection and clarification workflow for user-crea
 ### Functional Requirements
 
 **FR-1: Automatic Vagueness Detection**
+
 - On task creation, analyze task title + description for vagueness
 - Use multi-factor scoring:
   - Word count (< 10 words = high vagueness)
@@ -69,22 +70,26 @@ Implement automatic vagueness detection and clarification workflow for user-crea
 - Vagueness threshold: score ≥ 0.4 triggers clarification
 
 **FR-2: Source-Based Triggering**
+
 - Only trigger for user-created tasks (`created_by = 'human'` or `created_by IS NULL`)
 - Bypass for agent-created tasks (`created_by = '<agent_id>'`)
 - Rationale: Agents create well-structured tasks; humans may be vague
 
 **FR-3: Question Generation via QuestionEngine**
+
 - Use QuestionEngine's gap analysis to identify missing information
 - Generate 3-5 targeted questions (priority: required > important > optional)
 - Focus on high-priority categories: outcome, scope, acceptance, dependencies
 - Format questions with suggested options where possible
 
 **FR-4: Task Blocking During Clarification**
+
 - Set task status to 'blocked' when clarification requested
 - Prevent assignment to Build Agent until clarification complete
 - Store clarification request ID in task metadata
 
 **FR-5: Telegram-Based Human Loop**
+
 - Send formatted questions to `@vibe-clarification` bot
 - Include task ID, title, and numbered questions
 - Support commands:
@@ -94,6 +99,7 @@ Implement automatic vagueness detection and clarification workflow for user-crea
 - Timeout: 24 hours → auto-skip if no response
 
 **FR-6: Answer Processing & Task Enrichment**
+
 - Store answers in `clarification_requests` table
 - Use QuestionEngine to extract structured info (file paths, dependencies, acceptance criteria)
 - Update task description with clarification context
@@ -101,6 +107,7 @@ Implement automatic vagueness detection and clarification workflow for user-crea
 - Trigger task queue refresh
 
 **FR-7: Clarification History**
+
 - Store all questions + answers in database
 - Link to task via `task_id` foreign key
 - Display in task detail view (future frontend work)
@@ -108,16 +115,19 @@ Implement automatic vagueness detection and clarification workflow for user-crea
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Vagueness detection: < 500ms
 - Question generation: < 2s
 - No impact on agent-created task creation speed
 
 **NFR-2: Reliability**
+
 - Handle Telegram bot failures gracefully (fallback: log + allow task)
 - Persist state across orchestrator restarts
 - Resume pending clarifications on startup
 
 **NFR-3: User Experience**
+
 - Clear, non-technical question phrasing
 - Suggested options reduce cognitive load
 - Timeout prevents indefinite blocking
@@ -161,11 +171,12 @@ Task enters queue for Build Agent
 ### Implementation Components
 
 #### 1. Vagueness Analyzer Service
+
 **File:** `parent-harness/orchestrator/src/services/vagueness-analyzer.ts`
 
 ```typescript
-import { detectVagueness } from '../../../agents/ideation/vagueness-detector.js';
-import { QuestionEngine } from '../../../server/services/task-agent/question-engine.js';
+import { detectVagueness } from "../../../agents/ideation/vagueness-detector.js";
+import { QuestionEngine } from "../../../server/services/task-agent/question-engine.js";
 
 export interface VaguenessScore {
   isVague: boolean;
@@ -177,8 +188,10 @@ export interface VaguenessScore {
   };
 }
 
-export async function analyzeTaskVagueness(task: Task): Promise<VaguenessScore> {
-  const text = `${task.title}. ${task.description || ''}`;
+export async function analyzeTaskVagueness(
+  task: Task,
+): Promise<VaguenessScore> {
+  const text = `${task.title}. ${task.description || ""}`;
 
   // 1. Pattern-based vagueness detection
   const patternAnalysis = detectVagueness(text);
@@ -192,10 +205,11 @@ export async function analyzeTaskVagueness(task: Task): Promise<VaguenessScore> 
   const lengthPenalty = wordCount < 10 ? 0.2 : 0;
 
   // 4. Combined scoring
-  const combinedScore = Math.min(1.0,
+  const combinedScore = Math.min(
+    1.0,
     patternAnalysis.score * 0.4 +
-    (1 - gapAnalysis.gapScore / 100) * 0.4 +
-    lengthPenalty * 0.2
+      (1 - gapAnalysis.gapScore / 100) * 0.4 +
+      lengthPenalty * 0.2,
   );
 
   return {
@@ -204,7 +218,7 @@ export async function analyzeTaskVagueness(task: Task): Promise<VaguenessScore> 
     reasons: [
       ...patternAnalysis.reasons,
       ...gapAnalysis.recommendations,
-      wordCount < 10 ? `Very short task (${wordCount} words)` : null
+      wordCount < 10 ? `Very short task (${wordCount} words)` : null,
     ].filter(Boolean),
     gapAnalysis: {
       missingCategories: gapAnalysis.missingCategories,
@@ -215,21 +229,24 @@ export async function analyzeTaskVagueness(task: Task): Promise<VaguenessScore> 
 ```
 
 #### 2. Enhanced Clarification Hook
+
 **File:** `parent-harness/orchestrator/src/hooks/clarification-hook.ts`
 
 ```typescript
-import { Task } from '../db/tasks.js';
-import { analyzeTaskVagueness } from '../services/vagueness-analyzer.js';
-import { requestClarification } from '../clarification/index.js';
-import { QuestionEngine } from '../../../server/services/task-agent/question-engine.js';
+import { Task } from "../db/tasks.js";
+import { analyzeTaskVagueness } from "../services/vagueness-analyzer.js";
+import { requestClarification } from "../clarification/index.js";
+import { QuestionEngine } from "../../../server/services/task-agent/question-engine.js";
 
 /**
  * Hook: After task creation, check if clarification needed
  */
 export async function onTaskCreated(task: Task): Promise<void> {
   // Skip for agent-created tasks
-  if (task.created_by && task.created_by !== 'human') {
-    console.log(`⏩ Skipping clarification for agent-created task: ${task.display_id}`);
+  if (task.created_by && task.created_by !== "human") {
+    console.log(
+      `⏩ Skipping clarification for agent-created task: ${task.display_id}`,
+    );
     return;
   }
 
@@ -237,12 +254,16 @@ export async function onTaskCreated(task: Task): Promise<void> {
   const vagueness = await analyzeTaskVagueness(task);
 
   if (!vagueness.isVague) {
-    console.log(`✅ Task ${task.display_id} is clear (score: ${vagueness.score.toFixed(2)})`);
+    console.log(
+      `✅ Task ${task.display_id} is clear (score: ${vagueness.score.toFixed(2)})`,
+    );
     return;
   }
 
-  console.log(`❓ Task ${task.display_id} is vague (score: ${vagueness.score.toFixed(2)})`);
-  console.log(`   Reasons: ${vagueness.reasons.join(', ')}`);
+  console.log(
+    `❓ Task ${task.display_id} is vague (score: ${vagueness.score.toFixed(2)})`,
+  );
+  console.log(`   Reasons: ${vagueness.reasons.join(", ")}`);
 
   // Generate clarifying questions
   const qe = new QuestionEngine();
@@ -251,31 +272,37 @@ export async function onTaskCreated(task: Task): Promise<void> {
   // Request clarification (blocks task)
   const questionText = questions
     .map((q, i) => `${i + 1}. ${q.text}`)
-    .join('\n');
+    .join("\n");
 
-  await requestClarification(task.id,
+  await requestClarification(
+    task.id,
     `This task needs clarification. Please answer:\n\n${questionText}`,
     {
       context: `Vagueness score: ${vagueness.score.toFixed(2)}`,
       expiresInHours: 24,
-    }
+    },
   );
 }
 ```
 
 #### 3. Telegram Command Handlers
+
 **File:** `parent-harness/orchestrator/src/telegram/commands/clarification-commands.ts`
 
 ```typescript
-import { answerClarification, skipClarification, getPendingClarifications } from '../../clarification/index.js';
-import { QuestionEngine } from '../../../../server/services/task-agent/question-engine.js';
+import {
+  answerClarification,
+  skipClarification,
+  getPendingClarifications,
+} from "../../clarification/index.js";
+import { QuestionEngine } from "../../../../server/services/task-agent/question-engine.js";
 
 export function registerClarificationCommands(bot: TelegramBot) {
   // List pending clarifications
   bot.onText(/^\/clarifications$/, async (msg) => {
     const pending = getPendingClarifications();
     if (pending.length === 0) {
-      return bot.reply(msg, '✅ No pending clarifications');
+      return bot.reply(msg, "✅ No pending clarifications");
     }
 
     let message = `❓ Pending Clarifications (${pending.length}):\n\n`;
@@ -291,7 +318,7 @@ export function registerClarificationCommands(bot: TelegramBot) {
     const pending = getPendingClarifications();
 
     if (pending.length === 0) {
-      return bot.reply(msg, '⚠️ No pending clarifications');
+      return bot.reply(msg, "⚠️ No pending clarifications");
     }
 
     const request = pending[0]; // Most recent
@@ -305,11 +332,11 @@ export function registerClarificationCommands(bot: TelegramBot) {
     const pending = getPendingClarifications();
 
     if (pending.length === 0) {
-      return bot.reply(msg, '⚠️ No pending clarifications');
+      return bot.reply(msg, "⚠️ No pending clarifications");
     }
 
     const request = pending[0];
-    await skipClarification(request.id, 'Skipped by user');
+    await skipClarification(request.id, "Skipped by user");
 
     bot.reply(msg, `⏩ Clarification skipped for ${request.task_id}`);
   });
@@ -317,6 +344,7 @@ export function registerClarificationCommands(bot: TelegramBot) {
 ```
 
 #### 4. Integration with Task Creation
+
 **File:** `parent-harness/orchestrator/src/db/tasks.ts`
 
 ```typescript
@@ -328,8 +356,8 @@ export function createTask(data: CreateTaskInput): Task {
   const task = getTask(id);
 
   // Trigger clarification hook (async, non-blocking)
-  import('../hooks/clarification-hook.js').then(({ onTaskCreated }) => {
-    onTaskCreated(task).catch(err => {
+  import("../hooks/clarification-hook.js").then(({ onTaskCreated }) => {
+    onTaskCreated(task).catch((err) => {
       console.error(`Clarification hook failed for ${task.display_id}:`, err);
     });
   });
@@ -345,6 +373,7 @@ export function createTask(data: CreateTaskInput): Task {
 ### New Fields
 
 No schema changes required! Existing tables support all functionality:
+
 - `tasks.created_by` - Already exists for source tracking
 - `tasks.status` - Already supports 'blocked' state
 - `clarification_requests` table - Already exists with all needed fields
@@ -453,50 +482,50 @@ ALTER TABLE tasks ADD COLUMN metadata TEXT; -- JSON blob
 **File:** `tests/parent-harness/clarification-agent.test.ts`
 
 ```typescript
-describe('Clarification Agent', () => {
-  describe('Vagueness Detection', () => {
-    it('detects vague tasks (< 10 words)', async () => {
-      const task = { title: 'Make it faster', description: '' };
+describe("Clarification Agent", () => {
+  describe("Vagueness Detection", () => {
+    it("detects vague tasks (< 10 words)", async () => {
+      const task = { title: "Make it faster", description: "" };
       const result = await analyzeTaskVagueness(task);
       expect(result.isVague).toBe(true);
       expect(result.score).toBeGreaterThan(0.4);
     });
 
-    it('accepts clear tasks', async () => {
+    it("accepts clear tasks", async () => {
       const task = {
-        title: 'Add OAuth authentication',
-        description: 'Implement OAuth 2.0 login flow with Google provider...'
+        title: "Add OAuth authentication",
+        description: "Implement OAuth 2.0 login flow with Google provider...",
       };
       const result = await analyzeTaskVagueness(task);
       expect(result.isVague).toBe(false);
     });
 
-    it('bypasses agent-created tasks', async () => {
-      const task = { created_by: 'build_agent', title: 'Fix bug' };
+    it("bypasses agent-created tasks", async () => {
+      const task = { created_by: "build_agent", title: "Fix bug" };
       // Should not trigger clarification hook
     });
   });
 
-  describe('Question Generation', () => {
-    it('generates 3-5 questions for vague task', async () => {
-      const task = { title: 'Add auth', description: '' };
+  describe("Question Generation", () => {
+    it("generates 3-5 questions for vague task", async () => {
+      const task = { title: "Add auth", description: "" };
       const qe = new QuestionEngine();
       const questions = await qe.generateQuestions(task, 5);
       expect(questions.length).toBeGreaterThanOrEqual(3);
       expect(questions.length).toBeLessThanOrEqual(5);
     });
 
-    it('prioritizes required questions', async () => {
+    it("prioritizes required questions", async () => {
       // Test question importance ordering
     });
   });
 
-  describe('Task Blocking', () => {
-    it('sets task to blocked when clarification requested', async () => {
+  describe("Task Blocking", () => {
+    it("sets task to blocked when clarification requested", async () => {
       // Test requestClarification() sets status = 'blocked'
     });
 
-    it('unblocks task when answered', async () => {
+    it("unblocks task when answered", async () => {
       // Test answerClarification() sets status = 'pending'
     });
   });
@@ -508,28 +537,28 @@ describe('Clarification Agent', () => {
 **File:** `tests/integration/clarification-workflow.test.ts`
 
 ```typescript
-describe('Clarification Workflow', () => {
-  it('E2E: vague task → clarification → answer → unblock', async () => {
+describe("Clarification Workflow", () => {
+  it("E2E: vague task → clarification → answer → unblock", async () => {
     // 1. Create vague task
     const task = createTask({
-      display_id: 'TEST-001',
-      title: 'Improve performance',
-      created_by: 'human',
+      display_id: "TEST-001",
+      title: "Improve performance",
+      created_by: "human",
     });
 
     // 2. Wait for clarification hook
-    await waitFor(() => task.status === 'blocked');
+    await waitFor(() => task.status === "blocked");
 
     // 3. Get pending clarifications
     const pending = getPendingClarifications();
     expect(pending.length).toBe(1);
 
     // 4. Answer clarification
-    await answerClarification(pending[0].id, 'Focus on API response times');
+    await answerClarification(pending[0].id, "Focus on API response times");
 
     // 5. Verify task unblocked
     const updated = getTask(task.id);
-    expect(updated.status).toBe('pending');
+    expect(updated.status).toBe("pending");
   });
 });
 ```
@@ -548,29 +577,37 @@ describe('Clarification Workflow', () => {
 ## Risks & Mitigations
 
 ### Risk 1: False Positives (Clear tasks flagged as vague)
+
 **Impact:** High (annoys users)
 **Mitigation:**
+
 - Tune vagueness threshold (start at 0.5, lower to 0.4 if too strict)
 - Combine pattern detection + gap analysis + length check
 - Allow quick `/skip` command
 
 ### Risk 2: QuestionEngine Overhead
+
 **Impact:** Medium (slows task creation)
 **Mitigation:**
+
 - Run clarification hook asynchronously (non-blocking)
 - Cache QuestionEngine instance
 - Limit to 5 questions max
 
 ### Risk 3: Telegram Bot Downtime
+
 **Impact:** Medium (clarifications lost)
 **Mitigation:**
+
 - Fallback: Log clarification request, allow task to proceed after 5 min
 - Persist clarifications in database
 - Implement retry logic
 
 ### Risk 4: Task Questions Table Missing in Parent-Harness
+
 **Impact:** Medium (no question persistence)
 **Mitigation:**
+
 - Create migration to add `task_questions` table
 - Or: Embed questions in `clarification_requests.context` as JSON
 
@@ -579,22 +616,26 @@ describe('Clarification Workflow', () => {
 ## Implementation Plan
 
 ### Phase 1: Core Infrastructure (2-3 hours)
+
 1. Create `vagueness-analyzer.ts` service
 2. Add `clarification-hook.ts` with `onTaskCreated()`
 3. Update `tasks.ts` to trigger hook on creation
 4. Add database migration for `task_questions` table (if needed)
 
 ### Phase 2: Telegram Integration (1-2 hours)
+
 5. Create `clarification-commands.ts` with `/answer`, `/skip`, `/clarifications`
 6. Register commands in Telegram bot
 7. Test Telegram flow manually
 
 ### Phase 3: Testing (2-3 hours)
+
 8. Write unit tests for vagueness detection
 9. Write integration tests for workflow
 10. Manual end-to-end testing
 
 ### Phase 4: Documentation & Polish (1 hour)
+
 11. Update CRITICAL_GAPS.md (mark Gap #1 as resolved)
 12. Add clarification flow diagram to docs
 13. Update agent metadata if needed

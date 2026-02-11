@@ -36,25 +36,31 @@ The Spec Agent has completed its role for TASK-025. A comprehensive technical sp
 ## Verification Results
 
 ### ✅ Warning Count Confirmed
+
 ```bash
 $ npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "tests/" | grep -E "\.(test|spec)\.ts" | wc -l
 47
 ```
+
 **Result**: Matches specification exactly
 
 ### ✅ Build Status Verified
+
 ```bash
 $ npm run build
 > tsc
 ```
+
 **Result**: Build succeeds with no errors
 
 ### ✅ Baseline Documented
+
 ```bash
 $ npm test -- --run
 Test Files  21 failed | 85 passed (106)
 Tests       30 failed | 1589 passed | 4 skipped (1777)
 ```
+
 **Note**: Current test failures are unrelated to unused imports and should be addressed separately.
 
 ---
@@ -62,9 +68,11 @@ Tests       30 failed | 1589 passed | 4 skipped (1777)
 ## Specification Overview
 
 ### Scope
+
 Remove all 47 TS6133 "unused import/variable" warnings from test files without breaking functionality.
 
 ### Affected Files (20 total)
+
 - `tests/e2e/` - 1 file, 1 warning
 - `tests/graph/` - 1 file, 1 warning
 - `tests/ideation/` - 5 files, 15 warnings
@@ -74,7 +82,9 @@ Remove all 47 TS6133 "unused import/variable" warnings from test files without b
 - `tests/` (root) - 2 files, 4 warnings
 
 ### Implementation Strategy
+
 Batch-by-batch cleanup with testing after each batch:
+
 1. Tests/e2e (10 min)
 2. Tests/graph (10 min)
 3. Tests/ideation (30 min)
@@ -92,21 +102,27 @@ Batch-by-batch cleanup with testing after each batch:
 The specification defines 3 testable pass criteria:
 
 ### PC1: All tests pass
+
 ```bash
 npm test -- --pool=forks --poolOptions.forks.maxForks=1
 ```
+
 **Expected**: Same test count as baseline (no new failures)
 
 ### PC2: Build succeeds
+
 ```bash
 npm run build
 ```
+
 **Expected**: Exit code 0, no TypeScript errors
 
 ### PC3: Zero test file warnings
+
 ```bash
 npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "tests/" | grep -E "\.(test|spec)\.ts" | wc -l
 ```
+
 **Expected**: 0 (down from 47)
 
 ---
@@ -114,18 +130,21 @@ npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "tests/" | grep -E
 ## Technical Design Highlights
 
 ### Removal Patterns Documented
+
 1. **Remove entire import line** - When all specifiers are unused
 2. **Remove specific specifier** - When only some specifiers are unused
 3. **Prefix with underscore** - For destructured variables that must stay
 4. **Remove type imports** - Verify not used in JSDoc first
 
 ### Edge Cases Identified
+
 - Side-effect imports (keep even if appear unused)
 - Type-only usage in JSDoc comments
 - String references in mock paths
 - Destructuring where position matters
 
 ### Risk Mitigation
+
 - Work in small batches
 - Run tests after each batch
 - Git commit after each batch
@@ -137,11 +156,13 @@ npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "tests/" | grep -E
 ## Dependencies
 
 ### Required Tools
+
 - TypeScript compiler (`tsc`) with `--noUnusedLocals` flag
 - Vitest test framework (`npm test`)
 - Node.js >= 18
 
 ### Related Tasks
+
 - **TASK-016**: Previously cleaned `tests/unit/` and `tests/task-agent/` (completed)
 - **TASK-026**: Future task for non-test warnings (113 warnings in `agents/`, `server/`, `scripts/`)
 

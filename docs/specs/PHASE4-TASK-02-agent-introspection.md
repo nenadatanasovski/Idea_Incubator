@@ -16,6 +16,7 @@ Enable agents to review their own past sessions to learn from previous work, avo
 **Problem:** The parent harness has comprehensive session tracking (`agent_sessions`, `iteration_logs` tables) and memory systems (`agent_memory` table), but agents cannot practically access this data. There's no agent-optimized API for querying past sessions, no automatic injection of relevant history into prompts, and no documentation for agents on introspection capabilities. Agents operate without awareness of their own past experiences.
 
 **Solution:** Create an introspection API layer that:
+
 1. Provides agent-friendly endpoints for querying past sessions
 2. Automatically injects relevant session history into agent prompts
 3. Scores session relevance based on task similarity
@@ -82,6 +83,7 @@ Enable agents to review their own past sessions to learn from previous work, avo
 ### Functional Requirements
 
 **FR-1: Introspection API Endpoint**
+
 - MUST provide `GET /api/introspection/:agentId` endpoint
 - MUST return sessions filtered by agent ID with relevance scoring
 - MUST support query parameters:
@@ -94,6 +96,7 @@ Enable agents to review their own past sessions to learn from previous work, avo
 - MUST filter out sessions with status 'failed' or 'terminated' by default (unless explicitly requested)
 
 **FR-2: Session Relevance Scoring**
+
 - MUST calculate relevance score (0.0-1.0) based on:
   - Task signature match (0.5 weight): hash-based similarity
   - Recency (0.3 weight): recent sessions score higher
@@ -102,6 +105,7 @@ Enable agents to review their own past sessions to learn from previous work, avo
 - SHOULD handle missing task signatures gracefully (use recency + success only)
 
 **FR-3: Prompt Integration**
+
 - MUST implement `buildAgentPrompt()` function in new module `memory/prompt-builder.ts`
 - MUST inject top 5 relevant sessions into agent system prompt
 - MUST format sessions as concise summaries (not full iteration logs)
@@ -109,12 +113,14 @@ Enable agents to review their own past sessions to learn from previous work, avo
 - SHOULD include memory entries (error patterns, success patterns) alongside sessions
 
 **FR-4: Agent Documentation**
+
 - MUST create `parent-harness/orchestrator/src/agents/CLAUDE.md`
 - MUST document introspection API with examples
 - MUST explain when to use introspection (similar tasks, error recovery)
 - MUST show response format with sample data
 
 **FR-5: Task Signature Generation**
+
 - MUST generate task signature from: title (normalized) + category + file patterns
 - MUST use SHA-256 hash for deterministic matching
 - MUST store task signature in `tasks` table metadata or new `task_signatures` column
@@ -123,22 +129,26 @@ Enable agents to review their own past sessions to learn from previous work, avo
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Introspection API MUST respond in <200ms for typical queries (10-50 sessions)
 - Relevance scoring MUST complete in <100ms per session
 - Prompt building MUST NOT block agent spawn (async)
 - MUST support 100+ historical sessions per agent without degradation
 
 **NFR-2: Data Privacy**
+
 - Agents MUST only access their own sessions (enforce agent_id filter)
 - MUST NOT expose sessions from other agents (security boundary)
 - MUST NOT include sensitive data in prompts (filter credentials, API keys)
 
 **NFR-3: Observability**
+
 - MUST log introspection queries with agent_id, task_signature, results_count
 - SHOULD emit event: `introspection:query` with query metadata
 - SHOULD track metrics: queries per agent, average relevance scores
 
 **NFR-4: Backward Compatibility**
+
 - MUST NOT modify existing `/api/sessions` endpoints
 - MUST NOT change `agent_sessions` or `iteration_logs` table schemas
 - New introspection API is additive only
@@ -152,9 +162,12 @@ Enable agents to review their own past sessions to learn from previous work, avo
 **File:** `parent-harness/orchestrator/src/api/introspection.ts`
 
 ```typescript
-import { Router } from 'express';
-import * as sessions from '../db/sessions.js';
-import { calculateRelevance, TaskSignature } from '../introspection/relevance.js';
+import { Router } from "express";
+import * as sessions from "../db/sessions.js";
+import {
+  calculateRelevance,
+  TaskSignature,
+} from "../introspection/relevance.js";
 
 export const introspectionRouter = Router();
 
@@ -162,7 +175,7 @@ export const introspectionRouter = Router();
  * GET /api/introspection/:agentId
  * Get relevant past sessions for an agent
  */
-introspectionRouter.get('/:agentId', (req, res) => {
+introspectionRouter.get("/:agentId", (req, res) => {
   const { agentId } = req.params;
   const {
     taskSignature,
@@ -181,11 +194,11 @@ introspectionRouter.get('/:agentId', (req, res) => {
   // Filter by status (exclude failures unless requested)
   let filtered = allSessions;
   if (!includeFailures) {
-    filtered = allSessions.filter(s => s.status === 'completed');
+    filtered = allSessions.filter((s) => s.status === "completed");
   }
 
   // Calculate relevance scores
-  const scored = filtered.map(session => {
+  const scored = filtered.map((session) => {
     const relevance = calculateRelevance(session, {
       taskSignature: taskSignature as string | undefined,
       currentTime: Date.now(),
@@ -194,7 +207,9 @@ introspectionRouter.get('/:agentId', (req, res) => {
   });
 
   // Filter by minimum relevance
-  const relevant = scored.filter(s => s.relevance >= parseFloat(minRelevance as string));
+  const relevant = scored.filter(
+    (s) => s.relevance >= parseFloat(minRelevance as string),
+  );
 
   // Sort by relevance (highest first)
   relevant.sort((a, b) => b.relevance - a.relevance);
@@ -211,9 +226,10 @@ introspectionRouter.get('/:agentId', (req, res) => {
     completed_at: session.completed_at,
     relevance_score: relevance,
     summary: extractSummary(session),
-    iterations: includeIterations === 'true'
-      ? sessions.getSessionIterations(session.id)
-      : undefined,
+    iterations:
+      includeIterations === "true"
+        ? sessions.getSessionIterations(session.id)
+        : undefined,
   }));
 
   res.json({
@@ -229,19 +245,19 @@ introspectionRouter.get('/:agentId', (req, res) => {
  */
 function extractSummary(session: sessions.AgentSession): string {
   // Parse output from metadata
-  let output = session.output || '';
+  let output = session.output || "";
 
   // Try to extract from metadata if output is empty
   if (!output && session.metadata) {
     try {
       const meta = JSON.parse(session.metadata);
-      output = meta.output || meta.result || '';
+      output = meta.output || meta.result || "";
     } catch {}
   }
 
   // Truncate to first 200 chars
   if (output.length > 200) {
-    return output.substring(0, 197) + '...';
+    return output.substring(0, 197) + "...";
   }
   return output;
 }
@@ -252,8 +268,8 @@ function extractSummary(session: sessions.AgentSession): string {
 **File:** `parent-harness/orchestrator/src/introspection/relevance.ts`
 
 ```typescript
-import crypto from 'crypto';
-import * as sessions from '../db/sessions.js';
+import crypto from "crypto";
+import * as sessions from "../db/sessions.js";
 
 export interface TaskSignature {
   hash: string;
@@ -271,11 +287,11 @@ export function generateTaskSignature(task: {
   filePatterns?: string[];
 }): TaskSignature {
   const titleNorm = task.title.toLowerCase().trim();
-  const category = task.category || 'general';
-  const patterns = (task.filePatterns || []).sort().join(',');
+  const category = task.category || "general";
+  const patterns = (task.filePatterns || []).sort().join(",");
 
   const hashInput = `${titleNorm}|${category}|${patterns}`;
-  const hash = crypto.createHash('sha256').update(hashInput).digest('hex');
+  const hash = crypto.createHash("sha256").update(hashInput).digest("hex");
 
   return { hash, title: titleNorm, category, filePatterns: task.filePatterns };
 }
@@ -288,7 +304,7 @@ export function calculateRelevance(
   context: {
     taskSignature?: string;
     currentTime: number;
-  }
+  },
 ): number {
   let score = 0.0;
 
@@ -300,7 +316,10 @@ export function calculateRelevance(
 
       if (sessionSignature === context.taskSignature) {
         score += 0.5; // Exact match
-      } else if (sessionSignature && taskSignaturesSimilar(sessionSignature, context.taskSignature)) {
+      } else if (
+        sessionSignature &&
+        taskSignaturesSimilar(sessionSignature, context.taskSignature)
+      ) {
         score += 0.3; // Partial match
       }
     } catch {}
@@ -316,9 +335,9 @@ export function calculateRelevance(
   score += recencyScore;
 
   // 3. Success rate (0.2 weight)
-  if (session.status === 'completed') {
+  if (session.status === "completed") {
     score += 0.2;
-  } else if (session.status === 'failed') {
+  } else if (session.status === "failed") {
     score += 0.0; // No points for failures
   } else {
     score += 0.1; // Partial credit for running/paused
@@ -341,9 +360,9 @@ function taskSignaturesSimilar(sig1: string, sig2: string): boolean {
 **File:** `parent-harness/orchestrator/src/memory/prompt-builder.ts`
 
 ```typescript
-import * as sessions from '../db/sessions.js';
-import * as memory from './index.js';
-import { calculateRelevance } from '../introspection/relevance.js';
+import * as sessions from "../db/sessions.js";
+import * as memory from "./index.js";
+import { calculateRelevance } from "../introspection/relevance.js";
 
 export interface Task {
   id: string;
@@ -355,11 +374,16 @@ export interface Task {
 /**
  * Build enhanced prompt with agent's relevant history
  */
-export async function buildAgentPrompt(agentId: string, task?: Task): Promise<string> {
+export async function buildAgentPrompt(
+  agentId: string,
+  task?: Task,
+): Promise<string> {
   const sections: string[] = [];
 
   // Base section: Agent role
-  sections.push(`You are ${agentId}, an autonomous agent in the Vibe platform.`);
+  sections.push(
+    `You are ${agentId}, an autonomous agent in the Vibe platform.`,
+  );
 
   // If task provided, inject relevant context
   if (task) {
@@ -368,62 +392,72 @@ export async function buildAgentPrompt(agentId: string, task?: Task): Promise<st
     // 1. Relevant past sessions (top 5)
     const allSessions = sessions.getSessions({ agentId, limit: 50 });
     const scored = allSessions
-      .map(session => ({
+      .map((session) => ({
         session,
         relevance: calculateRelevance(session, {
           taskSignature,
           currentTime: Date.now(),
         }),
       }))
-      .filter(s => s.relevance >= 0.5)
+      .filter((s) => s.relevance >= 0.5)
       .sort((a, b) => b.relevance - a.relevance)
       .slice(0, 5);
 
     if (scored.length > 0) {
-      sections.push('\n## Relevant Past Sessions\n');
-      sections.push('You have worked on similar tasks before. Here are your most relevant past sessions:\n');
+      sections.push("\n## Relevant Past Sessions\n");
+      sections.push(
+        "You have worked on similar tasks before. Here are your most relevant past sessions:\n",
+      );
 
       for (const { session, relevance } of scored) {
         const summary = extractSessionSummary(session);
-        sections.push(`- **Session ${session.id.substring(0, 8)}** (relevance: ${(relevance * 100).toFixed(0)}%)`);
+        sections.push(
+          `- **Session ${session.id.substring(0, 8)}** (relevance: ${(relevance * 100).toFixed(0)}%)`,
+        );
         sections.push(`  - Status: ${session.status}`);
         sections.push(`  - Summary: ${summary}`);
-        sections.push('');
+        sections.push("");
       }
     }
 
     // 2. Error patterns (from memory)
-    const errorPatterns = memory.recallAll(agentId, 'error_pattern');
+    const errorPatterns = memory.recallAll(agentId, "error_pattern");
     if (errorPatterns.length > 0) {
-      sections.push('\n## Known Error Patterns\n');
-      sections.push('Based on your experience, watch out for these common errors:\n');
+      sections.push("\n## Known Error Patterns\n");
+      sections.push(
+        "Based on your experience, watch out for these common errors:\n",
+      );
 
       for (const pattern of errorPatterns.slice(0, 3)) {
         try {
           const details = JSON.parse(pattern.value);
-          sections.push(`- **${pattern.key}**: ${details.description || 'No description'}`);
+          sections.push(
+            `- **${pattern.key}**: ${details.description || "No description"}`,
+          );
         } catch {}
       }
-      sections.push('');
+      sections.push("");
     }
 
     // 3. Success patterns (from memory)
-    const successPatterns = memory.recallAll(agentId, 'success_pattern');
+    const successPatterns = memory.recallAll(agentId, "success_pattern");
     if (successPatterns.length > 0) {
-      sections.push('\n## Successful Approaches\n');
-      sections.push('These techniques have worked well for you in the past:\n');
+      sections.push("\n## Successful Approaches\n");
+      sections.push("These techniques have worked well for you in the past:\n");
 
       for (const pattern of successPatterns.slice(0, 3)) {
         try {
           const details = JSON.parse(pattern.value);
-          sections.push(`- **${pattern.key}**: ${details.description || 'No description'}`);
+          sections.push(
+            `- **${pattern.key}**: ${details.description || "No description"}`,
+          );
         } catch {}
       }
-      sections.push('');
+      sections.push("");
     }
   }
 
-  return sections.join('\n');
+  return sections.join("\n");
 }
 
 /**
@@ -444,17 +478,18 @@ function extractTaskSignature(task: Task): string | undefined {
  * Extract concise summary from session
  */
 function extractSessionSummary(session: sessions.AgentSession): string {
-  let output = session.output || '';
+  let output = session.output || "";
 
   if (!output && session.metadata) {
     try {
       const meta = JSON.parse(session.metadata);
-      output = meta.output || '';
+      output = meta.output || "";
     } catch {}
   }
 
   // Extract first sentence or 100 chars
-  const firstSentence = output.match(/^[^.!?]+[.!?]/)?.[0] || output.substring(0, 100);
+  const firstSentence =
+    output.match(/^[^.!?]+[.!?]/)?.[0] || output.substring(0, 100);
   return firstSentence;
 }
 ```
@@ -465,7 +500,7 @@ function extractSessionSummary(session: sessions.AgentSession): string {
 
 ```typescript
 // Add import at top
-import { buildAgentPrompt } from '../memory/prompt-builder.js';
+import { buildAgentPrompt } from "../memory/prompt-builder.js";
 
 // Modify spawnAgent function
 export async function spawnAgent(params: {
@@ -508,10 +543,11 @@ As an autonomous agent in the Vibe platform, you have the ability to review your
 Query your past sessions using the introspection API:
 
 ### Endpoint
+```
 
-```
 GET /api/introspection/:agentId?taskSignature=<hash>&limit=10&minRelevance=0.5
-```
+
+````
 
 ### Parameters
 
@@ -525,7 +561,7 @@ GET /api/introspection/:agentId?taskSignature=<hash>&limit=10&minRelevance=0.5
 
 ```bash
 curl http://localhost:3333/api/introspection/build_agent?limit=5&minRelevance=0.7
-```
+````
 
 ### Example Response
 
@@ -560,6 +596,7 @@ curl http://localhost:3333/api/introspection/build_agent?limit=5&minRelevance=0.
 ## When to Use Introspection
 
 Use introspection when:
+
 1. **Starting a similar task** - Check if you've done something similar before
 2. **Encountering an error** - See if you've solved this error previously
 3. **Making architectural decisions** - Review past decisions and their outcomes
@@ -568,6 +605,7 @@ Use introspection when:
 ## Automatic Context
 
 When you are spawned with a task, relevant historical context is **automatically injected** into your system prompt. This includes:
+
 - Top 5 most relevant past sessions
 - Known error patterns from your memory
 - Successful approaches you've used before
@@ -577,6 +615,7 @@ You don't need to query the introspection API manually unless you need more deta
 ## Memory Integration
 
 Your introspection capability is integrated with the agent memory system:
+
 - Error patterns are stored when you encounter and solve errors
 - Success patterns are stored when you complete tasks successfully
 - These patterns automatically appear in future prompts for similar tasks
@@ -584,7 +623,8 @@ Your introspection capability is integrated with the agent memory system:
 ## Privacy
 
 You can ONLY access your own sessions. Attempting to query other agents' sessions will fail with a 403 Forbidden error.
-```
+
+````
 
 ---
 
@@ -781,48 +821,48 @@ describe('Relevance Scoring', () => {
     expect(completedScore).toBeGreaterThan(failedScore);
   });
 });
-```
+````
 
 **File:** `tests/introspection-prompt.test.ts`
 
 ```typescript
-import { buildAgentPrompt } from '../src/memory/prompt-builder.js';
-import * as memory from '../src/memory/index.js';
+import { buildAgentPrompt } from "../src/memory/prompt-builder.js";
+import * as memory from "../src/memory/index.js";
 
-describe('Prompt Builder', () => {
-  test('includes agent role in prompt', async () => {
-    const prompt = await buildAgentPrompt('build_agent');
-    expect(prompt).toContain('build_agent');
+describe("Prompt Builder", () => {
+  test("includes agent role in prompt", async () => {
+    const prompt = await buildAgentPrompt("build_agent");
+    expect(prompt).toContain("build_agent");
   });
 
-  test('includes relevant sessions when task provided', async () => {
+  test("includes relevant sessions when task provided", async () => {
     // Setup: Create test sessions
     const task = {
-      id: 'test-task',
-      title: 'Test Task',
-      category: 'feature',
+      id: "test-task",
+      title: "Test Task",
+      category: "feature",
     };
 
-    const prompt = await buildAgentPrompt('build_agent', task);
+    const prompt = await buildAgentPrompt("build_agent", task);
 
     // Should contain sessions section (if sessions exist)
-    if (prompt.includes('Relevant Past Sessions')) {
-      expect(prompt).toContain('relevance');
+    if (prompt.includes("Relevant Past Sessions")) {
+      expect(prompt).toContain("relevance");
     }
   });
 
-  test('includes error patterns from memory', async () => {
+  test("includes error patterns from memory", async () => {
     // Setup: Store error pattern
-    memory.learnError('build_agent', 'test_error', {
-      description: 'Always check null before accessing properties',
+    memory.learnError("build_agent", "test_error", {
+      description: "Always check null before accessing properties",
     });
 
-    const prompt = await buildAgentPrompt('build_agent', {
-      id: 'test-task',
-      title: 'Test',
+    const prompt = await buildAgentPrompt("build_agent", {
+      id: "test-task",
+      title: "Test",
     });
 
-    expect(prompt).toContain('Known Error Patterns');
+    expect(prompt).toContain("Known Error Patterns");
   });
 });
 ```
@@ -832,45 +872,53 @@ describe('Prompt Builder', () => {
 **File:** `tests/introspection-integration.test.ts`
 
 ```typescript
-import request from 'supertest';
-import { app } from '../src/server.js';
-import * as sessions from '../src/db/sessions.js';
+import request from "supertest";
+import { app } from "../src/server.js";
+import * as sessions from "../src/db/sessions.js";
 
-describe('Introspection Integration', () => {
-  test('complete flow: create session → query introspection → get relevant history', async () => {
+describe("Introspection Integration", () => {
+  test("complete flow: create session → query introspection → get relevant history", async () => {
     // 1. Create test session
-    const session = sessions.createSession('build_agent', 'test-task-1');
-    sessions.updateSessionStatus(session.id, 'completed', 'Successfully completed test task');
+    const session = sessions.createSession("build_agent", "test-task-1");
+    sessions.updateSessionStatus(
+      session.id,
+      "completed",
+      "Successfully completed test task",
+    );
 
     // 2. Query introspection API
     const response = await request(app)
-      .get('/api/introspection/build_agent?limit=10&minRelevance=0.5')
+      .get("/api/introspection/build_agent?limit=10&minRelevance=0.5")
       .expect(200);
 
     // 3. Verify response format
-    expect(response.body).toHaveProperty('agent_id', 'build_agent');
-    expect(response.body).toHaveProperty('count');
-    expect(response.body).toHaveProperty('sessions');
+    expect(response.body).toHaveProperty("agent_id", "build_agent");
+    expect(response.body).toHaveProperty("count");
+    expect(response.body).toHaveProperty("sessions");
     expect(Array.isArray(response.body.sessions)).toBe(true);
 
     // 4. Verify session included
-    const found = response.body.sessions.find((s: any) => s.session_id === session.id);
+    const found = response.body.sessions.find(
+      (s: any) => s.session_id === session.id,
+    );
     expect(found).toBeDefined();
     expect(found.relevance_score).toBeGreaterThan(0);
   });
 
-  test('agent can only access own sessions', async () => {
+  test("agent can only access own sessions", async () => {
     // Create sessions for two agents
-    sessions.createSession('build_agent', 'task-1');
-    sessions.createSession('qa_agent', 'task-2');
+    sessions.createSession("build_agent", "task-1");
+    sessions.createSession("qa_agent", "task-2");
 
     // Query as build_agent
     const response = await request(app)
-      .get('/api/introspection/build_agent')
+      .get("/api/introspection/build_agent")
       .expect(200);
 
     // Should only see build_agent sessions
-    const hasQaSession = response.body.sessions.some((s: any) => s.agent_id === 'qa_agent');
+    const hasQaSession = response.body.sessions.some(
+      (s: any) => s.agent_id === "qa_agent",
+    );
     expect(hasQaSession).toBe(false);
   });
 });
@@ -879,6 +927,7 @@ describe('Introspection Integration', () => {
 ### Manual Testing
 
 1. **Query Introspection API:**
+
    ```bash
    # Start orchestrator
    cd parent-harness/orchestrator
@@ -903,16 +952,19 @@ describe('Introspection Integration', () => {
 ## Success Metrics
 
 **Operational:**
+
 - Introspection API responds in <200ms for 10-50 session queries
 - 90%+ of relevance scores are between 0.0-1.0 (no calculation errors)
 - Enhanced prompts generated for 100% of agent spawns with tasks
 
 **Agent Behavior:**
+
 - Agents reference past sessions in 20%+ of similar tasks
 - Time to solve known errors reduces by 30% with introspection
 - Agent failure rate decreases by 15% after 50+ historical sessions
 
 **Quality:**
+
 - Relevance scores correlate with actual task similarity (manual review)
 - Enhanced prompts contain relevant context (no hallucinations)
 - No cross-agent data leakage (privacy violations)
@@ -974,6 +1026,7 @@ If introspection causes performance issues or agent confusion:
 This specification is ready for implementation. All dependencies are satisfied (infrastructure 100% complete), design is detailed with code examples, and pass criteria are testable.
 
 **Next Steps:**
+
 1. Assign to build_agent for implementation
 2. Estimated delivery: 7 hours (1 day)
 3. Verification by qa_agent after implementation

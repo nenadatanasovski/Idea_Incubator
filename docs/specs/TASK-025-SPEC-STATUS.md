@@ -30,6 +30,7 @@ Both specifications are comprehensive, testable, and ready for the Build Agent.
 ## Current State Verification
 
 **Test File Warnings (as of 2026-02-08):**
+
 ```bash
 $ npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "tests/" | grep -E "\.(test|spec)\.ts" | wc -l
 47
@@ -38,6 +39,7 @@ $ npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "tests/" | grep 
 **Total TS6133 Warnings:** 161 (47 in test files, 114 in production code)
 
 **Test Suite Status:**
+
 - ✅ All tests passing (1773 passed, 4 skipped)
 - ✅ Build succeeds
 - ❌ 47 unused import warnings remain
@@ -64,24 +66,28 @@ Both existing specifications include:
 All pass criteria are automated and verifiable:
 
 **PC-1: Zero TS6133 warnings in test files**
+
 ```bash
 npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "tests/" | grep -E "\.(test|spec)\.ts" | wc -l
 # Expected: 0 (currently 47)
 ```
 
 **PC-2: All tests still pass**
+
 ```bash
 npm test --run
 # Expected: 1773 passed, 4 skipped (same as current baseline)
 ```
 
 **PC-3: Build succeeds**
+
 ```bash
 npm run build
 # Expected: Exit code 0
 ```
 
 **PC-4: No actual usage overlooked**
+
 - Manual review confirms each removal is safe
 - No side-effect imports removed
 - Variables that must be declared use `_` prefix
@@ -89,6 +95,7 @@ npm run build
 ### ✅ References Existing Patterns
 
 Both specs reference:
+
 - TypeScript compiler options (`--noUnusedLocals`)
 - Vitest patterns and lifecycle hooks
 - Project code style conventions
@@ -117,16 +124,16 @@ The specifications provide everything needed:
 
 ## Warning Distribution
 
-| Directory | Files | Warnings | Key Issues |
-|-----------|-------|----------|------------|
-| tests/ideation/ | 5 | 15 | `vi`, lifecycle hooks, destructured variables |
-| tests/integration/ | 5 | 14 | Lifecycle hooks, unused variables |
-| tests/specification/ | 5 | 9 | Type imports (AtomicTask, Question, Gotcha) |
-| tests/spec-agent/ | 1 | 3 | Unused constants |
-| tests/ (root) | 2 | 4 | beforeAll, afterAll, variables |
-| tests/e2e/ | 1 | 1 | Unused variable (originalTask) |
-| tests/graph/ | 1 | 1 | afterEach |
-| **Total** | **20** | **47** | |
+| Directory            | Files  | Warnings | Key Issues                                    |
+| -------------------- | ------ | -------- | --------------------------------------------- |
+| tests/ideation/      | 5      | 15       | `vi`, lifecycle hooks, destructured variables |
+| tests/integration/   | 5      | 14       | Lifecycle hooks, unused variables             |
+| tests/specification/ | 5      | 9        | Type imports (AtomicTask, Question, Gotcha)   |
+| tests/spec-agent/    | 1      | 3        | Unused constants                              |
+| tests/ (root)        | 2      | 4        | beforeAll, afterAll, variables                |
+| tests/e2e/           | 1      | 1        | Unused variable (originalTask)                |
+| tests/graph/         | 1      | 1        | afterEach                                     |
+| **Total**            | **20** | **47**   |                                               |
 
 ---
 
@@ -148,6 +155,7 @@ The specifications provide everything needed:
 5. Verify final pass criteria
 
 **Verification Commands:**
+
 ```bash
 # Before starting
 echo "Baseline: $(npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "tests/" | grep -E "\.(test|spec)\.ts" | wc -l) warnings"

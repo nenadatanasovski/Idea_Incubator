@@ -15,6 +15,7 @@ TASK-031 was blocked after 6 failed attempts with the following reported issues:
 3. Version incompatibility in `tests/unit/config/phase7-config.test.ts`
 
 **Pass Criteria:**
+
 - All tests pass
 - Build succeeds
 - TypeScript compiles
@@ -36,18 +37,21 @@ The task was **blocked by agent behavior, not by actual code issues**.
 ### Verification of Current State
 
 **TypeScript Compilation:**
+
 ```bash
 $ npm run typecheck
 ✅ SUCCESS - No errors, clean compilation
 ```
 
 **Tests:**
+
 ```bash
 $ npm test -- tests/unit/config/phase7-config.test.ts
 ✅ SUCCESS - 12/12 tests passed in 290ms
 ```
 
 **Build:**
+
 ```bash
 $ npm run build
 ✅ SUCCESS - TypeScript compilation completed
@@ -81,6 +85,7 @@ $ npm run build
 ### Why This Required SIA Intervention
 
 **Agent Behavior Gap:** Spec agents correctly identified that the task was already complete, but they:
+
 - Created extensive documentation explaining why no work was needed
 - Failed to update the task status in the harness database
 - Left the task in 'blocked' state causing infinite retry loops
@@ -94,6 +99,7 @@ $ npm run build
 ### Configuration System (Already Working)
 
 **config/default.ts:**
+
 ```typescript
 {
   evaluatorMode: "v2" as "v1" | "v2",  // Default: v2 (parallel specialists)
@@ -102,6 +108,7 @@ $ npm run build
 ```
 
 **tests/unit/config/phase7-config.test.ts:**
+
 - 12 comprehensive tests
 - Tests verify v2 as default
 - Tests verify v1 backward compatibility
@@ -110,10 +117,10 @@ $ npm run build
 
 ### Pass Criteria Results
 
-| Criterion | Status | Evidence |
-|-----------|--------|----------|
-| All tests pass | ✅ PASS | 12/12 config tests pass |
-| Build succeeds | ✅ PASS | `npm run build` completes successfully |
+| Criterion           | Status  | Evidence                                 |
+| ------------------- | ------- | ---------------------------------------- |
+| All tests pass      | ✅ PASS | 12/12 config tests pass                  |
+| Build succeeds      | ✅ PASS | `npm run build` completes successfully   |
 | TypeScript compiles | ✅ PASS | `npm run typecheck` passes with 0 errors |
 
 ---
@@ -123,6 +130,7 @@ $ npm run build
 ### For Spec Agents
 
 When a task's pass criteria are already met:
+
 1. **Update the database** to mark task as complete
 2. **Don't just write documentation** - actually resolve the task
 3. **Use the harness API** to update task status

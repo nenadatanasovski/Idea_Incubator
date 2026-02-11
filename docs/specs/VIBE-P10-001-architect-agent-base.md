@@ -16,6 +16,7 @@ Implement the core Architect Agent that analyzes project requirements and genera
 ### Problem Statement
 
 **Current State:**
+
 - Agent metadata exists in parent-harness for architect_agent (registered but not implemented)
 - Architecture template system specification exists (VIBE-P10-002) with 4+ templates
 - Tech stack decision tree specification exists (VIBE-P10-003) with rule-based recommendations
@@ -25,6 +26,7 @@ Implement the core Architect Agent that analyzes project requirements and genera
 - Directory `agents/architect/` was created but is empty
 
 **Desired State:**
+
 - Architect Agent class at `agents/architect/core.ts`
 - Agent extends ObservableAgent for full observability
 - TypeScript type definitions for all architecture artifacts
@@ -54,6 +56,7 @@ The Architect Agent Base is the **"Architecture Brain"** that transforms require
 #### FR-1: Architecture Types and Interfaces
 
 **FR-1.1: Core Architecture Document Interface**
+
 - Define `ArchitectureDoc` interface with:
   - `id`: Unique identifier (UUID)
   - `projectId`: Reference to parent project/idea
@@ -69,6 +72,7 @@ The Architect Agent Base is the **"Architecture Brain"** that transforms require
   - `metadata`: Extensible metadata object
 
 **FR-1.2: Component Specification Interface**
+
 - Define `ComponentSpec` interface with:
   - `id`: Component identifier
   - `name`: Component name (e.g., "Authentication Service")
@@ -82,6 +86,7 @@ The Architect Agent Base is the **"Architecture Brain"** that transforms require
   - `security`: Optional security requirements
 
 **FR-1.3: Tech Stack Decision Interface**
+
 - Define `TechStackDecision` interface with:
   - `frontend`: Optional object with framework, libraries, buildTool
   - `backend`: Optional object with language, framework, runtime
@@ -91,6 +96,7 @@ The Architect Agent Base is the **"Architecture Brain"** that transforms require
   - `rationale`: Record mapping each decision to its reasoning
 
 **FR-1.4: API Contract Interface**
+
 - Define `APIContract` interface with:
   - `style`: API style ("REST" | "GraphQL" | "gRPC" | "WebSocket")
   - `baseUrl`: Optional base URL
@@ -100,6 +106,7 @@ The Architect Agent Base is the **"Architecture Brain"** that transforms require
   - `documentation`: Documentation approach string
 
 **FR-1.5: Database Schema Interface**
+
 - Define `DatabaseSchema` interface with:
   - `type`: Database type ("relational" | "document" | "graph" | "key-value")
   - `engine`: Specific engine (PostgreSQL, MongoDB, Neo4j, Redis)
@@ -111,6 +118,7 @@ The Architect Agent Base is the **"Architecture Brain"** that transforms require
 #### FR-2: Architect Agent Class
 
 **FR-2.1: Agent Class Structure**
+
 - Create `ArchitectAgent` class extending `ObservableAgent`
 - Constructor accepts `ObservableAgentOptions` + architect-specific config
 - Agent type set to "architect"
@@ -118,6 +126,7 @@ The Architect Agent Base is the **"Architecture Brain"** that transforms require
 - Follows pattern from SpecAgent (agents/specification/core.ts) and SIA (agents/sia/index.ts)
 
 **FR-2.2: Core Agent Methods**
+
 - `generateArchitecture(requirements: string, projectId: string): Promise<ArchitectureDoc>`
   - Main entry point for architecture generation
   - Logs phase start/end for observability
@@ -142,6 +151,7 @@ The Architect Agent Base is the **"Architecture Brain"** that transforms require
   - Logs save operation
 
 **FR-2.3: System Prompts**
+
 - Define `ARCHITECTURE_ANALYSIS_PROMPT` for requirement analysis
 - Define `COMPONENT_GENERATION_PROMPT` for component spec generation
 - Define `TECH_STACK_PROMPT` for tech stack decision making
@@ -151,6 +161,7 @@ The Architect Agent Base is the **"Architecture Brain"** that transforms require
 - Stored in `agents/architect/prompts.ts`
 
 **FR-2.4: Error Handling**
+
 - Wrap all agent operations in try-catch
 - Log errors using `logError` from ObservableAgent
 - Throw descriptive errors with context
@@ -160,17 +171,20 @@ The Architect Agent Base is the **"Architecture Brain"** that transforms require
 #### FR-3: Agent Registry Integration
 
 **FR-3.1: Agent Metadata**
+
 - Agent metadata already exists in `parent-harness/orchestrator/src/agents/metadata.ts`
 - Metadata includes: id, name, type, emoji, description, role, responsibilities, tools, telegram config, models
 - No changes needed to metadata (already configured as `architect_agent`)
 
 **FR-3.2: Agent Instantiation**
+
 - Export factory function `createArchitectAgent(options: ObservableAgentOptions, config?: ArchitectAgentConfig): ArchitectAgent`
 - Agent can be instantiated by orchestrator
 - Agent responds to architecture generation tasks
 - Follows pattern from `createSpecAgent` and `createObservableSIA`
 
 **FR-3.3: Observability Integration**
+
 - All major operations logged via ObservableAgent methods
 - Phase logging: `logPhaseStart`, `logPhaseEnd`
 - Task logging: `logTaskStart`, `logTaskEnd`
@@ -181,6 +195,7 @@ The Architect Agent Base is the **"Architecture Brain"** that transforms require
 #### FR-4: File System Organization
 
 **FR-4.1: Source Files Structure**
+
 ```
 agents/architect/
 ├── core.ts                   # Main ArchitectAgent class (primary file)
@@ -198,6 +213,7 @@ agents/architect/
 ```
 
 **FR-4.2: Architecture Document Storage**
+
 - Store architecture documents at: `ideas/{ideaId}/architecture/`
 - File naming: `architecture-v{version}.json`
 - Include metadata file: `architecture-v{version}.meta.json`
@@ -206,12 +222,14 @@ agents/architect/
 ### Non-Functional Requirements
 
 **NFR-1: Type Safety**
+
 - All architecture types must be strongly typed
 - No `any` types in interfaces
 - Use TypeScript strict mode
 - Export all types for external use
 
 **NFR-2: Observability**
+
 - All agent operations logged via ObservableAgent
 - Phase start/end for major operations (analyze, select-template, generate-components, tech-stack, save)
 - Tool use logging for LLM calls (when integrated)
@@ -219,18 +237,21 @@ agents/architect/
 - Error logging with full context
 
 **NFR-3: Testability**
+
 - Agent methods should be unit testable
 - Mock LLM responses for testing
 - Test architecture document validation
 - Test template selection logic
 
 **NFR-4: Performance**
+
 - Architecture generation completes within 2 minutes
 - Use Opus model for quality architecture decisions (when LLM integrated)
 - Batch LLM calls where possible
 - Cache template selections
 
 **NFR-5: Extensibility**
+
 - Agent should support custom templates
 - Architecture types should be extensible via metadata
 - New artifact types can be added without breaking changes
@@ -281,6 +302,7 @@ agents/architect/
 ### Core Implementation
 
 See separate code blocks in Implementation section for:
+
 - Type definitions (types.ts)
 - Core agent class (core.ts)
 - System prompts (prompts.ts)
@@ -290,21 +312,25 @@ See separate code blocks in Implementation section for:
 ### Integration Points
 
 **1. ObservableAgent Base Class**
+
 - Location: `server/agents/observable-agent.ts`
 - Provides: Logging, tool use tracking, assertions, error handling
 - Pattern: Constructor calls `super()` with executionId, instanceId, agentType
 
 **2. Template Library**
+
 - Location: `agents/architect/templates/`
 - Provides: Pre-built architecture templates (web, mobile, API, monolith)
 - Pattern: Import templates, store in Map, select based on project type
 
 **3. Agent Registry**
+
 - Location: `parent-harness/orchestrator/src/agents/metadata.ts`
 - Provides: Agent metadata for orchestrator discovery
 - Pattern: Metadata already exists, no changes needed
 
 **4. Storage**
+
 - Location: Filesystem at `ideas/{projectId}/architecture/`
 - Provides: Persistent architecture document storage
 - Pattern: JSON files with version suffix, separate metadata files
@@ -349,7 +375,7 @@ export interface ArchitectureDoc {
 export interface ComponentSpec {
   id: string;
   name: string;
-  type: 'frontend' | 'backend' | 'database' | 'service' | 'infrastructure';
+  type: "frontend" | "backend" | "database" | "service" | "infrastructure";
   description: string;
   responsibilities: string[];
   dependencies: string[];
@@ -360,7 +386,7 @@ export interface ComponentSpec {
 }
 
 export interface ComponentInterface {
-  type: 'api' | 'event' | 'queue' | 'database';
+  type: "api" | "event" | "queue" | "database";
   protocol: string;
   description: string;
   endpoints?: string[];
@@ -398,7 +424,7 @@ export interface TechStackDecision {
 }
 
 export interface APIContract {
-  style: 'REST' | 'GraphQL' | 'gRPC' | 'WebSocket';
+  style: "REST" | "GraphQL" | "gRPC" | "WebSocket";
   baseUrl?: string;
   endpoints: APIEndpoint[];
   authentication: {
@@ -422,7 +448,7 @@ export interface APIEndpoint {
 }
 
 export interface DatabaseSchema {
-  type: 'relational' | 'document' | 'graph' | 'key-value';
+  type: "relational" | "document" | "graph" | "key-value";
   engine: string;
   entities: DBEntity[];
   relationships: DBRelationship[];
@@ -451,23 +477,29 @@ export interface DBField {
 export interface DBRelationship {
   from: string;
   to: string;
-  type: 'one-to-one' | 'one-to-many' | 'many-to-many';
+  type: "one-to-one" | "one-to-many" | "many-to-many";
   foreignKey: string;
 }
 
 export interface DBIndex {
   entity: string;
   fields: string[];
-  type: 'btree' | 'hash' | 'gin' | 'gist';
+  type: "btree" | "hash" | "gin" | "gist";
   unique: boolean;
 }
 
 export interface AnalysisResult {
-  projectType: 'web' | 'mobile' | 'api' | 'monolith' | 'microservices' | 'custom';
+  projectType:
+    | "web"
+    | "mobile"
+    | "api"
+    | "monolith"
+    | "microservices"
+    | "custom";
   features: string[];
   constraints: string[];
   techPreferences?: Record<string, string>;
-  scalabilityNeeds: 'low' | 'medium' | 'high';
+  scalabilityNeeds: "low" | "medium" | "high";
   securityRequirements: string[];
   deploymentPreferences?: string[];
 }
@@ -594,7 +626,7 @@ Return only valid JSON.`;
 
 ### 3. Core Agent Class (agents/architect/core.ts)
 
-*Due to length, providing implementation outline with key methods*
+_Due to length, providing implementation outline with key methods_
 
 ```typescript
 /**
@@ -604,17 +636,20 @@ Return only valid JSON.`;
  * Extends ObservableAgent for unified observability.
  */
 
-import { v4 as uuid } from 'uuid';
-import { ObservableAgent, type ObservableAgentOptions } from '../../server/agents/observable-agent.js';
+import { v4 as uuid } from "uuid";
+import {
+  ObservableAgent,
+  type ObservableAgentOptions,
+} from "../../server/agents/observable-agent.js";
 import type {
   ArchitectureDoc,
   ComponentSpec,
   TechStackDecision,
   AnalysisResult,
   ArchitectAgentConfig,
-} from './types.js';
-import type { ArchitectureTemplate } from './templates/types.js';
-import { saveArchitectureDoc } from './storage.js';
+} from "./types.js";
+import type { ArchitectureTemplate } from "./templates/types.js";
+import { saveArchitectureDoc } from "./storage.js";
 
 export class ArchitectAgent extends ObservableAgent {
   private config: ArchitectAgentConfig;
@@ -622,9 +657,9 @@ export class ArchitectAgent extends ObservableAgent {
 
   constructor(
     options: ObservableAgentOptions,
-    config: ArchitectAgentConfig = {}
+    config: ArchitectAgentConfig = {},
   ) {
-    super({ ...options, agentType: 'architect' });
+    super({ ...options, agentType: "architect" });
     this.config = config;
     this.templates = new Map();
     // Templates will be loaded dynamically when template system is implemented
@@ -635,38 +670,44 @@ export class ArchitectAgent extends ObservableAgent {
    */
   async generateArchitecture(
     requirements: string,
-    projectId: string
+    projectId: string,
   ): Promise<ArchitectureDoc> {
     const taskId = `arch-gen-${uuid().slice(0, 8)}`;
 
-    await this.logTaskStart(taskId, 'Generate Architecture', { projectId });
+    await this.logTaskStart(taskId, "Generate Architecture", { projectId });
 
     try {
       // Phase 1: Analyze requirements
-      await this.logPhaseStart('requirement-analysis');
+      await this.logPhaseStart("requirement-analysis");
       const analysis = await this.analyzeRequirements(requirements);
-      await this.logPhaseEnd('requirement-analysis', { projectType: analysis.projectType });
+      await this.logPhaseEnd("requirement-analysis", {
+        projectType: analysis.projectType,
+      });
 
       // Phase 2: Select template (when template system is ready)
-      await this.logPhaseStart('template-selection');
+      await this.logPhaseStart("template-selection");
       const template = await this.selectTemplate(analysis);
-      await this.logPhaseEnd('template-selection', { template: template?.name || 'default' });
+      await this.logPhaseEnd("template-selection", {
+        template: template?.name || "default",
+      });
 
       // Phase 3: Generate components
-      await this.logPhaseStart('component-generation');
+      await this.logPhaseStart("component-generation");
       const components = await this.generateComponents(analysis, template);
-      await this.logPhaseEnd('component-generation', { componentCount: components.length });
+      await this.logPhaseEnd("component-generation", {
+        componentCount: components.length,
+      });
 
       // Phase 4: Decide tech stack
-      await this.logPhaseStart('tech-stack-decision');
+      await this.logPhaseStart("tech-stack-decision");
       const techStack = await this.decideTechStack(analysis, template);
-      await this.logPhaseEnd('tech-stack-decision');
+      await this.logPhaseEnd("tech-stack-decision");
 
       // Phase 5: Assemble architecture document
       const architectureDoc: ArchitectureDoc = {
         id: uuid(),
         projectId,
-        version: '1.0.0',
+        version: "1.0.0",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         overview: {
@@ -678,22 +719,22 @@ export class ArchitectAgent extends ObservableAgent {
         components,
         techStack,
         deploymentStrategy: {
-          approach: 'cloud',
-          platforms: template?.deployment?.platform || ['AWS', 'Vercel'],
+          approach: "cloud",
+          platforms: template?.deployment?.platform || ["AWS", "Vercel"],
           considerations: template?.deployment?.considerations || [],
         },
         metadata: {
-          template: template?.name || 'none',
-          generatedBy: 'architect-agent',
+          template: template?.name || "none",
+          generatedBy: "architect-agent",
         },
       };
 
       // Phase 6: Save architecture
-      await this.logPhaseStart('save-architecture');
+      await this.logPhaseStart("save-architecture");
       await this.saveArchitecture(architectureDoc);
-      await this.logPhaseEnd('save-architecture');
+      await this.logPhaseEnd("save-architecture");
 
-      await this.logTaskEnd(taskId, 'complete', {
+      await this.logTaskEnd(taskId, "complete", {
         documentId: architectureDoc.id,
         version: architectureDoc.version,
       });
@@ -702,9 +743,9 @@ export class ArchitectAgent extends ObservableAgent {
     } catch (error) {
       await this.logError(
         `Architecture generation failed: ${error instanceof Error ? error.message : String(error)}`,
-        taskId
+        taskId,
       );
-      await this.logTaskEnd(taskId, 'failed');
+      await this.logTaskEnd(taskId, "failed");
       throw error;
     } finally {
       await this.close();
@@ -720,7 +761,7 @@ export class ArchitectAgent extends ObservableAgent {
       projectType: this.inferProjectType(requirements),
       features: this.extractFeatures(requirements),
       constraints: this.extractConstraints(requirements),
-      scalabilityNeeds: 'medium',
+      scalabilityNeeds: "medium",
       securityRequirements: [],
     };
 
@@ -730,7 +771,9 @@ export class ArchitectAgent extends ObservableAgent {
   /**
    * Select appropriate template based on analysis
    */
-  async selectTemplate(analysis: AnalysisResult): Promise<ArchitectureTemplate | null> {
+  async selectTemplate(
+    analysis: AnalysisResult,
+  ): Promise<ArchitectureTemplate | null> {
     // Template selection will be implemented when template system is ready
     // For now, return null
     return null;
@@ -741,55 +784,59 @@ export class ArchitectAgent extends ObservableAgent {
    */
   async generateComponents(
     analysis: AnalysisResult,
-    template: ArchitectureTemplate | null
+    template: ArchitectureTemplate | null,
   ): Promise<ComponentSpec[]> {
     // Basic component generation (template-based in Phase 1, LLM in Phase 2)
     const components: ComponentSpec[] = [];
 
-    if (analysis.projectType === 'web') {
+    if (analysis.projectType === "web") {
       components.push(
         {
-          id: 'frontend',
-          name: 'Frontend Application',
-          type: 'frontend',
-          description: 'React-based frontend application',
-          responsibilities: ['User interface', 'Client-side routing', 'State management'],
-          dependencies: ['backend'],
-          technologies: ['React', 'TypeScript', 'Tailwind CSS'],
+          id: "frontend",
+          name: "Frontend Application",
+          type: "frontend",
+          description: "React-based frontend application",
+          responsibilities: [
+            "User interface",
+            "Client-side routing",
+            "State management",
+          ],
+          dependencies: ["backend"],
+          technologies: ["React", "TypeScript", "Tailwind CSS"],
           interfaces: [
             {
-              type: 'api',
-              protocol: 'HTTP/REST',
-              description: 'Communicates with backend API',
+              type: "api",
+              protocol: "HTTP/REST",
+              description: "Communicates with backend API",
             },
           ],
         },
         {
-          id: 'backend',
-          name: 'Backend API',
-          type: 'backend',
-          description: 'Express-based backend API',
-          responsibilities: ['Business logic', 'Data access', 'Authentication'],
-          dependencies: ['database'],
-          technologies: ['Node.js', 'Express', 'TypeScript'],
+          id: "backend",
+          name: "Backend API",
+          type: "backend",
+          description: "Express-based backend API",
+          responsibilities: ["Business logic", "Data access", "Authentication"],
+          dependencies: ["database"],
+          technologies: ["Node.js", "Express", "TypeScript"],
           interfaces: [
             {
-              type: 'api',
-              protocol: 'HTTP/REST',
-              description: 'REST API endpoints',
+              type: "api",
+              protocol: "HTTP/REST",
+              description: "REST API endpoints",
             },
           ],
         },
         {
-          id: 'database',
-          name: 'Database',
-          type: 'database',
-          description: 'PostgreSQL database',
-          responsibilities: ['Data persistence', 'Relational integrity'],
+          id: "database",
+          name: "Database",
+          type: "database",
+          description: "PostgreSQL database",
+          responsibilities: ["Data persistence", "Relational integrity"],
           dependencies: [],
-          technologies: ['PostgreSQL'],
+          technologies: ["PostgreSQL"],
           interfaces: [],
-        }
+        },
       );
     }
 
@@ -801,35 +848,38 @@ export class ArchitectAgent extends ObservableAgent {
    */
   async decideTechStack(
     analysis: AnalysisResult,
-    template: ArchitectureTemplate | null
+    template: ArchitectureTemplate | null,
   ): Promise<TechStackDecision> {
     // Basic tech stack decisions (decision tree integration in Phase 2)
     const decision: TechStackDecision = {
       rationale: {},
     };
 
-    if (analysis.projectType === 'web') {
+    if (analysis.projectType === "web") {
       decision.frontend = {
-        framework: 'React',
-        libraries: ['React Query', 'Zustand'],
-        buildTool: 'Vite',
+        framework: "React",
+        libraries: ["React Query", "Zustand"],
+        buildTool: "Vite",
       };
-      decision.rationale.frontend = 'React provides largest ecosystem and hiring pool';
+      decision.rationale.frontend =
+        "React provides largest ecosystem and hiring pool";
 
       decision.backend = {
-        language: 'TypeScript',
-        framework: 'Express',
-        runtime: 'Node.js',
+        language: "TypeScript",
+        framework: "Express",
+        runtime: "Node.js",
       };
-      decision.rationale.backend = 'Express is minimal and flexible for rapid development';
+      decision.rationale.backend =
+        "Express is minimal and flexible for rapid development";
 
       decision.database = {
-        type: 'relational',
-        engine: 'PostgreSQL',
-        orm: 'Drizzle ORM',
-        migrationTool: 'Drizzle Kit',
+        type: "relational",
+        engine: "PostgreSQL",
+        orm: "Drizzle ORM",
+        migrationTool: "Drizzle Kit",
       };
-      decision.rationale.database = 'PostgreSQL provides ACID guarantees with JSON support';
+      decision.rationale.database =
+        "PostgreSQL provides ACID guarantees with JSON support";
     }
 
     return decision;
@@ -839,52 +889,67 @@ export class ArchitectAgent extends ObservableAgent {
    * Save architecture document to storage
    */
   async saveArchitecture(doc: ArchitectureDoc): Promise<void> {
-    const outputDir = this.config.outputDir || `ideas/${doc.projectId}/architecture`;
+    const outputDir =
+      this.config.outputDir || `ideas/${doc.projectId}/architecture`;
     await saveArchitectureDoc(doc, outputDir);
   }
 
   // Helper methods
-  private inferProjectType(requirements: string): AnalysisResult['projectType'] {
+  private inferProjectType(
+    requirements: string,
+  ): AnalysisResult["projectType"] {
     const lower = requirements.toLowerCase();
 
-    if (lower.includes('mobile') || lower.includes('ios') || lower.includes('android')) {
-      return 'mobile';
+    if (
+      lower.includes("mobile") ||
+      lower.includes("ios") ||
+      lower.includes("android")
+    ) {
+      return "mobile";
     }
-    if (lower.includes('api') || lower.includes('microservice')) {
-      return 'api';
+    if (lower.includes("api") || lower.includes("microservice")) {
+      return "api";
     }
-    if (lower.includes('web') || lower.includes('website') || lower.includes('dashboard')) {
-      return 'web';
+    if (
+      lower.includes("web") ||
+      lower.includes("website") ||
+      lower.includes("dashboard")
+    ) {
+      return "web";
     }
 
-    return 'web'; // default
+    return "web"; // default
   }
 
   private extractFeatures(requirements: string): string[] {
     const features: string[] = [];
-    const lines = requirements.split('\n');
+    const lines = requirements.split("\n");
 
     for (const line of lines) {
-      if (line.trim().startsWith('-') || line.trim().startsWith('*')) {
+      if (line.trim().startsWith("-") || line.trim().startsWith("*")) {
         features.push(line.trim().substring(1).trim());
       }
     }
 
-    return features.length > 0 ? features : ['Core functionality'];
+    return features.length > 0 ? features : ["Core functionality"];
   }
 
   private extractConstraints(requirements: string): string[] {
     const constraints: string[] = [];
     const lower = requirements.toLowerCase();
 
-    if (lower.includes('budget') || lower.includes('cost')) {
-      constraints.push('Budget constraints');
+    if (lower.includes("budget") || lower.includes("cost")) {
+      constraints.push("Budget constraints");
     }
-    if (lower.includes('performance') || lower.includes('fast') || lower.includes('speed')) {
-      constraints.push('Performance requirements');
+    if (
+      lower.includes("performance") ||
+      lower.includes("fast") ||
+      lower.includes("speed")
+    ) {
+      constraints.push("Performance requirements");
     }
-    if (lower.includes('security') || lower.includes('secure')) {
-      constraints.push('Security requirements');
+    if (lower.includes("security") || lower.includes("secure")) {
+      constraints.push("Security requirements");
     }
 
     return constraints;
@@ -896,7 +961,7 @@ export class ArchitectAgent extends ObservableAgent {
  */
 export function createArchitectAgent(
   options: ObservableAgentOptions,
-  config?: ArchitectAgentConfig
+  config?: ArchitectAgentConfig,
 ): ArchitectAgent {
   return new ArchitectAgent(options, config);
 }
@@ -911,23 +976,23 @@ export function createArchitectAgent(
  * Handles persistence of architecture documents to the filesystem.
  */
 
-import { promises as fs } from 'fs';
-import path from 'path';
-import type { ArchitectureDoc } from './types.js';
+import { promises as fs } from "fs";
+import path from "path";
+import type { ArchitectureDoc } from "./types.js";
 
 /**
  * Save architecture document to filesystem
  */
 export async function saveArchitectureDoc(
   doc: ArchitectureDoc,
-  outputDir: string
+  outputDir: string,
 ): Promise<void> {
   await fs.mkdir(outputDir, { recursive: true });
 
   const filename = `architecture-v${doc.version}.json`;
   const filepath = path.join(outputDir, filename);
 
-  await fs.writeFile(filepath, JSON.stringify(doc, null, 2), 'utf-8');
+  await fs.writeFile(filepath, JSON.stringify(doc, null, 2), "utf-8");
 
   // Save metadata
   const metaFilename = `architecture-v${doc.version}.meta.json`;
@@ -944,9 +1009,9 @@ export async function saveArchitectureDoc(
         updatedAt: doc.updatedAt,
       },
       null,
-      2
+      2,
     ),
-    'utf-8'
+    "utf-8",
   );
 }
 
@@ -956,15 +1021,20 @@ export async function saveArchitectureDoc(
 export async function loadArchitectureDoc(
   projectId: string,
   version: string,
-  baseDir: string = 'ideas'
+  baseDir: string = "ideas",
 ): Promise<ArchitectureDoc | null> {
-  const filepath = path.join(baseDir, projectId, 'architecture', `architecture-v${version}.json`);
+  const filepath = path.join(
+    baseDir,
+    projectId,
+    "architecture",
+    `architecture-v${version}.json`,
+  );
 
   try {
-    const content = await fs.readFile(filepath, 'utf-8');
+    const content = await fs.readFile(filepath, "utf-8");
     return JSON.parse(content) as ArchitectureDoc;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return null;
     }
     throw error;
@@ -976,17 +1046,22 @@ export async function loadArchitectureDoc(
  */
 export async function listArchitectureVersions(
   projectId: string,
-  baseDir: string = 'ideas'
+  baseDir: string = "ideas",
 ): Promise<string[]> {
-  const dirPath = path.join(baseDir, projectId, 'architecture');
+  const dirPath = path.join(baseDir, projectId, "architecture");
 
   try {
     const files = await fs.readdir(dirPath);
     return files
-      .filter(f => f.startsWith('architecture-v') && f.endsWith('.json') && !f.endsWith('.meta.json'))
-      .map(f => f.replace('architecture-v', '').replace('.json', ''));
+      .filter(
+        (f) =>
+          f.startsWith("architecture-v") &&
+          f.endsWith(".json") &&
+          !f.endsWith(".meta.json"),
+      )
+      .map((f) => f.replace("architecture-v", "").replace(".json", ""));
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return [];
     }
     throw error;
@@ -1003,14 +1078,18 @@ export async function listArchitectureVersions(
  * Exports all public interfaces and functions for the Architect Agent.
  */
 
-export * from './types.js';
-export * from './core.js';
-export * from './storage.js';
-export * from './prompts.js';
+export * from "./types.js";
+export * from "./core.js";
+export * from "./storage.js";
+export * from "./prompts.js";
 
 // Re-export main classes and factories
-export { ArchitectAgent, createArchitectAgent } from './core.js';
-export { saveArchitectureDoc, loadArchitectureDoc, listArchitectureVersions } from './storage.js';
+export { ArchitectAgent, createArchitectAgent } from "./core.js";
+export {
+  saveArchitectureDoc,
+  loadArchitectureDoc,
+  listArchitectureVersions,
+} from "./storage.js";
 ```
 
 ---
@@ -1110,17 +1189,20 @@ export { saveArchitectureDoc, loadArchitectureDoc, listArchitectureVersions } fr
 ## Dependencies
 
 ### Required (Must exist before implementation)
+
 - ✅ ObservableAgent base class (`server/agents/observable-agent.ts`) - EXISTS
 - ✅ Agent metadata in parent harness (`parent-harness/orchestrator/src/agents/metadata.ts`) - EXISTS
 - ✅ TypeScript compiler - EXISTS
 - ✅ Directory structure (`agents/architect/`) - EXISTS (created, empty)
 
 ### Optional (Can be integrated later)
+
 - 🔄 Architecture Template System (VIBE-P10-002) - IN PROGRESS
 - 🔄 Tech Stack Decision Tree (VIBE-P10-003) - SPECIFIED, NOT IMPLEMENTED
 - LLM integration for AI-powered analysis (Phase 2)
 
 ### Blocked By
+
 - None (can be implemented independently)
 
 ---
@@ -1128,6 +1210,7 @@ export { saveArchitectureDoc, loadArchitectureDoc, listArchitectureVersions } fr
 ## Implementation Notes
 
 ### File Creation Order
+
 1. ✅ Create `types.ts` with all TypeScript interfaces
 2. ✅ Create `prompts.ts` with system prompts
 3. ✅ Create `storage.ts` with persistence functions
@@ -1136,17 +1219,20 @@ export { saveArchitectureDoc, loadArchitectureDoc, listArchitectureVersions } fr
 6. Test agent instantiation and basic flow
 
 ### Agent Registry
+
 - Agent metadata already exists in parent harness at `parent-harness/orchestrator/src/agents/metadata.ts`
 - No changes needed to registry - agent is already registered as `architect_agent`
 - Agent will be discovered and instantiated by orchestrator
 
 ### Template Integration Strategy
+
 - Phase 1 (MVP): Use hardcoded component generation
 - Phase 2: Integrate with template library when VIBE-P10-002 is complete
 - Phase 3: Use decision tree when VIBE-P10-003 is implemented
 - Phase 4: Add LLM integration for intelligent generation
 
 ### Testing Strategy
+
 - Unit tests for helper methods (inferProjectType, extractFeatures, extractConstraints)
 - Integration tests with mock requirements
 - End-to-end tests with sample project briefs
@@ -1157,6 +1243,7 @@ export { saveArchitectureDoc, loadArchitectureDoc, listArchitectureVersions } fr
 ## Future Enhancements
 
 ### Phase 2 Additions (Post-MVP)
+
 - **LLM Integration** - Full integration with Claude Opus for intelligent analysis
 - **Template System Integration** - Use templates from VIBE-P10-002
 - **Decision Tree Integration** - Use tech stack decision tree from VIBE-P10-003
@@ -1164,6 +1251,7 @@ export { saveArchitectureDoc, loadArchitectureDoc, listArchitectureVersions } fr
 - **Risk Analysis** - Identify architectural risks and mitigation strategies
 
 ### Advanced Features
+
 - **Architecture Visualization** - Generate diagrams (C4, UML, sequence diagrams)
 - **Validation Rules** - Validate architecture against best practices
 - **Alternative Architectures** - Generate multiple architecture options for comparison
@@ -1171,6 +1259,7 @@ export { saveArchitectureDoc, loadArchitectureDoc, listArchitectureVersions } fr
 - **Version Diffing** - Compare architecture versions and show changes
 
 ### Integration Points
+
 - **Spec Agent** - Use architecture doc to inform technical specifications
 - **Build Agent** - Use architecture doc to scaffold folder structure and initial code
 - **QA Agent** - Validate implementation matches architecture
@@ -1181,6 +1270,7 @@ export { saveArchitectureDoc, loadArchitectureDoc, listArchitectureVersions } fr
 ## Success Metrics
 
 ### Implementation Success
+
 - ✅ All 8 "Must Pass" criteria verified
 - ✅ TypeScript compilation clean with no errors
 - ✅ Agent can be instantiated without errors
@@ -1188,6 +1278,7 @@ export { saveArchitectureDoc, loadArchitectureDoc, listArchitectureVersions } fr
 - ✅ Architecture document saves to filesystem correctly
 
 ### Usage Success (Post-Implementation)
+
 - Orchestrator successfully assigns architecture tasks to agent
 - Agent generates valid architecture documents
 - Architecture documents are used by downstream agents
@@ -1199,17 +1290,20 @@ export { saveArchitectureDoc, loadArchitectureDoc, listArchitectureVersions } fr
 ## References
 
 ### Related Tasks
+
 - VIBE-P10-002: Architecture Template System (provides templates)
 - VIBE-P10-003: Tech Stack Decision Tree (provides decision logic)
 - PHASE2-TASK-01: Spec Agent v0.1 (similar agent pattern)
 
 ### Similar Patterns in Codebase
+
 - Spec Agent (`agents/specification/core.ts`) - Similar session-based agent extending ObservableAgent
 - SIA Agent (`agents/sia/index.ts`) - Similar ObservableAgent extension pattern
 - Observable Agent (`server/agents/observable-agent.ts`) - Base class for observability
 - Agent Metadata (`parent-harness/orchestrator/src/agents/metadata.ts`) - Registry pattern
 
 ### External References
+
 - ObservableAgent pattern documentation
 - Architecture documentation patterns: C4 Model, arc42
 - Claude Opus API documentation

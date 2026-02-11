@@ -13,6 +13,7 @@ This specification documents the **already implemented** functionality for synci
 ### Problem Statement
 
 Evaluators need access to:
+
 1. **Q&A answers** from development.md files
 2. **User profile context** (separate task)
 3. **Web research data** (separate task)
@@ -86,6 +87,7 @@ Evaluator Agents
 **Function:** `parseDevlopmentMd(content: string, costTracker?: CostTracker, useLLMFallback: boolean = true): Promise<ParsedQA[]>`
 
 **Implementation:**
+
 ```typescript
 // Pattern matching for Q:/A: format
 const qaPattern3 = /^Q:\s*(.+?)\n+A:\s*(.+?)(?=\nQ:|\n##|$)/gms;
@@ -95,12 +97,13 @@ while ((match = pattern.exec(content)) !== null) {
   results.push({
     question: match[1].trim(),
     answer: match[2].trim(),
-    confidence: 0.9
+    confidence: 0.9,
   });
 }
 ```
 
 **Key Design Decisions:**
+
 - 5 pattern matchers for flexibility (but Q:/A: is primary for development.md)
 - Skip LLM fallback during sync (`useLLMFallback = false`)
 - Minimum lengths: question ≥ 10 chars, answer ≥ 10 chars
@@ -111,6 +114,7 @@ while ((match = pattern.exec(content)) !== null) {
 **Function:** `classifyQuestionToId(question: string): string | null`
 
 **Implementation:**
+
 ```typescript
 // Keyword pattern matching
 const QUESTION_PATTERNS: Record<string, { patterns: RegExp[]; category: string }> = {
@@ -130,6 +134,7 @@ for (const [questionId, config] of Object.entries(QUESTION_PATTERNS)) {
 ```
 
 **Mappings (examples):**
+
 - "What specific technical skills..." → `FT3_SKILLS` (fit category)
 - "What is your realistic timeline..." → `F4_FIRST_VALUE` (feasibility category)
 - "What is your financial runway..." → `FT5_RUNWAY` (fit category)
@@ -140,6 +145,7 @@ for (const [questionId, config] of Object.entries(QUESTION_PATTERNS)) {
 **Function:** `saveAnswer(ideaId: string, questionId: string, answer: string, source: AnswerSource = 'user', confidence: number = 1.0): Promise<Answer>`
 
 **Implementation:**
+
 ```typescript
 // Upsert logic
 const existing = await getAnswer(ideaId, questionId);
@@ -161,6 +167,7 @@ await calculateAndSaveReadiness(ideaId);
 **Function:** `syncDevelopmentAnswers(ideaId: string, folderPath: string): Promise<DevSyncResult>`
 
 **Implementation:**
+
 ```typescript
 const devPath = path.join(folderPath, "development.md");
 if (!fs.existsSync(devPath)) return { synced: 0, failed: 0, skipped: 0 };
@@ -184,6 +191,7 @@ for (const { question, answer, confidence } of qaPairs) {
 ```
 
 **Integration Points:**
+
 - Called during idea creation (line 186-191)
 - Called during idea update (line 218-223)
 - Results included in sync summary (line 380-386)
@@ -193,29 +201,34 @@ for (const { question, answer, confidence } of qaPairs) {
 **Function:** `computeIdeaHash(ideaPath: string): string`
 
 **Implementation:**
+
 ```typescript
 const filesToHash = [
   path.join(ideaPath, "README.md"),
-  path.join(ideaPath, "development.md"),  // ← Included
+  path.join(ideaPath, "development.md"), // ← Included
 ];
 
 // Also include research files
 const researchPath = path.join(ideaPath, "research");
 if (fs.existsSync(researchPath)) {
-  const researchFiles = fs.readdirSync(researchPath).filter(f => f.endsWith(".md"));
-  filesToHash.push(...researchFiles.map(f => path.join(researchPath, f)));
+  const researchFiles = fs
+    .readdirSync(researchPath)
+    .filter((f) => f.endsWith(".md"));
+  filesToHash.push(...researchFiles.map((f) => path.join(researchPath, f)));
 }
 
-const contents = filesToHash.filter(f => fs.existsSync(f))
-  .map(f => fs.readFileSync(f, "utf-8"))
+const contents = filesToHash
+  .filter((f) => fs.existsSync(f))
+  .map((f) => fs.readFileSync(f, "utf-8"))
   .join("\n---FILE-BOUNDARY---\n");
 
 return createHash("md5").update(contents).digest("hex");
 ```
 
 **Staleness Detection:**
+
 - Content hash stored in `ideas.content_hash`
-- Hash includes README.md + development.md + research/*.md
+- Hash includes README.md + development.md + research/\*.md
 - When hash changes → trigger `checkStaleness()`
 - Stale evaluations logged and recommended for re-run
 
@@ -237,6 +250,7 @@ CREATE TABLE IF NOT EXISTS idea_answers (
 ```
 
 **Key Fields:**
+
 - `answer_source = 'user'` → explicitly user-provided (vs AI-extracted/inferred)
 - `confidence = 0.9` → high confidence for parsed Q&A
 - `UNIQUE(idea_id, question_id)` → prevents duplicates
@@ -356,12 +370,14 @@ npm run evaluate e2e-test-smart-wellness-tracker
 ## Dependencies
 
 ### Upstream (must exist first)
+
 - ✅ `ideas/` directory structure
 - ✅ `development.md` files in Q:/A: format
 - ✅ `question_bank` table populated with YAML questions
 - ✅ `idea_answers` table schema (migration 008)
 
 ### Downstream (depends on this)
+
 - Profile context sync (separate task)
 - Web research sync (separate task)
 - Evaluator agents consuming `idea_answers` table
@@ -468,11 +484,13 @@ const answers = await getAnswersForIdea(ideaId);
 ### Alternative Implementation
 
 A separate script `scripts/sync-development.ts` exists with:
+
 - Neo4j graph database sync (in addition to SQLite)
 - More complex parsing (gaps, insights, next steps)
 - Separate script invocation
 
 **Decision:** The primary implementation in `scripts/sync.ts` is preferred because it:
+
 - Integrates with standard sync workflow
 - Avoids dual invocation
 - Focuses on core Q&A sync (not extended features)
@@ -596,12 +614,14 @@ npm run sync 2>&1 | grep "Could not classify"
 ### Performance Optimization
 
 Current performance (sync 100 ideas):
+
 - Parse: ~50ms per development.md
 - Classify: ~5ms per question
 - Save: ~10ms per answer
 - Total: ~5-10 seconds for 100 ideas with 5 Q&A each
 
 **Optimization opportunities:**
+
 1. Batch inserts (currently individual upserts)
 2. Cache question patterns (currently re-compile on each classify)
 3. Parallel parsing (currently sequential)

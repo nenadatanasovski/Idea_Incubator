@@ -1,7 +1,7 @@
 # Neo4j Schema Design
 
 > **Source of Truth** for the Idea Incubator memory graph Neo4j implementation.
-> 
+>
 > Related: `00-ARCHITECTURE-OVERVIEW.md` (system architecture, 9 block types)
 
 ---
@@ -12,12 +12,12 @@ This document defines the Neo4j graph database schema for the Vibe platform. The
 
 ### Design Principles
 
-| Principle | Rationale |
-|-----------|-----------|
-| **Multi-label nodes** | Each block gets a base `Block` label + type-specific label for efficient filtering |
-| **Typed relationships** | Direct mapping from link types to Neo4j relationship types (SCREAMING_SNAKE_CASE) |
-| **Property indexing** | Indexes on properties AI agents query most frequently |
-| **Session isolation** | All nodes/edges scoped by `sessionId` for multi-tenant queries |
+| Principle               | Rationale                                                                          |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| **Multi-label nodes**   | Each block gets a base `Block` label + type-specific label for efficient filtering |
+| **Typed relationships** | Direct mapping from link types to Neo4j relationship types (SCREAMING_SNAKE_CASE)  |
+| **Property indexing**   | Indexes on properties AI agents query most frequently                              |
+| **Session isolation**   | All nodes/edges scoped by `sessionId` for multi-tenant queries                     |
 
 ### Scale Assumptions
 
@@ -56,17 +56,17 @@ All memory blocks have the `Block` label with common properties:
 
 Per ARCH-001, the system uses 9 consolidated block types. Each block gets an additional label based on its type.
 
-| # | Block Type | Neo4j Label | Purpose | Question Answered |
-|---|------------|-------------|---------|-------------------|
-| 1 | `knowledge` | `:Knowledge` | Verified facts, patterns, insights | "What do we know?" |
-| 2 | `decision` | `:Decision` | Choices made with rationale | "What did we choose?" |
-| 3 | `assumption` | `:Assumption` | Unverified beliefs to test | "What do we assume?" |
-| 4 | `question` | `:Question` | Open unknowns, things to investigate | "What don't we know?" |
-| 5 | `requirement` | `:Requirement` | Constraints, must-haves, acceptance criteria | "What must be true?" |
-| 6 | `task` | `:Task` | Work items, actions to take | "What do we need to do?" |
-| 7 | `proposal` | `:Proposal` | Suggested changes awaiting approval | "What might we do?" |
-| 8 | `artifact` | `:Artifact` | Outputs (code, docs, specs) | "What did we produce?" |
-| 9 | `evidence` | `:Evidence` | Validation data, proof, measurements | "How do we verify?" |
+| #   | Block Type    | Neo4j Label    | Purpose                                      | Question Answered        |
+| --- | ------------- | -------------- | -------------------------------------------- | ------------------------ |
+| 1   | `knowledge`   | `:Knowledge`   | Verified facts, patterns, insights           | "What do we know?"       |
+| 2   | `decision`    | `:Decision`    | Choices made with rationale                  | "What did we choose?"    |
+| 3   | `assumption`  | `:Assumption`  | Unverified beliefs to test                   | "What do we assume?"     |
+| 4   | `question`    | `:Question`    | Open unknowns, things to investigate         | "What don't we know?"    |
+| 5   | `requirement` | `:Requirement` | Constraints, must-haves, acceptance criteria | "What must be true?"     |
+| 6   | `task`        | `:Task`        | Work items, actions to take                  | "What do we need to do?" |
+| 7   | `proposal`    | `:Proposal`    | Suggested changes awaiting approval          | "What might we do?"      |
+| 8   | `artifact`    | `:Artifact`    | Outputs (code, docs, specs)                  | "What did we produce?"   |
+| 9   | `evidence`    | `:Evidence`    | Validation data, proof, measurements         | "How do we verify?"      |
 
 ### 2.3 Node Creation Examples
 
@@ -223,29 +223,29 @@ All relationships include common properties:
 }]
 ```
 
-| Link Type | Neo4j Relationship | Semantic Direction |
-|-----------|-------------------|-------------------|
-| `addresses` | `ADDRESSES` | Source addresses Target problem |
-| `creates` | `CREATES` | Source creates Target output |
-| `requires` | `REQUIRES` | Source requires Target to proceed |
-| `conflicts` | `CONFLICTS_WITH` | Source conflicts with Target |
-| `supports` | `SUPPORTS` | Source provides evidence for Target |
-| `depends_on` | `DEPENDS_ON` | Source depends on Target |
-| `enables` | `ENABLES` | Source enables Target |
-| `suggests` | `SUGGESTS` | Source suggests Target action |
-| `supersedes` | `SUPERSEDES` | Source replaces Target |
-| `validates` | `VALIDATES` | Source confirms Target |
-| `invalidates` | `INVALIDATES` | Source disproves Target |
-| `references` | `REFERENCES` | Source mentions Target |
-| `evidence_for` | `EVIDENCE_FOR` | Source is evidence for Target |
-| `elaborates` | `ELABORATES` | Source expands on Target |
-| `refines` | `REFINES` | Source is a refined version of Target |
-| `specializes` | `SPECIALIZES` | Source is a special case of Target |
-| `alternative_to` | `ALTERNATIVE_TO` | Source is an alternative to Target |
-| `instance_of` | `INSTANCE_OF` | Source is an instance of Target |
-| `constrained_by` | `CONSTRAINED_BY` | Source is limited by Target |
-| `derived_from` | `DERIVED_FROM` | Source was derived from Target |
-| `measured_by` | `MEASURED_BY` | Source is measured by Target metric |
+| Link Type        | Neo4j Relationship | Semantic Direction                    |
+| ---------------- | ------------------ | ------------------------------------- |
+| `addresses`      | `ADDRESSES`        | Source addresses Target problem       |
+| `creates`        | `CREATES`          | Source creates Target output          |
+| `requires`       | `REQUIRES`         | Source requires Target to proceed     |
+| `conflicts`      | `CONFLICTS_WITH`   | Source conflicts with Target          |
+| `supports`       | `SUPPORTS`         | Source provides evidence for Target   |
+| `depends_on`     | `DEPENDS_ON`       | Source depends on Target              |
+| `enables`        | `ENABLES`          | Source enables Target                 |
+| `suggests`       | `SUGGESTS`         | Source suggests Target action         |
+| `supersedes`     | `SUPERSEDES`       | Source replaces Target                |
+| `validates`      | `VALIDATES`        | Source confirms Target                |
+| `invalidates`    | `INVALIDATES`      | Source disproves Target               |
+| `references`     | `REFERENCES`       | Source mentions Target                |
+| `evidence_for`   | `EVIDENCE_FOR`     | Source is evidence for Target         |
+| `elaborates`     | `ELABORATES`       | Source expands on Target              |
+| `refines`        | `REFINES`          | Source is a refined version of Target |
+| `specializes`    | `SPECIALIZES`      | Source is a special case of Target    |
+| `alternative_to` | `ALTERNATIVE_TO`   | Source is an alternative to Target    |
+| `instance_of`    | `INSTANCE_OF`      | Source is an instance of Target       |
+| `constrained_by` | `CONSTRAINED_BY`   | Source is limited by Target           |
+| `derived_from`   | `DERIVED_FROM`     | Source was derived from Target        |
+| `measured_by`    | `MEASURED_BY`      | Source is measured by Target metric   |
 
 ### 3.2 Relationship Creation Examples
 
@@ -484,6 +484,7 @@ LIMIT 20
 ### 5.6 Common Agent Workflows
 
 #### Get Context for a Decision
+
 ```cypher
 // Returns: decision + supporting evidence + constraints + requirements
 MATCH (d:Decision {id: $decisionId})
@@ -500,6 +501,7 @@ RETURN d,
 ```
 
 #### Trace Assumption Impact
+
 ```cypher
 // What decisions/tasks depend on this assumption?
 MATCH (a:Assumption {id: $assumptionId})
@@ -511,6 +513,7 @@ ORDER BY distance ASC
 ```
 
 #### Find Unanswered Questions
+
 ```cypher
 // Questions with no addressing proposals
 MATCH (q:Question {ideaId: $ideaId, status: 'active'})
@@ -520,6 +523,7 @@ ORDER BY q.createdAt ASC
 ```
 
 #### Get Task Artifacts
+
 ```cypher
 // All artifacts created by tasks in an idea
 MATCH (t:Task {ideaId: $ideaId})-[:CREATES]->(a:Artifact)
@@ -529,6 +533,7 @@ ORDER BY a.createdAt DESC
 ```
 
 #### Find Conflicting Information
+
 ```cypher
 // Get all active conflicts in an idea
 MATCH (a:Block {ideaId: $ideaId})-[r:CONFLICTS_WITH]->(b:Block)
@@ -546,35 +551,35 @@ RETURN a, r, b
 
 The `properties` field stores type-specific extended data as JSON:
 
-| Node Type | Common Extended Properties |
-|-----------|---------------------------|
-| `Knowledge` | `{ "sources": string[], "synthesizedFrom": string[], "category": string }` |
-| `Decision` | `{ "reversible": bool, "deadline": datetime, "stakeholders": string[], "alternatives": string[] }` |
-| `Assumption` | `{ "testable": bool, "validationMethod": string, "riskLevel": string }` |
-| `Question` | `{ "priority": string, "investigationStatus": string, "blockedBy": string[] }` |
-| `Requirement` | `{ "type": string, "priority": string, "acceptanceCriteria": string[] }` |
-| `Task` | `{ "assignee": string, "dueDate": datetime, "priority": string, "completed": bool, "effort": string }` |
-| `Proposal` | `{ "proposalType": string, "impact": string, "debateStatus": string, "approvalStatus": string }` |
-| `Artifact` | `{ "artifactType": string, "path": string, "version": string, "generatedBy": string }` |
-| `Evidence` | `{ "evidenceType": string, "source": string, "collectedAt": datetime, "methodology": string }` |
+| Node Type     | Common Extended Properties                                                                             |
+| ------------- | ------------------------------------------------------------------------------------------------------ |
+| `Knowledge`   | `{ "sources": string[], "synthesizedFrom": string[], "category": string }`                             |
+| `Decision`    | `{ "reversible": bool, "deadline": datetime, "stakeholders": string[], "alternatives": string[] }`     |
+| `Assumption`  | `{ "testable": bool, "validationMethod": string, "riskLevel": string }`                                |
+| `Question`    | `{ "priority": string, "investigationStatus": string, "blockedBy": string[] }`                         |
+| `Requirement` | `{ "type": string, "priority": string, "acceptanceCriteria": string[] }`                               |
+| `Task`        | `{ "assignee": string, "dueDate": datetime, "priority": string, "completed": bool, "effort": string }` |
+| `Proposal`    | `{ "proposalType": string, "impact": string, "debateStatus": string, "approvalStatus": string }`       |
+| `Artifact`    | `{ "artifactType": string, "path": string, "version": string, "generatedBy": string }`                 |
+| `Evidence`    | `{ "evidenceType": string, "source": string, "collectedAt": datetime, "methodology": string }`         |
 
 ### 6.2 Confidence Guidelines
 
-| Confidence Range | Meaning |
-|-----------------|---------|
-| 0.0 - 0.3 | Low confidence, speculation |
-| 0.3 - 0.6 | Moderate confidence, some evidence |
-| 0.6 - 0.8 | High confidence, good evidence |
-| 0.8 - 1.0 | Very high confidence, validated |
+| Confidence Range | Meaning                            |
+| ---------------- | ---------------------------------- |
+| 0.0 - 0.3        | Low confidence, speculation        |
+| 0.3 - 0.6        | Moderate confidence, some evidence |
+| 0.6 - 0.8        | High confidence, good evidence     |
+| 0.8 - 1.0        | Very high confidence, validated    |
 
 ### 6.3 Abstraction Level Guidelines
 
-| Level | Scope | Example |
-|-------|-------|---------|
-| `vision` | Why we exist | "Democratize legal services" |
-| `strategy` | How we win | "Target SMB market first" |
-| `tactic` | What we do | "Build self-service portal" |
-| `implementation` | How we build | "Use React for frontend" |
+| Level            | Scope        | Example                      |
+| ---------------- | ------------ | ---------------------------- |
+| `vision`         | Why we exist | "Democratize legal services" |
+| `strategy`       | How we win   | "Target SMB market first"    |
+| `tactic`         | What we do   | "Build self-service portal"  |
+| `implementation` | How we build | "Use React for frontend"     |
 
 ---
 
@@ -584,23 +589,23 @@ The `properties` field stores type-specific extended data as JSON:
 
 This migration consolidates the original 15 block types into 9 cleaner types per ARCH-001.
 
-| Old Type (15) | New Type (9) | Migration Notes |
-|---------------|--------------|-----------------|
-| `content` | `knowledge` | Raw content → verified knowledge |
-| `synthesis` | `knowledge` | Preserve `synthesizedFrom` in properties |
-| `pattern` | `knowledge` | Store pattern details in properties |
-| `decision` | `decision` | Direct mapping |
-| `option` | `decision` | Convert to decision with `alternatives` in properties |
-| `assumption` | `assumption` | Direct mapping |
-| `action` | `task` | Rename only |
-| `external` | `evidence` | External data becomes evidence |
-| `meta` | — | Convert to graph edges or `properties` on related blocks |
-| `link` | — | Convert to `REFERENCES` relationship |
-| `derived` | `knowledge` | Mark `derived: true` in properties |
-| `cycle` | `knowledge` | Store cycle info in properties |
-| `placeholder` | — | Remove or convert to `question` if appropriate |
-| `stakeholder_view` | `knowledge` | Store stakeholder in properties |
-| `topic` | — | Convert to `topic` dimension tag on related blocks |
+| Old Type (15)      | New Type (9) | Migration Notes                                          |
+| ------------------ | ------------ | -------------------------------------------------------- |
+| `content`          | `knowledge`  | Raw content → verified knowledge                         |
+| `synthesis`        | `knowledge`  | Preserve `synthesizedFrom` in properties                 |
+| `pattern`          | `knowledge`  | Store pattern details in properties                      |
+| `decision`         | `decision`   | Direct mapping                                           |
+| `option`           | `decision`   | Convert to decision with `alternatives` in properties    |
+| `assumption`       | `assumption` | Direct mapping                                           |
+| `action`           | `task`       | Rename only                                              |
+| `external`         | `evidence`   | External data becomes evidence                           |
+| `meta`             | —            | Convert to graph edges or `properties` on related blocks |
+| `link`             | —            | Convert to `REFERENCES` relationship                     |
+| `derived`          | `knowledge`  | Mark `derived: true` in properties                       |
+| `cycle`            | `knowledge`  | Store cycle info in properties                           |
+| `placeholder`      | —            | Remove or convert to `question` if appropriate           |
+| `stakeholder_view` | `knowledge`  | Store stakeholder in properties                          |
+| `topic`            | —            | Convert to `topic` dimension tag on related blocks       |
 
 ### 7.2 Migration Cypher Script
 
@@ -609,8 +614,8 @@ This migration consolidates the original 15 block types into 9 cleaner types per
 MATCH (n:Block:Content)
 REMOVE n:Content
 SET n:Knowledge
-SET n.properties = CASE 
-  WHEN n.properties IS NOT NULL 
+SET n.properties = CASE
+  WHEN n.properties IS NOT NULL
   THEN apoc.convert.toJson(apoc.convert.fromJsonMap(n.properties) + {migratedFrom: 'content'})
   ELSE '{"migratedFrom": "content"}'
 END;
@@ -619,8 +624,8 @@ END;
 MATCH (n:Block:Synthesis)
 REMOVE n:Synthesis
 SET n:Knowledge
-SET n.properties = CASE 
-  WHEN n.properties IS NOT NULL 
+SET n.properties = CASE
+  WHEN n.properties IS NOT NULL
   THEN apoc.convert.toJson(apoc.convert.fromJsonMap(n.properties) + {migratedFrom: 'synthesis'})
   ELSE '{"migratedFrom": "synthesis"}'
 END;
@@ -629,8 +634,8 @@ END;
 MATCH (n:Block:Pattern)
 REMOVE n:Pattern
 SET n:Knowledge
-SET n.properties = CASE 
-  WHEN n.properties IS NOT NULL 
+SET n.properties = CASE
+  WHEN n.properties IS NOT NULL
   THEN apoc.convert.toJson(apoc.convert.fromJsonMap(n.properties) + {migratedFrom: 'pattern'})
   ELSE '{"migratedFrom": "pattern"}'
 END;
@@ -640,8 +645,8 @@ MATCH (n:Block:Option)
 REMOVE n:Option
 SET n:Decision
 SET n.status = 'superseded'  // Options are typically not-chosen decisions
-SET n.properties = CASE 
-  WHEN n.properties IS NOT NULL 
+SET n.properties = CASE
+  WHEN n.properties IS NOT NULL
   THEN apoc.convert.toJson(apoc.convert.fromJsonMap(n.properties) + {migratedFrom: 'option', wasOption: true})
   ELSE '{"migratedFrom": "option", "wasOption": true}'
 END;
@@ -655,8 +660,8 @@ SET n:Task;
 MATCH (n:Block:External)
 REMOVE n:External
 SET n:Evidence
-SET n.properties = CASE 
-  WHEN n.properties IS NOT NULL 
+SET n.properties = CASE
+  WHEN n.properties IS NOT NULL
   THEN apoc.convert.toJson(apoc.convert.fromJsonMap(n.properties) + {migratedFrom: 'external'})
   ELSE '{"migratedFrom": "external"}'
 END;
@@ -665,8 +670,8 @@ END;
 MATCH (n:Block:Derived)
 REMOVE n:Derived
 SET n:Knowledge
-SET n.properties = CASE 
-  WHEN n.properties IS NOT NULL 
+SET n.properties = CASE
+  WHEN n.properties IS NOT NULL
   THEN apoc.convert.toJson(apoc.convert.fromJsonMap(n.properties) + {migratedFrom: 'derived', derived: true})
   ELSE '{"migratedFrom": "derived", "derived": true}'
 END;
@@ -675,8 +680,8 @@ END;
 MATCH (n:Block:Cycle)
 REMOVE n:Cycle
 SET n:Knowledge
-SET n.properties = CASE 
-  WHEN n.properties IS NOT NULL 
+SET n.properties = CASE
+  WHEN n.properties IS NOT NULL
   THEN apoc.convert.toJson(apoc.convert.fromJsonMap(n.properties) + {migratedFrom: 'cycle', isCycle: true})
   ELSE '{"migratedFrom": "cycle", "isCycle": true}'
 END;
@@ -685,8 +690,8 @@ END;
 MATCH (n:Block:StakeholderView)
 REMOVE n:StakeholderView
 SET n:Knowledge
-SET n.properties = CASE 
-  WHEN n.properties IS NOT NULL 
+SET n.properties = CASE
+  WHEN n.properties IS NOT NULL
   THEN apoc.convert.toJson(apoc.convert.fromJsonMap(n.properties) + {migratedFrom: 'stakeholder_view'})
   ELSE '{"migratedFrom": "stakeholder_view"}'
 END;
@@ -695,8 +700,8 @@ END;
 // (Manual review required - links become edges, not nodes)
 MATCH (n:Block:Link)
 SET n.status = 'superseded'
-SET n.properties = CASE 
-  WHEN n.properties IS NOT NULL 
+SET n.properties = CASE
+  WHEN n.properties IS NOT NULL
   THEN apoc.convert.toJson(apoc.convert.fromJsonMap(n.properties) + {migratedFrom: 'link', requiresManualReview: true})
   ELSE '{"migratedFrom": "link", "requiresManualReview": true}'
 END;
@@ -705,8 +710,8 @@ END;
 // (Convert to properties on related blocks - manual review)
 MATCH (n:Block:Meta)
 SET n.status = 'superseded'
-SET n.properties = CASE 
-  WHEN n.properties IS NOT NULL 
+SET n.properties = CASE
+  WHEN n.properties IS NOT NULL
   THEN apoc.convert.toJson(apoc.convert.fromJsonMap(n.properties) + {migratedFrom: 'meta', requiresManualReview: true})
   ELSE '{"migratedFrom": "meta", "requiresManualReview": true}'
 END;
@@ -715,8 +720,8 @@ END;
 // (Convert to topic dimension on related blocks)
 MATCH (n:Block:Topic)
 SET n.status = 'superseded'
-SET n.properties = CASE 
-  WHEN n.properties IS NOT NULL 
+SET n.properties = CASE
+  WHEN n.properties IS NOT NULL
   THEN apoc.convert.toJson(apoc.convert.fromJsonMap(n.properties) + {migratedFrom: 'topic', requiresManualReview: true})
   ELSE '{"migratedFrom": "topic", "requiresManualReview": true}'
 END;
@@ -726,8 +731,8 @@ END;
 MATCH (n:Block:Placeholder)
 REMOVE n:Placeholder
 SET n:Question
-SET n.properties = CASE 
-  WHEN n.properties IS NOT NULL 
+SET n.properties = CASE
+  WHEN n.properties IS NOT NULL
   THEN apoc.convert.toJson(apoc.convert.fromJsonMap(n.properties) + {migratedFrom: 'placeholder'})
   ELSE '{"migratedFrom": "placeholder"}'
 END;
@@ -738,7 +743,7 @@ END;
 ```cypher
 // Verify no old labels remain (except superseded)
 MATCH (b:Block)
-WHERE b:Content OR b:Synthesis OR b:Pattern OR b:Option OR b:Action 
+WHERE b:Content OR b:Synthesis OR b:Pattern OR b:Option OR b:Action
    OR b:External OR b:Derived OR b:Cycle OR b:StakeholderView
 RETURN count(b) as remainingOldTypes;  // Should be 0
 
@@ -776,6 +781,7 @@ neo4j-admin database dump neo4j --to-path=/backups/daily/
 ### 8.2 Performance Tuning
 
 For ~100K nodes:
+
 - Default heap (1GB) is sufficient
 - Page cache: 512MB recommended
 - No need for clustering
@@ -831,6 +837,7 @@ WHERE b.status = 'active'
 ### 10.1 Schema Evolution
 
 When modifying block types:
+
 1. Update this document first (source of truth)
 2. Create migration script
 3. Update application validation
@@ -838,22 +845,22 @@ When modifying block types:
 
 ### 10.2 Potential Optimizations (Not Needed Yet)
 
-| Optimization | Trigger | Implementation |
-|--------------|---------|----------------|
-| Graph Data Science library | Pattern detection at scale | Install GDS plugin |
-| Vector index | Semantic search needs | Neo4j 5.x vector index |
-| Read replicas | > 100 concurrent queries | Clustering |
+| Optimization               | Trigger                    | Implementation         |
+| -------------------------- | -------------------------- | ---------------------- |
+| Graph Data Science library | Pattern detection at scale | Install GDS plugin     |
+| Vector index               | Semantic search needs      | Neo4j 5.x vector index |
+| Read replicas              | > 100 concurrent queries   | Clustering             |
 
 ---
 
 ## Revision History
 
-| Date | Version | Change | Author |
-|------|---------|--------|--------|
-| 2025-02-05 | 1.0 | Initial creation with 15 block types | AI Agent |
-| 2026-02-05 | 2.0 | Consolidated to 9 block types per ARCH-001; added migration section | AI Agent (Kai) |
+| Date       | Version | Change                                                              | Author         |
+| ---------- | ------- | ------------------------------------------------------------------- | -------------- |
+| 2025-02-05 | 1.0     | Initial creation with 15 block types                                | AI Agent       |
+| 2026-02-05 | 2.0     | Consolidated to 9 block types per ARCH-001; added migration section | AI Agent (Kai) |
 
 ---
 
-*This is a source-truth document. Changes require founder review.*
-*Cross-reference: `00-ARCHITECTURE-OVERVIEW.md` for system context and ARCH-001 decision.*
+_This is a source-truth document. Changes require founder review._
+_Cross-reference: `00-ARCHITECTURE-OVERVIEW.md` for system context and ARCH-001 decision._

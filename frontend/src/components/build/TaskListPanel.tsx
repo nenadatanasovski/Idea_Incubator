@@ -11,10 +11,10 @@ import {
   SkipForward,
   ChevronDown,
   ChevronRight,
-} from 'lucide-react';
-import clsx from 'clsx';
-import { useState } from 'react';
-import type { TaskDefinition, TaskStatus } from '../../hooks/useBuildSession';
+} from "lucide-react";
+import clsx from "clsx";
+import { useState } from "react";
+import type { TaskDefinition, TaskStatus } from "../../hooks/useBuildSession";
 
 interface TaskListPanelProps {
   tasks: TaskDefinition[];
@@ -37,29 +37,35 @@ export function TaskListPanel({
 
   // Determine task status
   const getTaskStatus = (task: TaskDefinition, index: number): TaskStatus => {
-    if (completedTasks.includes(task.id)) return 'completed';
-    if (failedTasks.includes(task.id)) return 'failed';
-    if (index === currentTaskIndex && isActive) return 'running';
-    return 'pending';
+    if (completedTasks.includes(task.id)) return "completed";
+    if (failedTasks.includes(task.id)) return "failed";
+    if (index === currentTaskIndex && isActive) return "running";
+    return "pending";
   };
 
   // Get task type config
-  const typeConfig: Record<TaskDefinition['type'], { icon: string; color: string }> = {
-    setup: { icon: '⚙️', color: 'text-gray-600' },
-    database: { icon: '🗄️', color: 'text-blue-600' },
-    api: { icon: '🔌', color: 'text-green-600' },
-    ui: { icon: '🎨', color: 'text-purple-600' },
-    integration: { icon: '🔗', color: 'text-amber-600' },
-    test: { icon: '🧪', color: 'text-cyan-600' },
+  const typeConfig: Record<
+    TaskDefinition["type"],
+    { icon: string; color: string }
+  > = {
+    setup: { icon: "⚙️", color: "text-gray-600" },
+    database: { icon: "🗄️", color: "text-blue-600" },
+    api: { icon: "🔌", color: "text-green-600" },
+    ui: { icon: "🎨", color: "text-purple-600" },
+    integration: { icon: "🔗", color: "text-amber-600" },
+    test: { icon: "🧪", color: "text-cyan-600" },
   };
 
   // Group tasks by type for summary
-  const tasksByType = tasks.reduce((acc, task) => {
-    if (!acc[task.type]) acc[task.type] = { total: 0, completed: 0 };
-    acc[task.type].total++;
-    if (completedTasks.includes(task.id)) acc[task.type].completed++;
-    return acc;
-  }, {} as Record<string, { total: number; completed: number }>);
+  const tasksByType = tasks.reduce(
+    (acc, task) => {
+      if (!acc[task.type]) acc[task.type] = { total: 0, completed: 0 };
+      acc[task.type].total++;
+      if (completedTasks.includes(task.id)) acc[task.type].completed++;
+      return acc;
+    },
+    {} as Record<string, { total: number; completed: number }>,
+  );
 
   return (
     <div className="h-full flex flex-col">
@@ -67,13 +73,13 @@ export function TaskListPanel({
       <div className="p-3 border-b bg-gray-50 shrink-0">
         <div className="flex flex-wrap gap-2">
           {Object.entries(tasksByType).map(([type, counts]) => {
-            const config = typeConfig[type as TaskDefinition['type']];
+            const config = typeConfig[type as TaskDefinition["type"]];
             return (
               <span
                 key={type}
                 className={clsx(
-                  'text-xs px-2 py-1 rounded-full bg-white border',
-                  config?.color
+                  "text-xs px-2 py-1 rounded-full bg-white border",
+                  config?.color,
                 )}
               >
                 {config?.icon} {counts.completed}/{counts.total}
@@ -96,10 +102,10 @@ export function TaskListPanel({
               <div
                 key={task.id}
                 className={clsx(
-                  'transition-colors',
-                  isCurrent && 'bg-blue-50',
-                  status === 'completed' && 'bg-green-50/50',
-                  status === 'failed' && 'bg-red-50/50'
+                  "transition-colors",
+                  isCurrent && "bg-blue-50",
+                  status === "completed" && "bg-green-50/50",
+                  status === "failed" && "bg-red-50/50",
                 )}
               >
                 {/* Task header */}
@@ -116,17 +122,19 @@ export function TaskListPanel({
                       <span className="text-sm">{config?.icon}</span>
                       <span
                         className={clsx(
-                          'font-medium text-sm truncate',
-                          status === 'completed' && 'text-green-700',
-                          status === 'failed' && 'text-red-700',
-                          status === 'running' && 'text-blue-700',
-                          status === 'pending' && 'text-gray-700'
+                          "font-medium text-sm truncate",
+                          status === "completed" && "text-green-700",
+                          status === "failed" && "text-red-700",
+                          status === "running" && "text-blue-700",
+                          status === "pending" && "text-gray-700",
                         )}
                       >
                         {task.name}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 truncate">{task.description}</p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {task.description}
+                    </p>
                   </div>
 
                   {/* Attempt indicator */}
@@ -215,15 +223,17 @@ export function TaskListPanel({
 
 function StatusIcon({ status }: { status: TaskStatus }) {
   switch (status) {
-    case 'completed':
+    case "completed":
       return <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />;
-    case 'failed':
+    case "failed":
       return <XCircle className="w-5 h-5 text-red-500 shrink-0" />;
-    case 'running':
-      return <Loader2 className="w-5 h-5 text-blue-500 animate-spin shrink-0" />;
-    case 'skipped':
+    case "running":
+      return (
+        <Loader2 className="w-5 h-5 text-blue-500 animate-spin shrink-0" />
+      );
+    case "skipped":
       return <SkipForward className="w-5 h-5 text-gray-400 shrink-0" />;
-    case 'pending':
+    case "pending":
     default:
       return <Circle className="w-5 h-5 text-gray-300 shrink-0" />;
   }

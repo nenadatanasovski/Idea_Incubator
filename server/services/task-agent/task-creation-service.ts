@@ -128,7 +128,12 @@ export async function createListlessTask(
 
   // Create initial version (version 1)
   try {
-    await taskVersionService.createVersion(id, ["*"], "Initial task creation", "system");
+    await taskVersionService.createVersion(
+      id,
+      ["*"],
+      "Initial task creation",
+      "system",
+    );
   } catch {
     // Ignore version creation errors (non-critical)
   }
@@ -157,13 +162,14 @@ export async function createTaskInList(
   // Support both calling conventions:
   // 1. createTaskInList({ title, taskListId, ... })
   // 2. createTaskInList(title, taskListId, { ... })
-  const input: CreateTaskInput & { taskListId: string } = typeof titleOrInput === 'string'
-    ? {
-        title: titleOrInput,
-        taskListId: taskListId!,
-        ...options,
-      }
-    : titleOrInput;
+  const input: CreateTaskInput & { taskListId: string } =
+    typeof titleOrInput === "string"
+      ? {
+          title: titleOrInput,
+          taskListId: taskListId!,
+          ...options,
+        }
+      : titleOrInput;
   const id = uuidv4();
   const category = input.category || "task";
 
@@ -227,7 +233,12 @@ export async function createTaskInList(
 
   // Create initial version (version 1)
   try {
-    await taskVersionService.createVersion(id, ["*"], "Initial task creation", "system");
+    await taskVersionService.createVersion(
+      id,
+      ["*"],
+      "Initial task creation",
+      "system",
+    );
   } catch {
     // Ignore version creation errors (non-critical)
   }

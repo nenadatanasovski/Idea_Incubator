@@ -80,12 +80,14 @@ Based on the specification files (`TASK-029-clarification-agent.md` and `TASK-02
 ### 1. Missing Components
 
 #### Files that DON'T exist but should:
+
 - `parent-harness/orchestrator/src/clarification/vagueness-checker.ts` ❌
 - `parent-harness/orchestrator/src/clarification/vagueness-analyzer.ts` ❌
 - `parent-harness/orchestrator/src/hooks/clarification-hook.ts` ❌
 - `parent-harness/orchestrator/src/services/vagueness-analyzer.ts` ❌
 
 #### Files that exist but need enhancement:
+
 - `parent-harness/orchestrator/src/api/tasks.ts` ✅ (needs vagueness check hook)
 - `parent-harness/orchestrator/src/db/tasks.ts` ✅ (needs `source` parameter support)
 - `parent-harness/orchestrator/src/clarification/index.ts` ✅ (needs answer processing with QuestionEngine)
@@ -93,12 +95,14 @@ Based on the specification files (`TASK-029-clarification-agent.md` and `TASK-02
 ### 2. Integration Points
 
 **Already Working**:
+
 - ✅ Clarification request/answer system (`clarification/index.ts`)
 - ✅ Telegram bot integration (`@vibe-clarification`)
 - ✅ Agent metadata (`clarification_agent` defined)
 - ✅ Database schema (`clarification_requests` table exists)
 
 **Needs Implementation**:
+
 1. **Automatic Vagueness Detection** - Trigger on task creation
 2. **QuestionEngine Integration** - Generate targeted questions for vague tasks
 3. **Source Filtering** - Only check user-created tasks, bypass agent-created tasks
@@ -168,6 +172,7 @@ Based on the specification files (`TASK-029-clarification-agent.md` and `TASK-02
    - Answer clarification → verify task unblocked + enriched
 
 3. **Manual E2E Test**:
+
    ```bash
    # 1. Create vague task
    curl -X POST http://localhost:3333/api/tasks \
@@ -191,6 +196,7 @@ Based on the specification files (`TASK-029-clarification-agent.md` and `TASK-02
 ### 1. Database Consistency Checks
 
 Add a cron job or startup check:
+
 ```typescript
 // Check for blocked tasks without clarification requests
 const orphanedBlocked = query(`
@@ -201,7 +207,9 @@ const orphanedBlocked = query(`
 `);
 
 if (orphanedBlocked.length > 0) {
-  console.warn(`⚠️ Found ${orphanedBlocked.length} blocked tasks without clarification requests`);
+  console.warn(
+    `⚠️ Found ${orphanedBlocked.length} blocked tasks without clarification requests`,
+  );
   // Auto-unblock or alert
 }
 ```
@@ -209,18 +217,22 @@ if (orphanedBlocked.length > 0) {
 ### 2. Retry Logic Enhancement
 
 Modify retry logic to detect this specific case:
+
 ```typescript
-if (task.status === 'blocked' && !hasPendingClarification(task.id)) {
-  console.warn(`⚠️ Task ${task.display_id} is blocked but has no pending clarification - auto-unblocking`);
-  updateTask(task.id, { status: 'pending' });
+if (task.status === "blocked" && !hasPendingClarification(task.id)) {
+  console.warn(
+    `⚠️ Task ${task.display_id} is blocked but has no pending clarification - auto-unblocking`,
+  );
+  updateTask(task.id, { status: "pending" });
 }
 ```
 
 ### 3. Task State Validation
 
 Add validation in `updateTask()`:
+
 ```typescript
-if (newStatus === 'blocked') {
+if (newStatus === "blocked") {
   // Ensure there's a corresponding clarification request
   if (!hasPendingClarification(taskId)) {
     throw new Error(`Cannot block task without creating clarification request`);

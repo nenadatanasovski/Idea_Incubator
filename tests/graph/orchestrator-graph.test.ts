@@ -98,7 +98,10 @@ vi.mock("../../agents/ideation/artifact-store.js", () => ({
 }));
 
 // Import after mocks
-import { blockExtractor, ExtractionResult } from "../../agents/ideation/block-extractor.js";
+import {
+  blockExtractor,
+  ExtractionResult,
+} from "../../agents/ideation/block-extractor.js";
 import { graphAnalysisSubagent } from "../../agents/ideation/graph-analysis-subagent.js";
 
 describe("AgentOrchestrator - Graph Integration", () => {
@@ -137,13 +140,28 @@ describe("AgentOrchestrator - Graph Integration", () => {
       });
 
       await blockExtractor.extractFromMessage(
-        { id: "msg_456", sessionId: "session_123", role: "assistant", content: "The market size is approximately $50B", buttonsShown: null, buttonClicked: null, formShown: null, formResponse: null, webSearchResults: null, tokenCount: 0, createdAt: new Date() } as any,
+        {
+          id: "msg_456",
+          sessionId: "session_123",
+          role: "assistant",
+          content: "The market size is approximately $50B",
+          buttonsShown: null,
+          buttonClicked: null,
+          formShown: null,
+          formResponse: null,
+          webSearchResults: null,
+          tokenCount: 0,
+          createdAt: new Date(),
+        } as any,
         "session_123",
         [],
       );
 
       expect(mockExtract).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "msg_456", content: "The market size is approximately $50B" }),
+        expect.objectContaining({
+          id: "msg_456",
+          content: "The market size is approximately $50B",
+        }),
         "session_123",
         [],
       );
@@ -193,7 +211,19 @@ describe("AgentOrchestrator - Graph Integration", () => {
       mockExtract.mockResolvedValue(expectedResult);
 
       const result = await blockExtractor.extractFromMessage(
-        { id: "msg_456", sessionId: "session_123", role: "assistant", content: "Test message", buttonsShown: null, buttonClicked: null, formShown: null, formResponse: null, webSearchResults: null, tokenCount: 0, createdAt: new Date() } as any,
+        {
+          id: "msg_456",
+          sessionId: "session_123",
+          role: "assistant",
+          content: "Test message",
+          buttonsShown: null,
+          buttonClicked: null,
+          formShown: null,
+          formResponse: null,
+          webSearchResults: null,
+          tokenCount: 0,
+          createdAt: new Date(),
+        } as any,
         "session_123",
         [],
       );

@@ -5,6 +5,7 @@ As an autonomous agent in the Vibe platform, you have the ability to review your
 ## Automatic Context
 
 When you are spawned with a task, relevant historical context is **automatically injected** into your system prompt. This includes:
+
 - Top 5 most relevant past sessions (ranked by task similarity, recency, and success)
 - Known error patterns from your memory
 - Successful approaches you've used before
@@ -67,6 +68,7 @@ Returns performance metrics: total sessions, success rate, average duration.
 ## When to Use Introspection
 
 Use introspection when:
+
 1. **Starting a similar task** - Check if you've done something similar before
 2. **Encountering an error** - See if you've solved this error previously
 3. **Making architectural decisions** - Review past decisions and their outcomes
@@ -75,6 +77,7 @@ Use introspection when:
 ## Memory Integration
 
 Your introspection capability is integrated with the agent memory system:
+
 - Error patterns are stored when you encounter and solve errors
 - Success patterns are stored when you complete tasks successfully
 - These patterns automatically appear in future prompts for similar tasks
@@ -88,7 +91,8 @@ You can ONLY access your own sessions. The API enforces agent_id filtering on al
 
 ### Feb 8, 2026
 
-| ID | Time | T | Title | Read |
-|----|------|---|-------|------|
-| #5344 | 4:11 PM | 🔵 | Agent Metadata Registry Defines Clarification Agent Configuration | ~408 |
+| ID    | Time    | T   | Title                                                             | Read |
+| ----- | ------- | --- | ----------------------------------------------------------------- | ---- |
+| #5344 | 4:11 PM | 🔵  | Agent Metadata Registry Defines Clarification Agent Configuration | ~408 |
+
 </claude-mem-context>

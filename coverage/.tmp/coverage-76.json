@@ -1,1 +1,2882 @@
-{"result":[{"scriptId":"427","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/tests/setup.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":11909,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":11909,"count":1}],"isBlockCoverage":true},{"functionName":"ensureMigrations","ranges":[{"startOffset":1020,"endOffset":1219,"count":1},{"startOffset":1091,"endOffset":1174,"count":0}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":1252,"endOffset":2484,"count":1},{"startOffset":1696,"endOffset":1699,"count":0},{"startOffset":2175,"endOffset":2178,"count":0}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":2376,"endOffset":2389,"count":0}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":2463,"endOffset":2476,"count":0}],"isBlockCoverage":false},{"functionName":"","ranges":[{"startOffset":2518,"endOffset":3300,"count":1},{"startOffset":2781,"endOffset":2784,"count":0},{"startOffset":3075,"endOffset":3078,"count":0},{"startOffset":3114,"endOffset":3236,"count":0}],"isBlockCoverage":true},{"functionName":"createTestIdea","ranges":[{"startOffset":3346,"endOffset":3550,"count":0}],"isBlockCoverage":false}]},{"scriptId":"429","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/config/index.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":8674,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":8674,"count":1}],"isBlockCoverage":true},{"functionName":"getConfig","ranges":[{"startOffset":472,"endOffset":520,"count":1}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":618,"endOffset":643,"count":1}],"isBlockCoverage":true},{"functionName":"updateConfig","ranges":[{"startOffset":647,"endOffset":758,"count":2}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":859,"endOffset":887,"count":2}],"isBlockCoverage":true},{"functionName":"resetConfig","ranges":[{"startOffset":891,"endOffset":996,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":1096,"endOffset":1123,"count":0}],"isBlockCoverage":false},{"functionName":"validateConfig","ranges":[{"startOffset":1127,"endOffset":2252,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":2355,"endOffset":2385,"count":0}],"isBlockCoverage":false},{"functionName":"deepMerge","ranges":[{"startOffset":2389,"endOffset":2924,"count":4},{"startOffset":2499,"endOffset":2905,"count":10},{"startOffset":2641,"endOffset":2671,"count":2},{"startOffset":2672,"endOffset":2706,"count":2},{"startOffset":2707,"endOffset":2737,"count":2},{"startOffset":2739,"endOffset":2827,"count":2},{"startOffset":2827,"endOffset":2901,"count":8}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":3027,"endOffset":3071,"count":0}],"isBlockCoverage":false}]},{"scriptId":"430","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/config/default.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":5348,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":5348,"count":1}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":1587,"endOffset":1609,"count":1}],"isBlockCoverage":true}]},{"scriptId":"431","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/utils/errors.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":12983,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":12983,"count":1}],"isBlockCoverage":true},{"functionName":"IdeaIncubatorError","ranges":[{"startOffset":228,"endOffset":312,"count":56}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":421,"endOffset":455,"count":0}],"isBlockCoverage":false},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":510,"endOffset":644,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":750,"endOffset":783,"count":0}],"isBlockCoverage":false},{"functionName":"EvaluationParseError","ranges":[{"startOffset":845,"endOffset":964,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":1075,"endOffset":1111,"count":0}],"isBlockCoverage":true},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":1166,"endOffset":1361,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":1467,"endOffset":1500,"count":0}],"isBlockCoverage":false},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":1557,"endOffset":1804,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":1912,"endOffset":1947,"count":0}],"isBlockCoverage":false},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":2002,"endOffset":2234,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":2340,"endOffset":2373,"count":0}],"isBlockCoverage":false},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":2434,"endOffset":2677,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":2789,"endOffset":2828,"count":0}],"isBlockCoverage":false},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":2881,"endOffset":3045,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":3149,"endOffset":3180,"count":0}],"isBlockCoverage":false},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":3231,"endOffset":3413,"count":56}],"isBlockCoverage":true},{"functionName":"DatabaseError","ranges":[{"startOffset":3248,"endOffset":3411,"count":56}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":3515,"endOffset":3544,"count":56}],"isBlockCoverage":true},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":3591,"endOffset":3776,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":3874,"endOffset":3899,"count":0}],"isBlockCoverage":false},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":3955,"endOffset":4143,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":4250,"endOffset":4284,"count":0}],"isBlockCoverage":false},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":4340,"endOffset":4531,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":4638,"endOffset":4672,"count":0}],"isBlockCoverage":false}]},{"scriptId":"432","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/database/db.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":110679,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":110679,"count":1}],"isBlockCoverage":true},{"functionName":"toSqlParams","ranges":[{"startOffset":873,"endOffset":973,"count":56}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":924,"endOffset":969,"count":784},{"startOffset":954,"endOffset":965,"count":0}],"isBlockCoverage":true},{"functionName":"setSkipDiskWrites","ranges":[{"startOffset":1017,"endOffset":1078,"count":1}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":1184,"endOffset":1217,"count":1}],"isBlockCoverage":true},{"functionName":"getDb","ranges":[{"startOffset":1221,"endOffset":1936,"count":60},{"startOffset":1256,"endOffset":1266,"count":59},{"startOffset":1266,"endOffset":1472,"count":1},{"startOffset":1472,"endOffset":1581,"count":0},{"startOffset":1581,"endOffset":1815,"count":1},{"startOffset":1700,"endOffset":1778,"count":0},{"startOffset":1815,"endOffset":1835,"count":1},{"startOffset":1835,"endOffset":1934,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":2030,"endOffset":2051,"count":4}],"isBlockCoverage":true},{"functionName":"saveDb","ranges":[{"startOffset":2055,"endOffset":2454,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":2549,"endOffset":2571,"count":0}],"isBlockCoverage":true},{"functionName":"closeDb","ranges":[{"startOffset":2575,"endOffset":2670,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":2766,"endOffset":2789,"count":0}],"isBlockCoverage":false},{"functionName":"reloadDb","ranges":[{"startOffset":2793,"endOffset":3336,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":3433,"endOffset":3457,"count":0}],"isBlockCoverage":false},{"functionName":"query","ranges":[{"startOffset":3461,"endOffset":4082,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":4176,"endOffset":4197,"count":0}],"isBlockCoverage":true},{"functionName":"run","ranges":[{"startOffset":4201,"endOffset":4424,"count":56}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":4516,"endOffset":4535,"count":56}],"isBlockCoverage":true},{"functionName":"exec","ranges":[{"startOffset":4539,"endOffset":4731,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":4824,"endOffset":4844,"count":0}],"isBlockCoverage":true},{"functionName":"getOne","ranges":[{"startOffset":4848,"endOffset":4984,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":5079,"endOffset":5101,"count":0}],"isBlockCoverage":true},{"functionName":"insert","ranges":[{"startOffset":5105,"endOffset":5389,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5484,"endOffset":5506,"count":0}],"isBlockCoverage":false},{"functionName":"update","ranges":[{"startOffset":5510,"endOffset":5800,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5895,"endOffset":5917,"count":0}],"isBlockCoverage":false},{"functionName":"remove","ranges":[{"startOffset":5921,"endOffset":6062,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":6157,"endOffset":6179,"count":0}],"isBlockCoverage":false},{"functionName":"createBuildExecution","ranges":[{"startOffset":6184,"endOffset":6566,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":6675,"endOffset":6711,"count":0}],"isBlockCoverage":false},{"functionName":"getBuildExecution","ranges":[{"startOffset":6715,"endOffset":6837,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":6943,"endOffset":6976,"count":0}],"isBlockCoverage":false},{"functionName":"listBuildExecutions","ranges":[{"startOffset":6980,"endOffset":7439,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7547,"endOffset":7582,"count":0}],"isBlockCoverage":false},{"functionName":"updateBuildExecution","ranges":[{"startOffset":7586,"endOffset":8321,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":8430,"endOffset":8466,"count":0}],"isBlockCoverage":false},{"functionName":"deleteBuildExecution","ranges":[{"startOffset":8470,"endOffset":8565,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":8674,"endOffset":8710,"count":0}],"isBlockCoverage":false},{"functionName":"createTaskExecution","ranges":[{"startOffset":8714,"endOffset":9048,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":9156,"endOffset":9191,"count":0}],"isBlockCoverage":false},{"functionName":"getTaskExecution","ranges":[{"startOffset":9195,"endOffset":9311,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":9416,"endOffset":9448,"count":0}],"isBlockCoverage":false},{"functionName":"listTaskExecutions","ranges":[{"startOffset":9452,"endOffset":9846,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":9953,"endOffset":9987,"count":0}],"isBlockCoverage":false},{"functionName":"updateTaskExecution","ranges":[{"startOffset":9991,"endOffset":10868,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":10976,"endOffset":11011,"count":0}],"isBlockCoverage":false},{"functionName":"createBuildCheckpoint","ranges":[{"startOffset":11015,"endOffset":11493,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":11603,"endOffset":11640,"count":0}],"isBlockCoverage":false},{"functionName":"getLatestCheckpoint","ranges":[{"startOffset":11644,"endOffset":11818,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":11926,"endOffset":11961,"count":0}],"isBlockCoverage":false},{"functionName":"listBuildCheckpoints","ranges":[{"startOffset":11965,"endOffset":12131,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":12240,"endOffset":12276,"count":0}],"isBlockCoverage":false},{"functionName":"cleanupBuildCheckpoints","ranges":[{"startOffset":12280,"endOffset":12599,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":12711,"endOffset":12750,"count":0}],"isBlockCoverage":false},{"functionName":"createBuildDiscovery","ranges":[{"startOffset":12754,"endOffset":13159,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":13268,"endOffset":13304,"count":0}],"isBlockCoverage":false},{"functionName":"listBuildDiscoveries","ranges":[{"startOffset":13308,"endOffset":13622,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":13731,"endOffset":13767,"count":0}],"isBlockCoverage":false},{"functionName":"getGotchasForFile","ranges":[{"startOffset":13771,"endOffset":14034,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":14140,"endOffset":14173,"count":0}],"isBlockCoverage":false},{"functionName":"recordApiCall","ranges":[{"startOffset":14177,"endOffset":14566,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":14668,"endOffset":14697,"count":0}],"isBlockCoverage":false},{"functionName":"getCallStats","ranges":[{"startOffset":14701,"endOffset":15461,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":15562,"endOffset":15590,"count":0}],"isBlockCoverage":false},{"functionName":"getStatsSummary","ranges":[{"startOffset":15594,"endOffset":16168,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":16272,"endOffset":16303,"count":0}],"isBlockCoverage":false},{"functionName":"getCallCount","ranges":[{"startOffset":16307,"endOffset":16926,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":17027,"endOffset":17055,"count":0}],"isBlockCoverage":false},{"functionName":"mapProfileRow","ranges":[{"startOffset":17059,"endOffset":17348,"count":0}],"isBlockCoverage":false},{"functionName":"mapPreferencesRow","ranges":[{"startOffset":17349,"endOffset":17719,"count":0}],"isBlockCoverage":false},{"functionName":"getUserProfile","ranges":[{"startOffset":17720,"endOffset":17917,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":18020,"endOffset":18050,"count":0}],"isBlockCoverage":false},{"functionName":"getOrCreateProfile","ranges":[{"startOffset":18054,"endOffset":18549,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":18656,"endOffset":18690,"count":0}],"isBlockCoverage":false},{"functionName":"updateUserProfile","ranges":[{"startOffset":18694,"endOffset":19330,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":19436,"endOffset":19469,"count":0}],"isBlockCoverage":false},{"functionName":"updateAvatarPath","ranges":[{"startOffset":19473,"endOffset":19700,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":19805,"endOffset":19837,"count":0}],"isBlockCoverage":false},{"functionName":"getPublicProfile","ranges":[{"startOffset":19841,"endOffset":20100,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":20205,"endOffset":20237,"count":0}],"isBlockCoverage":false},{"functionName":"getUserPreferences","ranges":[{"startOffset":20241,"endOffset":20449,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":20556,"endOffset":20590,"count":0}],"isBlockCoverage":false},{"functionName":"getOrCreatePreferences","ranges":[{"startOffset":20594,"endOffset":21098,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":21209,"endOffset":21247,"count":0}],"isBlockCoverage":false},{"functionName":"updateUserPreferences","ranges":[{"startOffset":21251,"endOffset":22245,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":22355,"endOffset":22392,"count":0}],"isBlockCoverage":false},{"functionName":"mapNotificationRow","ranges":[{"startOffset":22396,"endOffset":22776,"count":0}],"isBlockCoverage":false},{"functionName":"mapDeliveryRow","ranges":[{"startOffset":22777,"endOffset":23113,"count":0}],"isBlockCoverage":false},{"functionName":"mapTemplateRow","ranges":[{"startOffset":23114,"endOffset":23495,"count":0}],"isBlockCoverage":false},{"functionName":"mapChannelPrefRow","ranges":[{"startOffset":23496,"endOffset":23767,"count":0}],"isBlockCoverage":false},{"functionName":"createNotification","ranges":[{"startOffset":23768,"endOffset":24489,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":24596,"endOffset":24630,"count":0}],"isBlockCoverage":false},{"functionName":"getNotificationById","ranges":[{"startOffset":24634,"endOffset":24830,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":24938,"endOffset":24973,"count":0}],"isBlockCoverage":false},{"functionName":"getNotifications","ranges":[{"startOffset":24977,"endOffset":25629,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":25734,"endOffset":25766,"count":0}],"isBlockCoverage":false},{"functionName":"getNotificationCount","ranges":[{"startOffset":25770,"endOffset":26294,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":26403,"endOffset":26439,"count":0}],"isBlockCoverage":false},{"functionName":"getUnreadCount","ranges":[{"startOffset":26443,"endOffset":26688,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":26791,"endOffset":26821,"count":0}],"isBlockCoverage":false},{"functionName":"markNotificationRead","ranges":[{"startOffset":26825,"endOffset":27074,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":27183,"endOffset":27219,"count":0}],"isBlockCoverage":false},{"functionName":"markNotificationArchived","ranges":[{"startOffset":27223,"endOffset":27460,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":27573,"endOffset":27613,"count":0}],"isBlockCoverage":false},{"functionName":"markAllNotificationsRead","ranges":[{"startOffset":27617,"endOffset":27923,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":28036,"endOffset":28076,"count":0}],"isBlockCoverage":false},{"functionName":"cleanupExpiredNotifications","ranges":[{"startOffset":28080,"endOffset":28551,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":28667,"endOffset":28710,"count":0}],"isBlockCoverage":false},{"functionName":"createDelivery","ranges":[{"startOffset":28714,"endOffset":29191,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":29294,"endOffset":29324,"count":0}],"isBlockCoverage":false},{"functionName":"getDeliveryById","ranges":[{"startOffset":29328,"endOffset":29526,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":29630,"endOffset":29661,"count":0}],"isBlockCoverage":false},{"functionName":"updateDeliveryStatus","ranges":[{"startOffset":29665,"endOffset":30200,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":30309,"endOffset":30345,"count":0}],"isBlockCoverage":false},{"functionName":"getFailedDeliveries","ranges":[{"startOffset":30349,"endOffset":30735,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":30843,"endOffset":30878,"count":0}],"isBlockCoverage":false},{"functionName":"markDeliveryForRetry","ranges":[{"startOffset":30882,"endOffset":31097,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":31206,"endOffset":31242,"count":0}],"isBlockCoverage":false},{"functionName":"getTemplate","ranges":[{"startOffset":31246,"endOffset":31440,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":31540,"endOffset":31567,"count":0}],"isBlockCoverage":false},{"functionName":"getAllTemplates","ranges":[{"startOffset":31571,"endOffset":31732,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":31836,"endOffset":31867,"count":0}],"isBlockCoverage":false},{"functionName":"getUserChannelPref","ranges":[{"startOffset":31871,"endOffset":32148,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":32255,"endOffset":32289,"count":0}],"isBlockCoverage":false},{"functionName":"getAllUserChannelPrefs","ranges":[{"startOffset":32293,"endOffset":32519,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":32630,"endOffset":32668,"count":0}],"isBlockCoverage":false},{"functionName":"setUserChannelPrefs","ranges":[{"startOffset":32672,"endOffset":33759,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":33867,"endOffset":33902,"count":0}],"isBlockCoverage":false},{"functionName":"getEffectiveChannels","ranges":[{"startOffset":33906,"endOffset":34260,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":34369,"endOffset":34405,"count":0}],"isBlockCoverage":false},{"functionName":"getUserEmail","ranges":[{"startOffset":34409,"endOffset":34567,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":34668,"endOffset":34696,"count":0}],"isBlockCoverage":false},{"functionName":"getUserTelegram","ranges":[{"startOffset":34700,"endOffset":34929,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":35033,"endOffset":35064,"count":0}],"isBlockCoverage":false}]},{"scriptId":"435","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/request-counter.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":2033,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":2033,"count":1}],"isBlockCoverage":true},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":213,"endOffset":488,"count":1}],"isBlockCoverage":true},{"functionName":"increment","ranges":[{"startOffset":277,"endOffset":312,"count":0}],"isBlockCoverage":false},{"functionName":"getCount","ranges":[{"startOffset":362,"endOffset":401,"count":0}],"isBlockCoverage":false},{"functionName":"reset","ranges":[{"startOffset":453,"endOffset":486,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":657,"endOffset":694,"count":0}],"isBlockCoverage":false}]},{"scriptId":"452","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/database/migrate.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":13707,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":13707,"count":1},{"startOffset":4838,"endOffset":4851,"count":0}],"isBlockCoverage":true},{"functionName":"ensureMigrationsTable","ranges":[{"startOffset":938,"endOffset":1203,"count":0}],"isBlockCoverage":true},{"functionName":"getAppliedMigrations","ranges":[{"startOffset":1204,"endOffset":1387,"count":0}],"isBlockCoverage":true},{"functionName":"getPendingMigrations","ranges":[{"startOffset":1388,"endOffset":1773,"count":0}],"isBlockCoverage":true},{"functionName":"applyMigration","ranges":[{"startOffset":1774,"endOffset":2427,"count":0}],"isBlockCoverage":true},{"functionName":"runMigrations","ranges":[{"startOffset":2428,"endOffset":2965,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":3067,"endOffset":3096,"count":0}],"isBlockCoverage":true},{"functionName":"showMigrationStatus","ranges":[{"startOffset":3100,"endOffset":3732,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":3840,"endOffset":3875,"count":0}],"isBlockCoverage":false},{"functionName":"rollbackLastMigration","ranges":[{"startOffset":3879,"endOffset":4105,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4215,"endOffset":4252,"count":0}],"isBlockCoverage":false},{"functionName":"main","ranges":[{"startOffset":4256,"endOffset":4695,"count":0}],"isBlockCoverage":false}]},{"scriptId":"473","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/utils/logger.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":16353,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":16353,"count":1}],"isBlockCoverage":true},{"functionName":"setLogLevel","ranges":[{"startOffset":509,"endOffset":564,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":664,"endOffset":691,"count":0}],"isBlockCoverage":false},{"functionName":"setTransport","ranges":[{"startOffset":695,"endOffset":855,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":956,"endOffset":984,"count":0}],"isBlockCoverage":false},{"functionName":"shouldLog","ranges":[{"startOffset":988,"endOffset":1073,"count":0}],"isBlockCoverage":true},{"functionName":"logDebug","ranges":[{"startOffset":1074,"endOffset":1275,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":1372,"endOffset":1396,"count":0}],"isBlockCoverage":false},{"functionName":"logInfo","ranges":[{"startOffset":1400,"endOffset":1533,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":1629,"endOffset":1652,"count":0}],"isBlockCoverage":true},{"functionName":"logSuccess","ranges":[{"startOffset":1656,"endOffset":1796,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":1895,"endOffset":1921,"count":0}],"isBlockCoverage":true},{"functionName":"logWarning","ranges":[{"startOffset":1925,"endOffset":2064,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":2163,"endOffset":2189,"count":0}],"isBlockCoverage":false},{"functionName":"logError","ranges":[{"startOffset":2193,"endOffset":2416,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":2513,"endOffset":2537,"count":0}],"isBlockCoverage":false},{"functionName":"logDebate","ranges":[{"startOffset":2541,"endOffset":3055,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":3153,"endOffset":3178,"count":0}],"isBlockCoverage":false},{"functionName":"broadcastDebateEvent","ranges":[{"startOffset":3232,"endOffset":4471,"count":0}],"isBlockCoverage":false},{"functionName":"logCost","ranges":[{"startOffset":4472,"endOffset":4763,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4859,"endOffset":4882,"count":0}],"isBlockCoverage":false},{"functionName":"logProgress","ranges":[{"startOffset":4886,"endOffset":5258,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5358,"endOffset":5385,"count":0}],"isBlockCoverage":false},{"functionName":"getLoggerConfig","ranges":[{"startOffset":5389,"endOffset":5443,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5547,"endOffset":5578,"count":0}],"isBlockCoverage":false}]},{"scriptId":"982","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/observability-stream.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":24196,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":24196,"count":1}],"isBlockCoverage":true},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":400,"endOffset":6464,"count":1}],"isBlockCoverage":true},{"functionName":"<static_initializer>","ranges":[{"startOffset":400,"endOffset":6464,"count":1}],"isBlockCoverage":true},{"functionName":"ObservabilityStreamService","ranges":[{"startOffset":631,"endOffset":694,"count":1}],"isBlockCoverage":true},{"functionName":"getInstance","ranges":[{"startOffset":704,"endOffset":903,"count":1}],"isBlockCoverage":true},{"functionName":"resetInstance","ranges":[{"startOffset":967,"endOffset":1233,"count":0}],"isBlockCoverage":true},{"functionName":"emitTranscriptEntry","ranges":[{"startOffset":1284,"endOffset":1553,"count":0}],"isBlockCoverage":true},{"functionName":"emitToolStart","ranges":[{"startOffset":1602,"endOffset":1908,"count":0}],"isBlockCoverage":true},{"functionName":"emitToolEnd","ranges":[{"startOffset":1955,"endOffset":2335,"count":0}],"isBlockCoverage":true},{"functionName":"emitToolOutput","ranges":[{"startOffset":2411,"endOffset":2699,"count":0}],"isBlockCoverage":false},{"functionName":"emitAssertionResult","ranges":[{"startOffset":2751,"endOffset":3057,"count":0}],"isBlockCoverage":true},{"functionName":"emitSkillStart","ranges":[{"startOffset":3103,"endOffset":3451,"count":0}],"isBlockCoverage":true},{"functionName":"emitSkillEnd","ranges":[{"startOffset":3495,"endOffset":3811,"count":0}],"isBlockCoverage":true},{"functionName":"emitMessageBusEvent","ranges":[{"startOffset":3857,"endOffset":4175,"count":0}],"isBlockCoverage":true},{"functionName":"emitWaveStatus","ranges":[{"startOffset":4220,"endOffset":4576,"count":0}],"isBlockCoverage":true},{"functionName":"emitAgentHeartbeat","ranges":[{"startOffset":4618,"endOffset":4944,"count":0}],"isBlockCoverage":true},{"functionName":"emitExecutionStatus","ranges":[{"startOffset":4994,"endOffset":5293,"count":0}],"isBlockCoverage":true},{"functionName":"broadcast","ranges":[{"startOffset":5355,"endOffset":5529,"count":0}],"isBlockCoverage":true},{"functionName":"addToBuffer","ranges":[{"startOffset":5577,"endOffset":5863,"count":0}],"isBlockCoverage":true},{"functionName":"getBufferedEvents","ranges":[{"startOffset":5934,"endOffset":6022,"count":0}],"isBlockCoverage":true},{"functionName":"clearBuffer","ranges":[{"startOffset":6099,"endOffset":6171,"count":0}],"isBlockCoverage":true},{"functionName":"getListenerCount","ranges":[{"startOffset":6235,"endOffset":6333,"count":0}],"isBlockCoverage":true},{"functionName":"getGlobalListenerCount","ranges":[{"startOffset":6380,"endOffset":6462,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":6579,"endOffset":6621,"count":0}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":6802,"endOffset":6837,"count":0}],"isBlockCoverage":true}]},{"scriptId":"1016","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/unified-event-emitter.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":24130,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":24130,"count":1}],"isBlockCoverage":true},{"functionName":"getNextSequence","ranges":[{"startOffset":433,"endOffset":618,"count":0}],"isBlockCoverage":false},{"functionName":"resetSequence","ranges":[{"startOffset":619,"endOffset":698,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":800,"endOffset":829,"count":0}],"isBlockCoverage":false},{"functionName":"emit","ranges":[{"startOffset":904,"endOffset":5029,"count":0}],"isBlockCoverage":false},{"functionName":"emitSystem","ranges":[{"startOffset":5069,"endOffset":5265,"count":0}],"isBlockCoverage":false},{"functionName":"emitWaveEvent","ranges":[{"startOffset":5313,"endOffset":5684,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5835,"endOffset":5863,"count":0}],"isBlockCoverage":false}]},{"scriptId":"1155","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/execution-manager.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":24784,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":24784,"count":1}],"isBlockCoverage":true},{"functionName":"createExecutionRun","ranges":[{"startOffset":610,"endOffset":2027,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":2134,"endOffset":2168,"count":0}],"isBlockCoverage":false},{"functionName":"completeExecutionRun","ranges":[{"startOffset":2172,"endOffset":3884,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":3993,"endOffset":4029,"count":0}],"isBlockCoverage":false},{"functionName":"getExecutionRun","ranges":[{"startOffset":4033,"endOffset":4721,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4825,"endOffset":4856,"count":0}],"isBlockCoverage":false},{"functionName":"createExecutionSession","ranges":[{"startOffset":4860,"endOffset":5341,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5452,"endOffset":5490,"count":0}],"isBlockCoverage":false},{"functionName":"completeExecutionSession","ranges":[{"startOffset":5494,"endOffset":7342,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7455,"endOffset":7495,"count":0}],"isBlockCoverage":false},{"functionName":"updateWaveCount","ranges":[{"startOffset":7499,"endOffset":7665,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7769,"endOffset":7800,"count":0}],"isBlockCoverage":false},{"functionName":"getActiveExecutions","ranges":[{"startOffset":7804,"endOffset":7886,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7994,"endOffset":8029,"count":0}],"isBlockCoverage":false}]},{"scriptId":"2129","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/tests/unit/agents/architect-agent.test.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":20468,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":20468,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":497,"endOffset":7110,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":553,"endOffset":638,"count":10}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":692,"endOffset":1954,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":764,"endOffset":930,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":1003,"endOffset":1580,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":1664,"endOffset":1948,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":2014,"endOffset":7106,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":2099,"endOffset":3411,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":3491,"endOffset":4156,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":3807,"endOffset":3834,"count":3}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":3892,"endOffset":3927,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":3997,"endOffset":4031,"count":2}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":4101,"endOffset":4136,"count":3}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":4244,"endOffset":4715,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":4541,"endOffset":4560,"count":2}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":4782,"endOffset":5251,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":5193,"endOffset":5231,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":5313,"endOffset":5653,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":5726,"endOffset":6288,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":6076,"endOffset":6104,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":6359,"endOffset":7100,"count":1}],"isBlockCoverage":true}]},{"scriptId":"2130","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/agents/architect/architect-agent.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":45903,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":45903,"count":1}],"isBlockCoverage":true},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":907,"endOffset":13560,"count":10}],"isBlockCoverage":true},{"functionName":"ArchitectAgent","ranges":[{"startOffset":938,"endOffset":1922,"count":10}],"isBlockCoverage":true},{"functionName":"generateArchitecture","ranges":[{"startOffset":1997,"endOffset":4122,"count":7},{"startOffset":3837,"endOffset":4077,"count":0}],"isBlockCoverage":true},{"functionName":"analyzeRequirements","ranges":[{"startOffset":4201,"endOffset":5679,"count":7},{"startOffset":4339,"endOffset":4344,"count":5},{"startOffset":4391,"endOffset":4402,"count":1},{"startOffset":4403,"endOffset":4408,"count":6},{"startOffset":4473,"endOffset":4515,"count":3},{"startOffset":4577,"endOffset":4628,"count":5},{"startOffset":4630,"endOffset":4671,"count":2},{"startOffset":4735,"endOffset":4777,"count":1},{"startOffset":4843,"endOffset":4895,"count":6},{"startOffset":4897,"endOffset":5162,"count":1},{"startOffset":5223,"endOffset":5279,"count":6},{"startOffset":5281,"endOffset":5571,"count":1}],"isBlockCoverage":true},{"functionName":"designArchitecture","ranges":[{"startOffset":5726,"endOffset":7126,"count":7}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":5817,"endOffset":6256,"count":6},{"startOffset":6211,"endOffset":6222,"count":1}],"isBlockCoverage":true},{"functionName":"getComponentType","ranges":[{"startOffset":7175,"endOffset":7584,"count":6},{"startOffset":7281,"endOffset":7308,"count":3},{"startOffset":7310,"endOffset":7367,"count":3},{"startOffset":7367,"endOffset":7395,"count":1},{"startOffset":7397,"endOffset":7414,"count":2},{"startOffset":7414,"endOffset":7454,"count":1},{"startOffset":7454,"endOffset":7481,"count":0},{"startOffset":7483,"endOffset":7501,"count":1},{"startOffset":7501,"endOffset":7583,"count":0}],"isBlockCoverage":true},{"functionName":"suggestTechnology","ranges":[{"startOffset":7639,"endOffset":8162,"count":6},{"startOffset":7758,"endOffset":7783,"count":1},{"startOffset":7785,"endOffset":7927,"count":1},{"startOffset":7825,"endOffset":7921,"count":2},{"startOffset":7879,"endOffset":7913,"count":0},{"startOffset":7968,"endOffset":8036,"count":3},{"startOffset":8036,"endOffset":8066,"count":2},{"startOffset":8066,"endOffset":8127,"count":1},{"startOffset":8127,"endOffset":8161,"count":0}],"isBlockCoverage":true},{"functionName":"designTechStack","ranges":[{"startOffset":8200,"endOffset":9390,"count":7},{"startOffset":8311,"endOffset":8695,"count":3},{"startOffset":8373,"endOffset":8390,"count":1},{"startOffset":8488,"endOffset":8498,"count":2},{"startOffset":8745,"endOffset":9038,"count":2},{"startOffset":9089,"endOffset":9364,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":8402,"endOffset":8477,"count":1},{"startOffset":8443,"endOffset":8477,"count":0}],"isBlockCoverage":true},{"functionName":"identifyRisks","ranges":[{"startOffset":9439,"endOffset":10328,"count":7},{"startOffset":9533,"endOffset":9830,"count":0},{"startOffset":9873,"endOffset":10306,"count":3},{"startOffset":9931,"endOffset":9975,"count":2},{"startOffset":9977,"endOffset":10300,"count":1}],"isBlockCoverage":true},{"functionName":"generateDocumentation","ranges":[{"startOffset":10371,"endOffset":12288,"count":7},{"startOffset":11305,"endOffset":11357,"count":0},{"startOffset":11576,"endOffset":11638,"count":0},{"startOffset":11912,"endOffset":11931,"count":5}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":10875,"endOffset":10932,"count":6}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":11078,"endOffset":11156,"count":6}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":11739,"endOffset":11801,"count":2}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":11884,"endOffset":11899,"count":3}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":11990,"endOffset":12113,"count":1}],"isBlockCoverage":true},{"functionName":"generateRecommendations","ranges":[{"startOffset":12333,"endOffset":12863,"count":7},{"startOffset":12736,"endOffset":12831,"count":1}],"isBlockCoverage":true},{"functionName":"generateNextSteps","ranges":[{"startOffset":12903,"endOffset":13230,"count":7}],"isBlockCoverage":true},{"functionName":"getSystemPrompt","ranges":[{"startOffset":13294,"endOffset":13428,"count":1},{"startOffset":13370,"endOffset":13423,"count":0}],"isBlockCoverage":true},{"functionName":"getSupportedCapabilities","ranges":[{"startOffset":13476,"endOffset":13558,"count":1}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":13663,"endOffset":13693,"count":11}],"isBlockCoverage":true}]},{"scriptId":"2131","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/agents/observable-agent.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":32005,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":32005,"count":1}],"isBlockCoverage":true},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":384,"endOffset":8667,"count":10}],"isBlockCoverage":true},{"functionName":"ObservableAgent","ranges":[{"startOffset":613,"endOffset":1290,"count":10},{"startOffset":761,"endOffset":771,"count":0}],"isBlockCoverage":true},{"functionName":"logPhaseStart","ranges":[{"startOffset":1512,"endOffset":1724,"count":21}],"isBlockCoverage":true},{"functionName":"logPhaseEnd","ranges":[{"startOffset":1763,"endOffset":2101,"count":21},{"startOffset":1964,"endOffset":1972,"count":0}],"isBlockCoverage":true},{"functionName":"logTaskStart","ranges":[{"startOffset":2141,"endOffset":2346,"count":7}],"isBlockCoverage":true},{"functionName":"logTaskEnd","ranges":[{"startOffset":2384,"endOffset":2754,"count":7},{"startOffset":2581,"endOffset":2589,"count":0}],"isBlockCoverage":true},{"functionName":"logToolStart","ranges":[{"startOffset":2981,"endOffset":3146,"count":0}],"isBlockCoverage":false},{"functionName":"logToolEnd","ranges":[{"startOffset":3202,"endOffset":3350,"count":0}],"isBlockCoverage":false},{"functionName":"logToolBlocked","ranges":[{"startOffset":3407,"endOffset":3509,"count":0}],"isBlockCoverage":false},{"functionName":"logToolSimple","ranges":[{"startOffset":3572,"endOffset":3827,"count":0}],"isBlockCoverage":false},{"functionName":"startAssertionChain","ranges":[{"startOffset":4070,"endOffset":4229,"count":0}],"isBlockCoverage":false},{"functionName":"endAssertionChain","ranges":[{"startOffset":4285,"endOffset":4376,"count":0}],"isBlockCoverage":false},{"functionName":"assertFileCreated","ranges":[{"startOffset":4422,"endOffset":4580,"count":0}],"isBlockCoverage":false},{"functionName":"assertFileModified","ranges":[{"startOffset":4627,"endOffset":4787,"count":0}],"isBlockCoverage":false},{"functionName":"assertFileDeleted","ranges":[{"startOffset":4833,"endOffset":4991,"count":0}],"isBlockCoverage":false},{"functionName":"assertTypescriptCompiles","ranges":[{"startOffset":5048,"endOffset":5194,"count":0}],"isBlockCoverage":false},{"functionName":"assertLintPasses","ranges":[{"startOffset":5236,"endOffset":5366,"count":0}],"isBlockCoverage":false},{"functionName":"assertTestsPass","ranges":[{"startOffset":5404,"endOffset":5556,"count":0}],"isBlockCoverage":false},{"functionName":"assertCustom","ranges":[{"startOffset":5611,"endOffset":5839,"count":0}],"isBlockCoverage":false},{"functionName":"assertManual","ranges":[{"startOffset":5892,"endOffset":6134,"count":0}],"isBlockCoverage":false},{"functionName":"logError","ranges":[{"startOffset":6370,"endOffset":6553,"count":0}],"isBlockCoverage":false},{"functionName":"logDiscovery","ranges":[{"startOffset":6820,"endOffset":7182,"count":0}],"isBlockCoverage":false},{"functionName":"logLockAcquire","ranges":[{"startOffset":7421,"endOffset":7781,"count":0}],"isBlockCoverage":false},{"functionName":"logLockRelease","ranges":[{"startOffset":7832,"endOffset":8150,"count":0}],"isBlockCoverage":false},{"functionName":"logCheckpoint","ranges":[{"startOffset":8194,"endOffset":8427,"count":0}],"isBlockCoverage":false},{"functionName":"close","ranges":[{"startOffset":8646,"endOffset":8665,"count":7}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":8771,"endOffset":8802,"count":1}],"isBlockCoverage":true}]},{"scriptId":"2132","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/index.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":11266,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":11266,"count":1}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":454,"endOffset":504,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":609,"endOffset":660,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":1058,"endOffset":1114,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":1226,"endOffset":1284,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":1391,"endOffset":1444,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":1558,"endOffset":1618,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":1734,"endOffset":1796,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":1903,"endOffset":1956,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":2067,"endOffset":2124,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":2385,"endOffset":2439,"count":10}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":2692,"endOffset":2743,"count":10}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":3007,"endOffset":3062,"count":10}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":3342,"endOffset":3396,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":3504,"endOffset":3558,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":3842,"endOffset":3897,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4006,"endOffset":4061,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4334,"endOffset":4386,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4492,"endOffset":4544,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4824,"endOffset":4878,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4986,"endOffset":5040,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5304,"endOffset":5354,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5458,"endOffset":5508,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5810,"endOffset":5870,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5983,"endOffset":6043,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":6329,"endOffset":6385,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":6494,"endOffset":6550,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":6857,"endOffset":6922,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":7033,"endOffset":7091,"count":0}],"isBlockCoverage":false}]},{"scriptId":"2133","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/transcript-writer.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":18948,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":18948,"count":1}],"isBlockCoverage":true},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":563,"endOffset":4999,"count":10}],"isBlockCoverage":true},{"functionName":"TranscriptWriter","ranges":[{"startOffset":646,"endOffset":879,"count":10},{"startOffset":864,"endOffset":874,"count":0}],"isBlockCoverage":true},{"functionName":"write","ranges":[{"startOffset":924,"endOffset":2728,"count":56},{"startOffset":1585,"endOffset":1592,"count":42},{"startOffset":1808,"endOffset":1814,"count":0},{"startOffset":1843,"endOffset":1850,"count":45},{"startOffset":1869,"endOffset":2046,"count":0},{"startOffset":2121,"endOffset":2128,"count":0},{"startOffset":2277,"endOffset":2284,"count":0},{"startOffset":2398,"endOffset":2405,"count":0}],"isBlockCoverage":true},{"functionName":"writePhaseStart","ranges":[{"startOffset":2774,"endOffset":3008,"count":21}],"isBlockCoverage":true},{"functionName":"writePhaseEnd","ranges":[{"startOffset":3052,"endOffset":3314,"count":21}],"isBlockCoverage":true},{"functionName":"writeTaskStart","ranges":[{"startOffset":3359,"endOffset":3634,"count":7}],"isBlockCoverage":true},{"functionName":"writeTaskEnd","ranges":[{"startOffset":3677,"endOffset":3962,"count":7}],"isBlockCoverage":true},{"functionName":"writeError","ranges":[{"startOffset":4003,"endOffset":4248,"count":0}],"isBlockCoverage":false},{"functionName":"writeDiscovery","ranges":[{"startOffset":4292,"endOffset":4597,"count":0}],"isBlockCoverage":false},{"functionName":"writeCheckpoint","ranges":[{"startOffset":4642,"endOffset":4904,"count":0}],"isBlockCoverage":false},{"functionName":"getSequence","ranges":[{"startOffset":4952,"endOffset":4997,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5104,"endOffset":5136,"count":10}],"isBlockCoverage":true}]},{"scriptId":"2134","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/tool-use-logger.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":20188,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":20188,"count":1}],"isBlockCoverage":true},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":828,"endOffset":5960,"count":10}],"isBlockCoverage":true},{"functionName":"ToolUseLogger","ranges":[{"startOffset":885,"endOffset":960,"count":10}],"isBlockCoverage":true},{"functionName":"categorize","ranges":[{"startOffset":1013,"endOffset":1091,"count":0}],"isBlockCoverage":false},{"functionName":"summarize","ranges":[{"startOffset":1158,"endOffset":1400,"count":0}],"isBlockCoverage":false},{"functionName":"logStart","ranges":[{"startOffset":1449,"endOffset":3259,"count":0}],"isBlockCoverage":false},{"functionName":"logEnd","ranges":[{"startOffset":3313,"endOffset":4645,"count":0}],"isBlockCoverage":false},{"functionName":"logBlocked","ranges":[{"startOffset":4702,"endOffset":5656,"count":0}],"isBlockCoverage":false},{"functionName":"logSimple","ranges":[{"startOffset":5719,"endOffset":5958,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":6062,"endOffset":6091,"count":10}],"isBlockCoverage":true}]},{"scriptId":"2135","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/assertion-recorder.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":37769,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":37769,"count":1}],"isBlockCoverage":true},{"functionName":"<instance_members_initializer>","ranges":[{"startOffset":1040,"endOffset":11129,"count":10}],"isBlockCoverage":true},{"functionName":"AssertionRecorder","ranges":[{"startOffset":1189,"endOffset":1418,"count":10}],"isBlockCoverage":true},{"functionName":"startChain","ranges":[{"startOffset":1463,"endOffset":2346,"count":0}],"isBlockCoverage":false},{"functionName":"endChain","ranges":[{"startOffset":2403,"endOffset":3407,"count":0}],"isBlockCoverage":false},{"functionName":"recordAssertion","ranges":[{"startOffset":3460,"endOffset":5595,"count":0}],"isBlockCoverage":false},{"functionName":"assertFileCreated","ranges":[{"startOffset":5641,"endOffset":6156,"count":0}],"isBlockCoverage":false},{"functionName":"assertFileModified","ranges":[{"startOffset":6212,"endOffset":6730,"count":0}],"isBlockCoverage":false},{"functionName":"assertFileDeleted","ranges":[{"startOffset":6793,"endOffset":7309,"count":0}],"isBlockCoverage":false},{"functionName":"assertTypescriptCompiles","ranges":[{"startOffset":7366,"endOffset":8195,"count":0}],"isBlockCoverage":false},{"functionName":"assertLintPasses","ranges":[{"startOffset":8237,"endOffset":9025,"count":0}],"isBlockCoverage":false},{"functionName":"assertTestsPass","ranges":[{"startOffset":9063,"endOffset":9923,"count":0}],"isBlockCoverage":false},{"functionName":"assertCustom","ranges":[{"startOffset":9978,"endOffset":10787,"count":0}],"isBlockCoverage":false},{"functionName":"assertManual","ranges":[{"startOffset":10840,"endOffset":11127,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":11235,"endOffset":11268,"count":10}],"isBlockCoverage":true}]},{"scriptId":"2136","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/execution-service.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":31447,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":31447,"count":1}],"isBlockCoverage":true},{"functionName":"listExecutions","ranges":[{"startOffset":554,"endOffset":2664,"count":0}],"isBlockCoverage":false},{"functionName":"getExecution","ranges":[{"startOffset":2730,"endOffset":3432,"count":0}],"isBlockCoverage":false},{"functionName":"enrichExecutionStats","ranges":[{"startOffset":3490,"endOffset":5482,"count":0}],"isBlockCoverage":false},{"functionName":"getRecentExecutions","ranges":[{"startOffset":5539,"endOffset":6277,"count":0}],"isBlockCoverage":false},{"functionName":"getExecutionStats","ranges":[{"startOffset":6332,"endOffset":7195,"count":0}],"isBlockCoverage":false},{"functionName":"emitWaveStatus","ranges":[{"startOffset":7444,"endOffset":7714,"count":0}],"isBlockCoverage":false},{"functionName":"emitAgentHeartbeat","ranges":[{"startOffset":7964,"endOffset":8204,"count":0}],"isBlockCoverage":false},{"functionName":"emitExecutionStatus","ranges":[{"startOffset":8463,"endOffset":8615,"count":0}],"isBlockCoverage":false},{"functionName":"updateExecutionStatus","ranges":[{"startOffset":8682,"endOffset":9372,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":9479,"endOffset":9511,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":9668,"endOffset":9700,"count":0}],"isBlockCoverage":false}]},{"scriptId":"2137","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/transcript-service.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":17585,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":17585,"count":1}],"isBlockCoverage":true},{"functionName":"getTranscript","ranges":[{"startOffset":401,"endOffset":3190,"count":0}],"isBlockCoverage":false},{"functionName":"getEntry","ranges":[{"startOffset":3247,"endOffset":3968,"count":0}],"isBlockCoverage":false},{"functionName":"mapRow","ranges":[{"startOffset":4025,"endOffset":4665,"count":0}],"isBlockCoverage":false},{"functionName":"parseJson","ranges":[{"startOffset":4711,"endOffset":4840,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":4948,"endOffset":4981,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":5141,"endOffset":5174,"count":0}],"isBlockCoverage":false}]},{"scriptId":"2138","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/tool-use-service.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":37036,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":37036,"count":1}],"isBlockCoverage":true},{"functionName":"getToolUses","ranges":[{"startOffset":389,"endOffset":3454,"count":0}],"isBlockCoverage":false},{"functionName":"getToolUse","ranges":[{"startOffset":3503,"endOffset":4546,"count":0}],"isBlockCoverage":false},{"functionName":"getToolSummary","ranges":[{"startOffset":4607,"endOffset":9393,"count":0}],"isBlockCoverage":false},{"functionName":"mapRow","ranges":[{"startOffset":9442,"endOffset":10318,"count":0}],"isBlockCoverage":false},{"functionName":"parseJson","ranges":[{"startOffset":10364,"endOffset":10493,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":10598,"endOffset":10628,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":10779,"endOffset":10809,"count":0}],"isBlockCoverage":false}]},{"scriptId":"2139","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/assertion-service.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":30664,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":30664,"count":1}],"isBlockCoverage":true},{"functionName":"getAssertions","ranges":[{"startOffset":392,"endOffset":2464,"count":0}],"isBlockCoverage":false},{"functionName":"getAssertion","ranges":[{"startOffset":2514,"endOffset":3004,"count":0}],"isBlockCoverage":false},{"functionName":"getAssertionSummary","ranges":[{"startOffset":3064,"endOffset":5955,"count":0}],"isBlockCoverage":false},{"functionName":"getChains","ranges":[{"startOffset":6018,"endOffset":7943,"count":0}],"isBlockCoverage":false},{"functionName":"mapRow","ranges":[{"startOffset":8000,"endOffset":8482,"count":0}],"isBlockCoverage":false},{"functionName":"parseJson","ranges":[{"startOffset":8528,"endOffset":8657,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":8764,"endOffset":8796,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":8953,"endOffset":8985,"count":0}],"isBlockCoverage":false}]},{"scriptId":"2140","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/skill-service.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":33791,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":33791,"count":1}],"isBlockCoverage":true},{"functionName":"getSkillTraces","ranges":[{"startOffset":647,"endOffset":2663,"count":0}],"isBlockCoverage":false},{"functionName":"getSkillTrace","ranges":[{"startOffset":2715,"endOffset":3302,"count":0}],"isBlockCoverage":false},{"functionName":"getSkillsSummary","ranges":[{"startOffset":3365,"endOffset":6721,"count":0}],"isBlockCoverage":false},{"functionName":"logStart","ranges":[{"startOffset":6997,"endOffset":8076,"count":0}],"isBlockCoverage":false},{"functionName":"logEnd","ranges":[{"startOffset":8131,"endOffset":8962,"count":0}],"isBlockCoverage":false},{"functionName":"mapRow","ranges":[{"startOffset":9197,"endOffset":9869,"count":0}],"isBlockCoverage":false},{"functionName":"parseJson","ranges":[{"startOffset":9915,"endOffset":10044,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":10147,"endOffset":10175,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":10320,"endOffset":10348,"count":0}],"isBlockCoverage":false}]},{"scriptId":"2141","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/cross-reference-service.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":51546,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":51546,"count":1}],"isBlockCoverage":true},{"functionName":"getCrossReferences","ranges":[{"startOffset":391,"endOffset":1207,"count":0}],"isBlockCoverage":false},{"functionName":"getToolUseCrossRefs","ranges":[{"startOffset":1264,"endOffset":2167,"count":0}],"isBlockCoverage":false},{"functionName":"getAssertionCrossRefs","ranges":[{"startOffset":2226,"endOffset":4111,"count":0}],"isBlockCoverage":false},{"functionName":"getSkillTraceCrossRefs","ranges":[{"startOffset":4171,"endOffset":5732,"count":0}],"isBlockCoverage":false},{"functionName":"getTranscriptEntryCrossRefs","ranges":[{"startOffset":5797,"endOffset":7688,"count":0}],"isBlockCoverage":false},{"functionName":"getRelatedEntities","ranges":[{"startOffset":7743,"endOffset":10936,"count":0}],"isBlockCoverage":false},{"functionName":"mapTranscriptEntry","ranges":[{"startOffset":10993,"endOffset":11645,"count":0}],"isBlockCoverage":false},{"functionName":"mapToolUse","ranges":[{"startOffset":11694,"endOffset":12498,"count":0}],"isBlockCoverage":false},{"functionName":"mapAssertion","ranges":[{"startOffset":12555,"endOffset":13043,"count":0}],"isBlockCoverage":false},{"functionName":"mapSkillTrace","ranges":[{"startOffset":13095,"endOffset":13774,"count":0}],"isBlockCoverage":false},{"functionName":"parseJson","ranges":[{"startOffset":13820,"endOffset":13949,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":14061,"endOffset":14098,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":14270,"endOffset":14307,"count":0}],"isBlockCoverage":false}]},{"scriptId":"2142","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/message-bus-service.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":33368,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":33368,"count":1}],"isBlockCoverage":true},{"functionName":"getLogs","ranges":[{"startOffset":639,"endOffset":2973,"count":0}],"isBlockCoverage":false},{"functionName":"getCorrelatedEvents","ranges":[{"startOffset":3034,"endOffset":4142,"count":0}],"isBlockCoverage":false},{"functionName":"getSummary","ranges":[{"startOffset":4204,"endOffset":6826,"count":0}],"isBlockCoverage":false},{"functionName":"log","ranges":[{"startOffset":7088,"endOffset":8840,"count":0}],"isBlockCoverage":false},{"functionName":"mapRow","ranges":[{"startOffset":9083,"endOffset":9588,"count":0}],"isBlockCoverage":false},{"functionName":"parseJson","ranges":[{"startOffset":9634,"endOffset":9763,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":9871,"endOffset":9904,"count":0}],"isBlockCoverage":false},{"functionName":"get","ranges":[{"startOffset":10064,"endOffset":10097,"count":0}],"isBlockCoverage":false}]},{"scriptId":"2143","url":"file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/agents/architect/prompts.ts","functions":[{"functionName":"","ranges":[{"startOffset":0,"endOffset":26599,"count":1}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":13,"endOffset":26599,"count":1}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":1834,"endOffset":1878,"count":10}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":2908,"endOffset":2947,"count":10}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":4023,"endOffset":4065,"count":10}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":5275,"endOffset":5310,"count":10}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":6347,"endOffset":6385,"count":10}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":7427,"endOffset":7465,"count":10}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":8439,"endOffset":8485,"count":10}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":9198,"endOffset":9239,"count":7}],"isBlockCoverage":true},{"functionName":"formatComponentAsMarkdown","ranges":[{"startOffset":9243,"endOffset":9653,"count":6}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":9442,"endOffset":9457,"count":6}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":9767,"endOffset":9808,"count":6}],"isBlockCoverage":true},{"functionName":"formatTechChoiceAsMarkdown","ranges":[{"startOffset":9812,"endOffset":10083,"count":6}],"isBlockCoverage":true},{"functionName":"","ranges":[{"startOffset":10050,"endOffset":10065,"count":12}],"isBlockCoverage":true},{"functionName":"get","ranges":[{"startOffset":10198,"endOffset":10240,"count":6}],"isBlockCoverage":true}]}]}
+{
+  "result": [
+    {
+      "scriptId": "427",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/tests/setup.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 11909, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 11909, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "ensureMigrations",
+          "ranges": [
+            { "startOffset": 1020, "endOffset": 1219, "count": 1 },
+            { "startOffset": 1091, "endOffset": 1174, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 1252, "endOffset": 2484, "count": 1 },
+            { "startOffset": 1696, "endOffset": 1699, "count": 0 },
+            { "startOffset": 2175, "endOffset": 2178, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2376, "endOffset": 2389, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2463, "endOffset": 2476, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 2518, "endOffset": 3300, "count": 1 },
+            { "startOffset": 2781, "endOffset": 2784, "count": 0 },
+            { "startOffset": 3075, "endOffset": 3078, "count": 0 },
+            { "startOffset": 3114, "endOffset": 3236, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "createTestIdea",
+          "ranges": [{ "startOffset": 3346, "endOffset": 3550, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "429",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/config/index.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 8674, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 8674, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getConfig",
+          "ranges": [{ "startOffset": 472, "endOffset": 520, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 618, "endOffset": 643, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "updateConfig",
+          "ranges": [{ "startOffset": 647, "endOffset": 758, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 859, "endOffset": 887, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "resetConfig",
+          "ranges": [{ "startOffset": 891, "endOffset": 996, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1096, "endOffset": 1123, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "validateConfig",
+          "ranges": [{ "startOffset": 1127, "endOffset": 2252, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2355, "endOffset": 2385, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "deepMerge",
+          "ranges": [
+            { "startOffset": 2389, "endOffset": 2924, "count": 4 },
+            { "startOffset": 2499, "endOffset": 2905, "count": 10 },
+            { "startOffset": 2641, "endOffset": 2671, "count": 2 },
+            { "startOffset": 2672, "endOffset": 2706, "count": 2 },
+            { "startOffset": 2707, "endOffset": 2737, "count": 2 },
+            { "startOffset": 2739, "endOffset": 2827, "count": 2 },
+            { "startOffset": 2827, "endOffset": 2901, "count": 8 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3027, "endOffset": 3071, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "430",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/config/default.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 5348, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 5348, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1587, "endOffset": 1609, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "431",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/utils/errors.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 12983, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 12983, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "IdeaIncubatorError",
+          "ranges": [{ "startOffset": 228, "endOffset": 312, "count": 56 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 421, "endOffset": 455, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 510, "endOffset": 644, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 750, "endOffset": 783, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "EvaluationParseError",
+          "ranges": [{ "startOffset": 845, "endOffset": 964, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1075, "endOffset": 1111, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 1166, "endOffset": 1361, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1467, "endOffset": 1500, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 1557, "endOffset": 1804, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1912, "endOffset": 1947, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 2002, "endOffset": 2234, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2340, "endOffset": 2373, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 2434, "endOffset": 2677, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2789, "endOffset": 2828, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 2881, "endOffset": 3045, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3149, "endOffset": 3180, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 3231, "endOffset": 3413, "count": 56 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "DatabaseError",
+          "ranges": [{ "startOffset": 3248, "endOffset": 3411, "count": 56 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3515, "endOffset": 3544, "count": 56 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 3591, "endOffset": 3776, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3874, "endOffset": 3899, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 3955, "endOffset": 4143, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4250, "endOffset": 4284, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 4340, "endOffset": 4531, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4638, "endOffset": 4672, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "432",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/database/db.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 110679, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 110679, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "toSqlParams",
+          "ranges": [{ "startOffset": 873, "endOffset": 973, "count": 56 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 924, "endOffset": 969, "count": 784 },
+            { "startOffset": 954, "endOffset": 965, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "setSkipDiskWrites",
+          "ranges": [{ "startOffset": 1017, "endOffset": 1078, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1184, "endOffset": 1217, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getDb",
+          "ranges": [
+            { "startOffset": 1221, "endOffset": 1936, "count": 60 },
+            { "startOffset": 1256, "endOffset": 1266, "count": 59 },
+            { "startOffset": 1266, "endOffset": 1472, "count": 1 },
+            { "startOffset": 1472, "endOffset": 1581, "count": 0 },
+            { "startOffset": 1581, "endOffset": 1815, "count": 1 },
+            { "startOffset": 1700, "endOffset": 1778, "count": 0 },
+            { "startOffset": 1815, "endOffset": 1835, "count": 1 },
+            { "startOffset": 1835, "endOffset": 1934, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2030, "endOffset": 2051, "count": 4 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "saveDb",
+          "ranges": [{ "startOffset": 2055, "endOffset": 2454, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2549, "endOffset": 2571, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "closeDb",
+          "ranges": [{ "startOffset": 2575, "endOffset": 2670, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2766, "endOffset": 2789, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "reloadDb",
+          "ranges": [{ "startOffset": 2793, "endOffset": 3336, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3433, "endOffset": 3457, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "query",
+          "ranges": [{ "startOffset": 3461, "endOffset": 4082, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4176, "endOffset": 4197, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "run",
+          "ranges": [{ "startOffset": 4201, "endOffset": 4424, "count": 56 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4516, "endOffset": 4535, "count": 56 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "exec",
+          "ranges": [{ "startOffset": 4539, "endOffset": 4731, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4824, "endOffset": 4844, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getOne",
+          "ranges": [{ "startOffset": 4848, "endOffset": 4984, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5079, "endOffset": 5101, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "insert",
+          "ranges": [{ "startOffset": 5105, "endOffset": 5389, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5484, "endOffset": 5506, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "update",
+          "ranges": [{ "startOffset": 5510, "endOffset": 5800, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5895, "endOffset": 5917, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "remove",
+          "ranges": [{ "startOffset": 5921, "endOffset": 6062, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6157, "endOffset": 6179, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createBuildExecution",
+          "ranges": [{ "startOffset": 6184, "endOffset": 6566, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6675, "endOffset": 6711, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getBuildExecution",
+          "ranges": [{ "startOffset": 6715, "endOffset": 6837, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6943, "endOffset": 6976, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "listBuildExecutions",
+          "ranges": [{ "startOffset": 6980, "endOffset": 7439, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 7547, "endOffset": 7582, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "updateBuildExecution",
+          "ranges": [{ "startOffset": 7586, "endOffset": 8321, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 8430, "endOffset": 8466, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "deleteBuildExecution",
+          "ranges": [{ "startOffset": 8470, "endOffset": 8565, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 8674, "endOffset": 8710, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createTaskExecution",
+          "ranges": [{ "startOffset": 8714, "endOffset": 9048, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 9156, "endOffset": 9191, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getTaskExecution",
+          "ranges": [{ "startOffset": 9195, "endOffset": 9311, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 9416, "endOffset": 9448, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "listTaskExecutions",
+          "ranges": [{ "startOffset": 9452, "endOffset": 9846, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 9953, "endOffset": 9987, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "updateTaskExecution",
+          "ranges": [{ "startOffset": 9991, "endOffset": 10868, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 10976, "endOffset": 11011, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createBuildCheckpoint",
+          "ranges": [{ "startOffset": 11015, "endOffset": 11493, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 11603, "endOffset": 11640, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getLatestCheckpoint",
+          "ranges": [{ "startOffset": 11644, "endOffset": 11818, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 11926, "endOffset": 11961, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "listBuildCheckpoints",
+          "ranges": [{ "startOffset": 11965, "endOffset": 12131, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 12240, "endOffset": 12276, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "cleanupBuildCheckpoints",
+          "ranges": [{ "startOffset": 12280, "endOffset": 12599, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 12711, "endOffset": 12750, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createBuildDiscovery",
+          "ranges": [{ "startOffset": 12754, "endOffset": 13159, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 13268, "endOffset": 13304, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "listBuildDiscoveries",
+          "ranges": [{ "startOffset": 13308, "endOffset": 13622, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 13731, "endOffset": 13767, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getGotchasForFile",
+          "ranges": [{ "startOffset": 13771, "endOffset": 14034, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 14140, "endOffset": 14173, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "recordApiCall",
+          "ranges": [{ "startOffset": 14177, "endOffset": 14566, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 14668, "endOffset": 14697, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getCallStats",
+          "ranges": [{ "startOffset": 14701, "endOffset": 15461, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 15562, "endOffset": 15590, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getStatsSummary",
+          "ranges": [{ "startOffset": 15594, "endOffset": 16168, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 16272, "endOffset": 16303, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getCallCount",
+          "ranges": [{ "startOffset": 16307, "endOffset": 16926, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 17027, "endOffset": 17055, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mapProfileRow",
+          "ranges": [{ "startOffset": 17059, "endOffset": 17348, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mapPreferencesRow",
+          "ranges": [{ "startOffset": 17349, "endOffset": 17719, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getUserProfile",
+          "ranges": [{ "startOffset": 17720, "endOffset": 17917, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 18020, "endOffset": 18050, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getOrCreateProfile",
+          "ranges": [{ "startOffset": 18054, "endOffset": 18549, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 18656, "endOffset": 18690, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "updateUserProfile",
+          "ranges": [{ "startOffset": 18694, "endOffset": 19330, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 19436, "endOffset": 19469, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "updateAvatarPath",
+          "ranges": [{ "startOffset": 19473, "endOffset": 19700, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 19805, "endOffset": 19837, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getPublicProfile",
+          "ranges": [{ "startOffset": 19841, "endOffset": 20100, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 20205, "endOffset": 20237, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getUserPreferences",
+          "ranges": [{ "startOffset": 20241, "endOffset": 20449, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 20556, "endOffset": 20590, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getOrCreatePreferences",
+          "ranges": [{ "startOffset": 20594, "endOffset": 21098, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 21209, "endOffset": 21247, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "updateUserPreferences",
+          "ranges": [{ "startOffset": 21251, "endOffset": 22245, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 22355, "endOffset": 22392, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mapNotificationRow",
+          "ranges": [{ "startOffset": 22396, "endOffset": 22776, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mapDeliveryRow",
+          "ranges": [{ "startOffset": 22777, "endOffset": 23113, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mapTemplateRow",
+          "ranges": [{ "startOffset": 23114, "endOffset": 23495, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mapChannelPrefRow",
+          "ranges": [{ "startOffset": 23496, "endOffset": 23767, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createNotification",
+          "ranges": [{ "startOffset": 23768, "endOffset": 24489, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 24596, "endOffset": 24630, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getNotificationById",
+          "ranges": [{ "startOffset": 24634, "endOffset": 24830, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 24938, "endOffset": 24973, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getNotifications",
+          "ranges": [{ "startOffset": 24977, "endOffset": 25629, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 25734, "endOffset": 25766, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getNotificationCount",
+          "ranges": [{ "startOffset": 25770, "endOffset": 26294, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 26403, "endOffset": 26439, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getUnreadCount",
+          "ranges": [{ "startOffset": 26443, "endOffset": 26688, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 26791, "endOffset": 26821, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "markNotificationRead",
+          "ranges": [{ "startOffset": 26825, "endOffset": 27074, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 27183, "endOffset": 27219, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "markNotificationArchived",
+          "ranges": [{ "startOffset": 27223, "endOffset": 27460, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 27573, "endOffset": 27613, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "markAllNotificationsRead",
+          "ranges": [{ "startOffset": 27617, "endOffset": 27923, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 28036, "endOffset": 28076, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "cleanupExpiredNotifications",
+          "ranges": [{ "startOffset": 28080, "endOffset": 28551, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 28667, "endOffset": 28710, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createDelivery",
+          "ranges": [{ "startOffset": 28714, "endOffset": 29191, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 29294, "endOffset": 29324, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getDeliveryById",
+          "ranges": [{ "startOffset": 29328, "endOffset": 29526, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 29630, "endOffset": 29661, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "updateDeliveryStatus",
+          "ranges": [{ "startOffset": 29665, "endOffset": 30200, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 30309, "endOffset": 30345, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getFailedDeliveries",
+          "ranges": [{ "startOffset": 30349, "endOffset": 30735, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 30843, "endOffset": 30878, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "markDeliveryForRetry",
+          "ranges": [{ "startOffset": 30882, "endOffset": 31097, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 31206, "endOffset": 31242, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getTemplate",
+          "ranges": [{ "startOffset": 31246, "endOffset": 31440, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 31540, "endOffset": 31567, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getAllTemplates",
+          "ranges": [{ "startOffset": 31571, "endOffset": 31732, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 31836, "endOffset": 31867, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getUserChannelPref",
+          "ranges": [{ "startOffset": 31871, "endOffset": 32148, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 32255, "endOffset": 32289, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getAllUserChannelPrefs",
+          "ranges": [{ "startOffset": 32293, "endOffset": 32519, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 32630, "endOffset": 32668, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "setUserChannelPrefs",
+          "ranges": [{ "startOffset": 32672, "endOffset": 33759, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 33867, "endOffset": 33902, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getEffectiveChannels",
+          "ranges": [{ "startOffset": 33906, "endOffset": 34260, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 34369, "endOffset": 34405, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getUserEmail",
+          "ranges": [{ "startOffset": 34409, "endOffset": 34567, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 34668, "endOffset": 34696, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getUserTelegram",
+          "ranges": [{ "startOffset": 34700, "endOffset": 34929, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 35033, "endOffset": 35064, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "435",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/request-counter.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 2033, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 2033, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 213, "endOffset": 488, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "increment",
+          "ranges": [{ "startOffset": 277, "endOffset": 312, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getCount",
+          "ranges": [{ "startOffset": 362, "endOffset": 401, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "reset",
+          "ranges": [{ "startOffset": 453, "endOffset": 486, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 657, "endOffset": 694, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "452",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/database/migrate.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 13707, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 13, "endOffset": 13707, "count": 1 },
+            { "startOffset": 4838, "endOffset": 4851, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "ensureMigrationsTable",
+          "ranges": [{ "startOffset": 938, "endOffset": 1203, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getAppliedMigrations",
+          "ranges": [{ "startOffset": 1204, "endOffset": 1387, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getPendingMigrations",
+          "ranges": [{ "startOffset": 1388, "endOffset": 1773, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "applyMigration",
+          "ranges": [{ "startOffset": 1774, "endOffset": 2427, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "runMigrations",
+          "ranges": [{ "startOffset": 2428, "endOffset": 2965, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3067, "endOffset": 3096, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "showMigrationStatus",
+          "ranges": [{ "startOffset": 3100, "endOffset": 3732, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3840, "endOffset": 3875, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "rollbackLastMigration",
+          "ranges": [{ "startOffset": 3879, "endOffset": 4105, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4215, "endOffset": 4252, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "main",
+          "ranges": [{ "startOffset": 4256, "endOffset": 4695, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "473",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/utils/logger.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 16353, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 16353, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "setLogLevel",
+          "ranges": [{ "startOffset": 509, "endOffset": 564, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 664, "endOffset": 691, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "setTransport",
+          "ranges": [{ "startOffset": 695, "endOffset": 855, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 956, "endOffset": 984, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "shouldLog",
+          "ranges": [{ "startOffset": 988, "endOffset": 1073, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "logDebug",
+          "ranges": [{ "startOffset": 1074, "endOffset": 1275, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1372, "endOffset": 1396, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logInfo",
+          "ranges": [{ "startOffset": 1400, "endOffset": 1533, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1629, "endOffset": 1652, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "logSuccess",
+          "ranges": [{ "startOffset": 1656, "endOffset": 1796, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1895, "endOffset": 1921, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "logWarning",
+          "ranges": [{ "startOffset": 1925, "endOffset": 2064, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2163, "endOffset": 2189, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logError",
+          "ranges": [{ "startOffset": 2193, "endOffset": 2416, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2513, "endOffset": 2537, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logDebate",
+          "ranges": [{ "startOffset": 2541, "endOffset": 3055, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3153, "endOffset": 3178, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "broadcastDebateEvent",
+          "ranges": [{ "startOffset": 3232, "endOffset": 4471, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logCost",
+          "ranges": [{ "startOffset": 4472, "endOffset": 4763, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4859, "endOffset": 4882, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logProgress",
+          "ranges": [{ "startOffset": 4886, "endOffset": 5258, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5358, "endOffset": 5385, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getLoggerConfig",
+          "ranges": [{ "startOffset": 5389, "endOffset": 5443, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5547, "endOffset": 5578, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "982",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/observability-stream.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 24196, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 24196, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 400, "endOffset": 6464, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "<static_initializer>",
+          "ranges": [{ "startOffset": 400, "endOffset": 6464, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "ObservabilityStreamService",
+          "ranges": [{ "startOffset": 631, "endOffset": 694, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getInstance",
+          "ranges": [{ "startOffset": 704, "endOffset": 903, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "resetInstance",
+          "ranges": [{ "startOffset": 967, "endOffset": 1233, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "emitTranscriptEntry",
+          "ranges": [{ "startOffset": 1284, "endOffset": 1553, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "emitToolStart",
+          "ranges": [{ "startOffset": 1602, "endOffset": 1908, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "emitToolEnd",
+          "ranges": [{ "startOffset": 1955, "endOffset": 2335, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "emitToolOutput",
+          "ranges": [{ "startOffset": 2411, "endOffset": 2699, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "emitAssertionResult",
+          "ranges": [{ "startOffset": 2751, "endOffset": 3057, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "emitSkillStart",
+          "ranges": [{ "startOffset": 3103, "endOffset": 3451, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "emitSkillEnd",
+          "ranges": [{ "startOffset": 3495, "endOffset": 3811, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "emitMessageBusEvent",
+          "ranges": [{ "startOffset": 3857, "endOffset": 4175, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "emitWaveStatus",
+          "ranges": [{ "startOffset": 4220, "endOffset": 4576, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "emitAgentHeartbeat",
+          "ranges": [{ "startOffset": 4618, "endOffset": 4944, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "emitExecutionStatus",
+          "ranges": [{ "startOffset": 4994, "endOffset": 5293, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "broadcast",
+          "ranges": [{ "startOffset": 5355, "endOffset": 5529, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "addToBuffer",
+          "ranges": [{ "startOffset": 5577, "endOffset": 5863, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getBufferedEvents",
+          "ranges": [{ "startOffset": 5934, "endOffset": 6022, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "clearBuffer",
+          "ranges": [{ "startOffset": 6099, "endOffset": 6171, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getListenerCount",
+          "ranges": [{ "startOffset": 6235, "endOffset": 6333, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getGlobalListenerCount",
+          "ranges": [{ "startOffset": 6380, "endOffset": 6462, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6579, "endOffset": 6621, "count": 0 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6802, "endOffset": 6837, "count": 0 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "1016",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/unified-event-emitter.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 24130, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 24130, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getNextSequence",
+          "ranges": [{ "startOffset": 433, "endOffset": 618, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "resetSequence",
+          "ranges": [{ "startOffset": 619, "endOffset": 698, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 800, "endOffset": 829, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "emit",
+          "ranges": [{ "startOffset": 904, "endOffset": 5029, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "emitSystem",
+          "ranges": [{ "startOffset": 5069, "endOffset": 5265, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "emitWaveEvent",
+          "ranges": [{ "startOffset": 5313, "endOffset": 5684, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5835, "endOffset": 5863, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "1155",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/execution-manager.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 24784, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 24784, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "createExecutionRun",
+          "ranges": [{ "startOffset": 610, "endOffset": 2027, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2134, "endOffset": 2168, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "completeExecutionRun",
+          "ranges": [{ "startOffset": 2172, "endOffset": 3884, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3993, "endOffset": 4029, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getExecutionRun",
+          "ranges": [{ "startOffset": 4033, "endOffset": 4721, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4825, "endOffset": 4856, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "createExecutionSession",
+          "ranges": [{ "startOffset": 4860, "endOffset": 5341, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5452, "endOffset": 5490, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "completeExecutionSession",
+          "ranges": [{ "startOffset": 5494, "endOffset": 7342, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 7455, "endOffset": 7495, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "updateWaveCount",
+          "ranges": [{ "startOffset": 7499, "endOffset": 7665, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 7769, "endOffset": 7800, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getActiveExecutions",
+          "ranges": [{ "startOffset": 7804, "endOffset": 7886, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 7994, "endOffset": 8029, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "2129",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/tests/unit/agents/architect-agent.test.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 20468, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 20468, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 497, "endOffset": 7110, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 553, "endOffset": 638, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 692, "endOffset": 1954, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 764, "endOffset": 930, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1003, "endOffset": 1580, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 1664, "endOffset": 1948, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2014, "endOffset": 7106, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 2099, "endOffset": 3411, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3491, "endOffset": 4156, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3807, "endOffset": 3834, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3892, "endOffset": 3927, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 3997, "endOffset": 4031, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4101, "endOffset": 4136, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4244, "endOffset": 4715, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4541, "endOffset": 4560, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 4782, "endOffset": 5251, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5193, "endOffset": 5231, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5313, "endOffset": 5653, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 5726, "endOffset": 6288, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6076, "endOffset": 6104, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 6359, "endOffset": 7100, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "2130",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/agents/architect/architect-agent.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 45903, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 45903, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 907, "endOffset": 13560, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "ArchitectAgent",
+          "ranges": [{ "startOffset": 938, "endOffset": 1922, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generateArchitecture",
+          "ranges": [
+            { "startOffset": 1997, "endOffset": 4122, "count": 7 },
+            { "startOffset": 3837, "endOffset": 4077, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "analyzeRequirements",
+          "ranges": [
+            { "startOffset": 4201, "endOffset": 5679, "count": 7 },
+            { "startOffset": 4339, "endOffset": 4344, "count": 5 },
+            { "startOffset": 4391, "endOffset": 4402, "count": 1 },
+            { "startOffset": 4403, "endOffset": 4408, "count": 6 },
+            { "startOffset": 4473, "endOffset": 4515, "count": 3 },
+            { "startOffset": 4577, "endOffset": 4628, "count": 5 },
+            { "startOffset": 4630, "endOffset": 4671, "count": 2 },
+            { "startOffset": 4735, "endOffset": 4777, "count": 1 },
+            { "startOffset": 4843, "endOffset": 4895, "count": 6 },
+            { "startOffset": 4897, "endOffset": 5162, "count": 1 },
+            { "startOffset": 5223, "endOffset": 5279, "count": 6 },
+            { "startOffset": 5281, "endOffset": 5571, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "designArchitecture",
+          "ranges": [{ "startOffset": 5726, "endOffset": 7126, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 5817, "endOffset": 6256, "count": 6 },
+            { "startOffset": 6211, "endOffset": 6222, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getComponentType",
+          "ranges": [
+            { "startOffset": 7175, "endOffset": 7584, "count": 6 },
+            { "startOffset": 7281, "endOffset": 7308, "count": 3 },
+            { "startOffset": 7310, "endOffset": 7367, "count": 3 },
+            { "startOffset": 7367, "endOffset": 7395, "count": 1 },
+            { "startOffset": 7397, "endOffset": 7414, "count": 2 },
+            { "startOffset": 7414, "endOffset": 7454, "count": 1 },
+            { "startOffset": 7454, "endOffset": 7481, "count": 0 },
+            { "startOffset": 7483, "endOffset": 7501, "count": 1 },
+            { "startOffset": 7501, "endOffset": 7583, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "suggestTechnology",
+          "ranges": [
+            { "startOffset": 7639, "endOffset": 8162, "count": 6 },
+            { "startOffset": 7758, "endOffset": 7783, "count": 1 },
+            { "startOffset": 7785, "endOffset": 7927, "count": 1 },
+            { "startOffset": 7825, "endOffset": 7921, "count": 2 },
+            { "startOffset": 7879, "endOffset": 7913, "count": 0 },
+            { "startOffset": 7968, "endOffset": 8036, "count": 3 },
+            { "startOffset": 8036, "endOffset": 8066, "count": 2 },
+            { "startOffset": 8066, "endOffset": 8127, "count": 1 },
+            { "startOffset": 8127, "endOffset": 8161, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "designTechStack",
+          "ranges": [
+            { "startOffset": 8200, "endOffset": 9390, "count": 7 },
+            { "startOffset": 8311, "endOffset": 8695, "count": 3 },
+            { "startOffset": 8373, "endOffset": 8390, "count": 1 },
+            { "startOffset": 8488, "endOffset": 8498, "count": 2 },
+            { "startOffset": 8745, "endOffset": 9038, "count": 2 },
+            { "startOffset": 9089, "endOffset": 9364, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [
+            { "startOffset": 8402, "endOffset": 8477, "count": 1 },
+            { "startOffset": 8443, "endOffset": 8477, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "identifyRisks",
+          "ranges": [
+            { "startOffset": 9439, "endOffset": 10328, "count": 7 },
+            { "startOffset": 9533, "endOffset": 9830, "count": 0 },
+            { "startOffset": 9873, "endOffset": 10306, "count": 3 },
+            { "startOffset": 9931, "endOffset": 9975, "count": 2 },
+            { "startOffset": 9977, "endOffset": 10300, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generateDocumentation",
+          "ranges": [
+            { "startOffset": 10371, "endOffset": 12288, "count": 7 },
+            { "startOffset": 11305, "endOffset": 11357, "count": 0 },
+            { "startOffset": 11576, "endOffset": 11638, "count": 0 },
+            { "startOffset": 11912, "endOffset": 11931, "count": 5 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 10875, "endOffset": 10932, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 11078, "endOffset": 11156, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 11739, "endOffset": 11801, "count": 2 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 11884, "endOffset": 11899, "count": 3 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 11990, "endOffset": 12113, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generateRecommendations",
+          "ranges": [
+            { "startOffset": 12333, "endOffset": 12863, "count": 7 },
+            { "startOffset": 12736, "endOffset": 12831, "count": 1 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "generateNextSteps",
+          "ranges": [{ "startOffset": 12903, "endOffset": 13230, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getSystemPrompt",
+          "ranges": [
+            { "startOffset": 13294, "endOffset": 13428, "count": 1 },
+            { "startOffset": 13370, "endOffset": 13423, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getSupportedCapabilities",
+          "ranges": [{ "startOffset": 13476, "endOffset": 13558, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 13663, "endOffset": 13693, "count": 11 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "2131",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/agents/observable-agent.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 32005, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 32005, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 384, "endOffset": 8667, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "ObservableAgent",
+          "ranges": [
+            { "startOffset": 613, "endOffset": 1290, "count": 10 },
+            { "startOffset": 761, "endOffset": 771, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "logPhaseStart",
+          "ranges": [{ "startOffset": 1512, "endOffset": 1724, "count": 21 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "logPhaseEnd",
+          "ranges": [
+            { "startOffset": 1763, "endOffset": 2101, "count": 21 },
+            { "startOffset": 1964, "endOffset": 1972, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "logTaskStart",
+          "ranges": [{ "startOffset": 2141, "endOffset": 2346, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "logTaskEnd",
+          "ranges": [
+            { "startOffset": 2384, "endOffset": 2754, "count": 7 },
+            { "startOffset": 2581, "endOffset": 2589, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "logToolStart",
+          "ranges": [{ "startOffset": 2981, "endOffset": 3146, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logToolEnd",
+          "ranges": [{ "startOffset": 3202, "endOffset": 3350, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logToolBlocked",
+          "ranges": [{ "startOffset": 3407, "endOffset": 3509, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logToolSimple",
+          "ranges": [{ "startOffset": 3572, "endOffset": 3827, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "startAssertionChain",
+          "ranges": [{ "startOffset": 4070, "endOffset": 4229, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "endAssertionChain",
+          "ranges": [{ "startOffset": 4285, "endOffset": 4376, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertFileCreated",
+          "ranges": [{ "startOffset": 4422, "endOffset": 4580, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertFileModified",
+          "ranges": [{ "startOffset": 4627, "endOffset": 4787, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertFileDeleted",
+          "ranges": [{ "startOffset": 4833, "endOffset": 4991, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertTypescriptCompiles",
+          "ranges": [{ "startOffset": 5048, "endOffset": 5194, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertLintPasses",
+          "ranges": [{ "startOffset": 5236, "endOffset": 5366, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertTestsPass",
+          "ranges": [{ "startOffset": 5404, "endOffset": 5556, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertCustom",
+          "ranges": [{ "startOffset": 5611, "endOffset": 5839, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertManual",
+          "ranges": [{ "startOffset": 5892, "endOffset": 6134, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logError",
+          "ranges": [{ "startOffset": 6370, "endOffset": 6553, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logDiscovery",
+          "ranges": [{ "startOffset": 6820, "endOffset": 7182, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logLockAcquire",
+          "ranges": [{ "startOffset": 7421, "endOffset": 7781, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logLockRelease",
+          "ranges": [{ "startOffset": 7832, "endOffset": 8150, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logCheckpoint",
+          "ranges": [{ "startOffset": 8194, "endOffset": 8427, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "close",
+          "ranges": [{ "startOffset": 8646, "endOffset": 8665, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 8771, "endOffset": 8802, "count": 1 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "2132",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/index.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 11266, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 11266, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 454, "endOffset": 504, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 609, "endOffset": 660, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1058, "endOffset": 1114, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1226, "endOffset": 1284, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1391, "endOffset": 1444, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1558, "endOffset": 1618, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1734, "endOffset": 1796, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1903, "endOffset": 1956, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2067, "endOffset": 2124, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2385, "endOffset": 2439, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2692, "endOffset": 2743, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3007, "endOffset": 3062, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3342, "endOffset": 3396, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3504, "endOffset": 3558, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 3842, "endOffset": 3897, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4006, "endOffset": 4061, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4334, "endOffset": 4386, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4492, "endOffset": 4544, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4824, "endOffset": 4878, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4986, "endOffset": 5040, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5304, "endOffset": 5354, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5458, "endOffset": 5508, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5810, "endOffset": 5870, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5983, "endOffset": 6043, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6329, "endOffset": 6385, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6494, "endOffset": 6550, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6857, "endOffset": 6922, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 7033, "endOffset": 7091, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "2133",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/transcript-writer.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 18948, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 18948, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 563, "endOffset": 4999, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "TranscriptWriter",
+          "ranges": [
+            { "startOffset": 646, "endOffset": 879, "count": 10 },
+            { "startOffset": 864, "endOffset": 874, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "write",
+          "ranges": [
+            { "startOffset": 924, "endOffset": 2728, "count": 56 },
+            { "startOffset": 1585, "endOffset": 1592, "count": 42 },
+            { "startOffset": 1808, "endOffset": 1814, "count": 0 },
+            { "startOffset": 1843, "endOffset": 1850, "count": 45 },
+            { "startOffset": 1869, "endOffset": 2046, "count": 0 },
+            { "startOffset": 2121, "endOffset": 2128, "count": 0 },
+            { "startOffset": 2277, "endOffset": 2284, "count": 0 },
+            { "startOffset": 2398, "endOffset": 2405, "count": 0 }
+          ],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "writePhaseStart",
+          "ranges": [{ "startOffset": 2774, "endOffset": 3008, "count": 21 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "writePhaseEnd",
+          "ranges": [{ "startOffset": 3052, "endOffset": 3314, "count": 21 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "writeTaskStart",
+          "ranges": [{ "startOffset": 3359, "endOffset": 3634, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "writeTaskEnd",
+          "ranges": [{ "startOffset": 3677, "endOffset": 3962, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "writeError",
+          "ranges": [{ "startOffset": 4003, "endOffset": 4248, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "writeDiscovery",
+          "ranges": [{ "startOffset": 4292, "endOffset": 4597, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "writeCheckpoint",
+          "ranges": [{ "startOffset": 4642, "endOffset": 4904, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getSequence",
+          "ranges": [{ "startOffset": 4952, "endOffset": 4997, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5104, "endOffset": 5136, "count": 10 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "2134",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/tool-use-logger.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 20188, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 20188, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 828, "endOffset": 5960, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "ToolUseLogger",
+          "ranges": [{ "startOffset": 885, "endOffset": 960, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "categorize",
+          "ranges": [{ "startOffset": 1013, "endOffset": 1091, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "summarize",
+          "ranges": [{ "startOffset": 1158, "endOffset": 1400, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logStart",
+          "ranges": [{ "startOffset": 1449, "endOffset": 3259, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logEnd",
+          "ranges": [{ "startOffset": 3313, "endOffset": 4645, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logBlocked",
+          "ranges": [{ "startOffset": 4702, "endOffset": 5656, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logSimple",
+          "ranges": [{ "startOffset": 5719, "endOffset": 5958, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6062, "endOffset": 6091, "count": 10 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "2135",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/assertion-recorder.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 37769, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 37769, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "<instance_members_initializer>",
+          "ranges": [{ "startOffset": 1040, "endOffset": 11129, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "AssertionRecorder",
+          "ranges": [{ "startOffset": 1189, "endOffset": 1418, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "startChain",
+          "ranges": [{ "startOffset": 1463, "endOffset": 2346, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "endChain",
+          "ranges": [{ "startOffset": 2403, "endOffset": 3407, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "recordAssertion",
+          "ranges": [{ "startOffset": 3460, "endOffset": 5595, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertFileCreated",
+          "ranges": [{ "startOffset": 5641, "endOffset": 6156, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertFileModified",
+          "ranges": [{ "startOffset": 6212, "endOffset": 6730, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertFileDeleted",
+          "ranges": [{ "startOffset": 6793, "endOffset": 7309, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertTypescriptCompiles",
+          "ranges": [{ "startOffset": 7366, "endOffset": 8195, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertLintPasses",
+          "ranges": [{ "startOffset": 8237, "endOffset": 9025, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertTestsPass",
+          "ranges": [{ "startOffset": 9063, "endOffset": 9923, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertCustom",
+          "ranges": [{ "startOffset": 9978, "endOffset": 10787, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "assertManual",
+          "ranges": [{ "startOffset": 10840, "endOffset": 11127, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 11235, "endOffset": 11268, "count": 10 }],
+          "isBlockCoverage": true
+        }
+      ]
+    },
+    {
+      "scriptId": "2136",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/execution-service.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 31447, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 31447, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "listExecutions",
+          "ranges": [{ "startOffset": 554, "endOffset": 2664, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getExecution",
+          "ranges": [{ "startOffset": 2730, "endOffset": 3432, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "enrichExecutionStats",
+          "ranges": [{ "startOffset": 3490, "endOffset": 5482, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getRecentExecutions",
+          "ranges": [{ "startOffset": 5539, "endOffset": 6277, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getExecutionStats",
+          "ranges": [{ "startOffset": 6332, "endOffset": 7195, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "emitWaveStatus",
+          "ranges": [{ "startOffset": 7444, "endOffset": 7714, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "emitAgentHeartbeat",
+          "ranges": [{ "startOffset": 7964, "endOffset": 8204, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "emitExecutionStatus",
+          "ranges": [{ "startOffset": 8463, "endOffset": 8615, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "updateExecutionStatus",
+          "ranges": [{ "startOffset": 8682, "endOffset": 9372, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 9479, "endOffset": 9511, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 9668, "endOffset": 9700, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "2137",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/transcript-service.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 17585, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 17585, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getTranscript",
+          "ranges": [{ "startOffset": 401, "endOffset": 3190, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getEntry",
+          "ranges": [{ "startOffset": 3247, "endOffset": 3968, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mapRow",
+          "ranges": [{ "startOffset": 4025, "endOffset": 4665, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "parseJson",
+          "ranges": [{ "startOffset": 4711, "endOffset": 4840, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4948, "endOffset": 4981, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5141, "endOffset": 5174, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "2138",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/tool-use-service.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 37036, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 37036, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getToolUses",
+          "ranges": [{ "startOffset": 389, "endOffset": 3454, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getToolUse",
+          "ranges": [{ "startOffset": 3503, "endOffset": 4546, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getToolSummary",
+          "ranges": [{ "startOffset": 4607, "endOffset": 9393, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mapRow",
+          "ranges": [{ "startOffset": 9442, "endOffset": 10318, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "parseJson",
+          "ranges": [{ "startOffset": 10364, "endOffset": 10493, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 10598, "endOffset": 10628, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 10779, "endOffset": 10809, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "2139",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/assertion-service.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 30664, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 30664, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getAssertions",
+          "ranges": [{ "startOffset": 392, "endOffset": 2464, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getAssertion",
+          "ranges": [{ "startOffset": 2514, "endOffset": 3004, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getAssertionSummary",
+          "ranges": [{ "startOffset": 3064, "endOffset": 5955, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getChains",
+          "ranges": [{ "startOffset": 6018, "endOffset": 7943, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mapRow",
+          "ranges": [{ "startOffset": 8000, "endOffset": 8482, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "parseJson",
+          "ranges": [{ "startOffset": 8528, "endOffset": 8657, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 8764, "endOffset": 8796, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 8953, "endOffset": 8985, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "2140",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/skill-service.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 33791, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 33791, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getSkillTraces",
+          "ranges": [{ "startOffset": 647, "endOffset": 2663, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getSkillTrace",
+          "ranges": [{ "startOffset": 2715, "endOffset": 3302, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getSkillsSummary",
+          "ranges": [{ "startOffset": 3365, "endOffset": 6721, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logStart",
+          "ranges": [{ "startOffset": 6997, "endOffset": 8076, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "logEnd",
+          "ranges": [{ "startOffset": 8131, "endOffset": 8962, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mapRow",
+          "ranges": [{ "startOffset": 9197, "endOffset": 9869, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "parseJson",
+          "ranges": [{ "startOffset": 9915, "endOffset": 10044, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 10147, "endOffset": 10175, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 10320, "endOffset": 10348, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "2141",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/cross-reference-service.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 51546, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 51546, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getCrossReferences",
+          "ranges": [{ "startOffset": 391, "endOffset": 1207, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getToolUseCrossRefs",
+          "ranges": [{ "startOffset": 1264, "endOffset": 2167, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getAssertionCrossRefs",
+          "ranges": [{ "startOffset": 2226, "endOffset": 4111, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getSkillTraceCrossRefs",
+          "ranges": [{ "startOffset": 4171, "endOffset": 5732, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getTranscriptEntryCrossRefs",
+          "ranges": [{ "startOffset": 5797, "endOffset": 7688, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getRelatedEntities",
+          "ranges": [{ "startOffset": 7743, "endOffset": 10936, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mapTranscriptEntry",
+          "ranges": [{ "startOffset": 10993, "endOffset": 11645, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mapToolUse",
+          "ranges": [{ "startOffset": 11694, "endOffset": 12498, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mapAssertion",
+          "ranges": [{ "startOffset": 12555, "endOffset": 13043, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mapSkillTrace",
+          "ranges": [{ "startOffset": 13095, "endOffset": 13774, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "parseJson",
+          "ranges": [{ "startOffset": 13820, "endOffset": 13949, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 14061, "endOffset": 14098, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 14270, "endOffset": 14307, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "2142",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/server/services/observability/message-bus-service.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 33368, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 33368, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "getLogs",
+          "ranges": [{ "startOffset": 639, "endOffset": 2973, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getCorrelatedEvents",
+          "ranges": [{ "startOffset": 3034, "endOffset": 4142, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "getSummary",
+          "ranges": [{ "startOffset": 4204, "endOffset": 6826, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "log",
+          "ranges": [{ "startOffset": 7088, "endOffset": 8840, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "mapRow",
+          "ranges": [{ "startOffset": 9083, "endOffset": 9588, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "parseJson",
+          "ranges": [{ "startOffset": 9634, "endOffset": 9763, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 9871, "endOffset": 9904, "count": 0 }],
+          "isBlockCoverage": false
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 10064, "endOffset": 10097, "count": 0 }],
+          "isBlockCoverage": false
+        }
+      ]
+    },
+    {
+      "scriptId": "2143",
+      "url": "file:///home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator/agents/architect/prompts.ts",
+      "functions": [
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 0, "endOffset": 26599, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 13, "endOffset": 26599, "count": 1 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 1834, "endOffset": 1878, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 2908, "endOffset": 2947, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 4023, "endOffset": 4065, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 5275, "endOffset": 5310, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 6347, "endOffset": 6385, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 7427, "endOffset": 7465, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 8439, "endOffset": 8485, "count": 10 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 9198, "endOffset": 9239, "count": 7 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "formatComponentAsMarkdown",
+          "ranges": [{ "startOffset": 9243, "endOffset": 9653, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 9442, "endOffset": 9457, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 9767, "endOffset": 9808, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "formatTechChoiceAsMarkdown",
+          "ranges": [{ "startOffset": 9812, "endOffset": 10083, "count": 6 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "",
+          "ranges": [{ "startOffset": 10050, "endOffset": 10065, "count": 12 }],
+          "isBlockCoverage": true
+        },
+        {
+          "functionName": "get",
+          "ranges": [{ "startOffset": 10198, "endOffset": 10240, "count": 6 }],
+          "isBlockCoverage": true
+        }
+      ]
+    }
+  ]
+}

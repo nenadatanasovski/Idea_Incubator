@@ -51,7 +51,9 @@ export function UnifiedIdeaPage() {
   const { ideaId } = useParams<{ ideaId: string }>();
 
   // State
-  const [pipelineState, setPipelineState] = useState<PipelineState | null>(null);
+  const [pipelineState, setPipelineState] = useState<PipelineState | null>(
+    null,
+  );
   const [session, setSession] = useState<IdeationSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,23 +92,29 @@ export function UnifiedIdeaPage() {
       setIsLoading(true);
       try {
         // Try to get existing session
-        const sessionsRes = await fetch(`/api/ideation/sessions?ideaId=${ideaId}`);
+        const sessionsRes = await fetch(
+          `/api/ideation/sessions?ideaId=${ideaId}`,
+        );
         if (sessionsRes.ok) {
           const sessions = await sessionsRes.json();
           if (sessions.length > 0) {
             const latestSession = sessions[0];
             setSession(latestSession);
-            
+
             // Load messages
-            const messagesRes = await fetch(`/api/ideation/sessions/${latestSession.id}/messages`);
+            const messagesRes = await fetch(
+              `/api/ideation/sessions/${latestSession.id}/messages`,
+            );
             if (messagesRes.ok) {
               const msgs = await messagesRes.json();
-              setMessages(msgs.map((m: any) => ({
-                id: m.id,
-                role: m.role,
-                content: m.content,
-                timestamp: new Date(m.created_at),
-              })));
+              setMessages(
+                msgs.map((m: any) => ({
+                  id: m.id,
+                  role: m.role,
+                  content: m.content,
+                  timestamp: new Date(m.created_at),
+                })),
+              );
             }
           }
         }
@@ -122,52 +130,58 @@ export function UnifiedIdeaPage() {
   }, [ideaId]);
 
   // Send message to ideation agent
-  const handleSendMessage = useCallback(async (content: string) => {
-    if (!session?.id) {
-      setError("No active session");
-      return;
-    }
-
-    // Add user message immediately
-    const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      content,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMessage]);
-    setIsStreaming(true);
-    setAgentActivity("Processing your message...");
-
-    try {
-      const response = await fetch(`/api/ideation/sessions/${session.id}/message`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Add assistant response
-        const assistantMessage: ChatMessage = {
-          id: data.messageId || `assistant-${Date.now()}`,
-          role: "assistant",
-          content: data.content || data.message,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
-      } else {
-        setError("Failed to send message");
+  const handleSendMessage = useCallback(
+    async (content: string) => {
+      if (!session?.id) {
+        setError("No active session");
+        return;
       }
-    } catch (err) {
-      console.error("Failed to send message:", err);
-      setError("Failed to send message");
-    } finally {
-      setIsStreaming(false);
-      setAgentActivity(undefined);
-    }
-  }, [session]);
+
+      // Add user message immediately
+      const userMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        role: "user",
+        content,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+      setIsStreaming(true);
+      setAgentActivity("Processing your message...");
+
+      try {
+        const response = await fetch(
+          `/api/ideation/sessions/${session.id}/message`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content }),
+          },
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+
+          // Add assistant response
+          const assistantMessage: ChatMessage = {
+            id: data.messageId || `assistant-${Date.now()}`,
+            role: "assistant",
+            content: data.content || data.message,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, assistantMessage]);
+        } else {
+          setError("Failed to send message");
+        }
+      } catch (err) {
+        console.error("Failed to send message:", err);
+        setError("Failed to send message");
+      } finally {
+        setIsStreaming(false);
+        setAgentActivity(undefined);
+      }
+    },
+    [session],
+  );
 
   // Start new session
   const handleStartSession = useCallback(async () => {
@@ -184,11 +198,13 @@ export function UnifiedIdeaPage() {
       if (response.ok) {
         const newSession = await response.json();
         setSession(newSession);
-        setMessages([{
-          id: "welcome",
-          role: "system",
-          content: "Session started. Share your idea!",
-        }]);
+        setMessages([
+          {
+            id: "welcome",
+            role: "system",
+            content: "Session started. Share your idea!",
+          },
+        ]);
       }
     } catch (err) {
       console.error("Failed to start session:", err);
@@ -215,10 +231,16 @@ export function UnifiedIdeaPage() {
   // Render no session state
   if (!session && !isLoading) {
     return (
-      <UnifiedLayout ideaId={ideaId} currentPhase={pipelineState?.currentPhase} showChat={false}>
+      <UnifiedLayout
+        ideaId={ideaId}
+        currentPhase={pipelineState?.currentPhase}
+        showChat={false}
+      >
         <div className="h-full flex items-center justify-center">
           <div className="text-center max-w-md">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">No Active Session</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              No Active Session
+            </h2>
             <p className="text-gray-600 mb-4">
               Start a new ideation session to develop this idea.
             </p>
@@ -278,7 +300,9 @@ export function UnifiedIdeaPage() {
     if (!session?.id) {
       return (
         <div className="h-full flex items-center justify-center bg-gray-50">
-          <p className="text-gray-500">Start a session to see the memory graph</p>
+          <p className="text-gray-500">
+            Start a session to see the memory graph
+          </p>
         </div>
       );
     }
@@ -308,7 +332,7 @@ export function UnifiedIdeaPage() {
 
     return (
       <div className="h-full overflow-auto p-4">
-        <SimpleArtifactList 
+        <SimpleArtifactList
           artifacts={sessionData.artifacts}
           isLoading={sessionData.isLoading}
         />

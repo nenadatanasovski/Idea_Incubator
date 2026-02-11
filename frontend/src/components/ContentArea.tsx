@@ -12,12 +12,12 @@ import type { IdeaPhase } from "./UnifiedLayout";
 const SpecificationView = lazy(() => import("./spec/SpecificationView"));
 const BuildProgressView = lazy(() => import("./build/BuildProgressView"));
 
-export type ContentTab = 
-  | "graph" 
-  | "artifacts" 
-  | "spec" 
+export type ContentTab =
+  | "graph"
+  | "artifacts"
+  | "spec"
   | "build"
-  | "tasks" 
+  | "tasks"
   | "evaluation"
   | "pipeline";
 
@@ -95,9 +95,9 @@ export function ContentArea({
 }: ContentAreaProps) {
   const availableTabs = getTabsForPhase(phase);
   const [activeTab, setActiveTab] = useState<ContentTab>(
-    defaultTab && availableTabs.includes(defaultTab) 
-      ? defaultTab 
-      : availableTabs[0]
+    defaultTab && availableTabs.includes(defaultTab)
+      ? defaultTab
+      : availableTabs[0],
   );
 
   // Render the active tab content
@@ -106,15 +106,23 @@ export function ContentArea({
       case "graph":
         return renderGraph ? renderGraph() : <TabPlaceholder tab="graph" />;
       case "artifacts":
-        return renderArtifacts ? renderArtifacts() : <TabPlaceholder tab="artifacts" />;
+        return renderArtifacts ? (
+          renderArtifacts()
+        ) : (
+          <TabPlaceholder tab="artifacts" />
+        );
       case "spec":
-        return renderSpec ? renderSpec() : (
+        return renderSpec ? (
+          renderSpec()
+        ) : (
           <Suspense fallback={<LoadingFallback />}>
             <SpecificationView ideaId={ideaId} />
           </Suspense>
         );
       case "build":
-        return renderBuild ? renderBuild() : (
+        return renderBuild ? (
+          renderBuild()
+        ) : (
           <Suspense fallback={<LoadingFallback />}>
             <BuildProgressView ideaId={ideaId} />
           </Suspense>
@@ -122,9 +130,17 @@ export function ContentArea({
       case "tasks":
         return renderTasks ? renderTasks() : <TabPlaceholder tab="tasks" />;
       case "evaluation":
-        return renderEvaluation ? renderEvaluation() : <TabPlaceholder tab="evaluation" />;
+        return renderEvaluation ? (
+          renderEvaluation()
+        ) : (
+          <TabPlaceholder tab="evaluation" />
+        );
       case "pipeline":
-        return renderPipeline ? renderPipeline() : <PipelineStatus ideaId={ideaId} />;
+        return renderPipeline ? (
+          renderPipeline()
+        ) : (
+          <PipelineStatus ideaId={ideaId} />
+        );
       default:
         return null;
     }
@@ -142,7 +158,7 @@ export function ContentArea({
               "px-3 py-1.5 rounded-md text-sm font-medium transition",
               activeTab === tab
                 ? "bg-primary-100 text-primary-700"
-                : "text-gray-600 hover:bg-gray-100"
+                : "text-gray-600 hover:bg-gray-100",
             )}
           >
             {TAB_CONFIG[tab].label}
@@ -151,9 +167,7 @@ export function ContentArea({
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-auto">
-        {renderTabContent()}
-      </div>
+      <div className="flex-1 overflow-auto">{renderTabContent()}</div>
     </div>
   );
 }

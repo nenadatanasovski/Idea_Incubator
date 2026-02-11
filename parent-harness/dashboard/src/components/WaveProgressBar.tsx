@@ -1,12 +1,12 @@
 /**
  * WaveProgressBar Component
- * 
+ *
  * Horizontal timeline showing wave progression with completion status.
  * Ported from Vibe Platform for parent-harness dashboard.
  */
 
-import type { Wave } from '../types/pipeline';
-import { WAVE_STATUS_CONFIG } from '../types/pipeline';
+import type { Wave } from "../types/pipeline";
+import { WAVE_STATUS_CONFIG } from "../types/pipeline";
 
 interface WaveProgressBarProps {
   waves: Wave[];
@@ -54,11 +54,11 @@ export function WaveProgressBar({
               className={`
                 relative flex-1 min-w-[120px] p-2 rounded-md cursor-pointer
                 transition-all duration-200
-                ${isSelected ? 'ring-2 ring-blue-500' : ''}
-                ${isActive ? 'bg-blue-900/50' : ''}
-                ${wave.status === 'complete' ? 'bg-green-900/30' : ''}
-                ${wave.status === 'active' ? 'bg-blue-900/30' : ''}
-                ${wave.status === 'pending' ? 'bg-gray-700' : ''}
+                ${isSelected ? "ring-2 ring-blue-500" : ""}
+                ${isActive ? "bg-blue-900/50" : ""}
+                ${wave.status === "complete" ? "bg-green-900/30" : ""}
+                ${wave.status === "active" ? "bg-blue-900/30" : ""}
+                ${wave.status === "pending" ? "bg-gray-700" : ""}
                 hover:bg-gray-600
               `}
               onClick={() => onWaveClick?.(wave.waveNumber)}
@@ -88,10 +88,10 @@ export function WaveProgressBar({
                 <span className={config.color}>
                   {wave.tasksCompleted}/{wave.tasksTotal}
                 </span>
-                {wave.status === 'complete' && (
+                {wave.status === "complete" && (
                   <span className="text-green-400">✓</span>
                 )}
-                {wave.status === 'active' && wave.tasksRunning > 0 && (
+                {wave.status === "active" && wave.tasksRunning > 0 && (
                   <span className="text-blue-400">⚡ {wave.tasksRunning}</span>
                 )}
                 {wave.tasksBlocked > 0 && (
@@ -115,7 +115,12 @@ export function WaveProgressBar({
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             )}
           </div>
@@ -158,10 +163,10 @@ export function WaveProgressCompact({
               key={wave.id}
               className={`
                 flex-1 h-2 rounded-full
-                ${wave.status === 'complete' ? 'bg-green-500' : ''}
-                ${wave.status === 'active' ? 'bg-blue-500' : ''}
-                ${wave.status === 'pending' ? 'bg-gray-600' : ''}
-                ${isActive ? 'ring-2 ring-blue-400 ring-offset-1 ring-offset-gray-900' : ''}
+                ${wave.status === "complete" ? "bg-green-500" : ""}
+                ${wave.status === "active" ? "bg-blue-500" : ""}
+                ${wave.status === "pending" ? "bg-gray-600" : ""}
+                ${isActive ? "ring-2 ring-blue-400 ring-offset-1 ring-offset-gray-900" : ""}
               `}
               title={`Wave ${wave.waveNumber}: ${wave.tasksCompleted}/${wave.tasksTotal}`}
             />

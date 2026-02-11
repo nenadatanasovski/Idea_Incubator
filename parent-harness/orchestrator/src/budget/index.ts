@@ -1,6 +1,6 @@
 /**
  * Budget & Rate Limiting System
- * 
+ *
  * Tracks token usage and enforces daily/monthly caps:
  * - Per-agent token tracking
  * - Daily/monthly limits
@@ -8,20 +8,20 @@
  * - Usage alerts
  */
 
-import { run, query, getOne } from '../db/index.js';
-import { notify } from '../telegram/index.js';
-import { events } from '../db/events.js';
-import { ws } from '../websocket.js';
-import { v4 as uuidv4 } from 'uuid';
+import { run, query, getOne } from "../db/index.js";
+import { notify } from "../telegram/index.js";
+import { events } from "../db/events.js";
+import { ws } from "../websocket.js";
+import { v4 as uuidv4 } from "uuid";
 
 // Track which thresholds have been alerted (reset daily)
 const alertedThresholds = {
   daily: new Set<number>(),
-  lastResetDate: new Date().toISOString().split('T')[0],
+  lastResetDate: new Date().toISOString().split("T")[0],
 };
 
 function resetAlertedThresholdsIfNewDay(): void {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split("T")[0];
   if (alertedThresholds.lastResetDate !== today) {
     alertedThresholds.daily.clear();
     alertedThresholds.lastResetDate = today;
@@ -31,16 +31,17 @@ function resetAlertedThresholdsIfNewDay(): void {
 }
 
 // Model pricing (per 1M tokens)
-export const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  'claude-opus-4-5': { input: 15, output: 75 },
-  'claude-sonnet-4-5': { input: 3, output: 15 },
-  'claude-3-opus': { input: 15, output: 75 },
-  'claude-3-sonnet': { input: 3, output: 15 },
-  'claude-3-haiku': { input: 0.25, output: 1.25 },
-  'sonnet': { input: 3, output: 15 },
-  'opus': { input: 15, output: 75 },
-  'haiku': { input: 0.25, output: 1.25 },
-};
+export const MODEL_PRICING: Record<string, { input: number; output: number }> =
+  {
+    "claude-opus-4-5": { input: 15, output: 75 },
+    "claude-sonnet-4-5": { input: 3, output: 15 },
+    "claude-3-opus": { input: 15, output: 75 },
+    "claude-3-sonnet": { input: 3, output: 15 },
+    "claude-3-haiku": { input: 0.25, output: 1.25 },
+    sonnet: { input: 3, output: 15 },
+    opus: { input: 15, output: 75 },
+    haiku: { input: 0.25, output: 1.25 },
+  };
 
 // Default limits
 const DEFAULT_DAILY_LIMIT_USD = 50;
@@ -75,7 +76,8 @@ export interface BudgetConfig {
 
 // Ensure budget tables exist
 function ensureBudgetTables(): void {
-  run(`
+  run(
+    `
     CREATE TABLE IF NOT EXISTS token_usage (
       id TEXT PRIMARY KEY,
       agent_id TEXT NOT NULL,
@@ -87,9 +89,12 @@ function ensureBudgetTables(): void {
       cost_usd REAL NOT NULL,
       created_at TEXT DEFAULT (datetime('now'))
     )
-  `, []);
+  `,
+    [],
+  );
 
-  run(`
+  run(
+    `
     CREATE TABLE IF NOT EXISTS budget_config (
       id TEXT PRIMARY KEY DEFAULT 'global',
       daily_limit_usd REAL DEFAULT ${DEFAULT_DAILY_LIMIT_USD},
@@ -97,10 +102,18 @@ function ensureBudgetTables(): void {
       warning_threshold_percent INTEGER DEFAULT ${WARNING_THRESHOLD_PERCENT},
       updated_at TEXT DEFAULT (datetime('now'))
     )
-  `, []);
+  `,
+    [],
+  );
 
-  run(`CREATE INDEX IF NOT EXISTS idx_token_usage_agent ON token_usage(agent_id)`, []);
-  run(`CREATE INDEX IF NOT EXISTS idx_token_usage_date ON token_usage(created_at)`, []);
+  run(
+    `CREATE INDEX IF NOT EXISTS idx_token_usage_agent ON token_usage(agent_id)`,
+    [],
+  );
+  run(
+    `CREATE INDEX IF NOT EXISTS idx_token_usage_date ON token_usage(created_at)`,
+    [],
+  );
 
   // Ensure default config exists
   run(`
@@ -113,8 +126,12 @@ ensureBudgetTables();
 /**
  * Calculate cost for token usage
  */
-export function calculateCost(model: string, inputTokens: number, outputTokens: number): number {
-  const pricing = MODEL_PRICING[model] || MODEL_PRICING['sonnet'];
+export function calculateCost(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+): number {
+  const pricing = MODEL_PRICING[model] || MODEL_PRICING["sonnet"];
   const inputCost = (inputTokens / 1_000_000) * pricing.input;
   const outputCost = (outputTokens / 1_000_000) * pricing.output;
   return inputCost + outputCost;
@@ -128,24 +145,27 @@ export function recordUsage(
   model: string,
   inputTokens: number,
   outputTokens: number,
-  options?: { sessionId?: string; taskId?: string }
+  options?: { sessionId?: string; taskId?: string },
 ): TokenUsage {
   const id = uuidv4();
   const costUsd = calculateCost(model, inputTokens, outputTokens);
 
-  run(`
+  run(
+    `
     INSERT INTO token_usage (id, agent_id, session_id, task_id, model, input_tokens, output_tokens, cost_usd)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `, [
-    id,
-    agentId,
-    options?.sessionId || null,
-    options?.taskId || null,
-    model,
-    inputTokens,
-    outputTokens,
-    costUsd,
-  ]);
+  `,
+    [
+      id,
+      agentId,
+      options?.sessionId || null,
+      options?.taskId || null,
+      model,
+      inputTokens,
+      outputTokens,
+      costUsd,
+    ],
+  );
 
   // Check budget after recording
   checkBudgetWarnings();
@@ -161,7 +181,9 @@ export function recordUsage(
       percent: (daily.totalCostUsd / cfg.dailyLimitUsd) * 100,
       cost_usd: daily.totalCostUsd,
     });
-  } catch { /* ignore broadcast errors */ }
+  } catch {
+    /* ignore broadcast errors */
+  }
 
   return {
     id,
@@ -180,12 +202,15 @@ export function recordUsage(
  * Get daily usage
  */
 export function getDailyUsage(date?: string): UsageSummary {
-  const targetDate = date || new Date().toISOString().split('T')[0];
-  
-  const usage = query<TokenUsage>(`
+  const targetDate = date || new Date().toISOString().split("T")[0];
+
+  const usage = query<TokenUsage>(
+    `
     SELECT * FROM token_usage 
     WHERE date(created_at) = date(?)
-  `, [targetDate]);
+  `,
+    [targetDate],
+  );
 
   return summarizeUsage(usage);
 }
@@ -197,12 +222,15 @@ export function getMonthlyUsage(year?: number, month?: number): UsageSummary {
   const now = new Date();
   const targetYear = year || now.getFullYear();
   const targetMonth = month || now.getMonth() + 1;
-  
-  const usage = query<TokenUsage>(`
+
+  const usage = query<TokenUsage>(
+    `
     SELECT * FROM token_usage 
     WHERE strftime('%Y', created_at) = ? 
       AND strftime('%m', created_at) = ?
-  `, [String(targetYear), String(targetMonth).padStart(2, '0')]);
+  `,
+    [String(targetYear), String(targetMonth).padStart(2, "0")],
+  );
 
   return summarizeUsage(usage);
 }
@@ -211,11 +239,14 @@ export function getMonthlyUsage(year?: number, month?: number): UsageSummary {
  * Get agent usage
  */
 export function getAgentUsage(agentId: string, days: number = 7): UsageSummary {
-  const usage = query<TokenUsage>(`
+  const usage = query<TokenUsage>(
+    `
     SELECT * FROM token_usage 
     WHERE agent_id = ? 
       AND created_at > datetime('now', '-${days} days')
-  `, [agentId]);
+  `,
+    [agentId],
+  );
 
   return summarizeUsage(usage);
 }
@@ -241,14 +272,16 @@ function summarizeUsage(usage: TokenUsage[]): UsageSummary {
     if (!summary.byAgent[record.agent_id]) {
       summary.byAgent[record.agent_id] = { tokens: 0, costUsd: 0 };
     }
-    summary.byAgent[record.agent_id].tokens += record.input_tokens + record.output_tokens;
+    summary.byAgent[record.agent_id].tokens +=
+      record.input_tokens + record.output_tokens;
     summary.byAgent[record.agent_id].costUsd += record.cost_usd;
 
     // By model
     if (!summary.byModel[record.model]) {
       summary.byModel[record.model] = { tokens: 0, costUsd: 0 };
     }
-    summary.byModel[record.model].tokens += record.input_tokens + record.output_tokens;
+    summary.byModel[record.model].tokens +=
+      record.input_tokens + record.output_tokens;
     summary.byModel[record.model].costUsd += record.cost_usd;
   }
 
@@ -263,12 +296,13 @@ export function getBudgetConfig(): BudgetConfig {
     daily_limit_usd: number;
     monthly_limit_usd: number;
     warning_threshold_percent: number;
-  }>('SELECT * FROM budget_config WHERE id = ?', ['global']);
+  }>("SELECT * FROM budget_config WHERE id = ?", ["global"]);
 
   return {
     dailyLimitUsd: config?.daily_limit_usd || DEFAULT_DAILY_LIMIT_USD,
     monthlyLimitUsd: config?.monthly_limit_usd || DEFAULT_MONTHLY_LIMIT_USD,
-    warningThresholdPercent: config?.warning_threshold_percent || WARNING_THRESHOLD_PERCENT,
+    warningThresholdPercent:
+      config?.warning_threshold_percent || WARNING_THRESHOLD_PERCENT,
   };
 }
 
@@ -276,30 +310,35 @@ export function getBudgetConfig(): BudgetConfig {
  * Update budget config
  */
 export function updateBudgetConfig(updates: Partial<BudgetConfig>): void {
-  const sets: string[] = ['updated_at = datetime(\'now\')'];
+  const sets: string[] = ["updated_at = datetime('now')"];
   const params: unknown[] = [];
 
   if (updates.dailyLimitUsd !== undefined) {
-    sets.push('daily_limit_usd = ?');
+    sets.push("daily_limit_usd = ?");
     params.push(updates.dailyLimitUsd);
   }
   if (updates.monthlyLimitUsd !== undefined) {
-    sets.push('monthly_limit_usd = ?');
+    sets.push("monthly_limit_usd = ?");
     params.push(updates.monthlyLimitUsd);
   }
   if (updates.warningThresholdPercent !== undefined) {
-    sets.push('warning_threshold_percent = ?');
+    sets.push("warning_threshold_percent = ?");
     params.push(updates.warningThresholdPercent);
   }
 
-  params.push('global');
-  run(`UPDATE budget_config SET ${sets.join(', ')} WHERE id = ?`, params);
+  params.push("global");
+  run(`UPDATE budget_config SET ${sets.join(", ")} WHERE id = ?`, params);
 }
 
 /**
  * Check if within budget
  */
-export function isWithinBudget(): { daily: boolean; monthly: boolean; dailyRemaining: number; monthlyRemaining: number } {
+export function isWithinBudget(): {
+  daily: boolean;
+  monthly: boolean;
+  dailyRemaining: number;
+  monthlyRemaining: number;
+} {
   const config = getBudgetConfig();
   const daily = getDailyUsage();
   const monthly = getMonthlyUsage();
@@ -308,7 +347,10 @@ export function isWithinBudget(): { daily: boolean; monthly: boolean; dailyRemai
     daily: daily.totalCostUsd < config.dailyLimitUsd,
     monthly: monthly.totalCostUsd < config.monthlyLimitUsd,
     dailyRemaining: Math.max(0, config.dailyLimitUsd - daily.totalCostUsd),
-    monthlyRemaining: Math.max(0, config.monthlyLimitUsd - monthly.totalCostUsd),
+    monthlyRemaining: Math.max(
+      0,
+      config.monthlyLimitUsd - monthly.totalCostUsd,
+    ),
   };
 }
 
@@ -318,45 +360,65 @@ export function isWithinBudget(): { daily: boolean; monthly: boolean; dailyRemai
 export async function checkBudgetWarnings(): Promise<void> {
   // Reset threshold tracking if new day
   resetAlertedThresholdsIfNewDay();
-  
+
   const config = getBudgetConfig();
   const daily = getDailyUsage();
   const monthly = getMonthlyUsage();
 
   const dailyPercent = (daily.totalCostUsd / config.dailyLimitUsd) * 100;
   const monthlyPercent = (monthly.totalCostUsd / config.monthlyLimitUsd) * 100;
-  
+
   // Get token counts for events
   const dailyTokens = daily.totalInputTokens + daily.totalOutputTokens;
-  
+
   // Use token-based thresholds from harness config (imported via config module)
   // Fallback thresholds: 50%, 80%, 100%
   const thresholds = [50, 80, 100];
-  
+
   // Check each threshold
   for (const threshold of thresholds) {
     if (dailyPercent >= threshold && !alertedThresholds.daily.has(threshold)) {
       alertedThresholds.daily.add(threshold);
-      
+
       if (threshold >= 100) {
         // Budget exceeded
-        events.budgetExceeded(dailyTokens, Math.round(dailyTokens / (dailyPercent / 100)));
+        events.budgetExceeded(
+          dailyTokens,
+          Math.round(dailyTokens / (dailyPercent / 100)),
+        );
         console.error(`🛑 Daily budget exceeded! ${dailyPercent.toFixed(1)}%`);
-        
+
         // Telegram notification via system alert
         try {
-          await notify.forwardError('budget', `🛑 Daily budget EXCEEDED: ${dailyPercent.toFixed(1)}% used`);
-        } catch { /* ignore */ }
+          await notify.forwardError(
+            "budget",
+            `🛑 Daily budget EXCEEDED: ${dailyPercent.toFixed(1)}% used`,
+          );
+        } catch {
+          /* ignore */
+        }
       } else {
         // Warning threshold
-        events.budgetWarning(threshold, dailyPercent, dailyTokens, Math.round(dailyTokens / (dailyPercent / 100)));
-        console.warn(`⚠️ Daily budget at ${dailyPercent.toFixed(1)}% (${threshold}% threshold)`);
-        
+        events.budgetWarning(
+          threshold,
+          dailyPercent,
+          dailyTokens,
+          Math.round(dailyTokens / (dailyPercent / 100)),
+        );
+        console.warn(
+          `⚠️ Daily budget at ${dailyPercent.toFixed(1)}% (${threshold}% threshold)`,
+        );
+
         // Telegram notification for high thresholds
         if (threshold >= 80) {
           try {
-            await notify.forwardError('budget', `⚠️ Daily budget at ${dailyPercent.toFixed(1)}%`);
-          } catch { /* ignore */ }
+            await notify.forwardError(
+              "budget",
+              `⚠️ Daily budget at ${dailyPercent.toFixed(1)}%`,
+            );
+          } catch {
+            /* ignore */
+          }
         }
       }
     }
@@ -379,11 +441,15 @@ export function getBudgetStatusString(): string {
   const dailyPercent = (daily.totalCostUsd / config.dailyLimitUsd) * 100;
   const monthlyPercent = (monthly.totalCostUsd / config.monthlyLimitUsd) * 100;
 
-  const dailyIcon = dailyPercent >= 100 ? '🛑' : dailyPercent >= 80 ? '⚠️' : '✅';
-  const monthlyIcon = monthlyPercent >= 100 ? '🛑' : monthlyPercent >= 80 ? '⚠️' : '✅';
+  const dailyIcon =
+    dailyPercent >= 100 ? "🛑" : dailyPercent >= 80 ? "⚠️" : "✅";
+  const monthlyIcon =
+    monthlyPercent >= 100 ? "🛑" : monthlyPercent >= 80 ? "⚠️" : "✅";
 
-  return `${dailyIcon} Daily: $${daily.totalCostUsd.toFixed(2)}/$${config.dailyLimitUsd} (${dailyPercent.toFixed(0)}%)\n` +
-         `${monthlyIcon} Monthly: $${monthly.totalCostUsd.toFixed(2)}/$${config.monthlyLimitUsd} (${monthlyPercent.toFixed(0)}%)`;
+  return (
+    `${dailyIcon} Daily: $${daily.totalCostUsd.toFixed(2)}/$${config.dailyLimitUsd} (${dailyPercent.toFixed(0)}%)\n` +
+    `${monthlyIcon} Monthly: $${monthly.totalCostUsd.toFixed(2)}/$${config.monthlyLimitUsd} (${monthlyPercent.toFixed(0)}%)`
+  );
 }
 
 export default {

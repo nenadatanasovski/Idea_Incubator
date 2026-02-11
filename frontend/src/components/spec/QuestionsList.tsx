@@ -3,10 +3,10 @@
  * Component for displaying and answering spec clarification questions
  */
 
-import { useState } from 'react';
-import { HelpCircle, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
-import clsx from 'clsx';
-import type { SpecQuestion } from '../../hooks/useSpecSession';
+import { useState } from "react";
+import { HelpCircle, CheckCircle, Loader2, AlertCircle } from "lucide-react";
+import clsx from "clsx";
+import type { SpecQuestion } from "../../hooks/useSpecSession";
 
 interface QuestionsListProps {
   questions: SpecQuestion[];
@@ -14,7 +14,11 @@ interface QuestionsListProps {
   isLoading?: boolean;
 }
 
-export function QuestionsList({ questions, onAnswer, isLoading = false }: QuestionsListProps) {
+export function QuestionsList({
+  questions,
+  onAnswer,
+  isLoading = false,
+}: QuestionsListProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -24,55 +28,59 @@ export function QuestionsList({ questions, onAnswer, isLoading = false }: Questi
     if (!answer?.trim()) return;
 
     setSubmitting(questionId);
-    setErrors(prev => ({ ...prev, [questionId]: '' }));
+    setErrors((prev) => ({ ...prev, [questionId]: "" }));
 
     try {
       const success = await onAnswer(questionId, answer.trim());
       if (success) {
         // Clear answer after successful submission
-        setAnswers(prev => {
+        setAnswers((prev) => {
           const next = { ...prev };
           delete next[questionId];
           return next;
         });
       } else {
-        setErrors(prev => ({ ...prev, [questionId]: 'Failed to submit answer' }));
+        setErrors((prev) => ({
+          ...prev,
+          [questionId]: "Failed to submit answer",
+        }));
       }
     } catch (err) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [questionId]: err instanceof Error ? err.message : 'Failed to submit answer',
+        [questionId]:
+          err instanceof Error ? err.message : "Failed to submit answer",
       }));
     } finally {
       setSubmitting(null);
     }
   };
 
-  const getPriorityColor = (priority: SpecQuestion['priority']) => {
+  const getPriorityColor = (priority: SpecQuestion["priority"]) => {
     switch (priority) {
-      case 'blocking':
-        return 'text-red-500 bg-red-50';
-      case 'important':
-        return 'text-amber-500 bg-amber-50';
-      case 'optional':
-        return 'text-gray-500 bg-gray-50';
+      case "blocking":
+        return "text-red-500 bg-red-50";
+      case "important":
+        return "text-amber-500 bg-amber-50";
+      case "optional":
+        return "text-gray-500 bg-gray-50";
       default:
-        return 'text-gray-500 bg-gray-50';
+        return "text-gray-500 bg-gray-50";
     }
   };
 
-  const getCategoryIcon = (category: SpecQuestion['category']) => {
+  const getCategoryIcon = (category: SpecQuestion["category"]) => {
     switch (category) {
-      case 'feature':
-        return '📦';
-      case 'technical':
-        return '⚙️';
-      case 'scope':
-        return '🎯';
-      case 'clarification':
-        return '💬';
+      case "feature":
+        return "📦";
+      case "technical":
+        return "⚙️";
+      case "scope":
+        return "🎯";
+      case "clarification":
+        return "💬";
       default:
-        return '❓';
+        return "❓";
     }
   };
 
@@ -91,9 +99,9 @@ export function QuestionsList({ questions, onAnswer, isLoading = false }: Questi
         <div
           key={question.id}
           className={clsx(
-            'bg-white rounded-lg p-4 border transition-shadow',
-            submitting === question.id && 'opacity-70',
-            errors[question.id] && 'border-red-200'
+            "bg-white rounded-lg p-4 border transition-shadow",
+            submitting === question.id && "opacity-70",
+            errors[question.id] && "border-red-200",
           )}
         >
           <div className="flex items-start gap-3">
@@ -102,11 +110,13 @@ export function QuestionsList({ questions, onAnswer, isLoading = false }: Questi
             <div className="flex-1 min-w-0">
               {/* Question header */}
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-base">{getCategoryIcon(question.category)}</span>
+                <span className="text-base">
+                  {getCategoryIcon(question.category)}
+                </span>
                 <span
                   className={clsx(
-                    'text-xs px-2 py-0.5 rounded-full font-medium',
-                    getPriorityColor(question.priority)
+                    "text-xs px-2 py-0.5 rounded-full font-medium",
+                    getPriorityColor(question.priority),
                   )}
                 >
                   {question.priority}
@@ -124,14 +134,17 @@ export function QuestionsList({ questions, onAnswer, isLoading = false }: Questi
               {/* Answer input */}
               <div className="mt-3">
                 <textarea
-                  value={answers[question.id] || ''}
+                  value={answers[question.id] || ""}
                   onChange={(e) =>
-                    setAnswers((prev) => ({ ...prev, [question.id]: e.target.value }))
+                    setAnswers((prev) => ({
+                      ...prev,
+                      [question.id]: e.target.value,
+                    }))
                   }
                   placeholder="Your answer..."
                   className={clsx(
-                    'w-full p-2 border rounded-md text-sm resize-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
-                    errors[question.id] && 'border-red-300'
+                    "w-full p-2 border rounded-md text-sm resize-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500",
+                    errors[question.id] && "border-red-300",
                   )}
                   rows={2}
                   disabled={isLoading || submitting === question.id}
@@ -153,10 +166,10 @@ export function QuestionsList({ questions, onAnswer, isLoading = false }: Questi
                     submitting === question.id
                   }
                   className={clsx(
-                    'mt-2 px-3 py-1.5 text-sm font-medium rounded-md transition',
-                    'bg-primary-600 text-white hover:bg-primary-700',
-                    'disabled:opacity-50 disabled:cursor-not-allowed',
-                    'flex items-center gap-2'
+                    "mt-2 px-3 py-1.5 text-sm font-medium rounded-md transition",
+                    "bg-primary-600 text-white hover:bg-primary-700",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                    "flex items-center gap-2",
                   )}
                 >
                   {submitting === question.id ? (
@@ -165,7 +178,7 @@ export function QuestionsList({ questions, onAnswer, isLoading = false }: Questi
                       Submitting...
                     </>
                   ) : (
-                    'Submit Answer'
+                    "Submit Answer"
                   )}
                 </button>
               </div>

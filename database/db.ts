@@ -132,11 +132,12 @@ export async function query<T>(
         ) as T,
     );
   } catch (error) {
-    const errorMessage = error instanceof Error
-      ? error.message
-      : typeof error === 'object' && error !== null
-        ? JSON.stringify(error)
-        : String(error);
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : typeof error === "object" && error !== null
+          ? JSON.stringify(error)
+          : String(error);
     throw new DatabaseError("query", errorMessage || "Unknown error");
   }
 }

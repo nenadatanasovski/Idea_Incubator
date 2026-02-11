@@ -9,9 +9,11 @@
 ## Problem Analysis
 
 ### Original Issue
+
 QA verification failed for TASK-015 with test failures. The task description stated: "Add hasBeenInStatus() method to TaskStateHistoryService. This method is tested but not implemented in the service."
 
 ### Investigation Results
+
 Upon investigation, **the method is already fully implemented and working correctly**:
 
 1. ✅ Method EXISTS in `server/services/task-agent/task-state-history-service.ts` (lines 226-233)
@@ -20,7 +22,9 @@ Upon investigation, **the method is already fully implemented and working correc
 4. ✅ TypeScript compilation SUCCEEDS (zero errors)
 
 ### Root Cause of QA Failure
+
 The test suite shows 27 failing test files, but **none are related to hasBeenInStatus**:
+
 - Most failures are due to missing `ideation_sessions` table in test database
 - The `task-state-history-service.test.ts` file passes completely
 - The hasBeenInStatus method implementation is correct and functional
@@ -28,13 +32,14 @@ The test suite shows 27 failing test files, but **none are related to hasBeenInS
 ## Requirements
 
 ### Functional Requirements
-| Requirement | Status | Evidence |
-|------------|--------|----------|
-| Method implemented | ✅ DONE | Lines 226-233 in task-state-history-service.ts |
-| Correct signature | ✅ DONE | `async hasBeenInStatus(taskId: string, status: TaskStatus): Promise<boolean>` |
-| Correct logic | ✅ DONE | Checks both `to_status` and `from_status` in history |
-| Database query | ✅ DONE | Parameterized SQL query with COUNT(*) |
-| Test coverage | ✅ DONE | 2 test cases (positive and negative) |
+
+| Requirement        | Status  | Evidence                                                                      |
+| ------------------ | ------- | ----------------------------------------------------------------------------- |
+| Method implemented | ✅ DONE | Lines 226-233 in task-state-history-service.ts                                |
+| Correct signature  | ✅ DONE | `async hasBeenInStatus(taskId: string, status: TaskStatus): Promise<boolean>` |
+| Correct logic      | ✅ DONE | Checks both `to_status` and `from_status` in history                          |
+| Database query     | ✅ DONE | Parameterized SQL query with COUNT(\*)                                        |
+| Test coverage      | ✅ DONE | 2 test cases (positive and negative)                                          |
 
 ## Technical Design
 
@@ -59,17 +64,20 @@ async hasBeenInStatus(taskId: string, status: TaskStatus): Promise<boolean> {
 ### Implementation Quality
 
 **Correctness**:
+
 - Uses efficient `COUNT(*)` for existence check
 - Checks both `to_status` AND `from_status` to catch all occurrences
 - Uses parameterized queries (prevents SQL injection)
 - Handles null results with fallback (`|| 0`)
 
 **Type Safety**:
+
 - Parameter types: `taskId: string`, `status: TaskStatus` ✅
 - Return type: `Promise<boolean>` ✅
 - Properly typed DB result: `<{ count: number }>` ✅
 
 **Integration**:
+
 - Part of `TaskStateHistoryService` class
 - Exported via singleton: `taskStateHistoryService`
 - Follows same patterns as other service methods
@@ -79,6 +87,7 @@ async hasBeenInStatus(taskId: string, status: TaskStatus): Promise<boolean> {
 **Location**: `tests/task-agent/task-state-history-service.test.ts:290-327`
 
 **Test Cases**:
+
 1. **Positive Case** (lines 291-311): Returns `true` when task has been in status
    - Sets up transitions: pending → in_progress
    - Verifies returns `true` for "pending"
@@ -94,6 +103,7 @@ async hasBeenInStatus(taskId: string, status: TaskStatus): Promise<boolean> {
 **Command**: `npm test -- tests/task-agent/task-state-history-service.test.ts`
 
 **Result**:
+
 ```
 ✓ tests/task-agent/task-state-history-service.test.ts  (13 tests) 422ms
 
@@ -102,6 +112,7 @@ Test Files  1 passed (1)
 ```
 
 **hasBeenInStatus-specific tests**:
+
 - ✅ "should return true if task has been in status"
 - ✅ "should return false if task has never been in status"
 
@@ -120,18 +131,21 @@ Test Files  1 passed (1)
 ## Dependencies
 
 ### Existing (All Satisfied)
+
 - ✅ Database table: `task_state_history` with required columns
 - ✅ Type definitions: `TaskStatus` type properly defined
 - ✅ Database layer: `getOne()` function available
 - ✅ Test infrastructure: Vitest configured
 
 ### Related Tasks
+
 - **TASK-015**: Original implementation task (should be marked COMPLETE)
 - **IMPL-3.7**: Task System V2 Implementation Plan (parent)
 
 ## Validation Evidence
 
 ### Test Execution (2026-02-09 02:59:03)
+
 ```bash
 $ npm test -- tests/task-agent/task-state-history-service.test.ts
 
@@ -153,12 +167,14 @@ Test Files  1 passed (1)
 ```
 
 ### TypeScript Compilation (2026-02-09 02:59:03)
+
 ```bash
 $ npx tsc --noEmit
 # Exit code: 0 (success, no errors)
 ```
 
 ### Implementation Verification
+
 ```bash
 $ grep -A 8 "async hasBeenInStatus" server/services/task-agent/task-state-history-service.ts
 ```
@@ -180,6 +196,7 @@ The `hasBeenInStatus()` method was already fully implemented and is working corr
 ### Unrelated Test Failures
 
 The broader test suite has 27 failing test files, but these failures are **NOT** related to the hasBeenInStatus method:
+
 - Most failures involve missing `ideation_sessions` table
 - The task-state-history-service.test.ts file passes completely
 - The QA failure for this specific task is a false negative

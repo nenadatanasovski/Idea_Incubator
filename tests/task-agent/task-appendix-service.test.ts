@@ -65,7 +65,8 @@ describe("TaskAppendixService", () => {
     });
 
     it("should add an appendix with reference content", async () => {
-      const appendix = await taskAppendixService.create({ taskId: testTaskId,
+      const appendix = await taskAppendixService.create({
+        taskId: testTaskId,
         appendixType: "prd_reference",
         referenceId: "docs/api.md#authentication",
       });
@@ -89,7 +90,8 @@ describe("TaskAppendixService", () => {
       ];
 
       for (const type of types) {
-        const appendix = await taskAppendixService.create({ taskId: testTaskId,
+        const appendix = await taskAppendixService.create({
+          taskId: testTaskId,
           appendixType: type as any,
           content: `Content for ${type}`,
         });
@@ -104,12 +106,14 @@ describe("TaskAppendixService", () => {
 
   describe("getByTaskId", () => {
     it("should return appendices in sort order", async () => {
-      await taskAppendixService.create({ taskId: testTaskId,
+      await taskAppendixService.create({
+        taskId: testTaskId,
         appendixType: "gotcha_list",
         content: "Content 1",
       });
 
-      await taskAppendixService.create({ taskId: testTaskId,
+      await taskAppendixService.create({
+        taskId: testTaskId,
         appendixType: "gotcha_list",
         content: "Content 2",
       });
@@ -123,7 +127,8 @@ describe("TaskAppendixService", () => {
 
   describe("update", () => {
     it("should update appendix content", async () => {
-      const appendix = await taskAppendixService.create({ taskId: testTaskId,
+      const appendix = await taskAppendixService.create({
+        taskId: testTaskId,
         appendixType: "research_notes",
         content: "Original content",
       });
@@ -138,7 +143,8 @@ describe("TaskAppendixService", () => {
 
   describe("delete", () => {
     it("should remove an appendix", async () => {
-      const appendix = await taskAppendixService.create({ taskId: testTaskId,
+      const appendix = await taskAppendixService.create({
+        taskId: testTaskId,
         appendixType: "research_notes",
         content: "Will be deleted",
       });
@@ -152,12 +158,14 @@ describe("TaskAppendixService", () => {
 
   describe("reorder", () => {
     it("should reorder appendices", async () => {
-      const a1 = await taskAppendixService.create({ taskId: testTaskId,
+      const a1 = await taskAppendixService.create({
+        taskId: testTaskId,
         appendixType: "gotcha_list",
         content: "Content 1",
       });
 
-      const a2 = await taskAppendixService.create({ taskId: testTaskId,
+      const a2 = await taskAppendixService.create({
+        taskId: testTaskId,
         appendixType: "gotcha_list",
         content: "Content 2",
       });
@@ -173,7 +181,8 @@ describe("TaskAppendixService", () => {
 
   describe("resolve", () => {
     it("should resolve inline content directly", async () => {
-      const appendix = await taskAppendixService.create({ taskId: testTaskId,
+      const appendix = await taskAppendixService.create({
+        taskId: testTaskId,
         appendixType: "code_context",
         content: "const x = 1;",
       });

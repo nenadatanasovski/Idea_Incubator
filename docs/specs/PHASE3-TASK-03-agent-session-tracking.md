@@ -91,6 +91,7 @@ MISSING:
 ### Functional Requirements
 
 **FR-1: Session Startup Tracking**
+
 - Sessions MUST transition through startup phase: pending → running
 - MUST record startup metadata:
   - Agent configuration (model, type, capabilities)
@@ -106,6 +107,7 @@ MISSING:
 - MUST log startup activity to observability_events
 
 **FR-2: Heartbeat Monitoring**
+
 - Agents MUST send heartbeat signals at regular intervals (configurable, default 60s)
 - Heartbeat payload MUST include:
   - Session ID, iteration number
@@ -120,6 +122,7 @@ MISSING:
 - MUST track heartbeat sequence (detect missed heartbeats)
 
 **FR-3: Stuck Session Detection**
+
 - MUST check heartbeat freshness in orchestrator tick loop
 - Stuck criteria:
   - No heartbeat for > heartbeat_timeout (default: 5 minutes)
@@ -133,6 +136,7 @@ MISSING:
 - MUST NOT automatically terminate on first timeout (allow grace period)
 
 **FR-4: Automatic Recovery Workflows**
+
 - After stuck detection, apply recovery strategy:
   - **First timeout** (5 min): Mark stuck, emit warning
   - **Second timeout** (10 min): Attempt graceful termination (SIGTERM)
@@ -145,6 +149,7 @@ MISSING:
 - MUST preserve session state and logs for post-mortem analysis
 
 **FR-5: Session Completion Tracking**
+
 - MUST detect completion events:
   - Agent outputs TASK_COMPLETE or TASK_FAILED
   - Process exits (monitor exit code)
@@ -161,6 +166,7 @@ MISSING:
 - MUST log completion to observability_events
 
 **FR-6: Session Query API**
+
 - MUST provide queries:
   - Active sessions (status = running)
   - Stuck sessions (last_heartbeat > timeout)
@@ -174,6 +180,7 @@ MISSING:
   - `POST /api/sessions/:id/terminate` - Manual termination
 
 **FR-7: WebSocket Real-Time Updates**
+
 - MUST broadcast session lifecycle events:
   - `session:started` - New session initialized
   - `session:updated` - Status or metadata changed
@@ -187,6 +194,7 @@ MISSING:
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Heartbeat processing: < 50ms per heartbeat
 - Stuck detection scan: < 500ms for 100 sessions
 - Session startup: < 200ms
@@ -194,6 +202,7 @@ MISSING:
 - Orchestrator tick overhead: < 1 second for all session checks
 
 **NFR-2: Reliability**
+
 - Session state persists across orchestrator restarts
 - Heartbeat data survives orchestrator crashes
 - Stuck detection resumes after restart
@@ -201,18 +210,21 @@ MISSING:
 - Graceful degradation if heartbeat system fails (log errors, continue operation)
 
 **NFR-3: Scalability**
+
 - Support 100 concurrent sessions
 - Store 1M+ heartbeat records (with cleanup)
 - Heartbeat table cleanup: Delete records older than 7 days
 - Efficient queries with proper indexes
 
 **NFR-4: Observability**
+
 - Log all session lifecycle events (startup, heartbeat, stuck, completion)
 - Expose metrics: active sessions, stuck sessions, avg session duration, heartbeat rate
 - Dashboard visualization: Session timeline, heartbeat graphs, stuck alerts
 - Telegram notifications for stuck/failed sessions
 
 **NFR-5: Maintainability**
+
 - Clear separation: startup / heartbeat / completion modules
 - Reusable heartbeat service (not agent-specific)
 - TypeScript interfaces for all session/heartbeat data
@@ -225,6 +237,7 @@ MISSING:
 ### Database Schema Changes
 
 **Extend agent_sessions table:**
+
 ```sql
 -- Add heartbeat tracking fields
 ALTER TABLE agent_sessions ADD COLUMN last_heartbeat_at TEXT DEFAULT NULL;
@@ -251,6 +264,7 @@ CREATE INDEX IF NOT EXISTS idx_sessions_stuck ON agent_sessions(status, last_hea
 ```
 
 **Populate agent_heartbeats table:**
+
 ```sql
 -- Already exists in schema, but add index for performance
 CREATE INDEX IF NOT EXISTS idx_heartbeats_session ON agent_heartbeats(session_id, recorded_at DESC);
@@ -258,6 +272,7 @@ CREATE INDEX IF NOT EXISTS idx_heartbeats_agent ON agent_heartbeats(agent_id, re
 ```
 
 **Session state transition:**
+
 ```sql
 -- Add 'pending' to valid session states (not in schema yet)
 -- Current: running, completed, failed, paused, terminated
@@ -287,7 +302,7 @@ export interface SessionStartupOptions {
 export interface HeartbeatData {
   sessionId: string;
   iterationNumber?: number;
-  status: 'running' | 'waiting' | 'working';
+  status: "running" | "waiting" | "working";
   progressPercent?: number;
   currentStep?: string;
   lastToolCall?: string;
@@ -314,13 +329,19 @@ export function recordSessionStartup(sessionId: string, metadata: object): void;
 
 // === Heartbeat ===
 export function recordHeartbeat(data: HeartbeatData): void;
-export function getSessionHeartbeats(sessionId: string, limit?: number): AgentHeartbeat[];
+export function getSessionHeartbeats(
+  sessionId: string,
+  limit?: number,
+): AgentHeartbeat[];
 export function getLastHeartbeat(sessionId: string): AgentHeartbeat | undefined;
 
 // === Stuck Detection ===
 export function checkStuckSessions(): StuckSession[];
 export function markSessionStuck(sessionId: string): void;
-export function attemptRecovery(sessionId: string, strategy: RecoveryStrategy): void;
+export function attemptRecovery(
+  sessionId: string,
+  strategy: RecoveryStrategy,
+): void;
 
 // === Completion ===
 export function completeSession(data: SessionCompletionData): void;
@@ -337,9 +358,12 @@ export function getRecentCompletions(hours: number): AgentSession[];
 ```typescript
 // parent-harness/orchestrator/src/spawner/index.ts
 
-import * as sessionTracker from '../session-tracker/index.js';
+import * as sessionTracker from "../session-tracker/index.js";
 
-export async function spawnAgent(agentId: string, taskId?: string): Promise<SpawnResult> {
+export async function spawnAgent(
+  agentId: string,
+  taskId?: string,
+): Promise<SpawnResult> {
   // ... existing safety checks ...
 
   // Create session in 'pending' state
@@ -356,10 +380,12 @@ export async function spawnAgent(agentId: string, taskId?: string): Promise<Spaw
   });
 
   // Spawn process
-  const childProcess = spawn('claude', ['-a', '-t', prompt], { cwd: CODEBASE_ROOT });
+  const childProcess = spawn("claude", ["-a", "-t", prompt], {
+    cwd: CODEBASE_ROOT,
+  });
 
   // Capture stdout for heartbeat detection
-  childProcess.stdout.on('data', (data) => {
+  childProcess.stdout.on("data", (data) => {
     const output = data.toString();
 
     // Parse for heartbeat signals (e.g., tool calls, progress indicators)
@@ -367,33 +393,33 @@ export async function spawnAgent(agentId: string, taskId?: string): Promise<Spaw
     if (toolMatch) {
       sessionTracker.recordHeartbeat({
         sessionId: session.id,
-        status: 'working',
+        status: "working",
         lastToolCall: toolMatch[0],
       });
     }
 
     // Parse for completion signals
-    if (output.includes('TASK_COMPLETE') || output.includes('TASK_FAILED')) {
-      const success = output.includes('TASK_COMPLETE');
+    if (output.includes("TASK_COMPLETE") || output.includes("TASK_FAILED")) {
+      const success = output.includes("TASK_COMPLETE");
       sessionTracker.completeSession({
         sessionId: session.id,
-        exitReason: success ? 'completed' : 'failed',
+        exitReason: success ? "completed" : "failed",
         output: extractOutput(output),
       });
     }
   });
 
   // Monitor process exit
-  childProcess.on('exit', (code) => {
+  childProcess.on("exit", (code) => {
     sessionTracker.completeSession({
       sessionId: session.id,
       exitCode: code ?? undefined,
-      exitReason: code === 0 ? 'completed' : 'failed',
+      exitReason: code === 0 ? "completed" : "failed",
     });
   });
 
   // Transition to 'running' after process started
-  sessions.updateSessionStatus(session.id, 'running');
+  sessions.updateSessionStatus(session.id, "running");
   sessionTracker.recordSessionStartup(session.id, { pid: childProcess.pid });
 
   return { session, process: childProcess };
@@ -405,7 +431,7 @@ export async function spawnAgent(agentId: string, taskId?: string): Promise<Spaw
 ```typescript
 // parent-harness/orchestrator/src/orchestrator/index.ts
 
-import * as sessionTracker from '../session-tracker/index.js';
+import * as sessionTracker from "../session-tracker/index.js";
 
 async function tick(): Promise<void> {
   // ... existing logic ...
@@ -413,20 +439,24 @@ async function tick(): Promise<void> {
   // Check for stuck sessions
   const stuckSessions = sessionTracker.checkStuckSessions();
   for (const stuck of stuckSessions) {
-    console.warn(`⚠️ Session ${stuck.id} stuck (no heartbeat for ${stuck.stuckDurationMs}ms)`);
+    console.warn(
+      `⚠️ Session ${stuck.id} stuck (no heartbeat for ${stuck.stuckDurationMs}ms)`,
+    );
 
     // Apply recovery strategy
     if (stuck.recoveryAttempts === 0) {
       // First timeout: Mark stuck, emit warning
       sessionTracker.markSessionStuck(stuck.id);
-      ws.broadcast('session:stuck', stuck);
-      await notify(`⚠️ Session stuck: ${stuck.agent_id} - Task: ${stuck.task_id}`);
+      ws.broadcast("session:stuck", stuck);
+      await notify(
+        `⚠️ Session stuck: ${stuck.agent_id} - Task: ${stuck.task_id}`,
+      );
     } else if (stuck.recoveryAttempts === 1) {
       // Second timeout: Attempt graceful termination
-      await sessionTracker.attemptRecovery(stuck.id, 'graceful_terminate');
+      await sessionTracker.attemptRecovery(stuck.id, "graceful_terminate");
     } else if (stuck.recoveryAttempts >= 2) {
       // Third timeout: Force termination
-      await sessionTracker.attemptRecovery(stuck.id, 'force_terminate');
+      await sessionTracker.attemptRecovery(stuck.id, "force_terminate");
     }
   }
 
@@ -442,19 +472,19 @@ async function tick(): Promise<void> {
 export const ws = {
   // Enhanced session events
   sessionStarted: (session: AgentSession, metadata: object) =>
-    broadcast('session:started', { session, metadata }),
+    broadcast("session:started", { session, metadata }),
 
   sessionHeartbeat: (sessionId: string, heartbeat: HeartbeatData) =>
-    broadcast('session:heartbeat', { sessionId, heartbeat }),
+    broadcast("session:heartbeat", { sessionId, heartbeat }),
 
   sessionStuck: (session: AgentSession, stuckDuration: number) =>
-    broadcast('session:stuck', { session, stuckDurationMs: stuckDuration }),
+    broadcast("session:stuck", { session, stuckDurationMs: stuckDuration }),
 
   sessionRecovered: (session: AgentSession, recoveryAction: string) =>
-    broadcast('session:recovered', { session, recoveryAction }),
+    broadcast("session:recovered", { session, recoveryAction }),
 
   sessionEnded: (session: AgentSession, completion: SessionCompletionData) =>
-    broadcast('session:ended', { session, completion }),
+    broadcast("session:ended", { session, completion }),
 
   // ... existing events ...
 };
@@ -463,6 +493,7 @@ export const ws = {
 ### Heartbeat Capture Strategies
 
 **Strategy 1: Infer from Activity (Immediate Implementation)**
+
 - Parse stdout for tool usage patterns
 - Detect: Read, Write, Edit, Bash tool calls
 - Assumption: Active tool usage = healthy session
@@ -470,6 +501,7 @@ export const ws = {
 - Limitation: Won't detect stuck thinking loops
 
 **Strategy 2: Explicit Heartbeat Messages (Future Enhancement)**
+
 - Modify agent prompt to emit heartbeat signals
 - Add to agent instructions: "Every 60s, output: [HEARTBEAT:iteration=N,progress=50]"
 - Parse structured heartbeat messages from stdout
@@ -477,6 +509,7 @@ export const ws = {
 - Limitation: Requires agent prompt changes
 
 **Strategy 3: Process Monitoring (Fallback)**
+
 - Check process existence via PID
 - Monitor CPU/memory usage
 - Detect: Process crashed vs. stuck
@@ -484,6 +517,7 @@ export const ws = {
 - Limitation: Can't detect logical stuck states
 
 **Implementation: Hybrid Approach**
+
 - Primary: Infer from tool calls (Strategy 1)
 - Supplement: Process monitoring (Strategy 3)
 - Future: Explicit heartbeats (Strategy 2)
@@ -529,52 +563,68 @@ function checkStuckSessions(): StuckSession[] {
 ```typescript
 async function attemptRecovery(
   sessionId: string,
-  strategy: 'graceful_terminate' | 'force_terminate' | 'retry'
+  strategy: "graceful_terminate" | "force_terminate" | "retry",
 ): Promise<void> {
   const session = sessions.getSession(sessionId);
   if (!session) return;
 
   // Increment recovery attempts
-  run(`UPDATE agent_sessions SET recovery_attempts = recovery_attempts + 1 WHERE id = ?`, [sessionId]);
+  run(
+    `UPDATE agent_sessions SET recovery_attempts = recovery_attempts + 1 WHERE id = ?`,
+    [sessionId],
+  );
 
   switch (strategy) {
-    case 'graceful_terminate':
+    case "graceful_terminate":
       console.log(`🔄 Attempting graceful termination: ${sessionId}`);
       // Find process and send SIGTERM
       const pid = getSessionPid(sessionId);
       if (pid) {
-        process.kill(pid, 'SIGTERM');
+        process.kill(pid, "SIGTERM");
         await wait(5000); // Wait 5s for graceful shutdown
       }
-      ws.broadcast('session:recovered', { session, action: 'graceful_terminate' });
+      ws.broadcast("session:recovered", {
+        session,
+        action: "graceful_terminate",
+      });
       break;
 
-    case 'force_terminate':
+    case "force_terminate":
       console.log(`💥 Force terminating stuck session: ${sessionId}`);
       const forcePid = getSessionPid(sessionId);
       if (forcePid) {
         try {
-          process.kill(forcePid, 'SIGKILL');
+          process.kill(forcePid, "SIGKILL");
         } catch (err) {
           console.error(`Failed to kill process ${forcePid}:`, err);
         }
       }
       // Mark session terminated
-      sessions.updateSessionStatus(sessionId, 'terminated', undefined, 'Stuck session force terminated');
+      sessions.updateSessionStatus(
+        sessionId,
+        "terminated",
+        undefined,
+        "Stuck session force terminated",
+      );
       // Mark task failed
       if (session.task_id) {
-        tasks.failTask(session.task_id, 'Session stuck and terminated');
+        tasks.failTask(session.task_id, "Session stuck and terminated");
       }
-      ws.broadcast('session:ended', {
-        session: { ...session, status: 'terminated' },
-        completion: { exitReason: 'stuck_terminated' }
+      ws.broadcast("session:ended", {
+        session: { ...session, status: "terminated" },
+        completion: { exitReason: "stuck_terminated" },
       });
       break;
 
-    case 'retry':
+    case "retry":
       console.log(`🔁 Retrying task after stuck session: ${sessionId}`);
       // Mark session failed
-      sessions.updateSessionStatus(sessionId, 'failed', undefined, 'Stuck session - retrying task');
+      sessions.updateSessionStatus(
+        sessionId,
+        "failed",
+        undefined,
+        "Stuck session - retrying task",
+      );
       // Trigger task retry (use existing retry logic)
       if (session.task_id) {
         tasks.retryTask(session.task_id);
@@ -582,7 +632,9 @@ async function attemptRecovery(
       break;
   }
 
-  await notify(`🔄 Recovery action: ${strategy} on session ${sessionId} (agent: ${session.agent_id})`);
+  await notify(
+    `🔄 Recovery action: ${strategy} on session ${sessionId} (agent: ${session.agent_id})`,
+  );
 }
 ```
 
@@ -631,6 +683,7 @@ async function attemptRecovery(
 ## Dependencies
 
 **Upstream (Must Complete First):**
+
 - ✅ PHASE2-TASK-01: Spec Agent v0.1 (COMPLETED)
 - ✅ Session database module exists (`db/sessions.ts`)
 - ✅ Agent database module exists (`db/agents.ts`)
@@ -638,11 +691,13 @@ async function attemptRecovery(
 - ✅ Agent spawner exists (`spawner/index.ts`)
 
 **Downstream (Depends on This):**
+
 - PHASE3-TASK-04: Dashboard session visualization with heartbeat graphs
 - PHASE4-TASK-02: Stuck agent recovery dashboard controls
 - PHASE5-TASK-03: Session analytics and performance metrics
 
 **Parallel Work (Can Develop Concurrently):**
+
 - PHASE3-TASK-01: Task queue persistence with wave/lane generation (COMPLETED)
 - PHASE3-TASK-02: Orchestrator cron loop with task dispatch (COMPLETED)
 - PHASE2-TASK-05: Agent logging and error reporting
@@ -652,6 +707,7 @@ async function attemptRecovery(
 ## Implementation Plan
 
 ### Phase 1: Database Schema (1 hour)
+
 1. Create migration script for agent_sessions table extensions
 2. Add heartbeat tracking fields (last_heartbeat_at, intervals, missed_count)
 3. Add startup/completion metadata fields
@@ -659,6 +715,7 @@ async function attemptRecovery(
 5. Test migration on dev database
 
 ### Phase 2: Session Tracker Module (2.5 hours)
+
 6. Create `session-tracker/index.ts` with TypeScript interfaces
 7. Implement `startSession()` with pending state
 8. Implement `recordHeartbeat()` to store in agent_heartbeats
@@ -668,6 +725,7 @@ async function attemptRecovery(
 12. Write unit tests for all functions
 
 ### Phase 3: Spawner Integration (1.5 hours)
+
 13. Update spawner to create sessions in 'pending' state
 14. Add stdout parser for tool call detection
 15. Wire heartbeat recording on tool call detection
@@ -676,18 +734,21 @@ async function attemptRecovery(
 18. Test spawner creates sessions with heartbeats
 
 ### Phase 4: Orchestrator Integration (1 hour)
+
 19. Add stuck detection to orchestrator tick loop
 20. Implement recovery workflow (mark stuck → terminate → notify)
 21. Add session health metrics to observability stats
 22. Test orchestrator detects and recovers stuck sessions
 
 ### Phase 5: WebSocket Events (1 hour)
+
 23. Enhance WebSocket event payloads (session + metadata)
 24. Add heartbeat throttling (max 1/min per session)
 25. Emit session:stuck and session:recovered events
 26. Test dashboard receives all session events
 
 ### Phase 6: Testing & Documentation (1 hour)
+
 27. Write integration tests (spawn → heartbeat → stuck → terminate)
 28. Write restart resilience test (orchestrator restart with stuck session)
 29. Update CLAUDE.md with session tracking usage
@@ -703,30 +764,33 @@ async function attemptRecovery(
 
 ```typescript
 // session-tracker/index.test.ts
-describe('Session Tracker', () => {
-  test('startSession creates session in pending state', () => {
-    const session = startSession({ agentId: 'build_agent' });
-    expect(session.status).toBe('pending');
+describe("Session Tracker", () => {
+  test("startSession creates session in pending state", () => {
+    const session = startSession({ agentId: "build_agent" });
+    expect(session.status).toBe("pending");
     expect(session.heartbeat_interval).toBe(60);
   });
 
-  test('recordHeartbeat stores to agent_heartbeats', () => {
-    const session = startSession({ agentId: 'build_agent' });
+  test("recordHeartbeat stores to agent_heartbeats", () => {
+    const session = startSession({ agentId: "build_agent" });
     recordHeartbeat({
       sessionId: session.id,
-      status: 'working',
-      lastToolCall: 'Read',
+      status: "working",
+      lastToolCall: "Read",
     });
     const heartbeats = getSessionHeartbeats(session.id);
     expect(heartbeats.length).toBe(1);
-    expect(heartbeats[0].last_tool_call).toBe('Read');
+    expect(heartbeats[0].last_tool_call).toBe("Read");
   });
 
-  test('checkStuckSessions detects timed out sessions', () => {
+  test("checkStuckSessions detects timed out sessions", () => {
     // Create session with old last_heartbeat
-    const session = startSession({ agentId: 'build_agent' });
+    const session = startSession({ agentId: "build_agent" });
     // Set heartbeat to 10 minutes ago
-    run(`UPDATE agent_sessions SET last_heartbeat_at = datetime('now', '-10 minutes') WHERE id = ?`, [session.id]);
+    run(
+      `UPDATE agent_sessions SET last_heartbeat_at = datetime('now', '-10 minutes') WHERE id = ?`,
+      [session.id],
+    );
     const stuck = checkStuckSessions();
     expect(stuck.length).toBeGreaterThan(0);
     expect(stuck[0].id).toBe(session.id);
@@ -738,10 +802,10 @@ describe('Session Tracker', () => {
 
 ```typescript
 // orchestrator/session-tracking.test.ts
-describe('Session Tracking Integration', () => {
-  test('spawned agent sends heartbeats', async () => {
+describe("Session Tracking Integration", () => {
+  test("spawned agent sends heartbeats", async () => {
     // Spawn agent with simple task
-    const spawn = await spawnAgent('build_agent', 'test-task-id');
+    const spawn = await spawnAgent("build_agent", "test-task-id");
 
     // Wait for heartbeats
     await wait(5000);
@@ -751,12 +815,12 @@ describe('Session Tracking Integration', () => {
     expect(heartbeats.length).toBeGreaterThan(0);
   });
 
-  test('stuck session detected and terminated', async () => {
+  test("stuck session detected and terminated", async () => {
     // Spawn agent
-    const spawn = await spawnAgent('build_agent', 'test-task-id');
+    const spawn = await spawnAgent("build_agent", "test-task-id");
 
     // Pause agent process (simulate stuck)
-    process.kill(spawn.process.pid!, 'SIGSTOP');
+    process.kill(spawn.process.pid!, "SIGSTOP");
 
     // Wait for stuck detection (5 min timeout + grace period)
     await waitForStuck(spawn.session.id, 6 * 60 * 1000);
@@ -770,19 +834,19 @@ describe('Session Tracking Integration', () => {
 
     // Verify terminated
     const finalSession = getSession(spawn.session.id);
-    expect(finalSession?.status).toBe('terminated');
+    expect(finalSession?.status).toBe("terminated");
   });
 
-  test('session completion captures metadata', async () => {
+  test("session completion captures metadata", async () => {
     // Spawn agent with TASK_COMPLETE output
-    const spawn = await spawnAgentWithCompletion('build_agent');
+    const spawn = await spawnAgentWithCompletion("build_agent");
 
     // Wait for completion
     await waitForCompletion(spawn.session.id, 30000);
 
     // Verify completion metadata
     const session = getSession(spawn.session.id);
-    expect(session?.status).toBe('completed');
+    expect(session?.status).toBe("completed");
     expect(session?.exit_code).toBe(0);
     expect(session?.total_duration_ms).toBeGreaterThan(0);
     expect(session?.total_input_tokens).toBeGreaterThan(0);
@@ -841,17 +905,20 @@ If implementation causes instability:
 ## Success Metrics
 
 **Operational Metrics:**
+
 - Heartbeat capture rate: >95% of active sessions
 - Stuck detection accuracy: >98% (< 2% false positives)
 - Recovery success rate: >90% (sessions terminate within 15 min)
 - Session completion metadata: 100% captured
 
 **Performance Metrics:**
+
 - Heartbeat processing: <50ms
 - Stuck detection scan: <500ms for 100 sessions
 - Orchestrator tick overhead: <1 second
 
 **Reliability Metrics:**
+
 - Zero data loss during orchestrator restarts
 - Stuck detection resumes within 1 tick after restart
 - No zombie sessions (all eventually complete or terminate)

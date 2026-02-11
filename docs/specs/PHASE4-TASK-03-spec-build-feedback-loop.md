@@ -16,6 +16,7 @@ Implement a feedback loop where the Spec Agent learns from Build Agent execution
 **Problem:** Currently, the Spec Agent generates specifications in isolation (see `agents/ideation/spec-generator.ts`) without learning from whether those specs lead to successful implementations. When Build Agents encounter ambiguities, missing requirements, or implementation challenges, this valuable feedback is lost. The spec-build gap persists because there's no mechanism for specs to improve based on build outcomes.
 
 **Solution:** Create a bidirectional feedback system that:
+
 1. Captures Build Agent feedback (blockers, clarifications needed, spec gaps)
 2. Associates feedback with specific spec sections and confidence scores
 3. Enables Spec Agent to query past feedback when generating new specs
@@ -30,6 +31,7 @@ Implement a feedback loop where the Spec Agent learns from Build Agent execution
 ### Existing Infrastructure ✅
 
 **1. Spec Generation System** (`agents/ideation/spec-generator.ts`)
+
 - ✅ Generates structured specs with 8 sections (problem, target_users, functional_desc, success_criteria, constraints, out_of_scope, risks, assumptions)
 - ✅ Confidence scoring per section (0-100%)
 - ✅ Clarifying questions generation when confidence is low
@@ -40,6 +42,7 @@ Implement a feedback loop where the Spec Agent learns from Build Agent execution
 - ❌ **Gap:** No learning from past spec quality issues
 
 **2. Build Agent Orchestrator** (`server/services/task-agent/build-agent-orchestrator.ts`)
+
 - ✅ Spawns Build Agents for task execution
 - ✅ Tracks task outcomes (completed, failed, blocked)
 - ✅ Error message capture in `build_agent_instances.error_message`
@@ -50,6 +53,7 @@ Implement a feedback loop where the Spec Agent learns from Build Agent execution
 - ❌ **Gap:** No "this spec section was unclear" reporting
 
 **3. Knowledge Base System** (PHASE4-TASK-01 - see spec)
+
 - ✅ Stores gotchas, patterns, decisions in `knowledge_entries` table
 - ✅ Confidence tracking with boost/decay logic
 - ✅ Error recovery strategy tracking in `error_recovery_strategies`
@@ -61,6 +65,7 @@ Implement a feedback loop where the Spec Agent learns from Build Agent execution
 - ❌ **Gap:** No spec-to-implementation traceability
 
 **4. Agent Memory System** (`parent-harness/orchestrator/src/memory/index.ts`, `MEMORY_SYSTEM.md`)
+
 - ✅ Per-agent memory storage with types: context, learning, preference, error_pattern, success_pattern
 - ✅ Task context setting (`setTaskContext()`)
 - ✅ Success/error learning (`learnSuccess()`, `learnError()`)
@@ -70,6 +75,7 @@ Implement a feedback loop where the Spec Agent learns from Build Agent execution
 - ❌ **Gap:** No inter-agent feedback memories (spec→build)
 
 **5. Spec Validation** (`agents/ideation/spec-validator.ts`)
+
 - ✅ Validates completeness of spec sections
 - ✅ Checks for contradictions and ambiguities
 - ✅ Quality scoring
@@ -78,14 +84,14 @@ Implement a feedback loop where the Spec Agent learns from Build Agent execution
 
 ### Gaps Summary
 
-| Gap | Impact | Solution |
-|-----|--------|----------|
-| No feedback capture from Build Agent | Spec quality doesn't improve | Add `spec_feedback` table |
-| No spec-to-task traceability | Can't correlate failures to spec issues | Link tasks to spec sections |
-| No spec improvement suggestions | Manual spec refinement only | Auto-generate improvement prompts |
-| No spec quality metrics | No visibility into spec effectiveness | Track implementation success rate |
-| No anti-pattern detection | Same mistakes repeated | Pattern matching on failed specs |
-| No Spec Agent memory integration | Each spec starts from scratch | Inject relevant learnings into generation |
+| Gap                                  | Impact                                  | Solution                                  |
+| ------------------------------------ | --------------------------------------- | ----------------------------------------- |
+| No feedback capture from Build Agent | Spec quality doesn't improve            | Add `spec_feedback` table                 |
+| No spec-to-task traceability         | Can't correlate failures to spec issues | Link tasks to spec sections               |
+| No spec improvement suggestions      | Manual spec refinement only             | Auto-generate improvement prompts         |
+| No spec quality metrics              | No visibility into spec effectiveness   | Track implementation success rate         |
+| No anti-pattern detection            | Same mistakes repeated                  | Pattern matching on failed specs          |
+| No Spec Agent memory integration     | Each spec starts from scratch           | Inject relevant learnings into generation |
 
 ---
 
@@ -94,6 +100,7 @@ Implement a feedback loop where the Spec Agent learns from Build Agent execution
 ### Functional Requirements
 
 **FR-1: Build Agent Feedback Capture**
+
 - MUST capture three types of feedback from Build Agents:
   - **Blocker**: Spec gap prevents implementation ("Missing: API authentication method")
   - **Clarification**: Ambiguous requirement needs resolution ("Unclear: Should users be able to delete their account?")
@@ -105,6 +112,7 @@ Implement a feedback loop where the Spec Agent learns from Build Agent execution
 - SHOULD auto-detect spec gaps from error messages (e.g., "undefined behavior for edge case X")
 
 **FR-2: Spec-Task Traceability**
+
 - MUST link tasks to the spec sections they implement
 - MUST track which spec version was used for task generation
 - MUST record implementation outcome: success, failed, blocked, partial
@@ -113,6 +121,7 @@ Implement a feedback loop where the Spec Agent learns from Build Agent execution
 - SHOULD support manual override of spec-task links
 
 **FR-3: Spec Agent Learning Integration**
+
 - MUST inject relevant feedback when Spec Agent generates new specs
 - MUST retrieve feedback by similarity: similar problem domain, same agent, same user
 - MUST rank feedback by relevance (recent, same category, high severity)
@@ -121,6 +130,7 @@ Implement a feedback loop where the Spec Agent learns from Build Agent execution
 - SHOULD measure learning impact (specs with learnings vs. without)
 
 **FR-4: Auto-Improvement Suggestions**
+
 - MUST detect common spec anti-patterns:
   - Vague success criteria ("system should be fast")
   - Missing edge cases ("what happens if user inputs empty string?")
@@ -132,6 +142,7 @@ Implement a feedback loop where the Spec Agent learns from Build Agent execution
 - SHOULD learn new anti-patterns from repeated failures
 
 **FR-5: Spec Quality Metrics Dashboard**
+
 - MUST track per-spec metrics:
   - Implementation success rate (% of tasks completed without blockers)
   - Clarification request count
@@ -143,6 +154,7 @@ Implement a feedback loop where the Spec Agent learns from Build Agent execution
 - SHOULD export metrics to CSV/JSON
 
 **FR-6: Feedback Review Workflow**
+
 - MUST support manual review of Build Agent feedback before incorporation
 - MUST allow users to approve/reject feedback items
 - MUST track feedback status: pending, approved, rejected, auto-applied
@@ -153,24 +165,28 @@ Implement a feedback loop where the Spec Agent learns from Build Agent execution
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Feedback capture MUST NOT block Build Agent execution (<50ms overhead)
 - Spec Agent learning query MUST complete in <500ms (retrieve + rank feedback)
 - Quality metrics dashboard MUST load in <2 seconds (100+ specs)
 - Anti-pattern detection MUST run during spec generation (<1 second added latency)
 
 **NFR-2: Data Integrity**
+
 - Feedback entries MUST be immutable (append-only log)
 - Spec-task links MUST be preserved even after spec/task deletion (soft delete)
 - Feedback status changes MUST be audit logged
 - Duplicate feedback MUST be detected and merged (95% similarity threshold)
 
 **NFR-3: Usability**
+
 - Feedback capture MUST be automatic (no Build Agent code changes required)
 - Spec Agent learning MUST be transparent (log which feedback influenced generation)
 - Quality metrics MUST use visual indicators (red/yellow/green success rates)
 - Anti-pattern warnings MUST be actionable (specific examples + fixes)
 
 **NFR-4: Extensibility**
+
 - Feedback types MUST be extensible (add new types without schema change)
 - Anti-pattern detectors MUST be pluggable (register new detectors)
 - Quality metrics MUST support custom calculations
@@ -377,22 +393,22 @@ INSERT INTO spec_anti_patterns (id, pattern_name, description, detection_rule, e
 #### 1. Feedback Capture Service (`parent-harness/orchestrator/src/feedback/capture.ts`)
 
 ```typescript
-import { v4 as uuid } from 'uuid';
-import { run, getOne } from '../db/index.js';
+import { v4 as uuid } from "uuid";
+import { run, getOne } from "../db/index.js";
 
 export interface SpecFeedback {
   id: string;
   specId: string;
   specSection?: string;
-  feedbackType: 'blocker' | 'clarification' | 'enhancement';
-  severity: 'critical' | 'high' | 'medium' | 'low';
+  feedbackType: "blocker" | "clarification" | "enhancement";
+  severity: "critical" | "high" | "medium" | "low";
   feedbackText: string;
   suggestedResolution?: string;
   taskId?: string;
   executionId?: string;
   agentId: string;
   errorMessage?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'auto_applied';
+  status: "pending" | "approved" | "rejected" | "auto_applied";
   createdAt: string;
 }
 
@@ -402,8 +418,8 @@ export interface SpecFeedback {
 export async function captureFeedback(params: {
   specId: string;
   specSection?: string;
-  feedbackType: 'blocker' | 'clarification' | 'enhancement';
-  severity: 'critical' | 'high' | 'medium' | 'low';
+  feedbackType: "blocker" | "clarification" | "enhancement";
+  severity: "critical" | "high" | "medium" | "low";
   feedbackText: string;
   suggestedResolution?: string;
   taskId?: string;
@@ -415,36 +431,58 @@ export async function captureFeedback(params: {
   const now = new Date().toISOString();
 
   // Check for duplicate feedback (95% similarity)
-  const existing = await findSimilarFeedback(params.specId, params.feedbackText);
+  const existing = await findSimilarFeedback(
+    params.specId,
+    params.feedbackText,
+  );
   if (existing) {
-    console.log(`[FeedbackCapture] Duplicate feedback detected, incrementing occurrence`);
+    console.log(
+      `[FeedbackCapture] Duplicate feedback detected, incrementing occurrence`,
+    );
     return existing;
   }
 
   // Auto-approve low-severity enhancements
-  const status = params.feedbackType === 'enhancement' && params.severity === 'low'
-    ? 'auto_applied'
-    : 'pending';
+  const status =
+    params.feedbackType === "enhancement" && params.severity === "low"
+      ? "auto_applied"
+      : "pending";
 
-  await run(`
+  await run(
+    `
     INSERT INTO spec_feedback
     (id, spec_id, spec_section, feedback_type, severity, feedback_text,
      suggested_resolution, task_id, execution_id, agent_id, error_message, status, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `, [
-    id, params.specId, params.specSection, params.feedbackType, params.severity,
-    params.feedbackText, params.suggestedResolution, params.taskId, params.executionId,
-    params.agentId, params.errorMessage, status, now
-  ]);
+  `,
+    [
+      id,
+      params.specId,
+      params.specSection,
+      params.feedbackType,
+      params.severity,
+      params.feedbackText,
+      params.suggestedResolution,
+      params.taskId,
+      params.executionId,
+      params.agentId,
+      params.errorMessage,
+      status,
+      now,
+    ],
+  );
 
   // Update spec-task link feedback counts
   if (params.taskId) {
-    await run(`
+    await run(
+      `
       UPDATE spec_task_links
       SET feedback_count = feedback_count + 1,
           blocker_count = blocker_count + CASE WHEN ? = 'blocker' THEN 1 ELSE 0 END
       WHERE task_id = ?
-    `, [params.feedbackType, params.taskId]);
+    `,
+      [params.feedbackType, params.taskId],
+    );
   }
 
   return {
@@ -470,12 +508,12 @@ export async function captureFeedback(params: {
 export async function detectSpecGapsFromError(
   taskId: string,
   errorMessage: string,
-  agentId: string
+  agentId: string,
 ): Promise<SpecFeedback | null> {
   // Get spec for this task
   const link = await getOne<{ spec_id: string; spec_section: string }>(
-    'SELECT spec_id, spec_section FROM spec_task_links WHERE task_id = ?',
-    [taskId]
+    "SELECT spec_id, spec_section FROM spec_task_links WHERE task_id = ?",
+    [taskId],
   );
 
   if (!link) return null;
@@ -484,23 +522,27 @@ export async function detectSpecGapsFromError(
   const gapPatterns = [
     {
       pattern: /undefined (behavior|method|property|function)/i,
-      section: 'functional_desc',
-      feedback: 'Missing specification for behavior: The spec does not define what should happen in this case.',
+      section: "functional_desc",
+      feedback:
+        "Missing specification for behavior: The spec does not define what should happen in this case.",
     },
     {
       pattern: /missing (authentication|authorization|permission)/i,
-      section: 'constraints',
-      feedback: 'Missing security requirement: Authentication/authorization not specified in constraints.',
+      section: "constraints",
+      feedback:
+        "Missing security requirement: Authentication/authorization not specified in constraints.",
     },
     {
       pattern: /no (validation|constraint) for/i,
-      section: 'functional_desc',
-      feedback: 'Missing validation rules: The spec does not specify input validation requirements.',
+      section: "functional_desc",
+      feedback:
+        "Missing validation rules: The spec does not specify input validation requirements.",
     },
     {
       pattern: /(ambiguous|unclear) requirement/i,
-      section: 'functional_desc',
-      feedback: 'Ambiguous requirement: The spec description is not clear enough for implementation.',
+      section: "functional_desc",
+      feedback:
+        "Ambiguous requirement: The spec description is not clear enough for implementation.",
     },
   ];
 
@@ -509,8 +551,8 @@ export async function detectSpecGapsFromError(
       return captureFeedback({
         specId: link.spec_id,
         specSection: section,
-        feedbackType: 'blocker',
-        severity: 'critical',
+        feedbackType: "blocker",
+        severity: "critical",
         feedbackText: feedback,
         suggestedResolution: `Review and clarify the ${section} section to address: ${errorMessage.substring(0, 100)}`,
         taskId,
@@ -526,22 +568,31 @@ export async function detectSpecGapsFromError(
 /**
  * Find similar feedback to avoid duplicates
  */
-async function findSimilarFeedback(specId: string, feedbackText: string): Promise<SpecFeedback | null> {
+async function findSimilarFeedback(
+  specId: string,
+  feedbackText: string,
+): Promise<SpecFeedback | null> {
   // Simple similarity: check if 80%+ of words match
   const words = new Set(feedbackText.toLowerCase().split(/\s+/));
 
-  const existing = await getOne<SpecFeedback>(`
+  const existing = await getOne<SpecFeedback>(
+    `
     SELECT * FROM spec_feedback
     WHERE spec_id = ?
       AND created_at > datetime('now', '-7 days')
     ORDER BY created_at DESC
-  `, [specId]);
+  `,
+    [specId],
+  );
 
   if (!existing) return null;
 
-  const existingWords = new Set(existing.feedbackText.toLowerCase().split(/\s+/));
-  const intersection = new Set([...words].filter(w => existingWords.has(w)));
-  const similarity = intersection.size / Math.max(words.size, existingWords.size);
+  const existingWords = new Set(
+    existing.feedbackText.toLowerCase().split(/\s+/),
+  );
+  const intersection = new Set([...words].filter((w) => existingWords.has(w)));
+  const similarity =
+    intersection.size / Math.max(words.size, existingWords.size);
 
   return similarity > 0.8 ? existing : null;
 }
@@ -550,7 +601,7 @@ async function findSimilarFeedback(specId: string, feedbackText: string): Promis
 #### 2. Spec Learning Injector (`parent-harness/orchestrator/src/feedback/learning-injector.ts`)
 
 ```typescript
-import { query } from '../db/index.js';
+import { query } from "../db/index.js";
 
 export interface LearningContext {
   approvedFeedback: SpecFeedback[];
@@ -570,7 +621,8 @@ export async function getRelevantLearnings(params: {
   const limit = params.limit || 10;
 
   // Get approved feedback from similar specs
-  const approvedFeedback = await query<SpecFeedback>(`
+  const approvedFeedback = await query<SpecFeedback>(
+    `
     SELECT sf.*
     FROM spec_feedback sf
     WHERE sf.status = 'approved'
@@ -578,10 +630,13 @@ export async function getRelevantLearnings(params: {
       AND sf.created_at > datetime('now', '-90 days')
     ORDER BY sf.severity DESC, sf.created_at DESC
     LIMIT ?
-  `, [limit]);
+  `,
+    [limit],
+  );
 
   // Get anti-patterns detected in recent specs
-  const antiPatterns = await query<AntiPattern>(`
+  const antiPatterns = await query<AntiPattern>(
+    `
     SELECT DISTINCT ap.*
     FROM spec_anti_patterns ap
     JOIN spec_anti_pattern_detections apd ON ap.id = apd.pattern_id
@@ -589,17 +644,22 @@ export async function getRelevantLearnings(params: {
       AND apd.created_at > datetime('now', '-30 days')
     ORDER BY ap.severity DESC, ap.times_detected DESC
     LIMIT ?
-  `, [5]);
+  `,
+    [5],
+  );
 
   // Get high-performing specs for reference
-  const similarSpecSuccesses = await query<SpecQualityMetric>(`
+  const similarSpecSuccesses = await query<SpecQualityMetric>(
+    `
     SELECT sqm.*
     FROM spec_quality_metrics sqm
     WHERE sqm.success_rate >= 0.8
       AND sqm.total_tasks >= 3
     ORDER BY sqm.success_rate DESC, sqm.total_tasks DESC
     LIMIT ?
-  `, [5]);
+  `,
+    [5],
+  );
 
   return {
     approvedFeedback,
@@ -615,9 +675,11 @@ export function formatLearningsForPrompt(learnings: LearningContext): string {
   const sections: string[] = [];
 
   if (learnings.approvedFeedback.length > 0) {
-    sections.push('## Past Spec Feedback to Avoid\n');
+    sections.push("## Past Spec Feedback to Avoid\n");
     for (const feedback of learnings.approvedFeedback) {
-      sections.push(`- **[${feedback.severity.toUpperCase()}]** ${feedback.feedbackText}`);
+      sections.push(
+        `- **[${feedback.severity.toUpperCase()}]** ${feedback.feedbackText}`,
+      );
       if (feedback.suggestedResolution) {
         sections.push(`  → Fix: ${feedback.suggestedResolution}`);
       }
@@ -625,7 +687,7 @@ export function formatLearningsForPrompt(learnings: LearningContext): string {
   }
 
   if (learnings.antiPatterns.length > 0) {
-    sections.push('\n## Common Spec Anti-Patterns to Avoid\n');
+    sections.push("\n## Common Spec Anti-Patterns to Avoid\n");
     for (const pattern of learnings.antiPatterns) {
       sections.push(`- **${pattern.pattern_name}**: ${pattern.explanation}`);
       sections.push(`  → Fix: ${pattern.fix_template}`);
@@ -633,20 +695,24 @@ export function formatLearningsForPrompt(learnings: LearningContext): string {
   }
 
   if (learnings.similarSpecSuccesses.length > 0) {
-    sections.push('\n## High-Quality Spec Examples\n');
-    sections.push(`${learnings.similarSpecSuccesses.length} specs achieved ≥80% implementation success.`);
-    sections.push('Key patterns: Complete edge case coverage, measurable success criteria, explicit constraints.');
+    sections.push("\n## High-Quality Spec Examples\n");
+    sections.push(
+      `${learnings.similarSpecSuccesses.length} specs achieved ≥80% implementation success.`,
+    );
+    sections.push(
+      "Key patterns: Complete edge case coverage, measurable success criteria, explicit constraints.",
+    );
   }
 
-  return sections.join('\n');
+  return sections.join("\n");
 }
 ```
 
 #### 3. Anti-Pattern Detector (`parent-harness/orchestrator/src/feedback/anti-pattern-detector.ts`)
 
 ```typescript
-import { query, run } from '../db/index.js';
-import { v4 as uuid } from 'uuid';
+import { query, run } from "../db/index.js";
+import { v4 as uuid } from "uuid";
 
 export interface AntiPatternDetection {
   patternName: string;
@@ -660,7 +726,7 @@ export interface AntiPatternDetection {
  */
 export async function detectAntiPatterns(
   specId: string,
-  specSections: Record<string, string>
+  specSections: Record<string, string>,
 ): Promise<AntiPatternDetection[]> {
   const patterns = await query<{
     id: string;
@@ -669,13 +735,13 @@ export async function detectAntiPatterns(
     fix_template: string;
     severity: string;
     applies_to_sections: string;
-  }>('SELECT * FROM spec_anti_patterns');
+  }>("SELECT * FROM spec_anti_patterns");
 
   const detections: AntiPatternDetection[] = [];
 
   for (const pattern of patterns) {
-    const applicableSections = JSON.parse(pattern.applies_to_sections || '[]');
-    const regex = new RegExp(pattern.detection_rule, 'gi');
+    const applicableSections = JSON.parse(pattern.applies_to_sections || "[]");
+    const regex = new RegExp(pattern.detection_rule, "gi");
 
     for (const section of applicableSections) {
       const content = specSections[section];
@@ -684,22 +750,28 @@ export async function detectAntiPatterns(
       const matches = content.match(regex);
       if (matches) {
         for (const match of matches) {
-          const suggestedFix = pattern.fix_template.replace('[VAGUE]', match);
+          const suggestedFix = pattern.fix_template.replace("[VAGUE]", match);
 
           // Record detection
-          await run(`
+          await run(
+            `
             INSERT INTO spec_anti_pattern_detections
             (id, spec_id, spec_section, pattern_id, matched_text, suggested_fix, status, created_at)
             VALUES (?, ?, ?, ?, ?, ?, 'detected', datetime('now'))
-          `, [uuid(), specId, section, pattern.id, match, suggestedFix]);
+          `,
+            [uuid(), specId, section, pattern.id, match, suggestedFix],
+          );
 
           // Update pattern stats
-          await run(`
+          await run(
+            `
             UPDATE spec_anti_patterns
             SET times_detected = times_detected + 1,
                 updated_at = datetime('now')
             WHERE id = ?
-          `, [pattern.id]);
+          `,
+            [pattern.id],
+          );
 
           detections.push({
             patternName: pattern.pattern_name,
@@ -719,7 +791,7 @@ export async function detectAntiPatterns(
 #### 4. Spec Quality Calculator (`parent-harness/orchestrator/src/feedback/quality-calculator.ts`)
 
 ```typescript
-import { query, run, getOne } from '../db/index.js';
+import { query, run, getOne } from "../db/index.js";
 
 /**
  * Calculate and update spec quality metrics
@@ -730,16 +802,25 @@ export async function calculateSpecQuality(specId: string): Promise<void> {
     implementation_status: string;
     feedback_count: number;
     blocker_count: number;
-  }>(`
+  }>(
+    `
     SELECT implementation_status, feedback_count, blocker_count
     FROM spec_task_links
     WHERE spec_id = ?
-  `, [specId]);
+  `,
+    [specId],
+  );
 
   const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(t => t.implementation_status === 'completed').length;
-  const failedTasks = tasks.filter(t => t.implementation_status === 'failed').length;
-  const blockedTasks = tasks.filter(t => t.implementation_status === 'blocked').length;
+  const completedTasks = tasks.filter(
+    (t) => t.implementation_status === "completed",
+  ).length;
+  const failedTasks = tasks.filter(
+    (t) => t.implementation_status === "failed",
+  ).length;
+  const blockedTasks = tasks.filter(
+    (t) => t.implementation_status === "blocked",
+  ).length;
 
   // Get feedback metrics
   const feedbackStats = await getOne<{
@@ -747,7 +828,8 @@ export async function calculateSpecQuality(specId: string): Promise<void> {
     blockers: number;
     clarifications: number;
     enhancements: number;
-  }>(`
+  }>(
+    `
     SELECT
       COUNT(*) as total,
       SUM(CASE WHEN feedback_type = 'blocker' THEN 1 ELSE 0 END) as blockers,
@@ -755,20 +837,27 @@ export async function calculateSpecQuality(specId: string): Promise<void> {
       SUM(CASE WHEN feedback_type = 'enhancement' THEN 1 ELSE 0 END) as enhancements
     FROM spec_feedback
     WHERE spec_id = ?
-  `, [specId]);
+  `,
+    [specId],
+  );
 
   // Calculate average severity (critical=1.0, high=0.75, medium=0.5, low=0.25)
   const severityMap = { critical: 1.0, high: 0.75, medium: 0.5, low: 0.25 };
   const feedbackItems = await query<{ severity: string }>(
-    'SELECT severity FROM spec_feedback WHERE spec_id = ?',
-    [specId]
+    "SELECT severity FROM spec_feedback WHERE spec_id = ?",
+    [specId],
   );
-  const avgSeverity = feedbackItems.length > 0
-    ? feedbackItems.reduce((sum, f) => sum + severityMap[f.severity as keyof typeof severityMap], 0) / feedbackItems.length
-    : 0;
+  const avgSeverity =
+    feedbackItems.length > 0
+      ? feedbackItems.reduce(
+          (sum, f) => sum + severityMap[f.severity as keyof typeof severityMap],
+          0,
+        ) / feedbackItems.length
+      : 0;
 
   // Upsert metrics
-  await run(`
+  await run(
+    `
     INSERT INTO spec_quality_metrics
     (id, spec_id, total_tasks, completed_tasks, failed_tasks, blocked_tasks,
      total_feedback, blocker_feedback, clarification_feedback, enhancement_feedback, avg_severity,
@@ -785,12 +874,21 @@ export async function calculateSpecQuality(specId: string): Promise<void> {
       enhancement_feedback = excluded.enhancement_feedback,
       avg_severity = excluded.avg_severity,
       last_calculated_at = datetime('now')
-  `, [
-    specId, specId, totalTasks, completedTasks, failedTasks, blockedTasks,
-    feedbackStats?.total || 0, feedbackStats?.blockers || 0,
-    feedbackStats?.clarifications || 0, feedbackStats?.enhancements || 0,
-    avgSeverity
-  ]);
+  `,
+    [
+      specId,
+      specId,
+      totalTasks,
+      completedTasks,
+      failedTasks,
+      blockedTasks,
+      feedbackStats?.total || 0,
+      feedbackStats?.blockers || 0,
+      feedbackStats?.clarifications || 0,
+      feedbackStats?.enhancements || 0,
+      avgSeverity,
+    ],
+  );
 }
 ```
 
@@ -800,9 +898,12 @@ export async function calculateSpecQuality(specId: string): Promise<void> {
 
 ```typescript
 // In parent-harness/orchestrator/src/events/stuck-agent-handler.ts
-import { detectSpecGapsFromError } from '../feedback/capture.js';
+import { detectSpecGapsFromError } from "../feedback/capture.js";
 
-export async function handleStuckAgent(sessionId: string, error: any): Promise<void> {
+export async function handleStuckAgent(
+  sessionId: string,
+  error: any,
+): Promise<void> {
   // Existing error handling...
 
   // NEW: Auto-detect spec gaps from error
@@ -811,7 +912,7 @@ export async function handleStuckAgent(sessionId: string, error: any): Promise<v
     const feedback = await detectSpecGapsFromError(
       task.id,
       error.message,
-      'build_agent'
+      "build_agent",
     );
     if (feedback) {
       console.log(`[StuckAgent] Detected spec gap: ${feedback.feedbackText}`);
@@ -824,25 +925,29 @@ export async function handleStuckAgent(sessionId: string, error: any): Promise<v
 
 ```typescript
 // In agents/ideation/spec-generator.ts (Idea Incubator)
-import { getRelevantLearnings, formatLearningsForPrompt } from '../../parent-harness/orchestrator/src/feedback/learning-injector.js';
+import {
+  getRelevantLearnings,
+  formatLearningsForPrompt,
+} from "../../parent-harness/orchestrator/src/feedback/learning-injector.js";
 
 export async function generateSpec(
   sessionId: string,
   userId: string,
-  ideaTitle?: string
+  ideaTitle?: string,
 ): Promise<SpecGenerationResult> {
   // Get learnings from past specs
   const learnings = await getRelevantLearnings({ userId, limit: 10 });
   const learningPrompt = formatLearningsForPrompt(learnings);
 
   // Build enhanced prompt with learnings
-  const prompt = buildSpecGenerationPrompt(messages, ideaTitle) + '\n\n' + learningPrompt;
+  const prompt =
+    buildSpecGenerationPrompt(messages, ideaTitle) + "\n\n" + learningPrompt;
 
   // Generate spec with Claude
   const response = await anthropicClient.messages.create({
-    model: 'claude-opus-4-6',
+    model: "claude-opus-4-6",
     max_tokens: 4096,
-    messages: [{ role: 'user', content: prompt }],
+    messages: [{ role: "user", content: prompt }],
   });
 
   // Parse and save spec...
@@ -852,12 +957,14 @@ export async function generateSpec(
   const antiPatterns = await detectAntiPatterns(savedSpec.id, {
     problem: spec.problemStatement,
     functional_desc: spec.functionalDescription,
-    success_criteria: spec.successCriteria.join('\n'),
-    constraints: spec.constraints.join('\n'),
+    success_criteria: spec.successCriteria.join("\n"),
+    constraints: spec.constraints.join("\n"),
   });
 
   if (antiPatterns.length > 0) {
-    console.log(`[SpecGenerator] Detected ${antiPatterns.length} anti-patterns`);
+    console.log(
+      `[SpecGenerator] Detected ${antiPatterns.length} anti-patterns`,
+    );
   }
 
   return {
@@ -875,20 +982,23 @@ export async function generateSpec(
 
 ```typescript
 // In server/services/task-agent/task-creation-service.ts
-import { run } from '../../../database/db.js';
+import { run } from "../../../database/db.js";
 
 export async function createTaskFromSpec(
   specId: string,
   specSection: string,
-  taskDetails: any
+  taskDetails: any,
 ): Promise<string> {
   const taskId = await createTask(taskDetails);
 
   // NEW: Link task to spec
-  await run(`
+  await run(
+    `
     INSERT INTO spec_task_links (id, spec_id, spec_version, spec_section, task_id, implementation_status)
     VALUES (?, ?, ?, ?, ?, 'not_started')
-  `, [uuid(), specId, 1, specSection, taskId]);
+  `,
+    [uuid(), specId, 1, specSection, taskId],
+  );
 
   return taskId;
 }
@@ -898,17 +1008,17 @@ export async function createTaskFromSpec(
 
 ```typescript
 // In parent-harness/orchestrator/src/api/feedback.ts
-import { Router } from 'express';
-import { query } from '../db/index.js';
-import { captureFeedback } from '../feedback/capture.js';
-import { calculateSpecQuality } from '../feedback/quality-calculator.js';
+import { Router } from "express";
+import { query } from "../db/index.js";
+import { captureFeedback } from "../feedback/capture.js";
+import { calculateSpecQuality } from "../feedback/quality-calculator.js";
 
 export const feedbackRouter = Router();
 
 /**
  * POST /api/feedback - Capture Build Agent feedback
  */
-feedbackRouter.post('/', async (req, res) => {
+feedbackRouter.post("/", async (req, res) => {
   const feedback = await captureFeedback(req.body);
   res.json(feedback);
 });
@@ -916,27 +1026,31 @@ feedbackRouter.post('/', async (req, res) => {
 /**
  * GET /api/feedback/quality/:specId - Get spec quality metrics
  */
-feedbackRouter.get('/quality/:specId', async (req, res) => {
+feedbackRouter.get("/quality/:specId", async (req, res) => {
   const { specId } = req.params;
 
   // Recalculate if stale
   await calculateSpecQuality(specId);
 
   const metrics = await getOne(
-    'SELECT * FROM spec_quality_metrics WHERE spec_id = ?',
-    [specId]
+    "SELECT * FROM spec_quality_metrics WHERE spec_id = ?",
+    [specId],
   );
 
-  res.json(metrics || { message: 'No metrics yet' });
+  res.json(metrics || { message: "No metrics yet" });
 });
 
 /**
  * GET /api/feedback/dashboard - Overall quality dashboard
  */
-feedbackRouter.get('/dashboard', async (req, res) => {
+feedbackRouter.get("/dashboard", async (req, res) => {
   const stats = {
-    total_specs: await getOne('SELECT COUNT(*) as count FROM spec_quality_metrics'),
-    avg_success_rate: await getOne('SELECT AVG(success_rate) as avg FROM spec_quality_metrics'),
+    total_specs: await getOne(
+      "SELECT COUNT(*) as count FROM spec_quality_metrics",
+    ),
+    avg_success_rate: await getOne(
+      "SELECT AVG(success_rate) as avg FROM spec_quality_metrics",
+    ),
     specs_with_blockers: await getOne(`
       SELECT COUNT(*) as count FROM spec_quality_metrics WHERE blocker_feedback > 0
     `),
@@ -957,12 +1071,14 @@ feedbackRouter.get('/dashboard', async (req, res) => {
 ## Pass Criteria
 
 ### Database Schema
+
 1. ✅ **Tables created** - spec_feedback, spec_task_links, spec_quality_metrics, spec_anti_patterns, spec_anti_pattern_detections, spec_learning_applications
 2. ✅ **Indexes created** - All performance-critical indexes present
 3. ✅ **Seed data** - 5 common anti-patterns inserted
 4. ✅ **Migration tested** - Schema applies cleanly to harness.db
 
 ### Feedback Capture
+
 5. ✅ **Manual feedback capture** - `captureFeedback()` creates entries with all required fields
 6. ✅ **Auto-detection from errors** - `detectSpecGapsFromError()` identifies 4+ common gap patterns
 7. ✅ **Duplicate prevention** - Similar feedback (>80%) is merged, not duplicated
@@ -970,36 +1086,42 @@ feedbackRouter.get('/dashboard', async (req, res) => {
 9. ✅ **Feedback counts update** - spec_task_links.feedback_count increments correctly
 
 ### Learning Integration
+
 10. ✅ **Relevant learning retrieval** - `getRelevantLearnings()` returns approved feedback + anti-patterns
 11. ✅ **Prompt formatting** - `formatLearningsForPrompt()` generates structured guidance text
 12. ✅ **Spec generation with learnings** - Spec Agent receives past feedback in system prompt
 13. ✅ **Learning application tracking** - spec_learning_applications records which feedback was used
 
 ### Anti-Pattern Detection
+
 14. ✅ **Pattern detection works** - All 5 seed patterns detected in test specs
 15. ✅ **Detection recording** - spec_anti_pattern_detections table populated
 16. ✅ **Suggested fixes generated** - Each detection includes actionable fix template
 17. ✅ **Statistics updated** - spec_anti_patterns.times_detected increments
 
 ### Quality Metrics
+
 18. ✅ **Quality calculation** - `calculateSpecQuality()` computes all metrics correctly
 19. ✅ **Success rate accuracy** - success_rate = completed_tasks / total_tasks
 20. ✅ **Severity scoring** - avg_severity weights critical=1.0 down to low=0.25
 21. ✅ **Section success rates** - section_success_rates JSON populated
 
 ### API Endpoints
+
 22. ✅ **POST /api/feedback** - Creates feedback entry, returns ID
 23. ✅ **GET /api/feedback/quality/:specId** - Returns metrics with recalculation
 24. ✅ **GET /api/feedback/dashboard** - Returns aggregate stats
 25. ✅ **Response time** - All endpoints respond in <500ms
 
 ### Integration
+
 26. ✅ **Stuck agent handler** - Calls detectSpecGapsFromError on failures
 27. ✅ **Spec generator** - Injects learnings into prompt, runs anti-pattern detection
 28. ✅ **Task creation** - Creates spec_task_links entries
 29. ✅ **Build agent** - No code changes required (passive integration)
 
 ### Testing
+
 30. ✅ **Unit tests** - All modules tested in isolation
 31. ✅ **Integration test** - Complete flow: spec → task → error → feedback → improved spec
 32. ✅ **Quality metrics test** - Verify calculations match manual computation
@@ -1009,16 +1131,19 @@ feedbackRouter.get('/dashboard', async (req, res) => {
 ## Dependencies
 
 **Upstream (Must Complete First):**
+
 - ✅ PHASE4-TASK-01: Knowledge Base System (provides pattern storage foundation)
 - ⚠️ PHASE4-TASK-02: Agent Introspection (partial - uses memory API)
 - ✅ Spec Generator (exists: `agents/ideation/spec-generator.ts`)
 - ✅ Build Agent Orchestrator (exists: `server/services/task-agent/build-agent-orchestrator.ts`)
 
 **Downstream (Depends on This):**
+
 - PHASE5-TASK-01: Self-Improvement Loop (uses feedback to auto-refine specs)
 - PHASE6-TASK-01: Auto-promotion of validated spec patterns to CLAUDE.md
 
 **Parallel Work (Can Develop Concurrently):**
+
 - PHASE3-TASK-05: Dashboard widgets (can add spec quality widget separately)
 - PHASE5-TASK-02: Advanced pattern recognition (enhances anti-pattern detection)
 
@@ -1027,6 +1152,7 @@ feedbackRouter.get('/dashboard', async (req, res) => {
 ## Implementation Plan
 
 ### Phase 1: Database & Core Services (6 hours)
+
 1. Create migration: `003_spec_feedback_loop.sql`
 2. Implement feedback capture service (`capture.ts`)
 3. Implement spec-task linking in task creation
@@ -1034,30 +1160,35 @@ feedbackRouter.get('/dashboard', async (req, res) => {
 5. Unit test feedback capture
 
 ### Phase 2: Anti-Pattern Detection (4 hours)
+
 6. Implement anti-pattern detector (`anti-pattern-detector.ts`)
 7. Test detection on sample specs
 8. Tune regex patterns for accuracy
 9. Add detection to spec generator
 
 ### Phase 3: Learning Injection (5 hours)
+
 10. Implement learning injector (`learning-injector.ts`)
 11. Implement prompt formatting
 12. Integrate with spec generator
 13. Test improved specs vs. baseline
 
 ### Phase 4: Quality Metrics (4 hours)
+
 14. Implement quality calculator (`quality-calculator.ts`)
 15. Add batch calculation job
 16. Test metric accuracy
 17. Create quality dashboard query
 
 ### Phase 5: API & Integration (3 hours)
+
 18. Create feedback API routes
 19. Integrate with stuck agent handler
 20. Add feedback triggers to build agent
 21. Test end-to-end flow
 
 ### Phase 6: Testing & Documentation (3 hours)
+
 22. Write integration test suite
 23. Load test with 100+ specs
 24. Document API endpoints
@@ -1073,44 +1204,44 @@ feedbackRouter.get('/dashboard', async (req, res) => {
 
 ```typescript
 // feedback/capture.test.ts
-describe('Feedback Capture', () => {
-  test('creates feedback with all required fields', async () => {
+describe("Feedback Capture", () => {
+  test("creates feedback with all required fields", async () => {
     const feedback = await captureFeedback({
-      specId: 'spec-001',
-      specSection: 'functional_desc',
-      feedbackType: 'blocker',
-      severity: 'critical',
-      feedbackText: 'Missing: API authentication method',
-      taskId: 'task-001',
-      agentId: 'build_agent',
+      specId: "spec-001",
+      specSection: "functional_desc",
+      feedbackType: "blocker",
+      severity: "critical",
+      feedbackText: "Missing: API authentication method",
+      taskId: "task-001",
+      agentId: "build_agent",
     });
 
     expect(feedback.id).toBeDefined();
-    expect(feedback.status).toBe('pending');
+    expect(feedback.status).toBe("pending");
   });
 
-  test('auto-detects spec gap from error message', async () => {
+  test("auto-detects spec gap from error message", async () => {
     const feedback = await detectSpecGapsFromError(
-      'task-001',
-      'Error: undefined behavior for empty input',
-      'build_agent'
+      "task-001",
+      "Error: undefined behavior for empty input",
+      "build_agent",
     );
 
     expect(feedback).toBeDefined();
-    expect(feedback?.feedbackType).toBe('blocker');
-    expect(feedback?.specSection).toBe('functional_desc');
+    expect(feedback?.feedbackType).toBe("blocker");
+    expect(feedback?.specSection).toBe("functional_desc");
   });
 
-  test('prevents duplicate feedback', async () => {
+  test("prevents duplicate feedback", async () => {
     const f1 = await captureFeedback({
-      specId: 'spec-001',
-      feedbackText: 'Missing edge case handling',
+      specId: "spec-001",
+      feedbackText: "Missing edge case handling",
       // ...
     });
 
     const f2 = await captureFeedback({
-      specId: 'spec-001',
-      feedbackText: 'Missing edge case handling for errors',
+      specId: "spec-001",
+      feedbackText: "Missing edge case handling for errors",
       // ...
     });
 
@@ -1119,29 +1250,29 @@ describe('Feedback Capture', () => {
 });
 
 // feedback/anti-pattern-detector.test.ts
-describe('Anti-Pattern Detection', () => {
-  test('detects vague success criteria', async () => {
-    const detections = await detectAntiPatterns('spec-001', {
-      success_criteria: 'System should be fast and user-friendly',
+describe("Anti-Pattern Detection", () => {
+  test("detects vague success criteria", async () => {
+    const detections = await detectAntiPatterns("spec-001", {
+      success_criteria: "System should be fast and user-friendly",
     });
 
     expect(detections).toContainEqual(
       expect.objectContaining({
-        patternName: 'vague_success_criteria',
-        matchedText: expect.stringContaining('fast'),
-      })
+        patternName: "vague_success_criteria",
+        matchedText: expect.stringContaining("fast"),
+      }),
     );
   });
 
-  test('detects missing edge cases', async () => {
-    const detections = await detectAntiPatterns('spec-001', {
-      functional_desc: 'User can upload files to the system',
+  test("detects missing edge cases", async () => {
+    const detections = await detectAntiPatterns("spec-001", {
+      functional_desc: "User can upload files to the system",
     });
 
     expect(detections).toContainEqual(
       expect.objectContaining({
-        patternName: 'missing_edge_cases',
-      })
+        patternName: "missing_edge_cases",
+      }),
     );
   });
 });
@@ -1151,37 +1282,45 @@ describe('Anti-Pattern Detection', () => {
 
 ```typescript
 // integration/spec-feedback-loop.test.ts
-describe('Spec Feedback Loop Integration', () => {
-  test('complete flow: spec → task → error → feedback → improved spec', async () => {
+describe("Spec Feedback Loop Integration", () => {
+  test("complete flow: spec → task → error → feedback → improved spec", async () => {
     // 1. Generate initial spec (missing edge cases)
-    const spec1 = await generateSpec('session-001', 'user-001', 'File Upload System');
-    expect(spec1.spec.functionalDescription).toContain('upload files');
+    const spec1 = await generateSpec(
+      "session-001",
+      "user-001",
+      "File Upload System",
+    );
+    expect(spec1.spec.functionalDescription).toContain("upload files");
 
     // 2. Create task from spec
-    const taskId = await createTaskFromSpec(spec1.spec.id, 'functional_desc', {
-      title: 'Implement file upload',
+    const taskId = await createTaskFromSpec(spec1.spec.id, "functional_desc", {
+      title: "Implement file upload",
     });
 
     // 3. Task fails with spec gap error
-    await recordTaskFailure(taskId, 'Error: undefined behavior for empty file');
+    await recordTaskFailure(taskId, "Error: undefined behavior for empty file");
 
     // 4. Feedback auto-captured
     const feedback = await query(
-      'SELECT * FROM spec_feedback WHERE task_id = ?',
-      [taskId]
+      "SELECT * FROM spec_feedback WHERE task_id = ?",
+      [taskId],
     );
     expect(feedback).toHaveLength(1);
-    expect(feedback[0].feedback_type).toBe('blocker');
+    expect(feedback[0].feedback_type).toBe("blocker");
 
     // 5. Approve feedback
     await approveFeedback(feedback[0].id);
 
     // 6. Generate new spec with learnings
-    const spec2 = await generateSpec('session-002', 'user-001', 'File Upload System v2');
+    const spec2 = await generateSpec(
+      "session-002",
+      "user-001",
+      "File Upload System v2",
+    );
 
     // 7. Verify learning applied
-    expect(spec2.spec.functionalDescription).toContain('edge case');
-    expect(spec2.spec.functionalDescription).toContain('empty');
+    expect(spec2.spec.functionalDescription).toContain("edge case");
+    expect(spec2.spec.functionalDescription).toContain("empty");
   });
 });
 ```
@@ -1191,18 +1330,21 @@ describe('Spec Feedback Loop Integration', () => {
 ## Success Metrics
 
 **Operational:**
+
 - 100+ feedback entries captured in first month
 - 80%+ of critical blockers detected automatically
 - Anti-pattern detection catches 50%+ of spec issues before implementation
 - Quality dashboard loads in <2 seconds with 100+ specs
 
 **Agent Performance:**
+
 - Spec success rate improves by 20% after 50+ feedback items
 - Time to first blocker increases by 30% (specs are clearer)
 - Clarification request count decreases by 40%
 - Spec Agent generates 15%+ more edge case coverage
 
 **Quality:**
+
 - 90%+ of auto-detected feedback validated as correct by manual review
 - Anti-pattern suggestions lead to measurable improvement in 70%+ of cases
 - High-confidence (≥80%) sections correlate with high implementation success (r > 0.7)

@@ -2,8 +2,8 @@
  * Task State History - Audit trail for task state transitions
  */
 
-import { query, getOne, run } from './index.js';
-import { v4 as uuidv4 } from 'uuid';
+import { query, getOne, run } from "./index.js";
+import { v4 as uuidv4 } from "uuid";
 
 export interface TaskStateHistory {
   id: string;
@@ -11,7 +11,7 @@ export interface TaskStateHistory {
   from_status: string | null;
   to_status: string;
   changed_by: string;
-  actor_type: 'user' | 'agent' | 'system';
+  actor_type: "user" | "agent" | "system";
   reason: string | null;
   metadata: string | null;
   created_at: string;
@@ -22,7 +22,7 @@ export interface CreateStateHistoryInput {
   from_status?: string | null;
   to_status: string;
   changed_by: string;
-  actor_type: 'user' | 'agent' | 'system';
+  actor_type: "user" | "agent" | "system";
   reason?: string;
   metadata?: Record<string, unknown>;
 }
@@ -30,25 +30,30 @@ export interface CreateStateHistoryInput {
 /**
  * Log a state transition
  */
-export function logStateTransition(input: CreateStateHistoryInput): TaskStateHistory {
+export function logStateTransition(
+  input: CreateStateHistoryInput,
+): TaskStateHistory {
   const id = uuidv4();
   const metadata = input.metadata ? JSON.stringify(input.metadata) : null;
 
-  run(`
+  run(
+    `
     INSERT INTO task_state_history (
       id, task_id, from_status, to_status, changed_by, actor_type, reason, metadata
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `, [
-    id,
-    input.task_id,
-    input.from_status ?? null,
-    input.to_status,
-    input.changed_by,
-    input.actor_type,
-    input.reason ?? null,
-    metadata,
-  ]);
+  `,
+    [
+      id,
+      input.task_id,
+      input.from_status ?? null,
+      input.to_status,
+      input.changed_by,
+      input.actor_type,
+      input.reason ?? null,
+      metadata,
+    ],
+  );
 
   return getStateHistory(id)!;
 }
@@ -58,8 +63,8 @@ export function logStateTransition(input: CreateStateHistoryInput): TaskStateHis
  */
 export function getStateHistory(id: string): TaskStateHistory | undefined {
   return getOne<TaskStateHistory>(
-    'SELECT * FROM task_state_history WHERE id = ?',
-    [id]
+    "SELECT * FROM task_state_history WHERE id = ?",
+    [id],
   );
 }
 
@@ -68,17 +73,18 @@ export function getStateHistory(id: string): TaskStateHistory | undefined {
  */
 export function getTaskStateHistory(
   taskId: string,
-  options?: { limit?: number; offset?: number }
+  options?: { limit?: number; offset?: number },
 ): TaskStateHistory[] {
-  let sql = 'SELECT * FROM task_state_history WHERE task_id = ? ORDER BY created_at DESC';
+  let sql =
+    "SELECT * FROM task_state_history WHERE task_id = ? ORDER BY created_at DESC";
   const params: unknown[] = [taskId];
 
   if (options?.limit) {
-    sql += ' LIMIT ?';
+    sql += " LIMIT ?";
     params.push(options.limit);
   }
   if (options?.offset) {
-    sql += ' OFFSET ?';
+    sql += " OFFSET ?";
     params.push(options.offset);
   }
 
@@ -91,24 +97,24 @@ export function getTaskStateHistory(
 export function getAllStateHistory(options?: {
   limit?: number;
   offset?: number;
-  actorType?: 'user' | 'agent' | 'system';
+  actorType?: "user" | "agent" | "system";
 }): TaskStateHistory[] {
-  let sql = 'SELECT * FROM task_state_history WHERE 1=1';
+  let sql = "SELECT * FROM task_state_history WHERE 1=1";
   const params: unknown[] = [];
 
   if (options?.actorType) {
-    sql += ' AND actor_type = ?';
+    sql += " AND actor_type = ?";
     params.push(options.actorType);
   }
 
-  sql += ' ORDER BY created_at DESC';
+  sql += " ORDER BY created_at DESC";
 
   if (options?.limit) {
-    sql += ' LIMIT ?';
+    sql += " LIMIT ?";
     params.push(options.limit);
   }
   if (options?.offset) {
-    sql += ' OFFSET ?';
+    sql += " OFFSET ?";
     params.push(options.offset);
   }
 
@@ -118,10 +124,12 @@ export function getAllStateHistory(options?: {
 /**
  * Get the latest state change for a task
  */
-export function getLatestStateChange(taskId: string): TaskStateHistory | undefined {
+export function getLatestStateChange(
+  taskId: string,
+): TaskStateHistory | undefined {
   return getOne<TaskStateHistory>(
-    'SELECT * FROM task_state_history WHERE task_id = ? ORDER BY created_at DESC LIMIT 1',
-    [taskId]
+    "SELECT * FROM task_state_history WHERE task_id = ? ORDER BY created_at DESC LIMIT 1",
+    [taskId],
   );
 }
 
@@ -130,13 +138,14 @@ export function getLatestStateChange(taskId: string): TaskStateHistory | undefin
  */
 export function getStateChangesByActor(
   changedBy: string,
-  options?: { limit?: number }
+  options?: { limit?: number },
 ): TaskStateHistory[] {
-  let sql = 'SELECT * FROM task_state_history WHERE changed_by = ? ORDER BY created_at DESC';
+  let sql =
+    "SELECT * FROM task_state_history WHERE changed_by = ? ORDER BY created_at DESC";
   const params: unknown[] = [changedBy];
 
   if (options?.limit) {
-    sql += ' LIMIT ?';
+    sql += " LIMIT ?";
     params.push(options.limit);
   }
 
@@ -148,8 +157,8 @@ export function getStateChangesByActor(
  */
 export function countTaskTransitions(taskId: string): number {
   const result = getOne<{ count: number }>(
-    'SELECT COUNT(*) as count FROM task_state_history WHERE task_id = ?',
-    [taskId]
+    "SELECT COUNT(*) as count FROM task_state_history WHERE task_id = ?",
+    [taskId],
   );
   return result?.count ?? 0;
 }

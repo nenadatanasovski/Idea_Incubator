@@ -6,7 +6,7 @@
 
 ---
 
-### STRATEGIC_PLAN_START ###
+### STRATEGIC_PLAN_START
 
 ## VISION SUMMARY
 
@@ -54,21 +54,21 @@ The project consists of **three tightly integrated subsystems**:
 
 ### Key Gaps
 
-| Gap | Category | Severity | Notes |
-|-----|----------|----------|-------|
-| Q&A data flow (fixed) | Evaluation | 🔴 FIXED | development.md sync now integrated |
-| Profile context incomplete (fixed) | Evaluation | 🟡 FIXED | category-relevant excerpts implemented |
-| Web search for viability (fixed) | Evaluation | 🟡 FIXED | pre-eval research phase added |
-| Clarification Agent not implemented | Execution | 🔴 Critical | Users provide vague tasks → wrong implementations |
-| Human Sim Agent not implemented | Testing | 🔴 Critical | Can't test usability with personas |
-| Agent memory system incomplete | Learning | 🟠 High | Agents don't learn from failures |
-| Task version history & rollback | Safety | 🟡 Medium | No checkpoint/recovery system |
-| Spec workflow state machine | Architecture | 🟡 Medium | Spec approval process missing |
-| Intervention tracking partial | Audit | 🟡 Medium | Need full SIA-style intervention tracking |
-| Build interventions not tracked | Audit | 🟡 Medium | Human/SIA fixes not recorded |
-| File impact analysis (schema only) | Planning | 🟢 Low | Schema exists, implementation deferred |
-| Parallelism calculator (schema only) | Planning | 🟢 Low | Schema exists, implementation deferred |
-| Traceability PRD→Code | Quality | 🟠 High | Gap detection between layers missing |
+| Gap                                  | Category     | Severity    | Notes                                             |
+| ------------------------------------ | ------------ | ----------- | ------------------------------------------------- |
+| Q&A data flow (fixed)                | Evaluation   | 🔴 FIXED    | development.md sync now integrated                |
+| Profile context incomplete (fixed)   | Evaluation   | 🟡 FIXED    | category-relevant excerpts implemented            |
+| Web search for viability (fixed)     | Evaluation   | 🟡 FIXED    | pre-eval research phase added                     |
+| Clarification Agent not implemented  | Execution    | 🔴 Critical | Users provide vague tasks → wrong implementations |
+| Human Sim Agent not implemented      | Testing      | 🔴 Critical | Can't test usability with personas                |
+| Agent memory system incomplete       | Learning     | 🟠 High     | Agents don't learn from failures                  |
+| Task version history & rollback      | Safety       | 🟡 Medium   | No checkpoint/recovery system                     |
+| Spec workflow state machine          | Architecture | 🟡 Medium   | Spec approval process missing                     |
+| Intervention tracking partial        | Audit        | 🟡 Medium   | Need full SIA-style intervention tracking         |
+| Build interventions not tracked      | Audit        | 🟡 Medium   | Human/SIA fixes not recorded                      |
+| File impact analysis (schema only)   | Planning     | 🟢 Low      | Schema exists, implementation deferred            |
+| Parallelism calculator (schema only) | Planning     | 🟢 Low      | Schema exists, implementation deferred            |
+| Traceability PRD→Code                | Quality      | 🟠 High     | Gap detection between layers missing              |
 
 ---
 
@@ -139,6 +139,7 @@ OPTIMIZATION TIER:
 ---
 
 ### PHASE 1: Idea Incubator Finalization
+
 **GOAL:** Evaluation system produces high-quality, context-aware assessments
 
 **PRIORITY:** P0
@@ -147,6 +148,7 @@ OPTIMIZATION TIER:
 **DURATION:** 3-4 days
 
 **KEY_DELIVERABLES:**
+
 - ✅ Markdown→Database sync for development.md Q&A
 - ✅ Category-relevant profile excerpts for all evaluators
 - ✅ Web research phase for Market + Solution categories
@@ -155,12 +157,14 @@ OPTIMIZATION TIER:
 - ✅ All evaluation tests passing with improved scores
 
 **TECHNICAL DETAILS:**
+
 - **Files to modify**: `scripts/sync.ts`, `agents/specialized-evaluators.ts`, `scripts/evaluate.ts`
 - **Files to create**: `agents/research.ts`, `questions/parser.ts`
 - **DB changes**: Add `development.md` hash tracking to evaluation cache
 - **Test validation**: `npm run evaluate <slug>` produces evidence-based results
 
 **Success Criteria:**
+
 1. Q&A data flows from markdown → database → evaluators
 2. Profile context appears in Feasibility, Market, Risk evaluations
 3. Market/Solution categories include web research findings
@@ -170,6 +174,7 @@ OPTIMIZATION TIER:
 ---
 
 ### PHASE 2: ParentHarness Frontend & API Foundation (Phases 1-3)
+
 **GOAL:** Complete frontend shell and backend REST API for data access
 
 **PRIORITY:** P0
@@ -178,6 +183,7 @@ OPTIMIZATION TIER:
 **DURATION:** 5-7 days
 
 **KEY_DELIVERABLES:**
+
 - ✅ Dashboard pages: Dashboard, Tasks, Sessions, Config
 - ✅ Agent status cards, event stream, task queue components
 - ✅ React Router navigation with active state tracking
@@ -187,12 +193,14 @@ OPTIMIZATION TIER:
 - ✅ Notification center and real-time UI updates (via mock WebSocket)
 
 **TECHNICAL DETAILS:**
+
 - **Frontend Stack**: React 19 + Vite + Tailwind CSS 4
 - **Backend Stack**: Node.js + Express + better-sqlite3 + TypeScript
 - **Database**: SQLite with migration system
 - **Completed Tasks**: Phase 1 (8 tasks), Phase 2 (6 tasks), Phase 3 (7 tasks)
 
 **Success Criteria:**
+
 1. `npm run build` succeeds (frontend + backend)
 2. `npm run dev` starts API on port 3333, dashboard on port 5173
 3. All 21 test cases pass (Phase 1-3)
@@ -202,6 +210,7 @@ OPTIMIZATION TIER:
 ---
 
 ### PHASE 3: WebSocket Real-Time & Critical Missing Agents
+
 **GOAL:** Live data updates and clarification capability for vague user tasks
 
 **PRIORITY:** P0
@@ -210,6 +219,7 @@ OPTIMIZATION TIER:
 **DURATION:** 5-7 days
 
 **KEY_DELIVERABLES:**
+
 - **WebSocket Layer** (ParentHarness Phase 5):
   - `ws://localhost:3333/ws` broadcast server
   - Event subscriptions: `agent:*`, `task:*`, `session:*`, `event:*`
@@ -231,12 +241,14 @@ OPTIMIZATION TIER:
   - Aggregates findings → creates bug/fix tasks
 
 **TECHNICAL DETAILS:**
+
 - **WebSocket**: ws library, broadcast pattern with client subscriptions
 - **Clarification Agent**: Sonnet model, uses existing question_engine infrastructure
 - **Human Sim Agent**: Sonnet model, browser automation via Agent Browser MCP
 - **Intervention tracking**: Extend `sia_attempts` pattern
 
 **Success Criteria:**
+
 1. WebSocket server starts and broadcasts events
 2. Dashboard subscribes and displays live agent/task updates
 3. Clarification Agent asks questions for vague tasks
@@ -246,6 +258,7 @@ OPTIMIZATION TIER:
 ---
 
 ### PHASE 4: Agent Memory & Learning System
+
 **GOAL:** Agents learn from failures and apply successful techniques to similar problems
 
 **PRIORITY:** P1
@@ -254,6 +267,7 @@ OPTIMIZATION TIER:
 **DURATION:** 4-6 days
 
 **KEY_DELIVERABLES:**
+
 - **Long-term Agent Memory**:
   - `agent_memories` table: per-agent knowledge (decisions, failures, preferences)
   - Task signature hashing for similar-task matching
@@ -275,11 +289,13 @@ OPTIMIZATION TIER:
   - Pattern analysis: which agents need help most
 
 **TECHNICAL DETAILS:**
+
 - **Tables**: `agent_memories`, `technique_effectiveness`, `sia_attempts` (extended), `build_interventions`
 - **Matching Algorithm**: Levenshtein distance on error messages + semantic hashing
 - **Query Performance**: Indexes on agent_id, task_signature, error_pattern
 
 **Success Criteria:**
+
 1. `agent_memories` table populated as agents work
 2. Technique effectiveness tracked across attempts
 3. SIA suggests previous solutions for known errors
@@ -289,6 +305,7 @@ OPTIMIZATION TIER:
 ---
 
 ### PHASE 5: Orchestrator & Task Execution Engine
+
 **GOAL:** Autonomous task assignment, execution coordination, and stuck detection
 
 **PRIORITY:** P0
@@ -297,6 +314,7 @@ OPTIMIZATION TIER:
 **DURATION:** 5-7 days
 
 **KEY_DELIVERABLES:**
+
 - **Orchestrator Cron Loop**:
   - Runs every 60 seconds
   - Check agent heartbeats (last activity timestamp)
@@ -323,12 +341,14 @@ OPTIMIZATION TIER:
   - Stuck agent detection alerts
 
 **TECHNICAL DETAILS:**
+
 - **Orchestrator**: Haiku model (fast, cheap), `parent-harness/orchestrator/src/orchestrator/index.ts`
 - **Wave calculation**: `utils/task-pipeline.ts` (wave/lane generation)
 - **File impact analysis**: Implement `file_impact_analyzer.ts` logic
 - **Stuck detection**: CLI output parsing + pattern matching
 
 **Success Criteria:**
+
 1. Orchestrator runs every 60s without blocking
 2. Tasks assigned to agents within 5 minutes of ready status
 3. 80%+ accuracy in detecting stuck agents
@@ -338,6 +358,7 @@ OPTIMIZATION TIER:
 ---
 
 ### PHASE 6: Planning Agent & Self-Improvement Loop
+
 **GOAL:** AI-driven continuous improvement through autonomous task creation
 
 **PRIORITY:** P1
@@ -346,6 +367,7 @@ OPTIMIZATION TIER:
 **DURATION:** 4-6 days
 
 **KEY_DELIVERABLES:**
+
 - **Planning Agent** (Singleton):
   - Opus model for strategic thinking
   - Runs on cron (every 2 hours or after major completions)
@@ -372,12 +394,14 @@ OPTIMIZATION TIER:
   - Identify gaps and create epics
 
 **TECHNICAL DETAILS:**
+
 - **Model**: Opus (strategic, expensive)
 - **Schedule**: Every 2 hours + after major completions
 - **Inputs**: `scripts/analyze-codebase.ts` (new), CLI log parser, task history queries
 - **Decision logging**: Record reasoning for each suggested task
 
 **Success Criteria:**
+
 1. Planning Agent runs on schedule
 2. Creates 2-5 tasks per analysis cycle
 3. Tasks are specific and testable (not vague)
@@ -387,6 +411,7 @@ OPTIMIZATION TIER:
 ---
 
 ### PHASE 7: Telegram Integration & Real-time Notifications
+
 **GOAL:** Human-in-the-loop capability with instant alerts for important events
 
 **PRIORITY:** P1
@@ -395,6 +420,7 @@ OPTIMIZATION TIER:
 **DURATION:** 3-4 days
 
 **KEY_DELIVERABLES:**
+
 - **Telegram Bot Service**:
   - Connect to each agent's Telegram channel
   - Post updates: task assigned, completed, failed, stuck detection
@@ -411,12 +437,14 @@ OPTIMIZATION TIER:
   - Aggregated daily summary reports
 
 **TECHNICAL DETAILS:**
+
 - **Library**: telegram-bot-api (or similar)
 - **Bot tokens**: Configured via environment variables
 - **Message templates**: Markdown formatting for readability
 - **Webhook/polling**: Choose integration pattern
 
 **Success Criteria:**
+
 1. Bot connects to all 12+ agent channels
 2. Messages post within 5 seconds of event
 3. User receives clarification requests
@@ -426,6 +454,7 @@ OPTIMIZATION TIER:
 ---
 
 ### PHASE 8: Advanced Features & Polishing
+
 **GOAL:** Scale to production, add analytics, and optimize performance
 
 **PRIORITY:** P2
@@ -434,6 +463,7 @@ OPTIMIZATION TIER:
 **DURATION:** 7-10 days
 
 **KEY_DELIVERABLES:**
+
 - **Task Version History & Rollback**:
   - `task_versions` table tracking full history
   - Checkpoint/recovery system for failed executions
@@ -471,11 +501,13 @@ OPTIMIZATION TIER:
   - User satisfaction scores
 
 **TECHNICAL DETAILS:**
+
 - Build on all previous phases
 - Extend existing schema minimally
 - Focus on query optimization + UI/UX polish
 
 **Success Criteria:**
+
 1. Task version history tracks all changes
 2. Traceability view shows PRD↔Code links
 3. File conflicts prevented in 95%+ of cases
@@ -517,17 +549,17 @@ OPTIMIZATION TIER:
 
 ## TIMELINE SUMMARY
 
-| Phase | Name | Duration | Team Size | Key Risk |
-|-------|------|----------|-----------|----------|
-| 1 | Idea Incubator Fixes | 3-4 days | 1 agent | Data migration completeness |
-| 2 | Frontend & API Foundation | 5-7 days | 2 agents (frontend + backend) | Complexity of phase system |
-| 3 | WebSocket & Critical Agents | 5-7 days | 3 agents | Agent capability requirements |
-| 4 | Memory & Learning | 4-6 days | 2 agents | Matching algorithm accuracy |
-| 5 | Orchestrator & Execution | 5-7 days | 3 agents | Stuck detection false positives |
-| 6 | Planning Agent | 4-6 days | 1 agent | Quality of generated tasks |
-| 7 | Telegram Integration | 3-4 days | 1 agent | API rate limits |
-| 8 | Polish & Analytics | 7-10 days | 2 agents | Integration complexity |
-| **TOTAL** | | **36-51 days** | 15 agent-days | Multiple parallel paths |
+| Phase     | Name                        | Duration       | Team Size                     | Key Risk                        |
+| --------- | --------------------------- | -------------- | ----------------------------- | ------------------------------- |
+| 1         | Idea Incubator Fixes        | 3-4 days       | 1 agent                       | Data migration completeness     |
+| 2         | Frontend & API Foundation   | 5-7 days       | 2 agents (frontend + backend) | Complexity of phase system      |
+| 3         | WebSocket & Critical Agents | 5-7 days       | 3 agents                      | Agent capability requirements   |
+| 4         | Memory & Learning           | 4-6 days       | 2 agents                      | Matching algorithm accuracy     |
+| 5         | Orchestrator & Execution    | 5-7 days       | 3 agents                      | Stuck detection false positives |
+| 6         | Planning Agent              | 4-6 days       | 1 agent                       | Quality of generated tasks      |
+| 7         | Telegram Integration        | 3-4 days       | 1 agent                       | API rate limits                 |
+| 8         | Polish & Analytics          | 7-10 days      | 2 agents                      | Integration complexity          |
+| **TOTAL** |                             | **36-51 days** | 15 agent-days                 | Multiple parallel paths         |
 
 ### Parallelization Opportunities
 
@@ -568,22 +600,24 @@ OPTIMIZATION TIER:
 
 ## Risk Mitigation
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|-----------|
-| WebSocket stability issues | Medium | High | Early testing, fallback to polling |
-| Clarification Agent doesn't ask good questions | Medium | Medium | Manual question curation, feedback loop |
-| Stuck detection has false positives | High | Medium | Conservative thresholds, human review |
-| Agent memory matching too expensive | Medium | Medium | Incremental indexing, cache queries |
-| Orchestrator creates task conflicts | Medium | High | Conservative lane allocation, validation |
-| Planning Agent creates low-quality tasks | Medium | Medium | Seed with high-quality examples, review |
-| Telegram API rate limits | Low | Low | Batch messages, fallback to polling |
+| Risk                                           | Likelihood | Impact | Mitigation                               |
+| ---------------------------------------------- | ---------- | ------ | ---------------------------------------- |
+| WebSocket stability issues                     | Medium     | High   | Early testing, fallback to polling       |
+| Clarification Agent doesn't ask good questions | Medium     | Medium | Manual question curation, feedback loop  |
+| Stuck detection has false positives            | High       | Medium | Conservative thresholds, human review    |
+| Agent memory matching too expensive            | Medium     | Medium | Incremental indexing, cache queries      |
+| Orchestrator creates task conflicts            | Medium     | High   | Conservative lane allocation, validation |
+| Planning Agent creates low-quality tasks       | Medium     | Medium | Seed with high-quality examples, review  |
+| Telegram API rate limits                       | Low        | Low    | Batch messages, fallback to polling      |
 
 ---
 
 ## Post-Launch Roadmap (Future Work)
 
 ### Phase 9-16 (Per Existing Plan)
+
 The 43-phase ParentHarness plan includes:
+
 - Phase 8: UI polish + Config page
 - Phase 9: Validation Agent improvements
 - Phase 10-13: Advanced agents (Spawner, Memory graph, QA, Human Sim)
@@ -592,6 +626,7 @@ The 43-phase ParentHarness plan includes:
 ### Estimated Timeline: Phases 9-16 could complete in 30-40 additional days with same team
 
 ### Strategic Extensions (v2.0+)
+
 - Multi-agent debates for contentious decisions
 - User feedback loop integration
 - Cost optimization (model selection per task)
@@ -600,7 +635,7 @@ The 43-phase ParentHarness plan includes:
 
 ---
 
-### STRATEGIC_PLAN_END ###
+### STRATEGIC_PLAN_END
 
 ---
 

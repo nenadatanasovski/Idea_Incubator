@@ -1,27 +1,30 @@
-import { useEffect, useState } from 'react'
-import { Layout } from '../components/Layout'
-import { useSessions, type Session } from '../hooks/useSessions'
-import { useWebSocket } from '../hooks/useWebSocket'
-import { AgentSessionsView } from '../components/AgentSessionsView'
-import { SessionLogModal } from '../components/SessionLogModal'
+import { useEffect, useState } from "react";
+import { Layout } from "../components/Layout";
+import { useSessions, type Session } from "../hooks/useSessions";
+import { useWebSocket } from "../hooks/useWebSocket";
+import { AgentSessionsView } from "../components/AgentSessionsView";
+import { SessionLogModal } from "../components/SessionLogModal";
 
 export function Sessions() {
-  const { sessions, loading, error, refetch } = useSessions()
-  const { connected, subscribe } = useWebSocket()
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
+  const { sessions, loading, error, refetch } = useSessions();
+  const { connected, subscribe } = useWebSocket();
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    null,
+  );
 
   // Real-time session updates via WebSocket
   useEffect(() => {
     const unsubscribe = subscribe((message) => {
-      if (message.type.startsWith('session:')) {
-        refetch()
+      if (message.type.startsWith("session:")) {
+        refetch();
       }
-    })
-    return unsubscribe
-  }, [subscribe, refetch])
+    });
+    return unsubscribe;
+  }, [subscribe, refetch]);
 
   // Generate mock sessions for demo if none exist
-  const displaySessions = sessions.length > 0 ? sessions : generateMockSessions()
+  const displaySessions =
+    sessions.length > 0 ? sessions : generateMockSessions();
 
   return (
     <Layout>
@@ -29,13 +32,17 @@ export function Sessions() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">Agent Sessions</h1>
-            <p className="text-gray-400">View agent session history, iterations, and logs</p>
+            <p className="text-gray-400">
+              View agent session history, iterations, and logs
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
+              <span
+                className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-red-500"}`}
+              />
               <span className="text-xs text-gray-500">
-                {connected ? 'Live' : 'Connecting...'}
+                {connected ? "Live" : "Connecting..."}
               </span>
             </div>
             {loading && (
@@ -69,7 +76,7 @@ export function Sessions() {
             </thead>
             <tbody>
               {displaySessions.slice(0, 20).map((session) => (
-                <tr 
+                <tr
                   key={session.id}
                   className="border-t border-gray-700 hover:bg-gray-700/50 cursor-pointer"
                   onClick={() => setSelectedSessionId(session.id)}
@@ -78,28 +85,35 @@ export function Sessions() {
                     {session.id.slice(0, 8)}...
                   </td>
                   <td className="p-3 text-blue-400">{session.agent_id}</td>
-                  <td className="p-3 text-gray-300">{session.task_id || '-'}</td>
+                  <td className="p-3 text-gray-300">
+                    {session.task_id || "-"}
+                  </td>
                   <td className="p-3">
-                    <span className={
-                      session.status === 'completed' ? 'text-green-400' :
-                      session.status === 'failed' ? 'text-red-400' :
-                      session.status === 'running' ? 'text-blue-400' :
-                      'text-gray-400'
-                    }>
+                    <span
+                      className={
+                        session.status === "completed"
+                          ? "text-green-400"
+                          : session.status === "failed"
+                            ? "text-red-400"
+                            : session.status === "running"
+                              ? "text-blue-400"
+                              : "text-gray-400"
+                      }
+                    >
                       {session.status}
                     </span>
                   </td>
                   <td className="p-3 text-gray-500 text-xs">
-                    {new Date(session.started_at).toLocaleString('en-AU', { 
-                      dateStyle: 'short', 
-                      timeStyle: 'short' 
+                    {new Date(session.started_at).toLocaleString("en-AU", {
+                      dateStyle: "short",
+                      timeStyle: "short",
                     })}
                   </td>
                   <td className="p-3">
                     <button
                       onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedSessionId(session.id)
+                        e.stopPropagation();
+                        setSelectedSessionId(session.id);
                       }}
                       className="px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded text-xs"
                     >
@@ -118,38 +132,47 @@ export function Sessions() {
         <div className="text-gray-500 text-sm flex items-center gap-4">
           <span>Total sessions: {displaySessions.length}</span>
           <span>|</span>
-          <span>Running: {displaySessions.filter(s => s.status === 'running').length}</span>
+          <span>
+            Running:{" "}
+            {displaySessions.filter((s) => s.status === "running").length}
+          </span>
           <span>|</span>
-          <span>Completed: {displaySessions.filter(s => s.status === 'completed').length}</span>
+          <span>
+            Completed:{" "}
+            {displaySessions.filter((s) => s.status === "completed").length}
+          </span>
           <span>|</span>
-          <span>Failed: {displaySessions.filter(s => s.status === 'failed').length}</span>
+          <span>
+            Failed:{" "}
+            {displaySessions.filter((s) => s.status === "failed").length}
+          </span>
         </div>
 
         {/* Session Log Modal */}
         {selectedSessionId && (
-          <SessionLogModal 
-            sessionId={selectedSessionId} 
-            onClose={() => setSelectedSessionId(null)} 
+          <SessionLogModal
+            sessionId={selectedSessionId}
+            onClose={() => setSelectedSessionId(null)}
           />
         )}
       </div>
     </Layout>
-  )
+  );
 }
 
 // Generate mock sessions for demonstration
 function generateMockSessions(): Session[] {
-  const now = new Date()
+  const now = new Date();
 
   return [
     {
-      id: 'session-001-abc123',
-      agent_id: 'build-agent-01',
-      task_id: 'task-042',
+      id: "session-001-abc123",
+      agent_id: "build-agent-01",
+      task_id: "task-042",
       run_id: null,
       wave_number: 2,
-      lane_id: 'api',
-      status: 'running',
+      lane_id: "api",
+      status: "running",
       started_at: new Date(now.getTime() - 3600000).toISOString(),
       completed_at: null,
       current_iteration: 3,
@@ -160,13 +183,13 @@ function generateMockSessions(): Session[] {
       metadata: null,
     },
     {
-      id: 'session-002-def456',
-      agent_id: 'build-agent-02',
-      task_id: 'task-044',
+      id: "session-002-def456",
+      agent_id: "build-agent-02",
+      task_id: "task-044",
       run_id: null,
       wave_number: 1,
-      lane_id: 'ui',
-      status: 'completed',
+      lane_id: "ui",
+      status: "completed",
       started_at: new Date(now.getTime() - 7200000).toISOString(),
       completed_at: new Date(now.getTime() - 5400000).toISOString(),
       current_iteration: 2,
@@ -177,30 +200,30 @@ function generateMockSessions(): Session[] {
       metadata: null,
     },
     {
-      id: 'session-003-ghi789',
-      agent_id: 'test-agent-01',
-      task_id: 'task-045',
+      id: "session-003-ghi789",
+      agent_id: "test-agent-01",
+      task_id: "task-045",
       run_id: null,
       wave_number: 2,
-      lane_id: 'tests',
-      status: 'completed',
+      lane_id: "tests",
+      status: "completed",
       started_at: new Date(now.getTime() - 6000000).toISOString(),
       completed_at: new Date(now.getTime() - 4800000).toISOString(),
       current_iteration: 1,
       total_iterations: 1,
       tasks_completed: 6,
       tasks_failed: 0,
-      parent_session_id: 'session-002-def456',
+      parent_session_id: "session-002-def456",
       metadata: null,
     },
     {
-      id: 'session-004-jkl012',
-      agent_id: 'build-agent-03',
-      task_id: 'task-046',
+      id: "session-004-jkl012",
+      agent_id: "build-agent-03",
+      task_id: "task-046",
       run_id: null,
       wave_number: 3,
-      lane_id: 'database',
-      status: 'failed',
+      lane_id: "database",
+      status: "failed",
       started_at: new Date(now.getTime() - 10800000).toISOString(),
       completed_at: new Date(now.getTime() - 9000000).toISOString(),
       current_iteration: 3,
@@ -211,13 +234,13 @@ function generateMockSessions(): Session[] {
       metadata: null,
     },
     {
-      id: 'session-005-mno345',
-      agent_id: 'spec-agent-01',
-      task_id: 'task-043',
+      id: "session-005-mno345",
+      agent_id: "spec-agent-01",
+      task_id: "task-043",
       run_id: null,
       wave_number: 1,
-      lane_id: 'types',
-      status: 'paused',
+      lane_id: "types",
+      status: "paused",
       started_at: new Date(now.getTime() - 1800000).toISOString(),
       completed_at: null,
       current_iteration: 2,
@@ -227,7 +250,7 @@ function generateMockSessions(): Session[] {
       parent_session_id: null,
       metadata: null,
     },
-  ]
+  ];
 }
 
-export default Sessions
+export default Sessions;

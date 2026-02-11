@@ -164,9 +164,27 @@ describe("findSemanticMatches", () => {
 describe("traverseDependencies", () => {
   // Edges: A -> B -> C -> D (A is derived from B, B requires C, C blocks D)
   const mockEdges: GraphEdge[] = [
-    { id: "e1", source: "A", target: "B", linkType: "derived_from", status: "active" },
-    { id: "e2", source: "B", target: "C", linkType: "requires", status: "active" },
-    { id: "e3", source: "C", target: "D", linkType: "blocks", status: "active" },
+    {
+      id: "e1",
+      source: "A",
+      target: "B",
+      linkType: "derived_from",
+      status: "active",
+    },
+    {
+      id: "e2",
+      source: "B",
+      target: "C",
+      linkType: "requires",
+      status: "active",
+    },
+    {
+      id: "e3",
+      source: "C",
+      target: "D",
+      linkType: "blocks",
+      status: "active",
+    },
   ];
 
   it("should traverse downstream dependencies (following outgoing edges)", () => {
@@ -207,9 +225,27 @@ describe("traverseDependencies", () => {
 
 describe("calculateImpactRadius", () => {
   const mockEdges: GraphEdge[] = [
-    { id: "e1", source: "A", target: "center", linkType: "derived_from", status: "active" },
-    { id: "e2", source: "B", target: "A", linkType: "derived_from", status: "active" },
-    { id: "e3", source: "C", target: "B", linkType: "derived_from", status: "active" },
+    {
+      id: "e1",
+      source: "A",
+      target: "center",
+      linkType: "derived_from",
+      status: "active",
+    },
+    {
+      id: "e2",
+      source: "B",
+      target: "A",
+      linkType: "derived_from",
+      status: "active",
+    },
+    {
+      id: "e3",
+      source: "C",
+      target: "B",
+      linkType: "derived_from",
+      status: "active",
+    },
   ];
 
   it("should calculate maximum hop distance", () => {
@@ -225,8 +261,20 @@ describe("calculateImpactRadius", () => {
 
 describe("wouldCreateCycle", () => {
   const mockEdges: GraphEdge[] = [
-    { id: "e1", source: "A", target: "B", linkType: "derived_from", status: "active" },
-    { id: "e2", source: "B", target: "C", linkType: "derived_from", status: "active" },
+    {
+      id: "e1",
+      source: "A",
+      target: "B",
+      linkType: "derived_from",
+      status: "active",
+    },
+    {
+      id: "e2",
+      source: "B",
+      target: "C",
+      linkType: "derived_from",
+      status: "active",
+    },
   ];
 
   it("should detect when adding edge would create cycle", () => {

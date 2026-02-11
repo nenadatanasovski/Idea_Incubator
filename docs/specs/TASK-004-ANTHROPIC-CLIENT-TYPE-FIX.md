@@ -1,6 +1,7 @@
 # TASK-004: Fix Anthropic Client Type Compatibility
 
 ## Status
+
 **Created:** 2026-02-08
 **Status:** SPECIFICATION
 **Priority:** Medium
@@ -19,6 +20,7 @@ Improve TypeScript type safety in `utils/anthropic-client.ts` to fully align wit
 ## Problem Statement
 
 The `utils/anthropic-client.ts` file defines a custom `AnthropicClient` type to provide a unified interface across three authentication methods:
+
 1. Standard Anthropic SDK (API key)
 2. pi-ai library (OAuth token)
 3. Claude Code CLI (OAuth via CLI session)
@@ -28,25 +30,29 @@ While the current implementation **works at runtime** and **compiles without err
 ### Type Safety Issues
 
 1. **Reduced type safety**: Using `model: string` instead of the SDK's `Model` type means typos in model names won't be caught at compile time
+
    ```typescript
    // Current: This compiles but fails at runtime
-   model: "claude-sonnett-3-5" // Typo! But TypeScript allows it
+   model: "claude-sonnett-3-5"; // Typo! But TypeScript allows it
 
    // With SDK types: Would be caught at compile time
-   model: "claude-sonnett-3-5" // Error: Type '"claude-sonnett-3-5"' is not assignable to type 'Model'
+   model: "claude-sonnett-3-5"; // Error: Type '"claude-sonnett-3-5"' is not assignable to type 'Model'
    ```
 
 2. **Limited IDE support**: Loose string types don't provide autocomplete or inline documentation for valid model names
 
 3. **Content structure limitations**: The custom interface only supports simple string content:
+
    ```typescript
-   messages: Array<{ role: "user" | "assistant"; content: string }>
+   messages: Array<{ role: "user" | "assistant"; content: string }>;
    ```
+
    The SDK's `MessageParam` supports richer content:
+
    ```typescript
    interface MessageParam {
      content: string | Array<ContentBlockParam>; // Images, documents, etc.
-     role: 'user' | 'assistant';
+     role: "user" | "assistant";
    }
    ```
 
@@ -64,6 +70,7 @@ While the current implementation **works at runtime** and **compiles without err
 **File:** `utils/anthropic-client.ts`
 
 **Custom Type Definition (lines 28-46):**
+
 ```typescript
 export type AnthropicClient = {
   messages: {
@@ -86,6 +93,7 @@ export type AnthropicClient = {
 ```
 
 **SDK Types (from `@anthropic-ai/sdk@0.71.2`):**
+
 ```typescript
 type Model = 'claude-opus-4-5-20251101' | 'claude-opus-4-5' | 'claude-3-7-sonnet-latest' | ... | (string & {});
 
@@ -100,17 +108,20 @@ type ContentBlockParam = TextBlockParam | ImageBlockParam | DocumentBlockParam |
 ## Benefits of This Change
 
 ### Developer Experience
+
 - **Autocomplete**: IDE will suggest valid model names
 - **Type safety**: Typos in model names caught at compile time
 - **Inline docs**: Hover over types to see SDK documentation
 - **Refactoring support**: Easier to find all uses of specific models
 
 ### Future-Proofing
+
 - **SDK upgrades**: Easier to upgrade SDK versions
 - **New features**: Can use new SDK features (images, documents, thinking blocks)
 - **Breaking changes**: SDK breaking changes will surface at compile time
 
 ### Code Quality
+
 - **Self-documenting**: Types show what's valid without checking docs
 - **Fewer runtime errors**: Invalid parameters caught before runtime
 - **Consistency**: All code uses the same SDK types
@@ -118,6 +129,7 @@ type ContentBlockParam = TextBlockParam | ImageBlockParam | DocumentBlockParam |
 ## Requirements
 
 ### Functional Requirements
+
 1. The `AnthropicClient` type must use SDK's `Model` type for the model parameter
 2. The `messages` parameter must support both simple string content and structured content blocks
 3. The response type must match the SDK's `Message` interface
@@ -126,6 +138,7 @@ type ContentBlockParam = TextBlockParam | ImageBlockParam | DocumentBlockParam |
 6. TypeScript compilation must complete with zero errors (maintain current state)
 
 ### Non-Functional Requirements
+
 1. TypeScript compilation must complete without type errors
 2. No runtime behavior changes
 3. Type safety improvements should catch potential issues at compile time
@@ -149,7 +162,7 @@ Rather than creating a custom type that might drift from the SDK, we should:
 import Anthropic from "@anthropic-ai/sdk";
 import type {
   MessageCreateParamsNonStreaming,
-  Message
+  Message,
 } from "@anthropic-ai/sdk/resources/messages";
 ```
 
@@ -164,9 +177,7 @@ Replace the custom type definition with one that references SDK types:
  */
 export type AnthropicClient = {
   messages: {
-    create: (
-      params: MessageCreateParamsNonStreaming
-    ) => Promise<Message>;
+    create: (params: MessageCreateParamsNonStreaming) => Promise<Message>;
   };
 };
 ```
@@ -181,10 +192,15 @@ function createPiAiClient(): AnthropicClient {
 
   return {
     messages: {
-      create: async (params: MessageCreateParamsNonStreaming): Promise<Message> => {
+      create: async (
+        params: MessageCreateParamsNonStreaming,
+      ): Promise<Message> => {
         // Model handling with proper typing
         const modelId = params.model;
-        type AnthropicModels = "claude-3-5-sonnet-20241022" | "claude-3-5-haiku-20241022" | "claude-3-opus-20240229";
+        type AnthropicModels =
+          | "claude-3-5-sonnet-20241022"
+          | "claude-3-5-haiku-20241022"
+          | "claude-3-opus-20240229";
         const model = getModel("anthropic", modelId as AnthropicModels);
 
         if (!model) {
@@ -192,19 +208,21 @@ function createPiAiClient(): AnthropicClient {
         }
 
         // Transform SDK MessageParam[] to pi-ai Message[]
-        const messages = params.messages.map(m => {
+        const messages = params.messages.map((m) => {
           // Extract string content from MessageParam
-          const textContent = typeof m.content === 'string'
-            ? m.content
-            : m.content.filter(block => block.type === 'text')
-                       .map(block => (block as any).text)
-                       .join('\n');
+          const textContent =
+            typeof m.content === "string"
+              ? m.content
+              : m.content
+                  .filter((block) => block.type === "text")
+                  .map((block) => (block as any).text)
+                  .join("\n");
 
           if (m.role === "user") {
             const userMsg: PiAiUserMessage = {
               role: "user" as const,
               content: [{ type: "text" as const, text: textContent }],
-              timestamp: Date.now()
+              timestamp: Date.now(),
             };
             return userMsg;
           } else {
@@ -226,29 +244,30 @@ function createPiAiClient(): AnthropicClient {
                   output: 0,
                   cacheRead: 0,
                   cacheWrite: 0,
-                  total: 0
-                }
+                  total: 0,
+                },
               },
               stopReason: "stop" as const,
-              timestamp: Date.now()
+              timestamp: Date.now(),
             };
             return assistantMsg;
           }
         });
 
         const context: import("@mariozechner/pi-ai").Context = {
-          systemPrompt: typeof params.system === 'string' ? params.system : undefined,
-          messages: messages
+          systemPrompt:
+            typeof params.system === "string" ? params.system : undefined,
+          messages: messages,
         };
 
         // Stream and collect response
         const response = streamAnthropic(model, context, {
           apiKey: apiKey!,
-          maxTokens: params.max_tokens
+          maxTokens: params.max_tokens,
         });
 
         let textContent = "";
-        let stopReason: Message['stop_reason'] = "end_turn";
+        let stopReason: Message["stop_reason"] = "end_turn";
         let inputTokens = 0;
         let outputTokens = 0;
 
@@ -257,7 +276,7 @@ function createPiAiClient(): AnthropicClient {
             textContent += chunk.delta;
           }
           if (chunk.type === "done") {
-            stopReason = (chunk.reason || "end_turn") as Message['stop_reason'];
+            stopReason = (chunk.reason || "end_turn") as Message["stop_reason"];
             if (chunk.message?.usage) {
               inputTokens = chunk.message.usage.input || 0;
               outputTokens = chunk.message.usage.output || 0;
@@ -303,16 +322,14 @@ const response = await client.messages.create({
   model: "claude-3-5-sonnet-20241022",
   max_tokens: 2048,
   system: "You are helpful",
-  messages: [
-    { role: "user", content: "Hello" }
-  ],
+  messages: [{ role: "user", content: "Hello" }],
 });
 
 // Access response
 const text = response.content
-  .filter(block => block.type === 'text')
-  .map(block => block.text)
-  .join('');
+  .filter((block) => block.type === "text")
+  .map((block) => block.text)
+  .join("");
 ```
 
 ## Implementation Steps
@@ -356,17 +373,20 @@ const text = response.content
 ## Pass Criteria
 
 ### Compilation
+
 - [ ] `npx tsc --noEmit` completes with zero errors
 - [ ] No type errors in `utils/anthropic-client.ts`
 - [ ] No type errors in files importing from `utils/anthropic-client.ts`
 
 ### Type Safety
+
 - [ ] `model` parameter accepts SDK's `Model` type (strict union)
 - [ ] `messages` parameter accepts both string and ContentBlockParam[] content
 - [ ] `system` parameter accepts both string and TextBlockParam[]
 - [ ] Return type matches SDK's `Message` interface
 
 ### Functionality
+
 - [ ] All tests pass: `npm test`
 - [ ] Existing code using `client.messages.create()` works without modification
 - [ ] API key authentication continues to work
@@ -374,6 +394,7 @@ const text = response.content
 - [ ] CLI authentication continues to work
 
 ### Code Quality
+
 - [ ] No use of `any` types (except where necessary for pi-ai interop)
 - [ ] Proper type imports from SDK
 - [ ] Clear comments explaining type transformations
@@ -382,14 +403,17 @@ const text = response.content
 ## Dependencies
 
 ### Upstream Dependencies
+
 - `@anthropic-ai/sdk@^0.71.2` - Already installed
 - `@mariozechner/pi-ai@^0.51.6` - Already installed
 
 ### Files to Modify
+
 1. `utils/anthropic-client.ts` - Primary changes
 2. `utils/claude-cli-client.ts` - Verify return type compatibility
 
 ### Files to Review (may need updates)
+
 - `agents/evaluator.ts` - Uses `client.messages.create()`
 - `agents/orchestrator.ts` - Uses `client.messages.create()`
 - `server/services/agent-runner.ts` - Uses `client.messages.create()`
@@ -400,16 +424,18 @@ const text = response.content
 **Risk Level:** Low-Medium
 
 ### Risks
+
 1. **Breaking existing code**: Type changes might reveal hidden type errors in existing code
-   - *Mitigation*: Run full test suite, check compilation errors carefully
+   - _Mitigation_: Run full test suite, check compilation errors carefully
 
 2. **pi-ai compatibility**: The pi-ai library has its own type system that may conflict
-   - *Mitigation*: Use type transformations and tested conversion logic
+   - _Mitigation_: Use type transformations and tested conversion logic
 
 3. **Runtime behavior change**: Type fixes might inadvertently change runtime behavior
-   - *Mitigation*: Run full test suite, manual testing with all auth methods
+   - _Mitigation_: Run full test suite, manual testing with all auth methods
 
 ### Benefits
+
 1. **Type safety**: Catch potential bugs at compile time
 2. **SDK alignment**: Easier to upgrade SDK versions in future
 3. **Better IDE support**: Improved autocomplete and inline documentation
@@ -418,18 +444,22 @@ const text = response.content
 ## Testing Strategy
 
 ### Unit Tests
+
 - Existing tests in `tests/` should continue to pass
 - No new unit tests required (type-only change)
 
 ### Integration Tests
+
 - Run existing agent tests
 - Test all three auth methods if possible
 
 ### Type Tests
+
 - `npx tsc --noEmit` - primary validation
 - Check for any new type errors in dependent files
 
 ### Manual Testing
+
 ```bash
 # 1. Type check
 npx tsc --noEmit
@@ -448,26 +478,29 @@ ANTHROPIC_OAUTH_TOKEN=... npm run evaluate test-idea
 After implementation, verify:
 
 1. **Compilation succeeds**
+
    ```bash
    npx tsc --noEmit
    # Should complete with no errors
    ```
 
 2. **Tests pass**
+
    ```bash
    npm test
    # All test suites should pass
    ```
 
 3. **Type checking works**
+
    ```typescript
    // In a test file, verify these type correctly:
    const response = await client.messages.create({
      model: "claude-3-5-sonnet-20241022", // Should autocomplete
      max_tokens: 2048,
      messages: [
-       { role: "user", content: "test" } // String content works
-     ]
+       { role: "user", content: "test" }, // String content works
+     ],
    });
 
    // Response should have proper types
@@ -481,16 +514,18 @@ After implementation, verify:
 ## Success Metrics
 
 ### Before (Current State)
+
 ```typescript
 // Typo not caught
 const response = await client.messages.create({
   model: "claude-sonnett-3-5", // ❌ No error, but fails at runtime
   max_tokens: 2048,
-  messages: [{ role: "user", content: "test" }]
+  messages: [{ role: "user", content: "test" }],
 });
 ```
 
 ### After (Target State)
+
 ```typescript
 // Typo caught at compile time
 const response = await client.messages.create({
@@ -498,14 +533,14 @@ const response = await client.messages.create({
   //     ^^^^^^^^^^^^^^^^^^^
   //     Type '"claude-sonnett-3-5"' is not assignable to type 'Model'
   max_tokens: 2048,
-  messages: [{ role: "user", content: "test" }]
+  messages: [{ role: "user", content: "test" }],
 });
 
 // Valid model with autocomplete
 const response = await client.messages.create({
   model: "claude-sonnet-4-5-20250929", // ✅ Autocompletes, validates
   max_tokens: 2048,
-  messages: [{ role: "user", content: "test" }]
+  messages: [{ role: "user", content: "test" }],
 });
 ```
 

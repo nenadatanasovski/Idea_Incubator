@@ -9,6 +9,7 @@ This specification documents the resolution of FIX-TASK-015-3UV8, which requeste
 ### Implementation Status: ✅ COMPLETE
 
 The `hasBeenInStatus()` method exists and is fully functional at:
+
 - **File**: `server/services/task-agent/task-state-history-service.ts`
 - **Lines**: 226-233
 
@@ -29,6 +30,7 @@ async hasBeenInStatus(taskId: string, status: TaskStatus): Promise<boolean> {
 ### Test Status: ✅ PASSING
 
 Tests exist at `tests/task-agent/task-state-history-service.test.ts` (lines 290-327) and all pass:
+
 - ✅ Returns `true` when task has been in specified status
 - ✅ Returns `false` when task has never been in specified status
 
@@ -53,11 +55,13 @@ The original task claimed the method was "tested but not implemented." This was 
 ### Solution Applied
 
 1. **Remove corrupted database**:
+
    ```bash
    rm -f database/db.sqlite
    ```
 
 2. **Re-run tests**: Tests automatically recreate database with fresh schema
+
    ```bash
    npm test -- --pool=forks --poolOptions.forks.maxForks=1 tests/task-agent/task-state-history-service.test.ts
    ```
@@ -70,22 +74,26 @@ The original task claimed the method was "tested but not implemented." This was 
 ### Changes Made
 
 **No code changes required.** Only infrastructure cleanup:
+
 - Deleted corrupted test database file
 - Allowed test suite to recreate fresh database
 
 ## Pass Criteria
 
 ✅ **1. All tests pass**
+
 - Command: `npm test -- --pool=forks --poolOptions.forks.maxForks=1 tests/task-agent/task-state-history-service.test.ts`
 - Result: 13/13 tests passing
 - Duration: 485ms
 
 ✅ **2. Build succeeds**
+
 - Command: `npm run build` (TypeScript compilation)
 - Result: Zero errors
 - Duration: <60s
 
 ✅ **3. TypeScript compiles**
+
 - Command: `npx tsc --noEmit`
 - Result: Zero errors
 - Duration: <60s
@@ -110,11 +118,13 @@ The original task claimed the method was "tested but not implemented." This was 
 ### Why QA Originally Failed
 
 The QA verification command `npm test -- --pool=forks --poolOptions.forks.maxForks=1` failed with:
+
 ```
 DatabaseError: Database error during run: database disk image is malformed
 ```
 
 This error was caused by:
+
 - Corrupted SQLite database file at `database/db.sqlite`
 - The corruption prevented ANY database operations from succeeding
 - This masked the fact that the implementation was actually complete
@@ -124,6 +134,7 @@ The fix was simple: delete the corrupted file and let tests recreate it.
 ### Unrelated Test Failures
 
 The full test suite (106 files) shows 19 test files failing due to **unrelated issues**:
+
 - Missing `metadata` column in `task_test_results` table
 - Missing `ideation_sessions` table
 - Observability API router configuration issues
@@ -177,6 +188,7 @@ async hasBeenInStatus(taskId: string, status: TaskStatus): Promise<boolean> {
 **Status**: ✅ **COMPLETE**
 
 The task is fully resolved:
+
 1. ✅ Method implementation exists and is correct
 2. ✅ All tests pass (13/13)
 3. ✅ TypeScript compilation succeeds

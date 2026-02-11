@@ -1,45 +1,56 @@
 /**
  * Memory Block Search Component
- * 
+ *
  * Search and filter memory blocks from Neo4j using full-text search.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
-import type { BlockType, BlockStatus, MemoryBlock } from '../../api/memory-graph';
-import { useMemoryBlocks } from '../../hooks/useMemoryGraph';
+import React, { useState, useCallback, useMemo } from "react";
+import type {
+  BlockType,
+  BlockStatus,
+  MemoryBlock,
+} from "../../api/memory-graph";
+import { useMemoryBlocks } from "../../hooks/useMemoryGraph";
 
 interface MemoryBlockSearchProps {
   sessionId: string;
   onSelectBlock?: (block: MemoryBlock) => void;
 }
 
-const BLOCK_TYPE_OPTIONS: { value: BlockType | 'all'; label: string; icon: string }[] = [
-  { value: 'all', label: 'All Types', icon: '📊' },
-  { value: 'knowledge', label: 'Knowledge', icon: '📚' },
-  { value: 'decision', label: 'Decision', icon: '⚖️' },
-  { value: 'assumption', label: 'Assumption', icon: '🤔' },
-  { value: 'question', label: 'Question', icon: '❓' },
-  { value: 'requirement', label: 'Requirement', icon: '📋' },
-  { value: 'task', label: 'Task', icon: '✅' },
-  { value: 'proposal', label: 'Proposal', icon: '💡' },
-  { value: 'artifact', label: 'Artifact', icon: '📦' },
-  { value: 'evidence', label: 'Evidence', icon: '🔍' },
+const BLOCK_TYPE_OPTIONS: {
+  value: BlockType | "all";
+  label: string;
+  icon: string;
+}[] = [
+  { value: "all", label: "All Types", icon: "📊" },
+  { value: "knowledge", label: "Knowledge", icon: "📚" },
+  { value: "decision", label: "Decision", icon: "⚖️" },
+  { value: "assumption", label: "Assumption", icon: "🤔" },
+  { value: "question", label: "Question", icon: "❓" },
+  { value: "requirement", label: "Requirement", icon: "📋" },
+  { value: "task", label: "Task", icon: "✅" },
+  { value: "proposal", label: "Proposal", icon: "💡" },
+  { value: "artifact", label: "Artifact", icon: "📦" },
+  { value: "evidence", label: "Evidence", icon: "🔍" },
 ];
 
-const STATUS_OPTIONS: { value: BlockStatus | 'all'; label: string }[] = [
-  { value: 'all', label: 'All Statuses' },
-  { value: 'active', label: 'Active' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'validated', label: 'Validated' },
-  { value: 'superseded', label: 'Superseded' },
-  { value: 'abandoned', label: 'Abandoned' },
+const STATUS_OPTIONS: { value: BlockStatus | "all"; label: string }[] = [
+  { value: "all", label: "All Statuses" },
+  { value: "active", label: "Active" },
+  { value: "draft", label: "Draft" },
+  { value: "validated", label: "Validated" },
+  { value: "superseded", label: "Superseded" },
+  { value: "abandoned", label: "Abandoned" },
 ];
 
-export function MemoryBlockSearch({ sessionId, onSelectBlock }: MemoryBlockSearchProps) {
-  const [searchText, setSearchText] = useState('');
-  const [typeFilter, setTypeFilter] = useState<BlockType | 'all'>('all');
-  const [statusFilter, setStatusFilter] = useState<BlockStatus | 'all'>('all');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+export function MemoryBlockSearch({
+  sessionId,
+  onSelectBlock,
+}: MemoryBlockSearchProps) {
+  const [searchText, setSearchText] = useState("");
+  const [typeFilter, setTypeFilter] = useState<BlockType | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<BlockStatus | "all">("all");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   // Debounce search
   const debounceTimer = React.useRef<NodeJS.Timeout>();
@@ -52,13 +63,16 @@ export function MemoryBlockSearch({ sessionId, onSelectBlock }: MemoryBlockSearc
   }, []);
 
   // Build query
-  const query = useMemo(() => ({
-    session_id: sessionId,
-    block_type: typeFilter === 'all' ? undefined : typeFilter,
-    status: statusFilter === 'all' ? undefined : statusFilter,
-    search: debouncedSearch || undefined,
-    limit: 50,
-  }), [sessionId, typeFilter, statusFilter, debouncedSearch]);
+  const query = useMemo(
+    () => ({
+      session_id: sessionId,
+      block_type: typeFilter === "all" ? undefined : typeFilter,
+      status: statusFilter === "all" ? undefined : statusFilter,
+      search: debouncedSearch || undefined,
+      limit: 50,
+    }),
+    [sessionId, typeFilter, statusFilter, debouncedSearch],
+  );
 
   const { blocks, loading, error, refetch } = useMemoryBlocks(query);
 
@@ -82,7 +96,7 @@ export function MemoryBlockSearch({ sessionId, onSelectBlock }: MemoryBlockSearc
         <div className="flex gap-2">
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as BlockType | 'all')}
+            onChange={(e) => setTypeFilter(e.target.value as BlockType | "all")}
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
           >
             {BLOCK_TYPE_OPTIONS.map(({ value, label, icon }) => (
@@ -94,7 +108,9 @@ export function MemoryBlockSearch({ sessionId, onSelectBlock }: MemoryBlockSearc
 
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as BlockStatus | 'all')}
+            onChange={(e) =>
+              setStatusFilter(e.target.value as BlockStatus | "all")
+            }
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
           >
             {STATUS_OPTIONS.map(({ value, label }) => (
@@ -123,21 +139,17 @@ export function MemoryBlockSearch({ sessionId, onSelectBlock }: MemoryBlockSearc
         )}
 
         {error && (
-          <div className="text-center text-red-500 py-8">
-            Error: {error}
-          </div>
+          <div className="text-center text-red-500 py-8">Error: {error}</div>
         )}
 
         {!loading && !error && blocks.length === 0 && (
-          <div className="text-center text-gray-500 py-8">
-            No blocks found
-          </div>
+          <div className="text-center text-gray-500 py-8">No blocks found</div>
         )}
 
         {!loading && !error && blocks.length > 0 && (
           <div className="space-y-2">
             <div className="text-xs text-gray-500 mb-2">
-              {blocks.length} block{blocks.length !== 1 ? 's' : ''} found
+              {blocks.length} block{blocks.length !== 1 ? "s" : ""} found
             </div>
             {blocks.map((block) => (
               <BlockCard
@@ -159,8 +171,8 @@ interface BlockCardProps {
 }
 
 function BlockCard({ block, onClick }: BlockCardProps) {
-  const typeInfo = BLOCK_TYPE_OPTIONS.find(t => t.value === block.type);
-  
+  const typeInfo = BLOCK_TYPE_OPTIONS.find((t) => t.value === block.type);
+
   return (
     <button
       onClick={onClick}
@@ -168,20 +180,29 @@ function BlockCard({ block, onClick }: BlockCardProps) {
     >
       <div className="flex items-start gap-2">
         <span className="text-lg" title={block.type}>
-          {typeInfo?.icon || '📄'}
+          {typeInfo?.icon || "📄"}
         </span>
         <div className="flex-1 min-w-0">
           {block.title && (
-            <div className="font-medium text-gray-900 truncate">{block.title}</div>
+            <div className="font-medium text-gray-900 truncate">
+              {block.title}
+            </div>
           )}
-          <div className="text-sm text-gray-600 line-clamp-2">{block.content}</div>
+          <div className="text-sm text-gray-600 line-clamp-2">
+            {block.content}
+          </div>
           <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
-            <span className={`px-1.5 py-0.5 rounded ${
-              block.status === 'active' ? 'bg-green-100 text-green-700' :
-              block.status === 'validated' ? 'bg-blue-100 text-blue-700' :
-              block.status === 'draft' ? 'bg-gray-100 text-gray-700' :
-              'bg-yellow-100 text-yellow-700'
-            }`}>
+            <span
+              className={`px-1.5 py-0.5 rounded ${
+                block.status === "active"
+                  ? "bg-green-100 text-green-700"
+                  : block.status === "validated"
+                    ? "bg-blue-100 text-blue-700"
+                    : block.status === "draft"
+                      ? "bg-gray-100 text-gray-700"
+                      : "bg-yellow-100 text-yellow-700"
+              }`}
+            >
               {block.status}
             </span>
             {block.confidence && (

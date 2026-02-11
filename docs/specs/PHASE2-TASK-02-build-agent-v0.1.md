@@ -18,6 +18,7 @@ This is the **execution engine** for Phase 2's autonomous development vision. Wh
 ### Problem Statement
 
 **Current State:**
+
 - Build Agent framework exists (`agents/build/`, `coding-loops/agents/build_agent_worker.py`)
 - Task executor has core infrastructure (context loading, task state management)
 - Python worker has Claude integration and observability framework
@@ -26,6 +27,7 @@ This is the **execution engine** for Phase 2's autonomous development vision. Wh
 - No test execution framework for validating changes
 
 **Desired State:**
+
 - Build Agent executes tasks from Spec Agent specifications
 - Generates code using Claude Opus with full task context
 - Writes files to disk with proper error handling
@@ -55,13 +57,14 @@ The Build Agent serves as the **"Implementation Executor"** between specificatio
 
 ```typescript
 interface SpecificationFile {
-  path: string;              // e.g., "docs/specs/TASK-042-user-auth.md"
-  content: string;           // Full markdown specification
-  tasks: AtomicTask[];       // Parsed task breakdown
+  path: string; // e.g., "docs/specs/TASK-042-user-auth.md"
+  content: string; // Full markdown specification
+  tasks: AtomicTask[]; // Parsed task breakdown
 }
 ```
 
 **Process Flow:**
+
 ```
 1. Load spec from docs/specs/ directory
 2. Parse atomic tasks with dependencies
@@ -96,19 +99,21 @@ interface BuildResult {
 Use Claude Opus to generate code based on task context:
 
 **Context Assembly:**
+
 ```typescript
 interface TaskContext {
-  task: AtomicTask;              // Requirements, gotchas, validation
-  specSections: string[];        // Relevant spec sections
+  task: AtomicTask; // Requirements, gotchas, validation
+  specSections: string[]; // Relevant spec sections
   dependencyOutputs: Record<string, string>; // Code from dependencies
-  conventions: string;           // Project coding standards
-  relatedFiles: Record<string, string>;      // Existing code patterns
-  gotchas: Gotcha[];            // Common mistakes to avoid
-  tokenCount: number;           // Total context size
+  conventions: string; // Project coding standards
+  relatedFiles: Record<string, string>; // Existing code patterns
+  gotchas: Gotcha[]; // Common mistakes to avoid
+  tokenCount: number; // Total context size
 }
 ```
 
 **Generation Requirements:**
+
 - Use `claude-opus-4-6` model for complex reasoning
 - Include full error messages from previous attempts (retry context)
 - Respect token limits (max 180K context, leave 20K for output)
@@ -118,6 +123,7 @@ interface TaskContext {
 #### 3. File Operations
 
 **File Writer Capabilities:**
+
 - CREATE: Write new file to path (error if exists)
 - UPDATE: Modify existing file (error if missing)
 - DELETE: Remove file (error if missing)
@@ -126,6 +132,7 @@ interface TaskContext {
 - Create parent directories as needed
 
 **Error Handling:**
+
 - File permission errors → escalate to SIA
 - Path traversal attempts → reject immediately
 - Disk space errors → fail build with clear message
@@ -134,6 +141,7 @@ interface TaskContext {
 #### 4. Test Execution
 
 **Validation Levels (from `build_agent_worker.py` config):**
+
 ```python
 test_commands = {
     "codebase": ["npm", "run", "build"],           # TypeScript compilation
@@ -144,6 +152,7 @@ test_commands = {
 ```
 
 **Validation Runner:**
+
 - Execute command with timeout (default 120s)
 - Capture stdout/stderr
 - Parse output for expected patterns (from task.validation.expected)
@@ -153,12 +162,14 @@ test_commands = {
 #### 5. Progress Tracking & Observability
 
 **Database Records:**
+
 - `build_executions`: Overall build status
 - `task_executions`: Individual task status with attempts
 - `build_checkpoints`: State snapshots for recovery
 - `agent_heartbeats`: Liveness monitoring (Python worker)
 
 **Real-Time Updates:**
+
 - Emit WebSocket events for UI updates
 - Log to observability API (if available)
 - Update task status in database after each step
@@ -169,6 +180,7 @@ test_commands = {
 **Error Types (from GAP-007):**
 
 **Transient Errors (retry with backoff):**
+
 - Network timeouts
 - Rate limits (HTTP 429)
 - Service unavailable (HTTP 503, 502)
@@ -176,6 +188,7 @@ test_commands = {
 - Out of memory (OOM)
 
 **Permanent Errors (escalate immediately):**
+
 - Syntax errors in generated code
 - Type errors
 - Logic errors (wrong implementation)
@@ -183,6 +196,7 @@ test_commands = {
 - Invalid file paths
 
 **Retry Strategy:**
+
 ```typescript
 interface RetryConfig {
   maxRetries: 3;
@@ -193,6 +207,7 @@ interface RetryConfig {
 ```
 
 **Escalation Trigger:**
+
 - 3 consecutive permanent failures → escalate to SIA
 - 5 total failures (any type) → escalate to SIA
 - Infinite loop detected (same error 3x) → escalate to SIA
@@ -270,19 +285,21 @@ interface RetryConfig {
 **File:** `server/services/task-agent/build-agent-orchestrator.ts`
 
 **Current State:**
+
 - Spawns Python worker with arguments
 - Monitors heartbeats and tracks process lifecycle
 - Handles errors and escalation to SIA
 - Database tracking for agent instances
 
 **Additions Needed:**
+
 ```typescript
 /**
  * Execute a specification using Build Agent
  */
 export async function executeSpecification(
   specPath: string,
-  options?: BuildOptions
+  options?: BuildOptions,
 ): Promise<BuildResult> {
   // 1. Load specification file
   const spec = await loadSpecification(specPath);
@@ -303,7 +320,7 @@ export async function executeSpecification(
   // 6. Update build execution with final status
   await updateBuildExecution(buildId, {
     status: results.status,
-    completedAt: new Date().toISOString()
+    completedAt: new Date().toISOString(),
   });
 
   return results;
@@ -315,6 +332,7 @@ export async function executeSpecification(
 **File:** `coding-loops/agents/build_agent_worker.py`
 
 **Current Capabilities:**
+
 - ✅ Database connection (SQLite)
 - ✅ ObservableAgent integration
 - ✅ Heartbeat monitoring
@@ -350,6 +368,7 @@ def execute_task(task_id: str, agent_id: str) -> int:
 ```
 
 **Claude Integration:**
+
 ```python
 def generate_code_with_claude(context: TaskContext) -> str:
     """Generate code using Claude API"""
@@ -372,6 +391,7 @@ def generate_code_with_claude(context: TaskContext) -> str:
 ```
 
 **File Writing:**
+
 ```python
 def write_file(path: str, content: str, action: str) -> WriteResult:
     """Write file with atomic operations"""
@@ -406,6 +426,7 @@ def write_file(path: str, content: str, action: str) -> WriteResult:
 ```
 
 **Test Execution:**
+
 ```python
 def run_validation_test(validation: ValidationConfig) -> ValidationResult:
     """Run validation command and check output"""
@@ -452,6 +473,7 @@ def run_validation_test(validation: ValidationConfig) -> ValidationResult:
 **File:** `agents/build/context-primer.ts`
 
 **Enhancements Needed:**
+
 ```typescript
 export class ContextPrimer {
   /**
@@ -519,7 +541,10 @@ export function parseAtomicTasks(spec: string): AtomicTask[] {
   const tasks: AtomicTask[] = [];
 
   // Look for "## Task Breakdown" or "## Implementation Plan" section
-  const taskSection = extractSection(spec, ["Task Breakdown", "Implementation Plan"]);
+  const taskSection = extractSection(spec, [
+    "Task Breakdown",
+    "Implementation Plan",
+  ]);
 
   if (!taskSection) {
     throw new Error("Specification missing task breakdown section");
@@ -551,10 +576,12 @@ export function parseAtomicTasks(spec: string): AtomicTask[] {
 **Contract:** Spec Agent must produce specifications with task breakdown section
 
 **Format Example:**
+
 ```markdown
 ## Task Breakdown
 
 ### Task 1: Create user model
+
 - **File**: `server/models/user.ts`
 - **Action**: CREATE
 - **Requirements**:
@@ -564,6 +591,7 @@ export function parseAtomicTasks(spec: string): AtomicTask[] {
 - **Depends On**: none
 
 ### Task 2: Create user service
+
 - **File**: `server/services/user-service.ts`
 - **Action**: CREATE
 - **Requirements**:
@@ -578,6 +606,7 @@ export function parseAtomicTasks(spec: string): AtomicTask[] {
 **Contract:** Build Agent produces execution records for validation
 
 **Format:**
+
 ```typescript
 interface BuildExecutionRecord {
   buildId: string;
@@ -597,6 +626,7 @@ interface BuildExecutionRecord {
 ```
 
 QA Agent reads this record and verifies:
+
 - All tasks completed successfully
 - Validation tests passed
 - Code follows project conventions
@@ -605,6 +635,7 @@ QA Agent reads this record and verifies:
 #### 3. Database Schema
 
 **Tables Used:**
+
 - `build_executions` - Overall build tracking
 - `task_executions` - Individual task results
 - `build_checkpoints` - State snapshots for recovery
@@ -612,6 +643,7 @@ QA Agent reads this record and verifies:
 - `agent_heartbeats` - Liveness monitoring
 
 **Tables Referenced:**
+
 - `tasks` - Task definitions and metadata
 - `task_lists_v2` - Task list organization
 - `task_file_impacts` - Files affected by task
@@ -623,6 +655,7 @@ QA Agent reads this record and verifies:
 **Scenario:** Claude API fails or returns invalid code
 
 **Handling:**
+
 ```python
 try:
     code = generate_code_with_claude(context)
@@ -642,6 +675,7 @@ except anthropic.APIError as e:
 **Scenario:** Disk full, permission denied, concurrent modification
 
 **Handling:**
+
 ```python
 try:
     write_file(path, content, action)
@@ -663,6 +697,7 @@ except OSError as e:
 **Scenario:** Test fails after code generation
 
 **Handling:**
+
 ```python
 validation_result = run_validation_test(context.task.validation)
 
@@ -685,9 +720,10 @@ if not validation_result.success:
 **Scenario:** Task depends on failed task
 
 **Handling:**
+
 ```typescript
 // In orchestrator - check dependencies before spawning worker
-const failedDependencies = task.dependsOn.filter(depId => {
+const failedDependencies = task.dependsOn.filter((depId) => {
   const depResult = taskResults.get(depId);
   return depResult?.status === "failed";
 });
@@ -695,7 +731,7 @@ const failedDependencies = task.dependsOn.filter(depId => {
 if (failedDependencies.length > 0) {
   // Skip task - mark as blocked
   await updateTaskStatus(task.id, "blocked", {
-    reason: `Dependencies failed: ${failedDependencies.join(", ")}`
+    reason: `Dependencies failed: ${failedDependencies.join(", ")}`,
   });
   return;
 }
@@ -706,30 +742,37 @@ if (failedDependencies.length > 0) {
 ## Pass Criteria
 
 ### 1. ✅ Specification Loading
+
 - [ ] Load spec from `docs/specs/TASK-*.md` path
 - [ ] Parse frontmatter (status, priority, effort)
 - [ ] Extract task breakdown section
 - [ ] Handle missing or malformed specs gracefully
 
 **Test:**
+
 ```typescript
-const spec = await loadSpecification("docs/specs/PHASE2-TASK-01-spec-agent-v0.1.md");
-expect(spec.tasks).toHaveLength(6);  // Spec has 6 atomic tasks
+const spec = await loadSpecification(
+  "docs/specs/PHASE2-TASK-01-spec-agent-v0.1.md",
+);
+expect(spec.tasks).toHaveLength(6); // Spec has 6 atomic tasks
 ```
 
 ### 2. ✅ Task Parsing
+
 - [ ] Parse task ID, title, file, action, requirements, validation
 - [ ] Parse dependency relationships (dependsOn)
 - [ ] Validate required fields present
 - [ ] Handle circular dependencies (error detection)
 
 **Test:**
+
 ```typescript
 const tasks = parseAtomicTasks(specContent);
-expect(tasks[1].dependsOn).toContain(tasks[0].id);  // Task 2 depends on Task 1
+expect(tasks[1].dependsOn).toContain(tasks[0].id); // Task 2 depends on Task 1
 ```
 
 ### 3. ✅ Context Assembly
+
 - [ ] Load relevant spec sections
 - [ ] Load dependency outputs (code from completed tasks)
 - [ ] Load coding conventions from CLAUDE.md files
@@ -738,6 +781,7 @@ expect(tasks[1].dependsOn).toContain(tasks[0].id);  // Task 2 depends on Task 1
 - [ ] Respect token limits (180K context max)
 
 **Test:**
+
 ```typescript
 const context = await contextPrimer.primeTask(task, specContent);
 expect(context.tokenCount).toBeLessThan(180000);
@@ -745,6 +789,7 @@ expect(context.gotchas).not.toBeEmpty();
 ```
 
 ### 4. ✅ Code Generation
+
 - [ ] Call Claude Opus API with full context
 - [ ] Include task requirements and gotchas
 - [ ] Include error feedback from previous attempts (retry context)
@@ -752,13 +797,15 @@ expect(context.gotchas).not.toBeEmpty();
 - [ ] Handle API errors with retry logic
 
 **Test:**
-```typescript
+
+````typescript
 const code = await codeGenerator.generate(task, context);
-expect(code).toContain("export");  // Generated TypeScript
-expect(code).not.toContain("```");  // No markdown artifacts
-```
+expect(code).toContain("export"); // Generated TypeScript
+expect(code).not.toContain("```"); // No markdown artifacts
+````
 
 ### 5. ✅ File Writing
+
 - [ ] CREATE: Write new file (error if exists)
 - [ ] UPDATE: Modify existing file (error if missing)
 - [ ] DELETE: Remove file (error if missing)
@@ -767,6 +814,7 @@ expect(code).not.toContain("```");  // No markdown artifacts
 - [ ] Validate path security (no traversal)
 
 **Test:**
+
 ```typescript
 const result = await fileWriter.write("test/generated.ts", code);
 expect(result.success).toBe(true);
@@ -774,6 +822,7 @@ expect(fs.existsSync("test/generated.ts")).toBe(true);
 ```
 
 ### 6. ✅ Test Execution
+
 - [ ] Run validation command from task
 - [ ] Capture stdout/stderr
 - [ ] Match expected pattern (if provided)
@@ -781,6 +830,7 @@ expect(fs.existsSync("test/generated.ts")).toBe(true);
 - [ ] Handle timeouts gracefully
 
 **Test:**
+
 ```typescript
 const result = await validationRunner.run("npm run build", "no errors");
 expect(result.success).toBe(true);
@@ -788,6 +838,7 @@ expect(result.output).toContain("Build succeeded");
 ```
 
 ### 7. ✅ Retry Logic
+
 - [ ] Retry transient errors (rate limits, timeouts)
 - [ ] Exponential backoff (1s → 2s → 4s → ...)
 - [ ] Max 3 retries before escalation
@@ -795,6 +846,7 @@ expect(result.output).toContain("Build succeeded");
 - [ ] Escalate to SIA after max retries
 
 **Test:**
+
 ```python
 # Simulate rate limit error
 with mock.patch('anthropic.Client.messages.create', side_effect=RateLimitError):
@@ -806,6 +858,7 @@ assert get_task_status(task_id) == "escalated"
 ```
 
 ### 8. ✅ Error Classification
+
 - [ ] Classify errors as transient vs permanent
 - [ ] Transient: network, rate limit, OOM, 503/502
 - [ ] Permanent: syntax errors, type errors, logic errors
@@ -813,12 +866,14 @@ assert get_task_status(task_id) == "escalated"
 - [ ] Retry with backoff for transient errors
 
 **Test:**
+
 ```python
 assert classify_error("Rate limit exceeded") == "transient"
 assert classify_error("SyntaxError: Unexpected token") == "permanent"
 ```
 
 ### 9. ✅ Database Integration
+
 - [ ] Create build_executions record
 - [ ] Create task_executions for each task
 - [ ] Update task status after each step
@@ -827,6 +882,7 @@ assert classify_error("SyntaxError: Unexpected token") == "permanent"
 - [ ] Create checkpoints for recovery
 
 **Test:**
+
 ```typescript
 const build = await getBuildExecution(buildId);
 expect(build.status).toBe("completed");
@@ -834,6 +890,7 @@ expect(build.tasksCompleted).toBe(6);
 ```
 
 ### 10. ✅ End-to-End Workflow
+
 - [ ] Load spec → Parse tasks → Execute in order → Validate → Report
 - [ ] Handle dependencies correctly (wait for upstream tasks)
 - [ ] Skip tasks blocked by failures
@@ -841,14 +898,25 @@ expect(build.tasksCompleted).toBe(6);
 - [ ] Report detailed results for QA validation
 
 **Integration Test:**
+
 ```typescript
 // Create test spec with 3 simple tasks
 const specPath = await createTestSpec({
   tasks: [
     { file: "test1.ts", action: "CREATE", validation: "tsc test1.ts" },
-    { file: "test2.ts", action: "CREATE", validation: "tsc test2.ts", dependsOn: ["task1"] },
-    { file: "test3.ts", action: "CREATE", validation: "tsc test3.ts", dependsOn: ["task2"] }
-  ]
+    {
+      file: "test2.ts",
+      action: "CREATE",
+      validation: "tsc test2.ts",
+      dependsOn: ["task1"],
+    },
+    {
+      file: "test3.ts",
+      action: "CREATE",
+      validation: "tsc test3.ts",
+      dependsOn: ["task2"],
+    },
+  ],
 });
 
 // Execute build
@@ -946,16 +1014,19 @@ server/services/task-agent/
 ### Testing Strategy
 
 **Unit Tests:**
+
 - `spec-parser.test.ts` - Parse atomic tasks from markdown
 - `context-primer.test.ts` - Context assembly and token management
 - `file-writer.test.ts` - File operations (CREATE/UPDATE/DELETE)
 - `validation-runner.test.ts` - Test execution and output parsing
 
 **Integration Tests:**
+
 - `build-agent-integration.test.ts` - Full pipeline with mock Claude API
 - `test_build_agent_worker.py` - Python worker E2E tests
 
 **E2E Tests:**
+
 - `honest-validation.test.ts` - Real spec → build → validation
 - Create simple test spec, execute with real Claude API, verify files created
 
@@ -995,16 +1066,19 @@ server/services/task-agent/
 ### Migration Path
 
 **Phase 1:** Basic Integration (This Task)
+
 - Load spec → parse tasks → execute sequentially
 - Simple retry logic
 - Manual escalation
 
 **Phase 2:** Enhanced Execution (PHASE3-TASK-01)
+
 - Parallel execution with wave/lane calculation
 - Automatic checkpoint/recovery
 - Resource conflict detection
 
 **Phase 3:** Self-Improvement (PHASE4-TASK-04)
+
 - Learning from build failures
 - Pattern recognition for common errors
 - Context optimization based on success rates
@@ -1056,16 +1130,16 @@ server/services/task-agent/
 
 ## Risks & Mitigations
 
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| Claude API rate limits | High | Medium | Implement exponential backoff, queue management |
-| Generated code has bugs | High | High | Comprehensive validation tests, multiple retries |
-| Context exceeds token limit | Medium | Medium | Prioritized context assembly, intelligent trimming |
-| File system errors | Medium | Low | Atomic operations, proper error handling |
-| Infinite retry loops | Medium | Medium | Max retry limit, escalation trigger |
-| Dependency resolution fails | High | Low | Topological sort, cycle detection |
-| Validation tests timeout | Low | Medium | Configurable timeouts, graceful handling |
-| Database corruption | High | Very Low | Atomic transactions, checkpoints |
+| Risk                        | Impact | Probability | Mitigation                                         |
+| --------------------------- | ------ | ----------- | -------------------------------------------------- |
+| Claude API rate limits      | High   | Medium      | Implement exponential backoff, queue management    |
+| Generated code has bugs     | High   | High        | Comprehensive validation tests, multiple retries   |
+| Context exceeds token limit | Medium | Medium      | Prioritized context assembly, intelligent trimming |
+| File system errors          | Medium | Low         | Atomic operations, proper error handling           |
+| Infinite retry loops        | Medium | Medium      | Max retry limit, escalation trigger                |
+| Dependency resolution fails | High   | Low         | Topological sort, cycle detection                  |
+| Validation tests timeout    | Low    | Medium      | Configurable timeouts, graceful handling           |
+| Database corruption         | High   | Very Low    | Atomic transactions, checkpoints                   |
 
 ---
 
@@ -1085,11 +1159,13 @@ server/services/task-agent/
 ## References
 
 ### Documentation
+
 - [STRATEGIC_PLAN.md](../../STRATEGIC_PLAN.md) - Phase 2 roadmap
 - [PHASE2-TASK-01-spec-agent-v0.1.md](./PHASE2-TASK-01-spec-agent-v0.1.md) - Spec Agent specification
 - [build-agent-dependency-resolution.md](../build-agent-dependency-resolution.md) - Dependency handling
 
 ### Code References
+
 - `agents/build/core.ts` - BuildAgent main class
 - `agents/build/task-executor.ts` - Task execution framework
 - `coding-loops/agents/build_agent_worker.py` - Python worker implementation
@@ -1097,10 +1173,12 @@ server/services/task-agent/
 - `types/build-agent.ts` - Type definitions
 
 ### Database Schema
+
 - Migration 025: `build_executions`, `task_executions`, `build_checkpoints`
 - Migration 054: `build_agent_instances`, `agent_heartbeats`
 
 ### External APIs
+
 - [Claude API Documentation](https://docs.anthropic.com/claude/reference) - Opus model usage
 - [Claude Code](https://github.com/anthropics/claude-code) - Patterns for code generation
 

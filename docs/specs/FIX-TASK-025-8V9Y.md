@@ -40,20 +40,24 @@ rm -f database/test.db && npm test
 ### Test Failures (With Corrupted Database)
 
 **Error Pattern 1: Database disk image is malformed** (8 failures)
+
 - `tests/api-counter.test.ts` - Multiple test failures
 - `tests/task-agent/prd-link-service.test.ts` - Cleanup failures
 - `tests/task-agent/task-version-service.test.ts` - Cleanup failures
 - **Root cause**: Corrupted database file
 
 **Error Pattern 2: no such column: metadata** (2 failures)
+
 - `tests/task-agent/task-test-service.test.ts:checkAcceptanceCriteria`
 - **Root cause**: Migration 102 not applied to old database
 
 **Error Pattern 3: no such table: account_profiles** (2 failures)
+
 - `tests/avatar.test.ts`
 - **Root cause**: Migration 026 not applied to old database
 
 **Error Pattern 4: no such table: ideation_sessions** (10+ failures)
+
 - `tests/specification/context-loader.test.ts`
 - `tests/ideation/data-models.test.ts`
 - **Root cause**: Migration 018 not applied to old database
@@ -93,14 +97,14 @@ Add explicit database cleanup at the start of test initialization:
 
 ```typescript
 // tests/globalSetup.ts
-import fs from 'fs';
+import fs from "fs";
 
 export default async function globalSetup() {
   const TEST_DB_PATH = "./database/test.db";
 
   // Force clean slate - delete old database
   if (fs.existsSync(TEST_DB_PATH)) {
-    console.log('[INFO] Deleting stale test database...');
+    console.log("[INFO] Deleting stale test database...");
     fs.unlinkSync(TEST_DB_PATH);
   }
 
@@ -151,12 +155,14 @@ This ensures migrations are applied to a fresh database.
 ### Phase 1: Verify Current State (5 min)
 
 1. **Confirm unused imports are removed**:
+
    ```bash
    npx tsc --noEmit 2>&1 | grep "TS6133"
    # Expected: No output (exit code 1 means no warnings found)
    ```
 
 2. **Confirm build succeeds**:
+
    ```bash
    npm run build
    # Expected: Exit code 0, no errors
@@ -174,14 +180,14 @@ Add explicit database cleanup to prevent stale schema:
 
 ```typescript
 // tests/globalSetup.ts
-import fs from 'fs';
+import fs from "fs";
 
 export default async function globalSetup() {
   const TEST_DB_PATH = "./database/test.db";
 
   // Delete stale database
   if (fs.existsSync(TEST_DB_PATH)) {
-    console.log('[INFO] Deleting stale test database...');
+    console.log("[INFO] Deleting stale test database...");
     fs.unlinkSync(TEST_DB_PATH);
   }
 
@@ -201,6 +207,7 @@ export default async function globalSetup() {
 ### Test Criteria
 
 **TC-1**: All tests pass
+
 ```bash
 npm test -- --pool=forks --poolOptions.forks.maxForks=1
 # Expected: 1777 tests passed, 0 failed
@@ -208,6 +215,7 @@ npm test -- --pool=forks --poolOptions.forks.maxForks=1
 ```
 
 **TC-2**: Build succeeds
+
 ```bash
 npm run build
 # Expected: Exit code 0, no errors
@@ -215,6 +223,7 @@ npm run build
 ```
 
 **TC-3**: No TypeScript warnings for unused imports
+
 ```bash
 npx tsc --noEmit 2>&1 | grep TS6133
 # Expected: No output (no TS6133 warnings)
@@ -222,6 +231,7 @@ npx tsc --noEmit 2>&1 | grep TS6133
 ```
 
 **TC-4**: Test database properly initialized
+
 ```bash
 ls -lh database/test.db
 # Expected: File size > 100KB (populated database)
@@ -229,6 +239,7 @@ ls -lh database/test.db
 ```
 
 **TC-5**: Ideation tests pass
+
 ```bash
 npm test -- tests/ideation/data-models.test.ts
 # Expected: All 23 tests pass
@@ -236,6 +247,7 @@ npm test -- tests/ideation/data-models.test.ts
 ```
 
 **TC-6**: Task test service tests pass
+
 ```bash
 npm test -- tests/task-agent/task-test-service.test.ts
 # Expected: All 9 tests pass
@@ -243,6 +255,7 @@ npm test -- tests/task-agent/task-test-service.test.ts
 ```
 
 **TC-7**: API counter tests pass
+
 ```bash
 npm test -- tests/api-counter.test.ts
 # Expected: All tests pass
@@ -325,11 +338,13 @@ The original task (remove unused imports) is **COMPLETE**. Test failures are a s
 ### Task Status: ORIGINAL TASK COMPLETE ✅
 
 **TASK-025 objective (remove unused imports)**: ✅ COMPLETE
+
 - No TS6133 warnings in codebase
 - Build succeeds without errors
 - TypeScript compiles successfully
 
 **QA test failures**: ❌ UNRELATED INFRASTRUCTURE ISSUE
+
 - Caused by corrupted/stale test database
 - NOT caused by unused import removal
 - Tests pass when database is cleaned

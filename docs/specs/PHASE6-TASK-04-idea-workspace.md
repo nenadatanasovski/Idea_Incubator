@@ -16,6 +16,7 @@ Create a comprehensive idea workspace interface that consolidates README editing
 ### Context
 
 Currently, idea development is scattered across multiple interfaces:
+
 - `IdeaDetail.tsx` provides overview and evaluation results
 - `DevelopmentWizard` modal handles Q&A
 - Profile linking is a separate card
@@ -29,6 +30,7 @@ This task creates a dedicated workspace page that brings all development activit
 **Phase 6 Goal**: Full-featured dashboard for idea management, evaluation monitoring, and agent interaction
 
 This workspace is the **primary idea development interface** where users spend 80% of their time refining ideas before evaluation. It directly supports:
+
 - Faster iteration cycles (reduced context switching)
 - Higher evaluation readiness (inline Q&A + content editing)
 - Better profile utilization (visible profile context while editing)
@@ -41,12 +43,14 @@ This workspace is the **primary idea development interface** where users spend 8
 ### Functional Requirements
 
 #### FR-1: Dual-Pane Editor Layout
+
 - **FR-1.1**: Left pane (60% width): Tabbed editor for README.md and development.md
 - **FR-1.2**: Right pane (40% width): Context panel with tabs (Profile, Q&A, Artifacts, History)
 - **FR-1.3**: Resizable split (minimum 30%, maximum 80% for either pane)
 - **FR-1.4**: Mobile responsive: stacked layout (editor full-width, context below)
 
 #### FR-2: README.md Editor
+
 - **FR-2.1**: Markdown editor with live preview toggle
 - **FR-2.2**: Auto-save after 3 seconds of inactivity
 - **FR-2.3**: Save indicator (Saved / Saving... / Unsaved changes)
@@ -56,6 +60,7 @@ This workspace is the **primary idea development interface** where users spend 8
 - **FR-2.7**: Preview mode renders full markdown with styles
 
 #### FR-3: development.md Q&A Interface
+
 - **FR-3.1**: Q&A list showing answered questions (collapsed by default)
 - **FR-3.2**: Expandable answers with edit/delete actions
 - **FR-3.3**: "Add Answer" button opens inline question answering flow
@@ -65,6 +70,7 @@ This workspace is the **primary idea development interface** where users spend 8
 - **FR-3.7**: Auto-sync to development.md file on answer submit/edit/delete
 
 #### FR-4: Profile Integration
+
 - **FR-4.1**: Profile status card (linked/unlinked) with quick link/unlink actions
 - **FR-4.2**: When linked: display profile name, primary goals, constraints, preferences
 - **FR-4.3**: Collapsible sections for profile attributes (goals, constraints, skills, context)
@@ -72,6 +78,7 @@ This workspace is the **primary idea development interface** where users spend 8
 - **FR-4.5**: Real-time profile context: show relevant excerpts based on active editor content
 
 #### FR-5: Artifacts Panel
+
 - **FR-5.1**: List of session artifacts (research, code, documents)
 - **FR-5.2**: Artifact preview on click (modal or inline expansion)
 - **FR-5.3**: Copy artifact content button
@@ -79,12 +86,14 @@ This workspace is the **primary idea development interface** where users spend 8
 - **FR-5.5**: Empty state: "No artifacts yet" with guidance
 
 #### FR-6: Version History
+
 - **FR-6.1**: README change history (last 10 versions)
 - **FR-6.2**: Timestamp, character change delta (+120 / -45)
 - **FR-6.3**: Restore previous version action
 - **FR-6.4**: Diff view comparing current to selected version
 
 #### FR-7: Navigation & State Management
+
 - **FR-7.1**: Route: `/ideas/:slug/workspace`
 - **FR-7.2**: Auto-load idea data, profile, Q&A answers, artifacts on mount
 - **FR-7.3**: Unsaved changes warning on navigation away
@@ -94,17 +103,20 @@ This workspace is the **primary idea development interface** where users spend 8
 ### Non-Functional Requirements
 
 #### NFR-1: Performance
+
 - Initial workspace load: <1 second
 - Auto-save debounce: 3 seconds
 - Editor typing lag: <50ms
 - Markdown preview render: <200ms
 
 #### NFR-2: Usability
+
 - Mobile-friendly: stacked layout, touch-friendly controls
 - Accessibility: ARIA labels, keyboard navigation, screen reader support
 - Visual consistency: Tailwind CSS design system from existing pages
 
 #### NFR-3: Data Integrity
+
 - Auto-save failure handling: retry 3 times, then show error banner
 - Optimistic UI updates for Q&A actions
 - File conflict detection (if README.md changed externally)
@@ -150,6 +162,7 @@ IdeaWorkspace.tsx (Page Component)
 ### 2. Data Flow
 
 #### 2.1 Workspace Initialization
+
 ```typescript
 // On mount: /ideas/:slug/workspace
 1. useIdea(slug) → fetch idea metadata
@@ -160,6 +173,7 @@ IdeaWorkspace.tsx (Page Component)
 ```
 
 #### 2.2 README Auto-Save Flow
+
 ```typescript
 User types → debounce(3000ms) →
   PATCH /api/ideas/:slug { content: newMarkdown } →
@@ -169,6 +183,7 @@ User types → debounce(3000ms) →
 ```
 
 #### 2.3 Q&A Sync Flow
+
 ```typescript
 User answers question →
   POST /api/ideas/:slug/development { questionId, answer } →
@@ -180,6 +195,7 @@ User answers question →
 ```
 
 #### 2.4 Profile Link Flow
+
 ```typescript
 User clicks "Link Profile" →
   ProfileSelector modal opens →
@@ -193,6 +209,7 @@ User clicks "Link Profile" →
 ### 3. API Endpoints
 
 #### 3.1 Existing Endpoints (Reuse)
+
 - `GET /api/ideas/:slug` - Fetch idea metadata
 - `PATCH /api/ideas/:slug` - Update idea content (README.md)
 - `GET /api/ideas/:slug/development` - Get Q&A answers
@@ -205,6 +222,7 @@ User clicks "Link Profile" →
 #### 3.2 New Endpoints Required
 
 **Version History**
+
 ```typescript
 GET /api/ideas/:slug/history
 Response: {
@@ -219,6 +237,7 @@ Response: {
 ```
 
 **Restore Version**
+
 ```typescript
 POST /api/ideas/:slug/history/restore
 Body: { versionId: string }
@@ -226,6 +245,7 @@ Response: { content: string, contentHash: string }
 ```
 
 **Diff View**
+
 ```typescript
 GET /api/ideas/:slug/history/diff?from=versionId&to=versionId
 Response: {
@@ -238,6 +258,7 @@ Response: {
 ### 4. Database Schema
 
 #### 4.1 Existing Tables (Reuse)
+
 - `ideas` - Core idea data (id, slug, title, content, etc.)
 - `development_answers` - Q&A data (question_id, idea_id, answer, category)
 - `idea_profiles` - Profile links (idea_id, profile_id)
@@ -263,6 +284,7 @@ CREATE TABLE idea_versions (
 ```
 
 **Versioning Strategy**:
+
 - Auto-create version on every README save
 - Keep last 50 versions per idea (prune older)
 - Store full content (not diffs) for fast retrieval
@@ -273,31 +295,31 @@ CREATE TABLE idea_versions (
 ```typescript
 interface WorkspaceState {
   // Editor state
-  activeTab: 'readme' | 'development'
-  readmeContent: string
-  readmeMode: 'edit' | 'preview'
-  saveStatus: 'saved' | 'saving' | 'unsaved' | 'error'
-  hasUnsavedChanges: boolean
+  activeTab: "readme" | "development";
+  readmeContent: string;
+  readmeMode: "edit" | "preview";
+  saveStatus: "saved" | "saving" | "unsaved" | "error";
+  hasUnsavedChanges: boolean;
 
   // Context state
-  contextTab: 'profile' | 'artifacts' | 'history' | 'insights'
-  selectedArtifactId: string | null
-  selectedVersionId: string | null
+  contextTab: "profile" | "artifacts" | "history" | "insights";
+  selectedArtifactId: string | null;
+  selectedVersionId: string | null;
 
   // Data
-  idea: IdeaWithScores | null
-  profile: UserProfileSummary | null
-  answers: Answer[]
-  readiness: ReadinessScore | null
-  coverage: CriterionCoverage[]
-  artifacts: Artifact[]
-  versions: IdeaVersion[]
+  idea: IdeaWithScores | null;
+  profile: UserProfileSummary | null;
+  answers: Answer[];
+  readiness: ReadinessScore | null;
+  coverage: CriterionCoverage[];
+  artifacts: Artifact[];
+  versions: IdeaVersion[];
 
   // UI state
-  showProfileSelector: boolean
-  showArtifactModal: boolean
-  showVersionDiff: boolean
-  errorMessage: string | null
+  showProfileSelector: boolean;
+  showArtifactModal: boolean;
+  showVersionDiff: boolean;
+  errorMessage: string | null;
 }
 ```
 
@@ -342,42 +364,45 @@ export function useWorkspace(slug: string) {
 export function useAutoSave(
   content: string,
   onSave: (content: string) => Promise<void>,
-  delay = 3000
+  delay = 3000,
 ) {
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const debouncedSave = useMemo(
-    () => debounce(async (val: string) => {
-      setSaveStatus('saving')
-      try {
-        await onSave(val)
-        setSaveStatus('saved')
-      } catch (err) {
-        setSaveStatus('error')
-      }
-    }, delay),
-    [onSave, delay]
-  )
+    () =>
+      debounce(async (val: string) => {
+        setSaveStatus("saving");
+        try {
+          await onSave(val);
+          setSaveStatus("saved");
+        } catch (err) {
+          setSaveStatus("error");
+        }
+      }, delay),
+    [onSave, delay],
+  );
 
   useEffect(() => {
     if (content) {
-      setSaveStatus('unsaved')
-      debouncedSave(content)
+      setSaveStatus("unsaved");
+      debouncedSave(content);
     }
-  }, [content, debouncedSave])
+  }, [content, debouncedSave]);
 
-  return saveStatus
+  return saveStatus;
 }
 ```
 
 ### 7. Markdown Editor Implementation
 
 **Option A: Textarea + Preview (Simple)**
+
 - Controlled textarea for editing
 - Separate ReactMarkdown preview pane
 - Pros: Simple, lightweight, full control
 - Cons: No syntax highlighting in edit mode
 
 **Option B: BlockNote (Rich)**
+
 - Already used in `ArtifactPanel.tsx` (`@blocknote/react`, `@blocknote/mantine`)
 - WYSIWYG-style markdown editing
 - Pros: Professional UX, built-in formatting
@@ -468,6 +493,7 @@ export function useAutoSave(
 ## Dependencies
 
 ### Internal Dependencies
+
 - **Completed**:
   - `/api/ideas/:slug` endpoint (exists)
   - `useDevelopment` hook (exists)
@@ -482,6 +508,7 @@ export function useAutoSave(
   - `useVersionHistory` hook
 
 ### External Dependencies
+
 - `react-markdown` (already in use)
 - `@blocknote/react`, `@blocknote/mantine` (already in project, optional)
 - `lodash.debounce` or custom debounce (auto-save)
@@ -491,6 +518,7 @@ export function useAutoSave(
 ## Implementation Plan
 
 ### Phase 1: Core Workspace Shell (Days 1-2)
+
 1. Create `IdeaWorkspace.tsx` page component
 2. Set up dual-pane layout (ResizablePanes component)
 3. Implement EditorTabs with README/Development tabs
@@ -501,6 +529,7 @@ export function useAutoSave(
 **Deliverable**: Empty workspace shell with tab navigation
 
 ### Phase 2: README Editor (Day 2-3)
+
 7. Implement MarkdownEditor with auto-save
 8. Add save status indicator
 9. Wire up PATCH /api/ideas/:slug endpoint
@@ -510,6 +539,7 @@ export function useAutoSave(
 **Deliverable**: Functional README editor with auto-save
 
 ### Phase 3: Q&A Interface (Day 3-4)
+
 12. Build QAList component (reuse AnswerHistory patterns)
 13. Implement QuestionAnswerForm (inline)
 14. Wire up POST /api/ideas/:slug/development
@@ -519,6 +549,7 @@ export function useAutoSave(
 **Deliverable**: Working Q&A interface with readiness tracking
 
 ### Phase 4: Profile Integration (Day 4)
+
 17. Add ProfileTab to context panel
 18. Integrate ProfileStatusCard (reuse from IdeaDetail)
 19. Add ProfileSelector modal trigger
@@ -528,6 +559,7 @@ export function useAutoSave(
 **Deliverable**: Profile linking works in workspace
 
 ### Phase 5: Artifacts & History (Day 5-6)
+
 22. Create `idea_versions` table migration
 23. Implement GET /api/ideas/:slug/history endpoint
 24. Build VersionList component
@@ -537,6 +569,7 @@ export function useAutoSave(
 **Deliverable**: Artifacts and version history visible
 
 ### Phase 6: Polish & Testing (Day 6-7)
+
 27. Add unsaved changes warning
 28. Implement keyboard shortcuts (Cmd/Ctrl+S, Cmd/Ctrl+P)
 29. Mobile responsive layout testing
@@ -551,18 +584,22 @@ export function useAutoSave(
 ## Success Metrics
 
 ### User Engagement
+
 - **Target**: 70% of idea edits happen in workspace (vs external editor)
 - **Measure**: Track README saves via workspace vs. sync script
 
 ### Idea Quality
+
 - **Target**: 85% readiness score before evaluation
 - **Measure**: Average readiness score for ideas edited in workspace
 
 ### Time to Evaluation
+
 - **Target**: 30% reduction in time from idea creation to first evaluation
 - **Measure**: Median days between created_at and first evaluation run
 
 ### Feature Adoption
+
 - **Target**: 60% of ideas have linked profiles
 - **Target**: 80% of ideas have ≥5 Q&A answers
 - **Measure**: Database statistics (idea_profiles count, development_answers count)
@@ -588,15 +625,18 @@ export function useAutoSave(
 ## Security Considerations
 
 ### Authentication
+
 - All API endpoints require user authentication (session/JWT)
 - User can only edit ideas they own (ownership check in middleware)
 
 ### Input Validation
+
 - Markdown content sanitized before save (prevent XSS)
 - Maximum content length: 50,000 characters (prevent DOS)
 - Question ID validation (prevent SQL injection)
 
 ### Rate Limiting
+
 - Auto-save rate limit: max 1 save per 3 seconds per user
 - Q&A submission: max 10 answers per minute per user
 
@@ -629,6 +669,7 @@ export function useAutoSave(
 ## References
 
 ### Existing Components (Reuse)
+
 - `frontend/src/pages/IdeaDetail.tsx` - Profile linking, Q&A patterns
 - `frontend/src/components/ProfileStatusCard.tsx` - Profile display
 - `frontend/src/components/ProfileSelector.tsx` - Profile selection modal
@@ -640,15 +681,18 @@ export function useAutoSave(
 - `frontend/src/hooks/useIdeaProfile.ts` - Profile data fetching
 
 ### API Routes (Reuse)
+
 - `server/routes/ideas.ts` - README CRUD, idea metadata
 - `server/routes/questions.ts` - Q&A submission, development.md sync
 - `server/routes/profiles.ts` - Profile linking
 
 ### Database Schema
+
 - `schema/entities/idea.ts` - Idea entity definition
 - `database/migrations/` - Existing migration patterns
 
 ### Strategic Documents
+
 - `STRATEGIC_PLAN.md` - Phase 6 goals
 - `TASK_DECOMPOSITION.md` - Phase 6 task breakdown
 - `docs/specs/PHASE6-TASK-01-VERIFICATION-COMPLETE.md` - Dashboard patterns

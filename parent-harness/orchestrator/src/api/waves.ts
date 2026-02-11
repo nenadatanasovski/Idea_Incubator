@@ -1,5 +1,5 @@
-import { Router } from 'express';
-import * as waves from '../waves/index.js';
+import { Router } from "express";
+import * as waves from "../waves/index.js";
 
 export const wavesRouter = Router();
 
@@ -7,7 +7,7 @@ export const wavesRouter = Router();
  * GET /api/waves
  * Get all wave runs
  */
-wavesRouter.get('/', (_req, res) => {
+wavesRouter.get("/", (_req, res) => {
   const runs = waves.getWaveRuns();
   res.json(runs);
 });
@@ -16,7 +16,7 @@ wavesRouter.get('/', (_req, res) => {
  * POST /api/waves/plan/:taskListId
  * Plan waves for a task list
  */
-wavesRouter.post('/plan/:taskListId', (req, res) => {
+wavesRouter.post("/plan/:taskListId", (req, res) => {
   const run = waves.planWaves(req.params.taskListId);
   res.status(201).json(run);
 });
@@ -25,10 +25,10 @@ wavesRouter.post('/plan/:taskListId', (req, res) => {
  * POST /api/waves/:runId/start
  * Start executing a wave run
  */
-wavesRouter.post('/:runId/start', (req, res) => {
+wavesRouter.post("/:runId/start", (req, res) => {
   const run = waves.startWaveRun(req.params.runId);
   if (!run) {
-    return res.status(404).json({ error: 'Wave run not found', status: 404 });
+    return res.status(404).json({ error: "Wave run not found", status: 404 });
   }
   res.json(run);
 });
@@ -37,10 +37,10 @@ wavesRouter.post('/:runId/start', (req, res) => {
  * GET /api/waves/:runId
  * Get wave run details with waves
  */
-wavesRouter.get('/:runId', (req, res) => {
+wavesRouter.get("/:runId", (req, res) => {
   const run = waves.getWaveRun(req.params.runId);
   if (!run) {
-    return res.status(404).json({ error: 'Wave run not found', status: 404 });
+    return res.status(404).json({ error: "Wave run not found", status: 404 });
   }
 
   const waveList = waves.getWaves(req.params.runId);
@@ -51,7 +51,7 @@ wavesRouter.get('/:runId', (req, res) => {
  * POST /api/waves/:runId/check
  * Check if current wave is complete and advance
  */
-wavesRouter.post('/:runId/check', (req, res) => {
+wavesRouter.post("/:runId/check", (req, res) => {
   const completed = waves.checkWaveCompletion(req.params.runId);
   const run = waves.getWaveRun(req.params.runId);
   res.json({ completed, run });

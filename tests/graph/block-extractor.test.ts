@@ -229,15 +229,15 @@ describe("BlockExtractor", () => {
   describe("block type validation", () => {
     it("should validate all 9 canonical block types (ARCH-001)", () => {
       const validTypes = [
-        "knowledge",    // Verified facts, patterns, insights
-        "decision",     // Choices made with rationale
-        "assumption",   // Unverified beliefs to test
-        "question",     // Open unknowns to investigate
-        "requirement",  // Constraints, must-haves
-        "task",         // Work items, actions
-        "proposal",     // Suggested changes awaiting approval
-        "artifact",     // Outputs (code, docs, specs)
-        "evidence",     // Validation data, proof
+        "knowledge", // Verified facts, patterns, insights
+        "decision", // Choices made with rationale
+        "assumption", // Unverified beliefs to test
+        "question", // Open unknowns to investigate
+        "requirement", // Constraints, must-haves
+        "task", // Work items, actions
+        "proposal", // Suggested changes awaiting approval
+        "artifact", // Outputs (code, docs, specs)
+        "evidence", // Validation data, proof
       ];
 
       // Access the private method via any cast for testing

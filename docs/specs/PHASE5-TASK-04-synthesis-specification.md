@@ -15,6 +15,7 @@ The synthesis system is the final step in the evaluation pipeline, producing com
 ### Context
 
 This task is part of Phase 5's goal to deliver "Richer evaluations with multi-perspective debate, dynamic scoring, and evidence-based reasoning." The synthesis agent consumes outputs from:
+
 - **Debate System** (PHASE5-TASK-01) - Multi-round evaluator vs red-teamer debates
 - **Evidence Collection** (PHASE5-TASK-02) - Market/competition research data
 - **Dynamic Score Adjustment** (PHASE5-TASK-03) - Convergence-based score refinement
@@ -33,7 +34,9 @@ This task is part of Phase 5's goal to deliver "Richer evaluations with multi-pe
 ### Functional Requirements
 
 #### FR-1: Synthesis Generation
+
 The system SHALL generate comprehensive synthesis from debate results including:
+
 - Executive summary (2-3 paragraphs)
 - Key strengths (3-5 items)
 - Key weaknesses (3-5 items)
@@ -44,14 +47,18 @@ The system SHALL generate comprehensive synthesis from debate results including:
 - Confidence statement
 
 #### FR-2: Recommendation System
+
 The system SHALL produce one of four recommendations based on score thresholds:
+
 - **PURSUE** (7.0+): High confidence, clear path forward
 - **REFINE** (5.0-6.9): Medium score or significant gaps
 - **PAUSE** (4.0-4.9): Major blockers identified
 - **ABANDON** (<4.0): Fundamental flaws revealed
 
 #### FR-3: Evidence-Based Reasoning
+
 The synthesis SHALL cite specific evidence from:
+
 - Debate outcomes per criterion
 - Score changes (original → final)
 - Key insights from all rounds
@@ -59,7 +66,9 @@ The synthesis SHALL cite specific evidence from:
 - Challenge success/failure rates
 
 #### FR-4: Database Persistence
+
 The system SHALL store synthesis results in `final_syntheses` table with:
+
 - Immutable records (locked=true)
 - Full synthesis content (JSON)
 - Overall score and confidence
@@ -68,7 +77,9 @@ The system SHALL store synthesis results in `final_syntheses` table with:
 - Timestamp and traceability
 
 #### FR-5: Frontend Display
+
 The UI SHALL display synthesis results with:
+
 - Color-coded recommendation badges
 - Executive summary
 - Score visualization
@@ -76,23 +87,28 @@ The UI SHALL display synthesis results with:
 - Actionable next steps
 
 #### FR-6: Real-Time Updates
+
 The system SHALL broadcast WebSocket events:
+
 - `synthesis:started` - When synthesis begins
 - `synthesis:complete` - When synthesis finishes with score and recommendation
 
 ### Non-Functional Requirements
 
 #### NFR-1: Performance
+
 - Synthesis generation: <30 seconds
 - Database persistence: <1 second
 - UI render: <500ms
 
 #### NFR-2: Quality
+
 - All synthesis fields populated (no empty strings)
 - Recommendations aligned with score thresholds
 - Reasoning specific and actionable (not generic)
 
 #### NFR-3: Type Safety
+
 - All interfaces properly typed
 - No `any` types in synthesis module
 - Runtime validation of recommendation values
@@ -164,19 +180,20 @@ The system SHALL broadcast WebSocket events:
 #### 1. Synthesis Agent (`agents/synthesis.ts`)
 
 **Interfaces:**
+
 ```typescript
 export type Recommendation = "PURSUE" | "REFINE" | "PAUSE" | "ABANDON";
 
 export interface SynthesisOutput {
   executiveSummary: string;
-  keyStrengths: string[];           // 3-5 top strengths
-  keyWeaknesses: string[];          // 3-5 top weaknesses
-  criticalAssumptions: string[];    // Assumptions for success
-  unresolvedQuestions: string[];    // Gaps in evaluation
+  keyStrengths: string[]; // 3-5 top strengths
+  keyWeaknesses: string[]; // 3-5 top weaknesses
+  criticalAssumptions: string[]; // Assumptions for success
+  unresolvedQuestions: string[]; // Gaps in evaluation
   recommendation: Recommendation;
-  recommendationReasoning: string;  // Why this recommendation
-  nextSteps: string[];              // Actionable next steps
-  confidenceStatement: string;      // Confidence level and why
+  recommendationReasoning: string; // Why this recommendation
+  nextSteps: string[]; // Actionable next steps
+  confidenceStatement: string; // Confidence level and why
 }
 
 export interface FinalEvaluation {
@@ -292,6 +309,7 @@ CREATE TABLE IF NOT EXISTS final_syntheses (
 ```
 
 **Indexes:**
+
 ```sql
 CREATE INDEX IF NOT EXISTS idx_final_syntheses_idea_id ON final_syntheses(idea_id);
 CREATE INDEX IF NOT EXISTS idx_final_syntheses_recommendation ON final_syntheses(recommendation);
@@ -309,7 +327,7 @@ const synthesis = await createFinalEvaluation(
   ideaTitle,
   debateResult,
   ideaContent,
-  costTracker
+  costTracker,
 );
 
 // Save to database
@@ -321,50 +339,50 @@ await saveFinalEvaluation(synthesis, ideaFolderPath);
 // Broadcast completion
 await broadcaster.synthesisComplete(
   synthesis.overallScore,
-  synthesis.recommendation
+  synthesis.recommendation,
 );
 ```
 
 **B. Frontend Display (`frontend/src/pages/DebateSession.tsx`)**
 
 ```tsx
-{session.synthesis && (
-  <div className="synthesis-section">
-    <div className="synthesis-header">
-      <h4>Final Synthesis</h4>
-      <span className={recommendationBadge(session.synthesis.recommendation)}>
-        {session.synthesis.recommendation}
-      </span>
-    </div>
-    <p className="executive-summary">
-      {session.synthesis.executive_summary}
-    </p>
-    <div className="synthesis-score">
-      <span>Overall Score:</span>
-      <span className="score-value">
-        {session.synthesis.overall_score.toFixed(2)}/10
-      </span>
-    </div>
-    <div className="synthesis-details">
-      <div className="strengths">
-        <h5>Key Strengths</h5>
-        <ul>
-          {session.synthesis.key_strengths.map((s, i) => (
-            <li key={i}>{s}</li>
-          ))}
-        </ul>
+{
+  session.synthesis && (
+    <div className="synthesis-section">
+      <div className="synthesis-header">
+        <h4>Final Synthesis</h4>
+        <span className={recommendationBadge(session.synthesis.recommendation)}>
+          {session.synthesis.recommendation}
+        </span>
       </div>
-      <div className="weaknesses">
-        <h5>Key Weaknesses</h5>
-        <ul>
-          {session.synthesis.key_weaknesses.map((w, i) => (
-            <li key={i}>{w}</li>
-          ))}
-        </ul>
+      <p className="executive-summary">{session.synthesis.executive_summary}</p>
+      <div className="synthesis-score">
+        <span>Overall Score:</span>
+        <span className="score-value">
+          {session.synthesis.overall_score.toFixed(2)}/10
+        </span>
+      </div>
+      <div className="synthesis-details">
+        <div className="strengths">
+          <h5>Key Strengths</h5>
+          <ul>
+            {session.synthesis.key_strengths.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="weaknesses">
+          <h5>Key Weaknesses</h5>
+          <ul>
+            {session.synthesis.key_weaknesses.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
-  </div>
-)}
+  );
+}
 ```
 
 **C. WebSocket Events (`utils/websocket-broadcaster.ts`)**
@@ -444,23 +462,27 @@ try {
 ## Pass Criteria
 
 ### PC-1: TypeScript Compilation
+
 - ✅ `npx tsc --noEmit` passes with zero errors
 - ✅ No `any` types in synthesis module
 - ✅ All interfaces properly exported
 
 ### PC-2: Test Coverage
+
 - ✅ Synthesis agent tests pass (22/22 tests)
 - ✅ Integration tests cover synthesis generation
 - ✅ Database persistence tests pass
 - ✅ Overall test suite: >95% passing
 
 ### PC-3: Functional Completeness
+
 - ✅ Synthesis generation works end-to-end
 - ✅ All required fields populated (no empty strings for required fields)
 - ✅ Recommendations aligned with score thresholds
 - ✅ Database records immutable (locked=true)
 
 ### PC-4: Data Quality
+
 - ✅ Strengths identified for scores ≥8
 - ✅ Weaknesses identified for scores ≤5
 - ✅ Executive summary is specific, not generic
@@ -468,17 +490,20 @@ try {
 - ✅ Next steps are actionable
 
 ### PC-5: Integration
+
 - ✅ Frontend displays synthesis correctly
 - ✅ WebSocket broadcasts synthesis events
 - ✅ File system stores `evaluation.md`
 - ✅ Database stores complete synthesis record
 
 ### PC-6: Performance
+
 - ✅ Synthesis generation: <30 seconds
 - ✅ Database insert: <1 second
 - ✅ UI render: <500ms
 
 ### PC-7: Code Quality
+
 - ✅ ESLint passes with no errors
 - ✅ Code follows existing patterns
 - ✅ Proper error handling with try/catch
@@ -585,24 +610,28 @@ None. System is production-ready.
 ### Unit Tests
 
 ```typescript
-describe('Synthesis Agent', () => {
-  it('should generate synthesis from debate results', async () => {
-    const result = await generateSynthesis(mockDebateResult, ideaContent, costTracker);
+describe("Synthesis Agent", () => {
+  it("should generate synthesis from debate results", async () => {
+    const result = await generateSynthesis(
+      mockDebateResult,
+      ideaContent,
+      costTracker,
+    );
     expect(result.recommendation).toMatch(/^(PURSUE|REFINE|PAUSE|ABANDON)$/);
     expect(result.keyStrengths).toHaveLength.greaterThan(0);
     expect(result.keyWeaknesses).toHaveLength.greaterThan(0);
   });
 
-  it('should validate recommendations', () => {
-    expect(validateRecommendation('PURSUE')).toBe('PURSUE');
-    expect(validateRecommendation('invalid')).toBe('REFINE'); // default
+  it("should validate recommendations", () => {
+    expect(validateRecommendation("PURSUE")).toBe("PURSUE");
+    expect(validateRecommendation("invalid")).toBe("REFINE"); // default
   });
 
-  it('should format final evaluation as markdown', () => {
+  it("should format final evaluation as markdown", () => {
     const markdown = formatFinalEvaluation(mockEvaluation);
-    expect(markdown).toContain('# Final Evaluation:');
-    expect(markdown).toContain('## Key Strengths');
-    expect(markdown).toContain('## Key Weaknesses');
+    expect(markdown).toContain("# Final Evaluation:");
+    expect(markdown).toContain("## Key Strengths");
+    expect(markdown).toContain("## Key Weaknesses");
   });
 });
 ```
@@ -610,30 +639,33 @@ describe('Synthesis Agent', () => {
 ### Integration Tests
 
 ```typescript
-describe('Synthesis Integration', () => {
-  it('should save synthesis to database', async () => {
+describe("Synthesis Integration", () => {
+  it("should save synthesis to database", async () => {
     await saveFinalSynthesis(db, ideaId, evaluationRunId, synthesis);
-    const record = await db.get('SELECT * FROM final_syntheses WHERE id = ?', synthesisId);
+    const record = await db.get(
+      "SELECT * FROM final_syntheses WHERE id = ?",
+      synthesisId,
+    );
     expect(record.locked).toBe(true);
     expect(record.recommendation).toBe(synthesis.recommendation);
   });
 
-  it('should save synthesis to file system', async () => {
+  it("should save synthesis to file system", async () => {
     const filePath = await saveFinalEvaluation(evaluation, ideaFolderPath);
     expect(fs.existsSync(filePath)).toBe(true);
-    const content = fs.readFileSync(filePath, 'utf-8');
-    expect(content).toContain('*This evaluation is locked and immutable.*');
+    const content = fs.readFileSync(filePath, "utf-8");
+    expect(content).toContain("*This evaluation is locked and immutable.*");
   });
 
-  it('should broadcast synthesis events', async () => {
+  it("should broadcast synthesis events", async () => {
     const events: any[] = [];
-    broadcaster.on('message', (msg) => events.push(msg));
+    broadcaster.on("message", (msg) => events.push(msg));
 
-    await broadcaster.synthesisComplete(8.5, 'PURSUE');
+    await broadcaster.synthesisComplete(8.5, "PURSUE");
     expect(events).toContainEqual({
-      type: 'synthesis:complete',
-      data: { score: 8.5, recommendation: 'PURSUE' },
-      timestamp: expect.any(String)
+      type: "synthesis:complete",
+      data: { score: 8.5, recommendation: "PURSUE" },
+      timestamp: expect.any(String),
     });
   });
 });
@@ -642,22 +674,27 @@ describe('Synthesis Integration', () => {
 ### E2E Tests
 
 ```typescript
-describe('E2E: Full Evaluation Pipeline', () => {
-  it('should complete evaluation with synthesis', async () => {
+describe("E2E: Full Evaluation Pipeline", () => {
+  it("should complete evaluation with synthesis", async () => {
     // Run full evaluation
     const result = await runEvaluation(testIdeaSlug);
 
     // Verify synthesis generated
     expect(result.synthesis).toBeDefined();
-    expect(result.synthesis.recommendation).toMatch(/^(PURSUE|REFINE|PAUSE|ABANDON)$/);
+    expect(result.synthesis.recommendation).toMatch(
+      /^(PURSUE|REFINE|PAUSE|ABANDON)$/,
+    );
 
     // Verify database persistence
-    const dbRecord = await db.get('SELECT * FROM final_syntheses WHERE idea_id = ?', testIdeaId);
+    const dbRecord = await db.get(
+      "SELECT * FROM final_syntheses WHERE idea_id = ?",
+      testIdeaId,
+    );
     expect(dbRecord).toBeDefined();
     expect(dbRecord.locked).toBe(true);
 
     // Verify file system
-    const filePath = path.join(ideasDir, testIdeaSlug, 'evaluation.md');
+    const filePath = path.join(ideasDir, testIdeaSlug, "evaluation.md");
     expect(fs.existsSync(filePath)).toBe(true);
   });
 });
@@ -748,8 +785,8 @@ describe('E2E: Full Evaluation Pipeline', () => {
 > **Overall Score: 6.72/10** | **Recommendation: REFINE**
 > Moderately promising - Has significant strengths but notable gaps remain
 
-*Evaluated: 2026-02-08T14:32:18.123Z*
-*This evaluation is locked and immutable.*
+_Evaluated: 2026-02-08T14:32:18.123Z_
+_This evaluation is locked and immutable._
 
 ---
 
@@ -761,14 +798,14 @@ The AI-powered task orchestration platform demonstrates strong technical feasibi
 
 ## Scores by Category
 
-| Category | Score |
-|----------|-------|
-| Problem | 7.3/10 |
-| Solution | 8.1/10 |
-| Market | 5.1/10 |
+| Category    | Score  |
+| ----------- | ------ |
+| Problem     | 7.3/10 |
+| Solution    | 8.1/10 |
+| Market      | 5.1/10 |
 | Feasibility | 8.8/10 |
-| Risk | 4.8/10 |
-| Fit | 6.5/10 |
+| Risk        | 4.8/10 |
+| Fit         | 6.5/10 |
 
 ---
 
@@ -837,9 +874,9 @@ High confidence (85%) in the technical assessment, as the architecture is well-d
 
 ## Change Log
 
-| Date | Version | Changes | Author |
-|------|---------|---------|--------|
-| 2026-02-08 | 1.0 | Initial specification created post-implementation | Spec Agent |
+| Date       | Version | Changes                                           | Author     |
+| ---------- | ------- | ------------------------------------------------- | ---------- |
+| 2026-02-08 | 1.0     | Initial specification created post-implementation | Spec Agent |
 
 ---
 

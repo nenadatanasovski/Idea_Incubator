@@ -28,15 +28,15 @@ export type GraphDimension =
 // Valid block types (25 total - includes canonical ARCH-001 types + legacy types for compatibility)
 export type BlockType =
   // ARCH-001 canonical types
-  | "knowledge"   // Verified facts, patterns, insights
-  | "decision"    // Choices made with rationale  
-  | "assumption"  // Unverified beliefs to test
-  | "question"    // Open unknowns to investigate
+  | "knowledge" // Verified facts, patterns, insights
+  | "decision" // Choices made with rationale
+  | "assumption" // Unverified beliefs to test
+  | "question" // Open unknowns to investigate
   | "requirement" // Constraints, must-haves
-  | "task"        // Work items, actions
-  | "proposal"    // Suggested changes awaiting approval
-  | "artifact"    // Outputs (code, docs, specs)
-  | "evidence"    // Validation data, proof
+  | "task" // Work items, actions
+  | "proposal" // Suggested changes awaiting approval
+  | "artifact" // Outputs (code, docs, specs)
+  | "evidence" // Validation data, proof
   // Legacy types (kept for compatibility)
   | "insight"
   | "fact"

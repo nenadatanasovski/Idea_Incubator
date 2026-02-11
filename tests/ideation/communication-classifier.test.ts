@@ -1,7 +1,5 @@
 import { describe, test, expect } from "vitest";
-import {
-  classifyCommunicationStyle,
-} from "../../agents/ideation/communication-classifier.js";
+import { classifyCommunicationStyle } from "../../agents/ideation/communication-classifier.js";
 
 // ============================================================================
 // TESTS

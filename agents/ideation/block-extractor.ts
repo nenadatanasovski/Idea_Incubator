@@ -486,7 +486,7 @@ export class BlockExtractor {
         if (jsonText.startsWith("```")) {
           jsonText = jsonText.replace(/```(?:json)?\n?/g, "").trim();
         }
-        
+
         // Try to extract JSON if response starts with non-JSON text
         if (!jsonText.startsWith("{")) {
           const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
@@ -494,7 +494,9 @@ export class BlockExtractor {
             jsonText = jsonMatch[0];
           } else {
             // No JSON found at all - model returned prose
-            console.warn("[BlockExtractor] No JSON found in response, returning empty");
+            console.warn(
+              "[BlockExtractor] No JSON found in response, returning empty",
+            );
             return { blocks: [], links: [] };
           }
         }
@@ -789,34 +791,34 @@ export class BlockExtractor {
     // Map old types to new ARCH-001 types
     const typeMapping: Record<string, CanonicalBlockType> = {
       // Old extractor types → new
-      'insight': 'knowledge',
-      'fact': 'knowledge',
-      'pattern': 'knowledge',
-      'synthesis': 'knowledge',
-      'option': 'decision',
-      'action': 'task',
-      'meta': 'knowledge',
+      insight: "knowledge",
+      fact: "knowledge",
+      pattern: "knowledge",
+      synthesis: "knowledge",
+      option: "decision",
+      action: "task",
+      meta: "knowledge",
       // Old schema types → new
-      'content': 'knowledge',
-      'derived': 'knowledge',
-      'cycle': 'knowledge',
-      'stakeholder_view': 'knowledge',
-      'external': 'evidence',
-      'placeholder': 'question',
-      'learning': 'knowledge',
-      'persona': 'knowledge',
-      'constraint': 'requirement',
-      'blocker': 'task',
-      'epic': 'task',
-      'story': 'task',
-      'bug': 'task',
-      'milestone': 'task',
-      'evaluation': 'evidence',
+      content: "knowledge",
+      derived: "knowledge",
+      cycle: "knowledge",
+      stakeholder_view: "knowledge",
+      external: "evidence",
+      placeholder: "question",
+      learning: "knowledge",
+      persona: "knowledge",
+      constraint: "requirement",
+      blocker: "task",
+      epic: "task",
+      story: "task",
+      bug: "task",
+      milestone: "task",
+      evaluation: "evidence",
     };
 
     for (const t of types) {
       const normalized = t.toLowerCase().replace(/-/g, "_");
-      
+
       // Check if it's already a valid ARCH-001 type
       if (canonicalBlockTypes.includes(normalized as CanonicalBlockType)) {
         validBlockTypes.push(normalized as CanonicalBlockType);

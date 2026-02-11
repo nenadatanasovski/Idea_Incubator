@@ -18,6 +18,7 @@ This is the **quality gate** for Phase 2's autonomous execution vision. Without 
 ### Problem Statement
 
 **Current State:**
+
 - QA Agent basic implementation exists (`parent-harness/orchestrator/src/qa/index.ts`)
 - Simple checks: TypeScript compilation, build, tests
 - Event-driven processing via `qa-service.ts`
@@ -28,6 +29,7 @@ This is the **quality gate** for Phase 2's autonomous execution vision. Without 
 - Missing spec-based pass criteria verification
 
 **Desired State:**
+
 - Comprehensive validation framework with configurable validation levels
 - Artifact verification (files created, APIs working, database migrations applied)
 - Spec-based pass criteria checking (not just generic compile/test)
@@ -134,6 +136,7 @@ The QA Agent serves as the **"Quality Gate"** between task execution and complet
 #### FR-1: Validation Level Support
 
 **Validation Levels:**
+
 - **QUICK** (< 2 min): TypeScript compilation check only
   - Use case: Fast feedback during development iterations
   - Checks: `tsc --noEmit` or `npm run typecheck`
@@ -151,18 +154,19 @@ The QA Agent serves as the **"Quality Gate"** between task execution and complet
   - Checks: All THOROUGH + E2E tests + performance tests + artifact verification
 
 **Configuration:**
+
 ```typescript
 interface ValidationLevelConfig {
-  level: 'QUICK' | 'STANDARD' | 'THOROUGH' | 'RELEASE';
+  level: "QUICK" | "STANDARD" | "THOROUGH" | "RELEASE";
   timeBudgetMs: number;
   checks: ValidationCheck[];
-  required: boolean;  // Fail if check fails
-  failFast: boolean;  // Stop on first failure
+  required: boolean; // Fail if check fails
+  failFast: boolean; // Stop on first failure
 }
 
 interface ValidationCheck {
   name: string;
-  type: 'compile' | 'test' | 'build' | 'artifact' | 'api' | 'database';
+  type: "compile" | "test" | "build" | "artifact" | "api" | "database";
   command?: string;
   expectedOutput?: string;
   timeout: number;
@@ -173,27 +177,30 @@ interface ValidationCheck {
 
 **Task-Level Override:**
 Tasks can specify validation level in metadata:
+
 ```typescript
 task.metadata = {
-  validationLevel: 'THOROUGH',
-  requiredChecks: ['TypeScript', 'Tests', 'API Health'],
+  validationLevel: "THOROUGH",
+  requiredChecks: ["TypeScript", "Tests", "API Health"],
 };
 ```
 
 #### FR-2: Spec-Based Pass Criteria Validation
 
 **Spec File Parsing:**
+
 - Locate spec file: `docs/specs/{TASK_DISPLAY_ID}*.md`
 - Parse "Pass Criteria" section
 - Extract numbered criteria list
 - Map criteria to validation checks
 
 **Criteria Types:**
+
 ```typescript
 interface PassCriterion {
   index: number;
   description: string;
-  type: 'compile' | 'test' | 'file' | 'api' | 'manual';
+  type: "compile" | "test" | "file" | "api" | "manual";
   autoVerifiable: boolean;
   checkName?: string;
   validator?: ValidationCheck;
@@ -201,6 +208,7 @@ interface PassCriterion {
 ```
 
 **Auto-Verification Mapping:**
+
 - "TypeScript compiles" → TypeScript compilation check
 - "All tests pass" → Test execution check
 - "File X exists" → File existence check
@@ -208,6 +216,7 @@ interface PassCriterion {
 - "Database migration applied" → Database state check
 
 **Manual Review Criteria:**
+
 - Criteria that can't be auto-verified are marked as "requires manual review"
 - QA report includes manual review checklist
 - Manual criteria don't block completion (logged as warnings)
@@ -215,23 +224,25 @@ interface PassCriterion {
 #### FR-3: Artifact Verification
 
 **File Existence Checks:**
+
 ```typescript
 interface FileArtifact {
   path: string;
   required: boolean;
-  minSize?: number;  // Bytes
-  pattern?: string;  // Content must match regex
+  minSize?: number; // Bytes
+  pattern?: string; // Content must match regex
 }
 
 // Example: Verify spec created file
-await verifyFileExists('agents/qa/validator.ts');
-await verifyFileContains('agents/qa/validator.ts', /export class.*Validator/);
+await verifyFileExists("agents/qa/validator.ts");
+await verifyFileContains("agents/qa/validator.ts", /export class.*Validator/);
 ```
 
 **API Endpoint Checks:**
+
 ```typescript
 interface APIArtifact {
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method: "GET" | "POST" | "PUT" | "DELETE";
   endpoint: string;
   expectedStatus: number;
   expectedResponse?: object;
@@ -240,39 +251,42 @@ interface APIArtifact {
 
 // Example: Verify new API route works
 await verifyAPIEndpoint({
-  method: 'GET',
-  endpoint: 'http://localhost:3333/api/qa/stats',
+  method: "GET",
+  endpoint: "http://localhost:3333/api/qa/stats",
   expectedStatus: 200,
   timeout: 5000,
 });
 ```
 
 **Database State Checks:**
+
 ```typescript
 interface DatabaseArtifact {
-  type: 'table' | 'column' | 'record';
+  type: "table" | "column" | "record";
   query: string;
   expectedResult?: any;
 }
 
 // Example: Verify migration created table
 await verifyDatabaseState({
-  type: 'table',
-  query: "SELECT name FROM sqlite_master WHERE type='table' AND name='qa_reports'",
-  expectedResult: [{ name: 'qa_reports' }],
+  type: "table",
+  query:
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='qa_reports'",
+  expectedResult: [{ name: "qa_reports" }],
 });
 ```
 
 #### FR-4: Structured Validation Reports
 
 **Report Schema:**
+
 ```typescript
 interface QAValidationReport {
-  id: string;              // UUID
+  id: string; // UUID
   taskId: string;
   taskDisplayId: string;
   validationLevel: string;
-  status: 'passed' | 'failed' | 'partial';
+  status: "passed" | "failed" | "partial";
   startedAt: string;
   completedAt: string;
   durationMs: number;
@@ -297,7 +311,7 @@ interface QAValidationReport {
 interface CheckResult {
   name: string;
   type: string;
-  status: 'passed' | 'failed' | 'skipped';
+  status: "passed" | "failed" | "skipped";
   required: boolean;
   output?: string;
   error?: string;
@@ -311,11 +325,11 @@ interface PassCriterionResult {
   verified: boolean;
   autoVerifiable: boolean;
   checkName?: string;
-  status: 'passed' | 'failed' | 'manual';
+  status: "passed" | "failed" | "manual";
 }
 
 interface ArtifactResult {
-  type: 'file' | 'api' | 'database';
+  type: "file" | "api" | "database";
   name: string;
   verified: boolean;
   details?: string;
@@ -324,14 +338,15 @@ interface ArtifactResult {
 
 interface FailureDetail {
   checkName: string;
-  category: 'compile' | 'test' | 'artifact' | 'criteria';
-  severity: 'critical' | 'warning';
+  category: "compile" | "test" | "artifact" | "criteria";
+  severity: "critical" | "warning";
   message: string;
   suggestion?: string;
 }
 ```
 
 **Report Storage:**
+
 - Save to `parent-harness/data/qa-reports/{taskDisplayId}-{timestamp}.json`
 - Store summary in database: `qa_validation_runs` table
 - Include report ID in fix task description
@@ -339,54 +354,66 @@ interface FailureDetail {
 #### FR-5: Enhanced Fix Task Creation
 
 **Fix Task Enhancements:**
+
 ```typescript
 interface FixTaskSpec {
   originalTaskId: string;
-  displayId: string;  // FIX-{ORIGINAL}-{TIMESTAMP}
+  displayId: string; // FIX-{ORIGINAL}-{TIMESTAMP}
   title: string;
-  description: string;  // Include structured failure info
-  category: 'bug';
-  priority: number;  // Inherit from original
+  description: string; // Include structured failure info
+  category: "bug";
+  priority: number; // Inherit from original
   validationReportId: string;
   failedChecks: string[];
   recommendations: string[];
-  passCriteria: string[];  // Must fix all failed checks
+  passCriteria: string[]; // Must fix all failed checks
 }
 ```
 
 **Fix Task Description Template:**
+
 ```markdown
 # QA Validation Failed: {ORIGINAL_TASK_DISPLAY_ID}
 
 ## Original Task
+
 **Title:** {original.title}
 **Display ID:** {original.display_id}
 **Validation Level:** {level}
 
 ## Validation Report
+
 **Report ID:** {report.id}
 **Timestamp:** {report.completedAt}
 **Duration:** {report.durationMs}ms
 
 ## Failed Checks ({failureCount})
+
 {for each failure:}
+
 - **{check.name}** ({check.type})
   - Status: ❌ FAILED
   - Error: {check.error}
   - Suggestion: {recommendation}
 
 ## Pass Criteria Verification
+
 {for each criterion:}
+
 - [{status}] {criterion.description}
 
 ## Recommendations
+
 {for each recommendation:}
+
 - {recommendation}
 
 ## Validation Report
+
 Full report: `parent-harness/data/qa-reports/{report.id}.json`
 
 ## Pass Criteria for Fix
+
 1. All failed checks must pass
 2. All auto-verifiable pass criteria must verify
 3. Validation level: {level}
@@ -395,33 +422,35 @@ Full report: `parent-harness/data/qa-reports/{report.id}.json`
 #### FR-6: Task State Machine Integration
 
 **State Transitions:**
+
 ```typescript
 // When Build Agent completes task
-task.status = 'pending_verification';
-emit('task:ready_for_qa', { task });
+task.status = "pending_verification";
+emit("task:ready_for_qa", { task });
 
 // QA Agent processes
-task.status = 'in_progress';  // During verification
-emit('task:verification_started', { task });
+task.status = "in_progress"; // During verification
+emit("task:verification_started", { task });
 
 // On success
-task.status = 'completed';
-emit('task:qa_passed', { task, report });
+task.status = "completed";
+emit("task:qa_passed", { task, report });
 
 // On failure
-task.status = 'failed';
-emit('task:qa_failed', { task, report, fixTaskId });
+task.status = "failed";
+emit("task:qa_failed", { task, report, fixTaskId });
 
 // Fix task created
-emit('task:fix_created', { originalTask, fixTask, report });
+emit("task:fix_created", { originalTask, fixTask, report });
 ```
 
 **Event Payloads:**
+
 ```typescript
 interface TaskVerificationStartedEvent {
   taskId: string;
   taskDisplayId: string;
-  agentId: 'qa_agent';
+  agentId: "qa_agent";
   validationLevel: string;
   timestamp: string;
 }
@@ -448,30 +477,33 @@ interface TaskQAFailedEvent {
 #### FR-7: Performance Budgets and Timeout Handling
 
 **Timeout Handling:**
+
 - Each validation level has maximum duration
 - Individual checks have configurable timeouts
 - Graceful timeout handling with partial results
 - Timeout failures are categorized as "timeout" errors
 
 **Budget Enforcement:**
+
 ```typescript
 interface ValidationBudget {
   level: ValidationLevel;
   totalBudgetMs: number;
   perCheckBudgetMs: number;
-  timeoutAction: 'fail' | 'skip' | 'partial';
+  timeoutAction: "fail" | "skip" | "partial";
 }
 
 // Example budgets
 const BUDGETS = {
-  QUICK: { total: 120000, perCheck: 60000, action: 'fail' },
-  STANDARD: { total: 300000, perCheck: 120000, action: 'partial' },
-  THOROUGH: { total: 900000, perCheck: 300000, action: 'partial' },
-  RELEASE: { total: 1800000, perCheck: 600000, action: 'fail' },
+  QUICK: { total: 120000, perCheck: 60000, action: "fail" },
+  STANDARD: { total: 300000, perCheck: 120000, action: "partial" },
+  THOROUGH: { total: 900000, perCheck: 300000, action: "partial" },
+  RELEASE: { total: 1800000, perCheck: 600000, action: "fail" },
 };
 ```
 
 **Timeout Recovery:**
+
 - Save partial results before timeout
 - Mark timed-out checks as 'skipped'
 - Include timeout info in QA report
@@ -480,6 +512,7 @@ const BUDGETS = {
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Quick validation: < 2 minutes
 - Standard validation: < 5 minutes
 - Thorough validation: < 15 minutes
@@ -488,6 +521,7 @@ const BUDGETS = {
 - Database queries: < 100ms
 
 **NFR-2: Reliability**
+
 - Graceful handling of command failures
 - Partial results on timeout
 - Retry transient failures (network, temp files)
@@ -495,6 +529,7 @@ const BUDGETS = {
 - Idempotent validation (same task → same result)
 
 **NFR-3: Maintainability**
+
 - Modular check implementations (easy to add new checks)
 - Clear separation: coordination vs execution
 - Well-typed interfaces for all components
@@ -502,6 +537,7 @@ const BUDGETS = {
 - Logging at INFO level for progress, DEBUG for details
 
 **NFR-4: Testability**
+
 - Mock-friendly architecture
 - Test fixtures for common scenarios
 - Integration tests with real commands
@@ -566,6 +602,7 @@ const BUDGETS = {
 **Purpose:** Core orchestrator for QA validation workflow
 
 **Responsibilities:**
+
 - Load validation level configuration
 - Parse task spec file for pass criteria
 - Execute validation checks in sequence
@@ -574,18 +611,19 @@ const BUDGETS = {
 - Create fix tasks on failure
 
 **Interface:**
+
 ```typescript
 export class QAValidationEngine {
   constructor(
     private specParser: SpecParser,
     private checkExecutor: CheckExecutor,
     private artifactVerifier: ArtifactVerifier,
-    private reportGenerator: ReportGenerator
+    private reportGenerator: ReportGenerator,
   ) {}
 
   async validateTask(
     taskId: string,
-    options?: ValidationOptions
+    options?: ValidationOptions,
   ): Promise<QAValidationReport> {
     const task = getTask(taskId);
     const level = options?.level || this.getTaskValidationLevel(task);
@@ -596,7 +634,7 @@ export class QAValidationEngine {
       taskId,
       taskDisplayId: task.display_id,
       validationLevel: level,
-      status: 'passed',
+      status: "passed",
       startedAt: new Date().toISOString(),
       checks: [],
       passCriteria: [],
@@ -615,7 +653,7 @@ export class QAValidationEngine {
         const result = await this.checkExecutor.runCheck(check, task);
         report.checks.push(result);
 
-        if (!result.status === 'passed' && check.required && config.failFast) {
+        if (!result.status === "passed" && check.required && config.failFast) {
           break;
         }
       }
@@ -630,7 +668,10 @@ export class QAValidationEngine {
 
       // 4. Verify pass criteria
       for (const criterion of report.passCriteria) {
-        const verified = await this.verifyPassCriterion(criterion, report.checks);
+        const verified = await this.verifyPassCriterion(
+          criterion,
+          report.checks,
+        );
         criterion.verified = verified;
       }
 
@@ -640,7 +681,7 @@ export class QAValidationEngine {
       report.durationMs = Date.now() - new Date(report.startedAt).getTime();
 
       // 6. Generate recommendations
-      if (report.status === 'failed') {
+      if (report.status === "failed") {
         report.recommendations = this.generateRecommendations(report);
       }
 
@@ -649,11 +690,11 @@ export class QAValidationEngine {
 
       return report;
     } catch (error) {
-      report.status = 'failed';
+      report.status = "failed";
       report.failures.push({
-        checkName: 'validation-engine',
-        category: 'system',
-        severity: 'critical',
+        checkName: "validation-engine",
+        category: "system",
+        severity: "critical",
         message: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -667,11 +708,11 @@ export class QAValidationEngine {
     }
 
     // Default by task category
-    if (task.category === 'feature') return 'STANDARD';
-    if (task.category === 'bug') return 'THOROUGH';
-    if (task.category === 'refactor') return 'THOROUGH';
+    if (task.category === "feature") return "STANDARD";
+    if (task.category === "bug") return "THOROUGH";
+    if (task.category === "refactor") return "THOROUGH";
 
-    return 'STANDARD';
+    return "STANDARD";
   }
 
   private loadLevelConfig(level: ValidationLevel): ValidationLevelConfig {
@@ -681,41 +722,49 @@ export class QAValidationEngine {
 
   private async verifyPassCriterion(
     criterion: PassCriterion,
-    checks: CheckResult[]
+    checks: CheckResult[],
   ): Promise<boolean> {
     // Auto-verification logic
     if (!criterion.autoVerifiable) return false;
 
-    const matchingCheck = checks.find(c => c.name === criterion.checkName);
+    const matchingCheck = checks.find((c) => c.name === criterion.checkName);
     if (!matchingCheck) return false;
 
-    return matchingCheck.status === 'passed';
+    return matchingCheck.status === "passed";
   }
 
-  private determineStatus(report: QAValidationReport): 'passed' | 'failed' | 'partial' {
+  private determineStatus(
+    report: QAValidationReport,
+  ): "passed" | "failed" | "partial" {
     const criticalFailures = report.checks.filter(
-      c => c.status === 'failed' && c.required
+      (c) => c.status === "failed" && c.required,
     );
 
-    if (criticalFailures.length > 0) return 'failed';
+    if (criticalFailures.length > 0) return "failed";
 
-    const hasFailures = report.checks.some(c => c.status === 'failed');
-    if (hasFailures) return 'partial';
+    const hasFailures = report.checks.some((c) => c.status === "failed");
+    if (hasFailures) return "partial";
 
-    return 'passed';
+    return "passed";
   }
 
   private generateRecommendations(report: QAValidationReport): string[] {
     const recommendations: string[] = [];
 
     for (const check of report.checks) {
-      if (check.status === 'failed') {
-        if (check.type === 'compile') {
-          recommendations.push('Fix TypeScript compilation errors before retrying');
-        } else if (check.type === 'test') {
-          recommendations.push('Review test failures and fix failing assertions');
-        } else if (check.type === 'artifact') {
-          recommendations.push(`Ensure artifact ${check.name} is created correctly`);
+      if (check.status === "failed") {
+        if (check.type === "compile") {
+          recommendations.push(
+            "Fix TypeScript compilation errors before retrying",
+          );
+        } else if (check.type === "test") {
+          recommendations.push(
+            "Review test failures and fix failing assertions",
+          );
+        } else if (check.type === "artifact") {
+          recommendations.push(
+            `Ensure artifact ${check.name} is created correctly`,
+          );
         }
       }
     }
@@ -730,6 +779,7 @@ export class QAValidationEngine {
 **Purpose:** Parse task specification files to extract pass criteria and artifact definitions
 
 **Responsibilities:**
+
 - Locate spec file by task display ID
 - Parse markdown structure
 - Extract "Pass Criteria" section
@@ -737,9 +787,10 @@ export class QAValidationEngine {
 - Extract artifact definitions
 
 **Interface:**
+
 ```typescript
 export class SpecParser {
-  private specDir = 'docs/specs';
+  private specDir = "docs/specs";
 
   async parseSpecFile(taskDisplayId: string): Promise<ParsedSpec> {
     const specPath = await this.findSpecFile(taskDisplayId);
@@ -747,7 +798,7 @@ export class SpecParser {
       return { passCriteria: [], artifacts: [] };
     }
 
-    const content = await fs.readFile(specPath, 'utf-8');
+    const content = await fs.readFile(specPath, "utf-8");
     return this.parseContent(content);
   }
 
@@ -764,10 +815,10 @@ export class SpecParser {
   }
 
   private extractPassCriteria(content: string): PassCriterion[] {
-    const criteriaSection = this.extractSection(content, 'Pass Criteria');
+    const criteriaSection = this.extractSection(content, "Pass Criteria");
     if (!criteriaSection) return [];
 
-    const lines = criteriaSection.split('\n');
+    const lines = criteriaSection.split("\n");
     const criteria: PassCriterion[] = [];
 
     for (let i = 0; i < lines.length; i++) {
@@ -789,17 +840,20 @@ export class SpecParser {
   }
 
   private extractSection(content: string, sectionName: string): string | null {
-    const regex = new RegExp(`##\\s+${sectionName}\\s*\\n([\\s\\S]*?)(?=\\n##|$)`, 'i');
+    const regex = new RegExp(
+      `##\\s+${sectionName}\\s*\\n([\\s\\S]*?)(?=\\n##|$)`,
+      "i",
+    );
     const match = content.match(regex);
     return match ? match[1].trim() : null;
   }
 
-  private inferCriterionType(description: string): PassCriterion['type'] {
-    if (/typeScript|compil|build/i.test(description)) return 'compile';
-    if (/test|spec|assertion/i.test(description)) return 'test';
-    if (/file.*exist|creat.*file/i.test(description)) return 'file';
-    if (/api|endpoint|route/i.test(description)) return 'api';
-    return 'manual';
+  private inferCriterionType(description: string): PassCriterion["type"] {
+    if (/typeScript|compil|build/i.test(description)) return "compile";
+    if (/test|spec|assertion/i.test(description)) return "test";
+    if (/file.*exist|creat.*file/i.test(description)) return "file";
+    if (/api|endpoint|route/i.test(description)) return "api";
+    return "manual";
   }
 
   private isAutoVerifiable(description: string): boolean {
@@ -811,27 +865,31 @@ export class SpecParser {
       /api.*responds/i,
       /database.*created/i,
     ];
-    return autoPatterns.some(pattern => pattern.test(description));
+    return autoPatterns.some((pattern) => pattern.test(description));
   }
 
   private mapToCheckName(description: string): string | undefined {
-    if (/typeScript compiles/i.test(description)) return 'TypeScript Compilation';
-    if (/all tests pass/i.test(description)) return 'Tests';
-    if (/build succeeds/i.test(description)) return 'Build';
+    if (/typeScript compiles/i.test(description))
+      return "TypeScript Compilation";
+    if (/all tests pass/i.test(description)) return "Tests";
+    if (/build succeeds/i.test(description)) return "Build";
     return undefined;
   }
 
   private extractArtifacts(content: string): ArtifactDefinition[] {
     // Parse "Artifacts" or "Deliverables" section for file/api/db artifacts
-    const artifactsSection = this.extractSection(content, 'Artifacts') ||
-                             this.extractSection(content, 'Deliverables');
+    const artifactsSection =
+      this.extractSection(content, "Artifacts") ||
+      this.extractSection(content, "Deliverables");
     if (!artifactsSection) return [];
 
     // Simple heuristic: look for file paths, API endpoints
     const artifacts: ArtifactDefinition[] = [];
-    const fileMatches = artifactsSection.matchAll(/`([^`]+\.ts|[^`]+\.tsx|[^`]+\.js)`/g);
+    const fileMatches = artifactsSection.matchAll(
+      /`([^`]+\.ts|[^`]+\.tsx|[^`]+\.js)`/g,
+    );
     for (const match of fileMatches) {
-      artifacts.push({ type: 'file', path: match[1], required: true });
+      artifacts.push({ type: "file", path: match[1], required: true });
     }
 
     return artifacts;
@@ -844,7 +902,7 @@ interface ParsedSpec {
 }
 
 interface ArtifactDefinition {
-  type: 'file' | 'api' | 'database';
+  type: "file" | "api" | "database";
   path?: string;
   endpoint?: string;
   query?: string;
@@ -857,15 +915,18 @@ interface ArtifactDefinition {
 **Purpose:** Execute individual validation checks (compile, test, build, etc.)
 
 **Responsibilities:**
+
 - Run commands with timeout handling
 - Capture output and exit codes
 - Parse output for structured errors
 - Handle transient failures with retry
 
 **Interface:**
+
 ```typescript
 export class CheckExecutor {
-  private codebaseRoot = '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
+  private codebaseRoot =
+    "/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator";
 
   async runCheck(check: ValidationCheck, task: Task): Promise<CheckResult> {
     const startTime = Date.now();
@@ -873,7 +934,7 @@ export class CheckExecutor {
     try {
       const result = await this.executeCommand(
         check.command || this.getDefaultCommand(check.type),
-        check.timeout
+        check.timeout,
       );
 
       const passed = this.evaluateResult(result, check.expectedOutput);
@@ -881,7 +942,7 @@ export class CheckExecutor {
       return {
         name: check.name,
         type: check.type,
-        status: passed ? 'passed' : 'failed',
+        status: passed ? "passed" : "failed",
         required: check.required,
         output: result.stdout?.slice(0, 5000),
         error: passed ? undefined : result.stderr?.slice(0, 2500),
@@ -892,7 +953,7 @@ export class CheckExecutor {
       return {
         name: check.name,
         type: check.type,
-        status: 'failed',
+        status: "failed",
         required: check.required,
         error: error instanceof Error ? error.message : String(error),
         durationMs: Date.now() - startTime,
@@ -902,35 +963,39 @@ export class CheckExecutor {
 
   private async executeCommand(
     command: string,
-    timeout: number
+    timeout: number,
   ): Promise<CommandResult> {
     return new Promise((resolve, reject) => {
-      exec(command, {
-        cwd: this.codebaseRoot,
-        timeout,
-        maxBuffer: 10 * 1024 * 1024,
-      }, (error, stdout, stderr) => {
-        if (error && error.code === 'ETIMEDOUT') {
-          reject(new Error(`Command timed out after ${timeout}ms`));
-        } else {
-          resolve({
-            stdout,
-            stderr,
-            exitCode: error?.code || 0,
-          });
-        }
-      });
+      exec(
+        command,
+        {
+          cwd: this.codebaseRoot,
+          timeout,
+          maxBuffer: 10 * 1024 * 1024,
+        },
+        (error, stdout, stderr) => {
+          if (error && error.code === "ETIMEDOUT") {
+            reject(new Error(`Command timed out after ${timeout}ms`));
+          } else {
+            resolve({
+              stdout,
+              stderr,
+              exitCode: error?.code || 0,
+            });
+          }
+        },
+      );
     });
   }
 
-  private getDefaultCommand(type: ValidationCheck['type']): string {
+  private getDefaultCommand(type: ValidationCheck["type"]): string {
     switch (type) {
-      case 'compile':
-        return 'npm run typecheck || npx tsc --noEmit';
-      case 'test':
-        return 'npm test -- --pool=forks --poolOptions.forks.maxForks=1 --run';
-      case 'build':
-        return 'npm run build';
+      case "compile":
+        return "npm run typecheck || npx tsc --noEmit";
+      case "test":
+        return "npm test -- --pool=forks --poolOptions.forks.maxForks=1 --run";
+      case "build":
+        return "npm run build";
       default:
         throw new Error(`No default command for check type: ${type}`);
     }
@@ -957,78 +1022,85 @@ interface CommandResult {
 **Purpose:** Verify artifacts (files, APIs, database state) exist and are correct
 
 **Interface:**
+
 ```typescript
 export class ArtifactVerifier {
   async verify(artifact: ArtifactDefinition): Promise<ArtifactResult> {
     switch (artifact.type) {
-      case 'file':
+      case "file":
         return this.verifyFile(artifact);
-      case 'api':
+      case "api":
         return this.verifyAPI(artifact);
-      case 'database':
+      case "database":
         return this.verifyDatabase(artifact);
       default:
         throw new Error(`Unknown artifact type: ${artifact.type}`);
     }
   }
 
-  private async verifyFile(artifact: ArtifactDefinition): Promise<ArtifactResult> {
+  private async verifyFile(
+    artifact: ArtifactDefinition,
+  ): Promise<ArtifactResult> {
     try {
       const stats = await fs.stat(artifact.path!);
       return {
-        type: 'file',
+        type: "file",
         name: artifact.path!,
         verified: true,
         details: `File exists (${stats.size} bytes)`,
       };
     } catch (error) {
       return {
-        type: 'file',
+        type: "file",
         name: artifact.path!,
         verified: false,
-        error: 'File does not exist',
+        error: "File does not exist",
       };
     }
   }
 
-  private async verifyAPI(artifact: ArtifactDefinition): Promise<ArtifactResult> {
+  private async verifyAPI(
+    artifact: ArtifactDefinition,
+  ): Promise<ArtifactResult> {
     try {
       const response = await fetch(artifact.endpoint!, {
-        method: 'GET',
+        method: "GET",
         timeout: 5000,
       });
 
       return {
-        type: 'api',
+        type: "api",
         name: artifact.endpoint!,
         verified: response.ok,
         details: `Status: ${response.status}`,
       };
     } catch (error) {
       return {
-        type: 'api',
+        type: "api",
         name: artifact.endpoint!,
         verified: false,
-        error: error instanceof Error ? error.message : 'API check failed',
+        error: error instanceof Error ? error.message : "API check failed",
       };
     }
   }
 
-  private async verifyDatabase(artifact: ArtifactDefinition): Promise<ArtifactResult> {
+  private async verifyDatabase(
+    artifact: ArtifactDefinition,
+  ): Promise<ArtifactResult> {
     try {
       const result = query(artifact.query!);
       return {
-        type: 'database',
+        type: "database",
         name: artifact.query!,
         verified: result.length > 0,
         details: `Query returned ${result.length} rows`,
       };
     } catch (error) {
       return {
-        type: 'database',
+        type: "database",
         name: artifact.query!,
         verified: false,
-        error: error instanceof Error ? error.message : 'Database check failed',
+        error: error instanceof Error ? error.message : "Database check failed",
       };
     }
   }
@@ -1040,16 +1112,17 @@ export class ArtifactVerifier {
 **Purpose:** Generate and store structured QA validation reports
 
 **Interface:**
+
 ```typescript
 export class ReportGenerator {
-  private reportDir = 'parent-harness/data/qa-reports';
+  private reportDir = "parent-harness/data/qa-reports";
 
   async saveReport(report: QAValidationReport): Promise<void> {
     // 1. Ensure report directory exists
     await fs.mkdir(this.reportDir, { recursive: true });
 
     // 2. Generate filename
-    const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0];
+    const timestamp = new Date().toISOString().replace(/:/g, "-").split(".")[0];
     const filename = `${report.taskDisplayId}-${timestamp}.json`;
     const filepath = path.join(this.reportDir, filename);
 
@@ -1063,7 +1136,8 @@ export class ReportGenerator {
   }
 
   private async storeSummary(report: QAValidationReport): Promise<void> {
-    run(`
+    run(
+      `
       INSERT INTO qa_validation_runs (
         id, task_id, task_display_id, validation_level,
         status, started_at, completed_at, duration_ms,
@@ -1071,23 +1145,25 @@ export class ReportGenerator {
         criteria_verified, criteria_manual,
         artifacts_verified, report_path
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      report.id,
-      report.taskId,
-      report.taskDisplayId,
-      report.validationLevel,
-      report.status,
-      report.startedAt,
-      report.completedAt,
-      report.durationMs,
-      report.summary.checksRun,
-      report.summary.checksPassed,
-      report.summary.checksFailed,
-      report.summary.criteriaVerified,
-      report.summary.criteriaManual,
-      report.summary.artifactsVerified,
-      `qa-reports/${report.taskDisplayId}-${report.startedAt}.json`,
-    ]);
+    `,
+      [
+        report.id,
+        report.taskId,
+        report.taskDisplayId,
+        report.validationLevel,
+        report.status,
+        report.startedAt,
+        report.completedAt,
+        report.durationMs,
+        report.summary.checksRun,
+        report.summary.checksPassed,
+        report.summary.checksFailed,
+        report.summary.criteriaVerified,
+        report.summary.criteriaManual,
+        report.summary.artifactsVerified,
+        `qa-reports/${report.taskDisplayId}-${report.startedAt}.json`,
+      ],
+    );
   }
 }
 ```
@@ -1097,15 +1173,18 @@ export class ReportGenerator {
 **Purpose:** Define validation level configurations
 
 ```typescript
-export const VALIDATION_CONFIGS: Record<ValidationLevel, ValidationLevelConfig> = {
+export const VALIDATION_CONFIGS: Record<
+  ValidationLevel,
+  ValidationLevelConfig
+> = {
   QUICK: {
-    level: 'QUICK',
+    level: "QUICK",
     timeBudgetMs: 120000, // 2 minutes
     failFast: true,
     checks: [
       {
-        name: 'TypeScript Compilation',
-        type: 'compile',
+        name: "TypeScript Compilation",
+        type: "compile",
         timeout: 60000,
         required: true,
       },
@@ -1113,25 +1192,25 @@ export const VALIDATION_CONFIGS: Record<ValidationLevel, ValidationLevelConfig> 
   },
 
   STANDARD: {
-    level: 'STANDARD',
+    level: "STANDARD",
     timeBudgetMs: 300000, // 5 minutes
     failFast: false,
     checks: [
       {
-        name: 'TypeScript Compilation',
-        type: 'compile',
+        name: "TypeScript Compilation",
+        type: "compile",
         timeout: 60000,
         required: true,
       },
       {
-        name: 'Tests',
-        type: 'test',
+        name: "Tests",
+        type: "test",
         timeout: 120000,
         required: true,
       },
       {
-        name: 'Artifact Verification',
-        type: 'artifact',
+        name: "Artifact Verification",
+        type: "artifact",
         timeout: 30000,
         required: false,
       },
@@ -1139,37 +1218,37 @@ export const VALIDATION_CONFIGS: Record<ValidationLevel, ValidationLevelConfig> 
   },
 
   THOROUGH: {
-    level: 'THOROUGH',
+    level: "THOROUGH",
     timeBudgetMs: 900000, // 15 minutes
     failFast: false,
     checks: [
       {
-        name: 'TypeScript Compilation',
-        type: 'compile',
+        name: "TypeScript Compilation",
+        type: "compile",
         timeout: 60000,
         required: true,
       },
       {
-        name: 'Build',
-        type: 'build',
+        name: "Build",
+        type: "build",
         timeout: 180000,
         required: true,
       },
       {
-        name: 'Tests',
-        type: 'test',
+        name: "Tests",
+        type: "test",
         timeout: 240000,
         required: true,
       },
       {
-        name: 'Artifact Verification',
-        type: 'artifact',
+        name: "Artifact Verification",
+        type: "artifact",
         timeout: 30000,
         required: true,
       },
       {
-        name: 'API Health',
-        type: 'api',
+        name: "API Health",
+        type: "api",
         timeout: 60000,
         required: false,
       },
@@ -1177,22 +1256,22 @@ export const VALIDATION_CONFIGS: Record<ValidationLevel, ValidationLevelConfig> 
   },
 
   RELEASE: {
-    level: 'RELEASE',
+    level: "RELEASE",
     timeBudgetMs: 1800000, // 30 minutes
     failFast: false,
     checks: [
       // All THOROUGH checks plus...
       ...VALIDATION_CONFIGS.THOROUGH.checks,
       {
-        name: 'E2E Tests',
-        type: 'test',
-        command: 'npm run test:e2e',
+        name: "E2E Tests",
+        type: "test",
+        command: "npm run test:e2e",
         timeout: 600000,
         required: true,
       },
       {
-        name: 'Database Verification',
-        type: 'database',
+        name: "Database Verification",
+        type: "database",
         timeout: 30000,
         required: true,
       },
@@ -1208,6 +1287,7 @@ export const VALIDATION_CONFIGS: Record<ValidationLevel, ValidationLevelConfig> 
 **Current:** `qa-service.ts` subscribes to `task:ready_for_qa` and calls `qa.verifyTask()`
 
 **Enhanced:**
+
 ```typescript
 // In qa-service.ts
 private async verifyTask(queued: QueuedTask): Promise<void> {
@@ -1286,6 +1366,7 @@ private async createEnhancedFixTask(
 #### With Task State Machine
 
 **Events to emit:**
+
 - `task:verification_started` - QA begins
 - `task:qa_passed` - All checks pass
 - `task:qa_failed` - Checks failed
@@ -1294,6 +1375,7 @@ private async createEnhancedFixTask(
 #### With Database
 
 **New Tables:**
+
 ```sql
 -- Store QA validation run summaries
 CREATE TABLE qa_validation_runs (
@@ -1324,29 +1406,32 @@ CREATE INDEX idx_qa_runs_level ON qa_validation_runs(validation_level);
 ### Error Handling
 
 **Graceful Degradation:**
+
 - If spec file not found → use default validation (compile + tests)
 - If pass criteria parsing fails → log warning, continue with checks
 - If artifact verification fails → mark as warning, don't fail validation
 - If check times out → mark as skipped, continue with remaining checks
 
 **Retry Logic:**
+
 - Transient failures (network, file locks) → retry up to 3 times
 - Permanent failures (compilation errors) → fail immediately
 - Timeout → no retry (indicates fundamental issue)
 
 **Error Categories:**
+
 ```typescript
 enum ErrorCategory {
-  TRANSIENT = 'transient',       // Retry
-  PERMANENT = 'permanent',       // Don't retry
-  TIMEOUT = 'timeout',           // Don't retry, mark as timeout
-  SYSTEM = 'system',             // Internal error, retry once
+  TRANSIENT = "transient", // Retry
+  PERMANENT = "permanent", // Don't retry
+  TIMEOUT = "timeout", // Don't retry, mark as timeout
+  SYSTEM = "system", // Internal error, retry once
 }
 
 function categorizeError(error: Error): ErrorCategory {
-  if (error.message.includes('ECONNREFUSED')) return ErrorCategory.TRANSIENT;
-  if (error.message.includes('ETIMEDOUT')) return ErrorCategory.TIMEOUT;
-  if (error.message.includes('compilation')) return ErrorCategory.PERMANENT;
+  if (error.message.includes("ECONNREFUSED")) return ErrorCategory.TRANSIENT;
+  if (error.message.includes("ETIMEDOUT")) return ErrorCategory.TIMEOUT;
+  if (error.message.includes("compilation")) return ErrorCategory.PERMANENT;
   return ErrorCategory.SYSTEM;
 }
 ```
@@ -1497,77 +1582,83 @@ function categorizeError(error: Error): ErrorCategory {
 ### Unit Tests
 
 **File:** `parent-harness/orchestrator/tests/qa/spec-parser.test.ts`
+
 ```typescript
-describe('SpecParser', () => {
-  it('parses pass criteria from spec file');
-  it('maps criteria to check names');
-  it('extracts artifact definitions');
-  it('handles missing spec file gracefully');
-  it('handles malformed pass criteria');
+describe("SpecParser", () => {
+  it("parses pass criteria from spec file");
+  it("maps criteria to check names");
+  it("extracts artifact definitions");
+  it("handles missing spec file gracefully");
+  it("handles malformed pass criteria");
 });
 ```
 
 **File:** `parent-harness/orchestrator/tests/qa/check-executor.test.ts`
+
 ```typescript
-describe('CheckExecutor', () => {
-  it('executes compile check successfully');
-  it('executes test check successfully');
-  it('handles command timeout');
-  it('handles command failure');
-  it('evaluates expected output correctly');
+describe("CheckExecutor", () => {
+  it("executes compile check successfully");
+  it("executes test check successfully");
+  it("handles command timeout");
+  it("handles command failure");
+  it("evaluates expected output correctly");
 });
 ```
 
 **File:** `parent-harness/orchestrator/tests/qa/artifact-verifier.test.ts`
+
 ```typescript
-describe('ArtifactVerifier', () => {
-  it('verifies file exists');
-  it('verifies file does not exist');
-  it('verifies API endpoint responds');
-  it('verifies database state');
-  it('handles verification errors gracefully');
+describe("ArtifactVerifier", () => {
+  it("verifies file exists");
+  it("verifies file does not exist");
+  it("verifies API endpoint responds");
+  it("verifies database state");
+  it("handles verification errors gracefully");
 });
 ```
 
 **File:** `parent-harness/orchestrator/tests/qa/validation-engine.test.ts`
+
 ```typescript
-describe('QAValidationEngine', () => {
-  it('validates task with QUICK level');
-  it('validates task with STANDARD level');
-  it('validates task with THOROUGH level');
-  it('parses spec and verifies pass criteria');
-  it('verifies artifacts when defined');
-  it('generates report with all sections');
-  it('determines status correctly (passed/failed/partial)');
-  it('generates recommendations on failure');
-  it('handles timeout gracefully');
-  it('uses task metadata for validation level override');
+describe("QAValidationEngine", () => {
+  it("validates task with QUICK level");
+  it("validates task with STANDARD level");
+  it("validates task with THOROUGH level");
+  it("parses spec and verifies pass criteria");
+  it("verifies artifacts when defined");
+  it("generates report with all sections");
+  it("determines status correctly (passed/failed/partial)");
+  it("generates recommendations on failure");
+  it("handles timeout gracefully");
+  it("uses task metadata for validation level override");
 });
 ```
 
 ### Integration Tests
 
 **File:** `parent-harness/orchestrator/tests/qa/qa-service-integration.test.ts`
+
 ```typescript
-describe('QA Service Integration', () => {
-  it('processes task:ready_for_qa event');
-  it('transitions task to completed on pass');
-  it('transitions task to failed on failure');
-  it('creates fix task on failure');
-  it('saves QA report to database');
-  it('emits correct events during validation');
+describe("QA Service Integration", () => {
+  it("processes task:ready_for_qa event");
+  it("transitions task to completed on pass");
+  it("transitions task to failed on failure");
+  it("creates fix task on failure");
+  it("saves QA report to database");
+  it("emits correct events during validation");
 });
 ```
 
 ### E2E Tests
 
 **File:** `parent-harness/orchestrator/tests/qa/qa-workflow-e2e.test.ts`
+
 ```typescript
-describe('QA Workflow E2E', () => {
-  it('full workflow: spec creation → build → QA validation → completion');
-  it('full workflow: spec creation → build → QA failure → fix task creation');
-  it('validation level override via task metadata');
-  it('artifact verification with file/API/database checks');
+describe("QA Workflow E2E", () => {
+  it("full workflow: spec creation → build → QA validation → completion");
+  it("full workflow: spec creation → build → QA failure → fix task creation");
+  it("validation level override via task metadata");
+  it("artifact verification with file/API/database checks");
 });
 ```
 
@@ -1588,6 +1679,7 @@ describe('QA Workflow E2E', () => {
 ## Performance Metrics
 
 **Benchmarks:**
+
 - QUICK validation: target < 2 min, max 3 min
 - STANDARD validation: target < 5 min, max 7 min
 - THOROUGH validation: target < 15 min, max 20 min
@@ -1596,6 +1688,7 @@ describe('QA Workflow E2E', () => {
 - Database writes: < 100ms
 
 **Monitoring:**
+
 - Log validation duration per level
 - Track check success rate per type
 - Monitor fix task creation rate
@@ -1634,6 +1727,7 @@ describe('QA Workflow E2E', () => {
 ## Future Enhancements
 
 **Phase 3+:**
+
 - Coverage threshold enforcement (minimum % for THOROUGH)
 - Security scan integration (dependency vulnerabilities)
 - Performance regression detection (execution time)
@@ -1641,12 +1735,14 @@ describe('QA Workflow E2E', () => {
 - Accessibility testing (WCAG compliance)
 
 **Phase 4+:**
+
 - Machine learning for failure categorization
 - Historical trend analysis (flaky tests detection)
 - Smart retry strategies based on failure patterns
 - Auto-fix suggestions using LLM
 
 **Phase 5+:**
+
 - Distributed validation across multiple machines
 - Parallel check execution within validation level
 - Cloud-based validation infrastructure
@@ -1657,6 +1753,7 @@ describe('QA Workflow E2E', () => {
 ## Implementation Checklist
 
 **Phase 1: Core Validation Engine**
+
 - [ ] Create `validation-engine.ts` with main orchestrator
 - [ ] Create `spec-parser.ts` with pass criteria extraction
 - [ ] Create `check-executor.ts` with command execution
@@ -1665,6 +1762,7 @@ describe('QA Workflow E2E', () => {
 - [ ] Create `validation-configs.ts` with level definitions
 
 **Phase 2: Integration**
+
 - [ ] Update `qa-service.ts` to use validation engine
 - [ ] Add database migration for `qa_validation_runs` table
 - [ ] Update `qa/index.ts` to use new components
@@ -1672,6 +1770,7 @@ describe('QA Workflow E2E', () => {
 - [ ] Update API routes for validation level support
 
 **Phase 3: Testing**
+
 - [ ] Write unit tests for all new modules
 - [ ] Write integration tests for QA service
 - [ ] Write E2E test for full validation workflow
@@ -1679,12 +1778,14 @@ describe('QA Workflow E2E', () => {
 - [ ] Verify all pass criteria met
 
 **Phase 4: Documentation**
+
 - [ ] Update CLAUDE.md with validation levels
 - [ ] Add example QA report to docs
 - [ ] Document validation level override process
 - [ ] Create migration guide for existing checks
 
 **Phase 5: Validation**
+
 - [ ] Run full test suite (`npm test`)
 - [ ] Verify TypeScript compilation (`npm run build`)
 - [ ] Verify no regressions in existing QA workflow
@@ -1701,6 +1802,7 @@ The modular architecture allows for easy extension (new check types, artifact ve
 With this framework in place, the autonomous execution vision (Spec Agent → Build Agent → QA Agent) becomes fully operational, enabling the system to autonomously verify work quality and create fix tasks when standards are not met.
 
 **Next Steps After Completion:**
+
 1. PHASE2-TASK-04: Enhanced retry logic using QA failure patterns
 2. PHASE2-TASK-05: Agent logging and error reporting improvements
 3. PHASE3-TASK-05: Dashboard widgets for QA report visualization

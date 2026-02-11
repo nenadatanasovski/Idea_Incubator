@@ -13,6 +13,7 @@
 PHASE5-TASK-02 "Evidence collection for Market/Competition criteria" has been **partially implemented**. The system successfully collects external evidence through web research and provides it to Market evaluators, but this evidence is **not persisted to the database**, limiting auditability and historical analysis.
 
 **Key Findings:**
+
 - ✅ TypeScript compilation clean (no errors)
 - ⚠️ Test suite has 56 failures (unrelated to this task - database schema issues in task-agent services)
 - ✅ Pre-evaluation research agent implemented
@@ -37,22 +38,22 @@ export interface ResearchResult {
   marketSize: {
     userClaim: string | null;
     verified: string | null;
-    sources: string[];  // ✅ Evidence sources collected
+    sources: string[]; // ✅ Evidence sources collected
   };
   competitors: {
     userMentioned: string[];
-    discovered: string[];  // ✅ Competition evidence collected
-    sources: string[];     // ✅ Evidence sources collected
+    discovered: string[]; // ✅ Competition evidence collected
+    sources: string[]; // ✅ Evidence sources collected
   };
   trends: {
     direction: "growing" | "stable" | "declining" | "unknown";
-    evidence: string;      // ✅ Evidence collected
-    sources: string[];     // ✅ Evidence sources collected
+    evidence: string; // ✅ Evidence collected
+    sources: string[]; // ✅ Evidence sources collected
   };
   techFeasibility: {
     assessment: "proven" | "emerging" | "experimental" | "unknown";
     examples: string[];
-    sources: string[];     // ✅ Evidence sources collected
+    sources: string[]; // ✅ Evidence sources collected
   };
   geographicAnalysis?: {
     localMarket: GeographicMarketData | null;
@@ -63,6 +64,7 @@ export interface ResearchResult {
 ```
 
 **Strengths:**
+
 - Comprehensive evidence collection across multiple dimensions
 - Source attribution for all claims
 - Geographic breakdown (local vs global markets)
@@ -86,6 +88,7 @@ const researchSection = formatResearchForCategory(research ?? null, category);
 **Evidence Formatting for Market Category:** `agents/research.ts:483-585`
 
 The `formatResearchForCategory` function creates detailed evidence sections including:
+
 - Market size verification with sources
 - Competitor analysis (user-mentioned + discovered)
 - Market trends with evidence
@@ -93,6 +96,7 @@ The `formatResearchForCategory` function creates detailed evidence sections incl
 - Entry barriers and timing catalysts
 
 **Example Output:**
+
 ```
 ## External Research (Web Search Results)
 
@@ -121,6 +125,7 @@ The `formatResearchForCategory` function creates detailed evidence sections incl
 ```
 
 **Strengths:**
+
 - Rich contextual evidence provided to evaluators
 - Clear source attribution
 - Geographic segmentation
@@ -140,12 +145,13 @@ export interface EvaluationResult {
   score: number;
   confidence: number;
   reasoning: string;
-  evidenceCited: string[];   // ✅ Collected during evaluation
-  gapsIdentified: string[];  // ✅ Collected during evaluation
+  evidenceCited: string[]; // ✅ Collected during evaluation
+  gapsIdentified: string[]; // ✅ Collected during evaluation
 }
 ```
 
 **Evaluators are instructed to cite evidence:**
+
 ```typescript
 // Line 38: Evaluation guidelines
 "2. **Cite evidence**: Reference specific parts of the idea that support your score."
@@ -184,6 +190,7 @@ CREATE TABLE evaluations (
 ```
 
 **Missing Columns:**
+
 - ❌ `evidence_cited` (JSON or TEXT) - Stores cited evidence
 - ❌ `gaps_identified` (JSON or TEXT) - Stores identified gaps
 - ❌ `research_sources` (JSON) - Stores external research sources
@@ -198,11 +205,14 @@ await run(
    (idea_id, evaluation_run_id, criterion, category, agent_score, final_score,
     confidence, reasoning, session_id, criterion_id, criterion_name, initial_score, created_at)
    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  [/* evidenceCited and gapsIdentified are lost here */]
+  [
+    /* evidenceCited and gapsIdentified are lost here */
+  ],
 );
 ```
 
 **Impact:**
+
 - Evidence exists only during evaluation run (ephemeral)
 - Cannot retrieve evidence for historical evaluations
 - No audit trail for evidence-based decisions
@@ -241,29 +251,35 @@ await run(
 Since no formal specification exists for PHASE5-TASK-02, we infer requirements from the task title "Evidence collection for Market/Competition criteria":
 
 **PC-1: Collect evidence for Market criteria**
+
 - ✅ PASS - Research agent collects market size, trends, timing evidence
 - ✅ PASS - Sources attributed for all market claims
 - ✅ PASS - Geographic market analysis (local + global)
 
 **PC-2: Collect evidence for Competition criteria**
+
 - ✅ PASS - Competitor discovery via web search
 - ✅ PASS - Competitive intensity assessment
 - ✅ PASS - Entry barrier analysis
 
 **PC-3: Evidence flows to evaluators**
+
 - ✅ PASS - formatResearchForCategory provides evidence to Market evaluators
 - ✅ PASS - Evidence included in evaluation context
 
 **PC-4: Evidence persistence** (INFERRED)
+
 - ❌ FAIL - Evidence not saved to database
 - ❌ FAIL - No evidence retrieval mechanism
 - ❌ FAIL - Evidence lost after evaluation run
 
 **PC-5: Evidence attribution** (INFERRED)
+
 - ✅ PASS - All research includes source URLs
 - ✅ PASS - Evidence clearly separated from user claims
 
 **PC-6: Evidence quality** (INFERRED)
+
 - ⚠️ PARTIAL - Evidence collected but no quality scoring
 - ⚠️ PARTIAL - No confidence metrics for evidence reliability
 
@@ -347,6 +363,7 @@ Create endpoint: `server/routes/evidence.ts`
 **5. Frontend Evidence Display** (P2 - Nice to Have)
 
 Add to `frontend/src/components/EvaluationDashboard.tsx`:
+
 - Evidence tab showing cited evidence per criterion
 - Research sources modal with clickable links
 - Gap analysis view highlighting missing information
@@ -356,12 +373,14 @@ Add to `frontend/src/components/EvaluationDashboard.tsx`:
 ## Test Results
 
 ### TypeScript Compilation ✅
+
 ```bash
 $ npx tsc --noEmit
 # Clean - no errors
 ```
 
 ### Test Suite ⚠️
+
 ```
 Test Files  19 failed | 87 passed (106)
 Tests       56 failed | 1642 passed | 4 skipped (1777)
@@ -371,6 +390,7 @@ Duration    7.44s
 **Note:** Failures are in `task-agent` services due to database schema issues (missing `metadata` column). These failures are **unrelated to PHASE5-TASK-02** which focuses on Idea Incubator evaluation evidence, not Parent Harness task orchestration.
 
 **Relevant Test Coverage:**
+
 - ✅ Research agent tests exist and pass
 - ✅ Evaluation flow tests exist and pass
 - ✅ Database integration tests exist and pass (for existing schema)
@@ -381,6 +401,7 @@ Duration    7.44s
 ## Code Quality
 
 **Strengths:**
+
 - ✅ Clean TypeScript with strong typing
 - ✅ Comprehensive interfaces for research results
 - ✅ Good separation of concerns (research agent separate from evaluators)
@@ -388,6 +409,7 @@ Duration    7.44s
 - ✅ Geographic analysis adds significant value
 
 **Areas for Improvement:**
+
 - ⚠️ Evidence collection is ephemeral (not persisted)
 - ⚠️ No formal specification for what constitutes "complete" evidence
 - ⚠️ No evidence quality scoring
@@ -402,6 +424,7 @@ Duration    7.44s
 PHASE5-TASK-02 has a **solid foundation** but lacks **critical persistence infrastructure**:
 
 ### What's Working (70%)
+
 1. ✅ Research agent collects market/competition evidence via web search
 2. ✅ Evidence includes source attribution
 3. ✅ Geographic market analysis (local + global)
@@ -410,6 +433,7 @@ PHASE5-TASK-02 has a **solid foundation** but lacks **critical persistence infra
 6. ✅ In-memory evidence structures exist
 
 ### What's Missing (30%)
+
 1. ❌ Database schema for evidence persistence
 2. ❌ Save logic to persist evidence
 3. ❌ Evidence retrieval API
@@ -423,6 +447,7 @@ PHASE5-TASK-02 has a **solid foundation** but lacks **critical persistence infra
 The current implementation collects excellent evidence but loses it immediately after the evaluation run. This defeats the purpose of evidence collection - without persistence, there's no auditability, no historical analysis, and no way to improve evidence quality over time.
 
 **Estimated Effort to Complete:**
+
 - Database migration: 30 minutes
 - Update save logic: 1 hour
 - Evidence API: 2 hours

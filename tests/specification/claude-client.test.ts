@@ -3,13 +3,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-  ClaudeClient,
-} from "../../agents/specification/claude-client.js";
+import { ClaudeClient } from "../../agents/specification/claude-client.js";
 import { ParsedBrief } from "../../agents/specification/brief-parser.js";
-import {
-  LoadedContext,
-} from "../../agents/specification/context-loader.js";
+import { LoadedContext } from "../../agents/specification/context-loader.js";
 
 // Mock the anthropic client module to avoid CLI/API key requirements
 vi.mock("../../utils/anthropic-client.js", () => {

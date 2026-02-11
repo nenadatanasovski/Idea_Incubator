@@ -16,6 +16,7 @@ Implement the Build Agent task executor that consumes technical specifications c
 ### Problem Statement
 
 **Current State:**
+
 - Spec Agent creates detailed technical specifications ✅ (PHASE2-TASK-01 complete)
 - Build Agent orchestrator infrastructure exists ✅ (`build-agent-orchestrator.ts`)
 - Python worker exists ✅ (`build_agent_worker.py` with 1800+ lines)
@@ -25,6 +26,7 @@ Implement the Build Agent task executor that consumes technical specifications c
 - No test execution and validation reporting
 
 **Desired State:**
+
 - Build Agent reads specs from `docs/specs/TASK-{ID}.md`
 - Parses technical design and implementation plan from spec
 - Modifies files autonomously based on pass criteria
@@ -56,24 +58,30 @@ The Build Agent is the **"Implementation Executor"** that bridges specifications
 # TASK-042: Add user authentication
 
 ## Technical Design
+
 ### Files to Modify
+
 - `server/routes/auth.ts` - Create new auth endpoints
 - `server/middleware/auth.ts` - Add JWT verification middleware
-...
+  ...
 
 ## Pass Criteria
+
 1. POST /api/auth/login returns 200 with JWT token when credentials valid
 2. POST /api/auth/login returns 401 when password incorrect
-...
+   ...
 
 ## Implementation Plan
+
 ### Phase 1: Database Schema
+
 - Create users table migration
 - Add password_hash field
-...
+  ...
 ```
 
 **Processing:**
+
 - Parse markdown sections (Technical Design, Pass Criteria, Implementation Plan)
 - Extract file paths to create/modify
 - Extract validation commands from pass criteria
@@ -84,17 +92,20 @@ The Build Agent is the **"Implementation Executor"** that bridges specifications
 The Build Agent must be able to:
 
 **Create New Files:**
+
 - Generate boilerplate based on project conventions
 - Use Read tool to understand existing patterns
 - Write complete file content using Write tool
 
 **Modify Existing Files:**
+
 - Read current file content
 - Identify insertion/replacement points
 - Use Edit tool for precise modifications
 - Preserve existing code structure and style
 
 **Example Workflow:**
+
 ```typescript
 // Build Agent receives task: "Add login endpoint"
 
@@ -128,31 +139,32 @@ The Build Agent must validate work by running tests:
 interface TestValidation {
   // Level 1: TypeScript compilation
   compilation: {
-    command: 'npx tsc --noEmit',
-    mustPass: true,
-  },
+    command: "npx tsc --noEmit";
+    mustPass: true;
+  };
 
   // Level 2: Unit tests
   unit: {
-    command: 'npm test -- path/to/test.test.ts',
-    mustPass: true,
-  },
+    command: "npm test -- path/to/test.test.ts";
+    mustPass: true;
+  };
 
   // Level 3: Integration tests
   integration: {
-    command: 'npm run test:integration',
-    mustPass: true,
-  },
+    command: "npm run test:integration";
+    mustPass: true;
+  };
 
   // Level 4: Manual validation
   manual: {
-    description: 'Verify dashboard UI renders correctly',
-    requiresHuman: true,
-  }
+    description: "Verify dashboard UI renders correctly";
+    requiresHuman: true;
+  };
 }
 ```
 
 **Test Execution Flow:**
+
 1. Extract test commands from pass criteria
 2. Run tests in dependency order (compilation → unit → integration)
 3. Capture stdout/stderr
@@ -165,6 +177,7 @@ interface TestValidation {
 The Build Agent uses Claude Opus to generate code:
 
 **Generation Process:**
+
 ```typescript
 interface CodeGenerationContext {
   task: {
@@ -181,14 +194,14 @@ interface CodeGenerationContext {
 
   codebase: {
     // Read from existing files
-    relatedFiles: Map<string, string>;  // path → content
-    patterns: string[];  // Extracted conventions
-    gotchas: string[];   // From docs/gotchas/ or spec
+    relatedFiles: Map<string, string>; // path → content
+    patterns: string[]; // Extracted conventions
+    gotchas: string[]; // From docs/gotchas/ or spec
   };
 
   dependencies: {
     // Output from dependent tasks
-    completedTasks: Map<string, string>;  // taskId → generated code
+    completedTasks: Map<string, string>; // taskId → generated code
   };
 }
 
@@ -199,24 +212,24 @@ You are implementing a task for the Vibe platform.
 TASK: ${context.task.title}
 
 REQUIREMENTS:
-${context.task.requirements.join('\n')}
+${context.task.requirements.join("\n")}
 
 TECHNICAL DESIGN:
 ${context.spec.technicalDesign}
 
 EXISTING CODE PATTERNS:
-${context.codebase.patterns.join('\n')}
+${context.codebase.patterns.join("\n")}
 
 PASS CRITERIA (your code must satisfy these):
-${context.spec.passCriteria.join('\n')}
+${context.spec.passCriteria.join("\n")}
 
 Generate the code for: ${filePath}
 `;
 
 const response = await claude.messages.create({
-  model: 'claude-opus-4',
+  model: "claude-opus-4",
   max_tokens: 4096,
-  messages: [{ role: 'user', content: prompt }]
+  messages: [{ role: "user", content: prompt }],
 });
 ```
 
@@ -225,23 +238,31 @@ const response = await claude.messages.create({
 When tasks fail, the Build Agent must:
 
 **Classify Errors (GAP-007):**
+
 ```typescript
 interface ClassifiedError {
-  type: 'transient' | 'permanent' | 'unknown';
-  category: 'network' | 'validation' | 'compilation' | 'test_failure' | 'file_error';
+  type: "transient" | "permanent" | "unknown";
+  category:
+    | "network"
+    | "validation"
+    | "compilation"
+    | "test_failure"
+    | "file_error";
   message: string;
   isRetryable: boolean;
-  suggestedAction: 'retry' | 'skip' | 'escalate' | 'abort';
+  suggestedAction: "retry" | "skip" | "escalate" | "abort";
 }
 ```
 
 **Retry Logic:**
+
 - Transient errors (network timeout, rate limit): Retry with exponential backoff
 - Compilation errors: Retry once with error feedback to Claude
 - Test failures: Retry once with test output feedback to Claude
 - Permanent errors (missing dependencies, invalid spec): Escalate to SIA
 
 **Example Retry Flow:**
+
 ```typescript
 let attempt = 1;
 const maxRetries = 3;
@@ -258,13 +279,13 @@ while (attempt <= maxRetries) {
     const testResult = await runTests(passCriteria);
 
     if (testResult.allPassed) {
-      return { status: 'completed', output: code };
+      return { status: "completed", output: code };
     } else {
       // Feed test failures back to Claude
       context.previousAttempt = {
         code,
         testOutput: testResult.output,
-        failedCriteria: testResult.failures
+        failedCriteria: testResult.failures,
       };
       attempt++;
     }
@@ -272,7 +293,7 @@ while (attempt <= maxRetries) {
     const classified = classifyError(error);
 
     if (!classified.isRetryable || attempt >= maxRetries) {
-      return { status: 'failed', error: classified };
+      return { status: "failed", error: classified };
     }
 
     await sleep(exponentialBackoff(attempt));
@@ -286,21 +307,26 @@ while (attempt <= maxRetries) {
 The Build Agent must integrate with the observability system (OBS-102):
 
 **4-Phase Logging:**
+
 ```typescript
 // Phase 1: Parse (Read specification)
-agent.logPhase('parse', 'Reading spec from docs/specs/TASK-042.md');
+agent.logPhase("parse", "Reading spec from docs/specs/TASK-042.md");
 
 // Phase 2: Context (Load codebase patterns)
-agent.logPhase('context', 'Loaded 3 related files, 5 patterns, 2 gotchas');
+agent.logPhase("context", "Loaded 3 related files, 5 patterns, 2 gotchas");
 
 // Phase 3: Execute (Generate and write code)
-agent.logPhase('execute', 'Generated auth.ts (245 lines), wrote to server/routes/');
+agent.logPhase(
+  "execute",
+  "Generated auth.ts (245 lines), wrote to server/routes/",
+);
 
 // Phase 4: Validate (Run tests)
-agent.logPhase('validate', 'Compilation: PASS, Unit tests: 12/12 PASS');
+agent.logPhase("validate", "Compilation: PASS, Unit tests: 12/12 PASS");
 ```
 
 **Database Records:**
+
 - `task_executions` - One record per task execution attempt
 - `task_execution_log` - Detailed logs per phase
 - `agent_heartbeats` - Health monitoring (every 30s)
@@ -308,24 +334,28 @@ agent.logPhase('validate', 'Compilation: PASS, Unit tests: 12/12 PASS');
 ### Non-Functional Requirements
 
 #### Performance
+
 - Spec parsing: < 5 seconds
 - Code generation: < 60 seconds per file (Claude API latency)
 - Test execution: Respects test timeout from config (default 120s)
 - Total task execution: < 5 minutes for simple tasks, < 15 minutes for complex
 
 #### Quality
+
 - Generated code must compile (TypeScript validation)
 - Generated code must pass specified tests (100% pass criteria)
 - Generated code must follow project conventions (linting, formatting)
 - Error messages must be actionable (include fix suggestions)
 
 #### Reliability
+
 - Graceful handling of Claude API failures (retry 3x)
 - Graceful handling of file system errors (permissions, disk space)
 - Graceful handling of test failures (capture output, don't crash)
 - Worker process must not hang (enforce timeouts)
 
 #### Integration
+
 - Compatible with Spec Agent output format (PHASE2-TASK-01)
 - Compatible with QA Agent input expectations (validation reports)
 - Compatible with orchestrator lifecycle (spawn, heartbeat, exit)
@@ -477,7 +507,7 @@ class SpecParser:
 
 **File:** `coding-loops/agents/build_agent_worker.py` (already has Claude client)
 
-```python
+````python
 class CodeGenerator:
     """
     Generate code using Claude API based on spec + context
@@ -564,7 +594,7 @@ Output only the code, no explanations.
 
         # No code fence, return as-is
         return response
-```
+````
 
 #### 3. File Writer (EXTEND EXISTING - Python)
 
@@ -861,6 +891,7 @@ def main():
 **Spec Agent creates:** `docs/specs/TASK-042-user-auth.md`
 
 **Build Agent reads:** Parses markdown to extract:
+
 - Technical Design → Files to modify
 - Pass Criteria → Validation commands
 - Implementation Plan → Task ordering
@@ -868,6 +899,7 @@ def main():
 #### 2. Build Agent Output → QA Agent Input
 
 **Build Agent writes to database:**
+
 ```sql
 UPDATE tasks
 SET status = 'completed',
@@ -880,6 +912,7 @@ VALUES ('...', '...', '<generated code>', '<test output>', 'completed');
 ```
 
 **QA Agent queries:**
+
 ```sql
 SELECT * FROM tasks WHERE status = 'completed' AND assigned_agent_id = 'build_agent';
 -- Read spec_file_path to get pass criteria
@@ -890,12 +923,14 @@ SELECT * FROM tasks WHERE status = 'completed' AND assigned_agent_id = 'build_ag
 #### 3. Orchestrator → Build Agent Lifecycle
 
 **Orchestrator spawns:**
+
 ```typescript
 spawnBuildAgent(taskId, taskListId)
   → spawn('python3', ['coding-loops/agents/build_agent_worker.py', '--task-id', taskId, ...])
 ```
 
 **Worker reports:**
+
 - Heartbeat every 30s via database update
 - Exit code 0 = success, 1 = failure
 - Orchestrator detects exit → triggers next wave or QA validation
@@ -907,6 +942,7 @@ spawnBuildAgent(taskId, taskListId)
 **Scenario:** Spec file missing or malformed
 
 **Recovery:**
+
 ```python
 try:
     spec = spec_parser.parse(task['spec_file_path'])
@@ -931,6 +967,7 @@ except SpecParseError as e:
 **Scenario:** Claude API timeout or rate limit
 
 **Recovery:**
+
 ```python
 for attempt in range(1, config.max_retries + 1):
     try:
@@ -949,6 +986,7 @@ for attempt in range(1, config.max_retries + 1):
 **Scenario:** Generated code doesn't pass tests
 
 **Recovery:**
+
 ```python
 # First attempt fails validation
 if not validation.all_passed and attempt == 1:
@@ -978,6 +1016,7 @@ if not validation.all_passed:
 **Scenario:** Permission denied, disk full, file locked
 
 **Recovery:**
+
 ```python
 try:
     file_writer.write_file(file_path, code)
@@ -1000,6 +1039,7 @@ except OSError as e:
 ### 1. ✅ Spec Parser Parses Spec Agent Output
 
 **Test:**
+
 ```bash
 # Create test spec file
 cat > docs/specs/TEST-BUILD-001.md << 'EOF'
@@ -1026,6 +1066,7 @@ python3 coding-loops/agents/build_agent_worker.py \
 ```
 
 **Expected:**
+
 - Worker parses spec successfully
 - Extracts file path: `test-output.txt`
 - Extracts 2 pass criteria
@@ -1034,6 +1075,7 @@ python3 coding-loops/agents/build_agent_worker.py \
 ### 2. ✅ Code Generator Creates Valid TypeScript
 
 **Test:**
+
 ```bash
 # Create task requiring TypeScript generation
 # Spec: Create server/routes/test.ts with GET /test endpoint
@@ -1046,6 +1088,7 @@ npx tsc --noEmit server/routes/test.ts
 ```
 
 **Expected:**
+
 - File created at `server/routes/test.ts`
 - TypeScript compilation passes (exit code 0)
 - Code follows Express.js patterns (router, async handlers)
@@ -1053,6 +1096,7 @@ npx tsc --noEmit server/routes/test.ts
 ### 3. ✅ File Writer Creates New Files
 
 **Test:**
+
 ```bash
 # Build Agent task: Create new file
 
@@ -1062,6 +1106,7 @@ cat path/to/new/file.ts
 ```
 
 **Expected:**
+
 - File exists
 - Contains generated code
 - Parent directories created if needed
@@ -1069,6 +1114,7 @@ cat path/to/new/file.ts
 ### 4. ✅ File Writer Modifies Existing Files
 
 **Test:**
+
 ```bash
 # Create existing file
 echo "// Placeholder" > server/routes/existing.ts
@@ -1080,6 +1126,7 @@ grep "new route" server/routes/existing.ts
 ```
 
 **Expected:**
+
 - File modified (not overwritten)
 - New code inserted correctly
 - Existing code preserved
@@ -1087,6 +1134,7 @@ grep "new route" server/routes/existing.ts
 ### 5. ✅ Test Runner Executes Validation Commands
 
 **Test:**
+
 ```bash
 # Spec pass criteria:
 # 1. npm test passes
@@ -1099,6 +1147,7 @@ grep "Running validation: npx tsc --noEmit" logs/build-agent.log
 ```
 
 **Expected:**
+
 - Both commands executed
 - Exit codes captured
 - Output logged to database
@@ -1106,6 +1155,7 @@ grep "Running validation: npx tsc --noEmit" logs/build-agent.log
 ### 6. ✅ Success Path: Task Completes Successfully
 
 **Test:**
+
 ```sql
 -- Create task with spec
 INSERT INTO tasks (id, display_id, title, spec_file_path, status, task_list_id)
@@ -1119,6 +1169,7 @@ SELECT status, last_error_message FROM tasks WHERE id = 'test-001';
 ```
 
 **Expected Output:**
+
 ```
 completed | NULL
 ```
@@ -1126,6 +1177,7 @@ completed | NULL
 ### 7. ✅ Failure Path: Test Validation Fails
 
 **Test:**
+
 ```bash
 # Create task with intentionally failing test
 # Spec: Create file that should export function, but generated code doesn't
@@ -1135,6 +1187,7 @@ completed | NULL
 ```
 
 **Expected:**
+
 - Task status = 'failed'
 - `last_error_message` contains test failure details
 - Worker exits with code 1
@@ -1142,6 +1195,7 @@ completed | NULL
 ### 8. ✅ Retry on Transient Errors
 
 **Test:**
+
 ```python
 # Mock Claude API to fail twice, succeed third time
 with mock_claude_api(fail_count=2):
@@ -1154,6 +1208,7 @@ assert "Generation succeeded" in logs
 ```
 
 **Expected:**
+
 - Worker retries on rate limit / timeout
 - Exponential backoff applied
 - Eventually succeeds
@@ -1161,6 +1216,7 @@ assert "Generation succeeded" in logs
 ### 9. ✅ Escalation on Permanent Errors
 
 **Test:**
+
 ```bash
 # Create task with missing spec file
 # Run Build Agent
@@ -1170,6 +1226,7 @@ sqlite3 database/ideas.db "SELECT status, escalated_to_sia FROM tasks WHERE id =
 ```
 
 **Expected Output:**
+
 ```
 failed | 1
 ```
@@ -1177,12 +1234,14 @@ failed | 1
 ### 10. ✅ Observability Logs All Phases
 
 **Test:**
+
 ```sql
 -- After task execution
 SELECT phase, message FROM task_execution_log WHERE execution_id = '...' ORDER BY created_at;
 ```
 
 **Expected Output:**
+
 ```
 parse   | Reading spec from docs/specs/TEST-001.md
 context | Loaded 2 related files, 3 patterns
@@ -1221,6 +1280,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 ### Phase 1: Spec Parser (3-4 hours)
 
 **Tasks:**
+
 1. Implement `SpecParser` class in `build_agent_worker.py`
 2. Add markdown section parsing (regex-based)
 3. Add technical design extraction (files, actions)
@@ -1229,6 +1289,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 6. Write unit tests for parser
 
 **Deliverables:**
+
 - `SpecParser.parse()` returns `ParsedSpec` object
 - Handles all Spec Agent output formats
 - Graceful error handling for malformed specs
@@ -1236,6 +1297,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 ### Phase 2: Context Loading (2-3 hours)
 
 **Tasks:**
+
 1. Implement `ContextLoader` class
 2. Read related files from codebase
 3. Extract code patterns (imports, function signatures, etc.)
@@ -1243,6 +1305,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 5. Fetch outputs from dependent tasks (if any)
 
 **Deliverables:**
+
 - `ContextLoader.load()` returns `GenerationContext`
 - Provides Claude with relevant codebase examples
 - Token-aware (respects context limits)
@@ -1250,6 +1313,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 ### Phase 3: Code Generation Integration (4-5 hours)
 
 **Tasks:**
+
 1. Extend existing `CodeGenerator` class
 2. Build comprehensive prompts with context
 3. Handle Claude API errors (rate limits, timeouts)
@@ -1258,6 +1322,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 6. Add feedback loop for failed attempts (include test errors in retry)
 
 **Deliverables:**
+
 - `CodeGenerator.generate()` produces valid code
 - Retries on transient errors
 - Includes previous attempt feedback for better results
@@ -1265,6 +1330,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 ### Phase 4: File Operations (2-3 hours)
 
 **Tasks:**
+
 1. Extend existing `FileWriter` class
 2. Implement safe file creation (mkdir -p parents)
 3. Implement precise file editing (old_string → new_string)
@@ -1272,6 +1338,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 5. Add error handling (permissions, disk space)
 
 **Deliverables:**
+
 - `FileWriter.write_file()` creates files safely
 - `FileWriter.edit_file()` modifies files precisely
 - Comprehensive error messages
@@ -1279,6 +1346,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 ### Phase 5: Test Validation (3-4 hours)
 
 **Tasks:**
+
 1. Implement `TestRunner` class
 2. Parse pass criteria to extract commands
 3. Execute commands via subprocess
@@ -1288,6 +1356,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 7. Add timeout handling
 
 **Deliverables:**
+
 - `TestRunner.run_validation()` returns `ValidationResult`
 - Executes all testable criteria
 - Detailed pass/fail reporting
@@ -1295,6 +1364,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 ### Phase 6: Main Worker Integration (2-3 hours)
 
 **Tasks:**
+
 1. Modify `main()` in `build_agent_worker.py`
 2. Add spec parsing phase
 3. Add context loading phase
@@ -1304,6 +1374,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 7. Exit with appropriate code (0 or 1)
 
 **Deliverables:**
+
 - Full execution pipeline: parse → context → execute → validate
 - Database updates (task status, execution logs)
 - Proper exit codes for orchestrator
@@ -1311,6 +1382,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 ### Phase 7: Error Handling & Retry (2-3 hours)
 
 **Tasks:**
+
 1. Add error classification (transient vs permanent)
 2. Implement retry logic for transient errors
 3. Implement feedback loop for test failures
@@ -1318,6 +1390,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 5. Add comprehensive logging
 
 **Deliverables:**
+
 - Graceful handling of all error types
 - Automatic retry with backoff
 - Clear error messages in database
@@ -1325,6 +1398,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 ### Phase 8: Integration Testing (2-3 hours)
 
 **Tasks:**
+
 1. Create end-to-end test: Spec Agent → Build Agent → validation
 2. Test success path (all criteria pass)
 3. Test failure path (tests fail)
@@ -1333,6 +1407,7 @@ validate | Compilation: PASS, Tests: 5/5 PASS
 6. Verify observability logs
 
 **Deliverables:**
+
 - 5+ end-to-end test scenarios
 - All pass criteria validated
 - Integration with orchestrator confirmed
@@ -1419,6 +1494,7 @@ def test_build_agent_executes_simple_task():
 **Question:** How should Build Agent edit existing files precisely?
 
 **Options:**
+
 - **A:** Always regenerate entire file (simple but loses unrelated changes)
 - **B:** Use Edit tool with old_string/new_string (requires identifying exact insertion points)
 - **C:** Use AST parsing to insert at specific nodes (complex but precise)
@@ -1430,6 +1506,7 @@ def test_build_agent_executes_simple_task():
 **Question:** How many times should Build Agent retry when tests fail?
 
 **Options:**
+
 - **A:** 1 retry (fast feedback, may miss edge cases)
 - **B:** 2 retries (balance speed and quality)
 - **C:** 3 retries (thorough but slower)
@@ -1441,6 +1518,7 @@ def test_build_agent_executes_simple_task():
 **Question:** How long should Build Agent wait for tests to complete?
 
 **Options:**
+
 - **A:** 60 seconds (fast but may timeout large test suites)
 - **B:** 120 seconds (default, works for most projects)
 - **C:** 300 seconds (slow but safe for integration tests)
@@ -1452,6 +1530,7 @@ def test_build_agent_executes_simple_task():
 **Question:** What should Build Agent do with non-testable pass criteria (e.g., "UI looks good")?
 
 **Options:**
+
 - **A:** Skip and mark as passed (optimistic)
 - **B:** Skip and mark as needs_review (conservative)
 - **C:** Generate screenshot and send to QA Agent (advanced)

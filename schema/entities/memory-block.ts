@@ -10,19 +10,19 @@ import { z } from "zod";
 
 /**
  * ARCH-001: 9 canonical block types
- * 
+ *
  * Consolidated from 15 organic types. See ARCH-001-TYPE-MAPPING.md for migration.
  */
 export const blockTypes = [
-  "knowledge",    // Verified facts, patterns, insights (was: content, synthesis, pattern, derived, cycle, stakeholder_view)
-  "decision",     // Choices made with rationale (was: decision, option)
-  "assumption",   // Unverified beliefs to test
-  "question",     // Open unknowns to investigate (was: placeholder)
-  "requirement",  // Constraints, must-haves
-  "task",         // Work items, actions (was: action)
-  "proposal",     // Suggested changes awaiting approval
-  "artifact",     // Outputs (code, docs, specs)
-  "evidence",     // Validation data, proof (was: external)
+  "knowledge", // Verified facts, patterns, insights (was: content, synthesis, pattern, derived, cycle, stakeholder_view)
+  "decision", // Choices made with rationale (was: decision, option)
+  "assumption", // Unverified beliefs to test
+  "question", // Open unknowns to investigate (was: placeholder)
+  "requirement", // Constraints, must-haves
+  "task", // Work items, actions (was: action)
+  "proposal", // Suggested changes awaiting approval
+  "artifact", // Outputs (code, docs, specs)
+  "evidence", // Validation data, proof (was: external)
 ] as const;
 
 export const blockStatuses = [

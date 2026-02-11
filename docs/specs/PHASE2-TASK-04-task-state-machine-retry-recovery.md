@@ -73,6 +73,7 @@ Implement comprehensive task state machine with intelligent retry logic and fail
 ### Functional Requirements
 
 **FR-1: Enhanced State Machine**
+
 - All state transitions MUST validate through state machine
 - Invalid transitions rejected with clear error messages
 - Transition context includes: agentId, sessionId, error, reason, metadata
@@ -80,6 +81,7 @@ Implement comprehensive task state machine with intelligent retry logic and fail
 - Blocked tasks require manual unblock or automatic timeout
 
 **FR-2: Intelligent Retry Scheduling**
+
 - Classify failures into categories: transient, code_error, test_failure, timeout, resource_exhaustion, unknown
 - Apply category-specific retry strategies:
   - **Transient** (network, rate limit): Fast retry with exponential backoff (30s → 2m → 5m)
@@ -92,6 +94,7 @@ Implement comprehensive task state machine with intelligent retry logic and fail
 - Retry cooldown stored with task to persist across orchestrator restarts
 
 **FR-3: Failure Pattern Analysis**
+
 - Extract structured failure info from error messages:
   - Error category (transient, code_error, test_failure, etc.)
   - Error location (file:line if available)
@@ -103,6 +106,7 @@ Implement comprehensive task state machine with intelligent retry logic and fail
   - Use for generating better fix guidance
 
 **FR-4: Automatic Recovery Workflows**
+
 - **Recovery Actions:**
   - `retry_with_guidance`: Append fix approach to task description, reset to pending
   - `retry_with_spec_refresh`: Request spec agent to clarify requirements
@@ -116,6 +120,7 @@ Implement comprehensive task state machine with intelligent retry logic and fail
   - Fifth failure: `mark_as_blocked`
 
 **FR-5: Retry History & Analytics**
+
 - Store all retry attempts with:
   - Attempt number, timestamp
   - Error category, error message
@@ -129,12 +134,14 @@ Implement comprehensive task state machine with intelligent retry logic and fail
   - Agent-specific retry patterns
 
 **FR-6: Persistent State Management**
+
 - Retry state persists across orchestrator restarts
 - Next retry time stored in database
 - Pending retries resumed on startup
 - Cooldown timers restored from last_failed timestamp
 
 **FR-7: Event-Driven Retry Processing**
+
 - Listen to `task:failed` events
 - Automatically schedule retry based on failure analysis
 - Emit `task:retry_scheduled` event with next retry time
@@ -144,18 +151,21 @@ Implement comprehensive task state machine with intelligent retry logic and fail
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Failure analysis: < 500ms
 - State transition validation: < 50ms
 - Retry scheduling: < 100ms
 - No impact on orchestrator tick cycle (< 1s overhead)
 
 **NFR-2: Reliability**
+
 - State transitions are atomic (database transactions)
 - Retry state survives orchestrator crashes
 - No duplicate retry scheduling
 - Idempotent retry operations
 
 **NFR-3: Observability**
+
 - Log all state transitions with context
 - Expose retry metrics via WebSocket
 - Dashboard shows: pending retries, next retry times, failure categories
@@ -198,22 +208,23 @@ Recovery Action:
 ### Implementation Components
 
 #### 1. Failure Analyzer Service
+
 **File:** `parent-harness/orchestrator/src/retry/failure-analyzer.ts`
 
 ```typescript
 export type FailureCategory =
-  | 'transient'           // Network, rate limit, temporary service issues
-  | 'code_error'          // TypeScript errors, syntax errors, compilation
-  | 'test_failure'        // Test assertions, test setup failures
-  | 'timeout'             // Operation timeout, agent timeout
-  | 'resource_exhaustion' // CPU, memory, disk space
-  | 'dependency_missing'  // Missing files, broken imports
-  | 'unknown';            // Unclassified errors
+  | "transient" // Network, rate limit, temporary service issues
+  | "code_error" // TypeScript errors, syntax errors, compilation
+  | "test_failure" // Test assertions, test setup failures
+  | "timeout" // Operation timeout, agent timeout
+  | "resource_exhaustion" // CPU, memory, disk space
+  | "dependency_missing" // Missing files, broken imports
+  | "unknown"; // Unclassified errors
 
 export interface FailureAnalysis {
   category: FailureCategory;
-  confidence: number;       // 0-1
-  errorPattern: string;     // Regex pattern matched
+  confidence: number; // 0-1
+  errorPattern: string; // Regex pattern matched
   location?: {
     file: string;
     line?: number;
@@ -226,20 +237,23 @@ export class FailureAnalyzer {
   /**
    * Analyze error message and classify failure
    */
-  analyze(error: string, context?: {
-    taskId?: string;
-    agentId?: string;
-    sessionOutput?: string;
-  }): FailureAnalysis {
+  analyze(
+    error: string,
+    context?: {
+      taskId?: string;
+      agentId?: string;
+      sessionOutput?: string;
+    },
+  ): FailureAnalysis {
     const errorLower = error.toLowerCase();
 
     // Transient errors (high confidence)
     if (this.isTransientError(error)) {
       return {
-        category: 'transient',
+        category: "transient",
         confidence: 0.9,
         errorPattern: this.extractPattern(error),
-        suggestedFix: 'Retry immediately - transient failure',
+        suggestedFix: "Retry immediately - transient failure",
         isRetryable: true,
       };
     }
@@ -248,7 +262,7 @@ export class FailureAnalyzer {
     if (this.isCodeError(error)) {
       const location = this.extractLocation(error);
       return {
-        category: 'code_error',
+        category: "code_error",
         confidence: 0.85,
         errorPattern: this.extractPattern(error),
         location,
@@ -260,21 +274,21 @@ export class FailureAnalyzer {
     // Test failures
     if (this.isTestFailure(error)) {
       return {
-        category: 'test_failure',
+        category: "test_failure",
         confidence: 0.8,
         errorPattern: this.extractPattern(error),
-        suggestedFix: 'Review test assertions and expected vs actual values',
+        suggestedFix: "Review test assertions and expected vs actual values",
         isRetryable: true,
       };
     }
 
     // Timeout
-    if (errorLower.includes('timeout') || errorLower.includes('timed out')) {
+    if (errorLower.includes("timeout") || errorLower.includes("timed out")) {
       return {
-        category: 'timeout',
+        category: "timeout",
         confidence: 0.9,
-        errorPattern: 'timeout',
-        suggestedFix: 'Simplify approach or break into smaller atomic tasks',
+        errorPattern: "timeout",
+        suggestedFix: "Simplify approach or break into smaller atomic tasks",
         isRetryable: true,
       };
     }
@@ -282,10 +296,11 @@ export class FailureAnalyzer {
     // Resource exhaustion
     if (this.isResourceError(error)) {
       return {
-        category: 'resource_exhaustion',
+        category: "resource_exhaustion",
         confidence: 0.85,
         errorPattern: this.extractPattern(error),
-        suggestedFix: 'Wait for resources to become available or optimize resource usage',
+        suggestedFix:
+          "Wait for resources to become available or optimize resource usage",
         isRetryable: true,
       };
     }
@@ -293,67 +308,93 @@ export class FailureAnalyzer {
     // Dependency issues
     if (this.isDependencyError(error)) {
       return {
-        category: 'dependency_missing',
+        category: "dependency_missing",
         confidence: 0.8,
         errorPattern: this.extractPattern(error),
-        suggestedFix: 'Verify file paths and import statements are correct',
+        suggestedFix: "Verify file paths and import statements are correct",
         isRetryable: true,
       };
     }
 
     // Unknown
     return {
-      category: 'unknown',
+      category: "unknown",
       confidence: 0.5,
-      errorPattern: 'unknown',
-      suggestedFix: 'Analyze error carefully and try a different approach',
+      errorPattern: "unknown",
+      suggestedFix: "Analyze error carefully and try a different approach",
       isRetryable: true,
     };
   }
 
   private isTransientError(error: string): boolean {
     const patterns = [
-      /network/i, /timeout/i, /econnrefused/i, /econnreset/i,
-      /rate limit/i, /too many requests/i, /429/i, /503/i,
-      /socket hang up/i, /etimedout/i,
+      /network/i,
+      /timeout/i,
+      /econnrefused/i,
+      /econnreset/i,
+      /rate limit/i,
+      /too many requests/i,
+      /429/i,
+      /503/i,
+      /socket hang up/i,
+      /etimedout/i,
     ];
-    return patterns.some(p => p.test(error));
+    return patterns.some((p) => p.test(error));
   }
 
   private isCodeError(error: string): boolean {
     const patterns = [
-      /typescript/i, /ts\d{4}/i, /syntax error/i,
-      /parse error/i, /compilation error/i, /type error/i,
-      /cannot find name/i, /has no exported member/i,
+      /typescript/i,
+      /ts\d{4}/i,
+      /syntax error/i,
+      /parse error/i,
+      /compilation error/i,
+      /type error/i,
+      /cannot find name/i,
+      /has no exported member/i,
     ];
-    return patterns.some(p => p.test(error));
+    return patterns.some((p) => p.test(error));
   }
 
   private isTestFailure(error: string): boolean {
     const patterns = [
-      /test.*fail/i, /assertion.*fail/i, /expect/i,
-      /toEqual/i, /toBe/i, /jest/i, /vitest/i,
+      /test.*fail/i,
+      /assertion.*fail/i,
+      /expect/i,
+      /toEqual/i,
+      /toBe/i,
+      /jest/i,
+      /vitest/i,
     ];
-    return patterns.some(p => p.test(error));
+    return patterns.some((p) => p.test(error));
   }
 
   private isResourceError(error: string): boolean {
     const patterns = [
-      /ENOMEM/i, /out of memory/i, /ENOSPC/i,
-      /no space left/i, /cpu usage/i, /resource exhausted/i,
+      /ENOMEM/i,
+      /out of memory/i,
+      /ENOSPC/i,
+      /no space left/i,
+      /cpu usage/i,
+      /resource exhausted/i,
     ];
-    return patterns.some(p => p.test(error));
+    return patterns.some((p) => p.test(error));
   }
 
   private isDependencyError(error: string): boolean {
     const patterns = [
-      /cannot find module/i, /ENOENT/i, /not found/i,
-      /missing.*import/i, /unresolved.*import/i,
+      /cannot find module/i,
+      /ENOENT/i,
+      /not found/i,
+      /missing.*import/i,
+      /unresolved.*import/i,
     ];
-    return patterns.some(p => p.test(error));
+    return patterns.some((p) => p.test(error));
   }
 
-  private extractLocation(error: string): { file: string; line?: number } | undefined {
+  private extractLocation(
+    error: string,
+  ): { file: string; line?: number } | undefined {
     // Match patterns like: file.ts(123,45) or file.ts:123:45
     const match = error.match(/([^\s:]+\.ts)[\(:]+(\d+)/);
     if (match) {
@@ -364,7 +405,7 @@ export class FailureAnalyzer {
 
   private extractPattern(error: string): string {
     // Extract key error pattern (first line or error code)
-    const lines = error.split('\n');
+    const lines = error.split("\n");
     const firstLine = lines[0].trim();
 
     // Look for error codes
@@ -374,43 +415,47 @@ export class FailureAnalyzer {
     return firstLine.slice(0, 100);
   }
 
-  private generateCodeFix(error: string, location?: { file: string; line?: number }): string {
+  private generateCodeFix(
+    error: string,
+    location?: { file: string; line?: number },
+  ): string {
     const errorLower = error.toLowerCase();
 
-    if (errorLower.includes('cannot find name')) {
-      return 'Check variable/function name spelling and imports';
+    if (errorLower.includes("cannot find name")) {
+      return "Check variable/function name spelling and imports";
     }
-    if (errorLower.includes('has no exported member')) {
-      return 'Verify export exists in imported module';
+    if (errorLower.includes("has no exported member")) {
+      return "Verify export exists in imported module";
     }
-    if (errorLower.includes('type')) {
-      return 'Fix type annotations and ensure type compatibility';
+    if (errorLower.includes("type")) {
+      return "Fix type annotations and ensure type compatibility";
     }
 
     if (location) {
-      return `Fix error in ${location.file}${location.line ? `:${location.line}` : ''}`;
+      return `Fix error in ${location.file}${location.line ? `:${location.line}` : ""}`;
     }
 
-    return 'Review and fix TypeScript/compilation errors';
+    return "Review and fix TypeScript/compilation errors";
   }
 }
 ```
 
 #### 2. Retry Strategy Service
+
 **File:** `parent-harness/orchestrator/src/retry/retry-strategy.ts`
 
 ```typescript
-import type { FailureCategory, FailureAnalysis } from './failure-analyzer.js';
+import type { FailureCategory, FailureAnalysis } from "./failure-analyzer.js";
 
 export type RecoveryAction =
-  | 'retry_with_guidance'
-  | 'retry_with_spec_refresh'
-  | 'escalate_to_human'
-  | 'mark_as_blocked';
+  | "retry_with_guidance"
+  | "retry_with_spec_refresh"
+  | "escalate_to_human"
+  | "mark_as_blocked";
 
 export interface RetryConfig {
   maxRetries: number;
-  delays: number[];  // Delay per attempt [attempt1, attempt2, ...]
+  delays: number[]; // Delay per attempt [attempt1, attempt2, ...]
 }
 
 // Category-specific retry configurations
@@ -448,7 +493,7 @@ const RETRY_CONFIGS: Record<FailureCategory, RetryConfig> = {
 export interface RetryDecision {
   shouldRetry: boolean;
   action: RecoveryAction;
-  delay: number;  // milliseconds
+  delay: number; // milliseconds
   guidance: string;
   nextRetryAt?: Date;
 }
@@ -463,7 +508,7 @@ export class RetryStrategy {
     taskContext?: {
       hasSpec?: boolean;
       lastAttemptError?: string;
-    }
+    },
   ): RetryDecision {
     const config = RETRY_CONFIGS[analysis.category];
 
@@ -471,43 +516,48 @@ export class RetryStrategy {
     if (attemptCount >= config.maxRetries) {
       return {
         shouldRetry: false,
-        action: 'mark_as_blocked',
+        action: "mark_as_blocked",
         delay: 0,
         guidance: `Max retries (${config.maxRetries}) exceeded for ${analysis.category} failures`,
       };
     }
 
     // Get delay for this attempt (0-indexed)
-    const delay = config.delays[attemptCount] || config.delays[config.delays.length - 1];
+    const delay =
+      config.delays[attemptCount] || config.delays[config.delays.length - 1];
 
     // Determine recovery action based on attempt count and failure type
-    let action: RecoveryAction = 'retry_with_guidance';
+    let action: RecoveryAction = "retry_with_guidance";
     let guidance = analysis.suggestedFix;
 
     if (attemptCount === 0) {
       // First retry: just try again with guidance
-      action = 'retry_with_guidance';
+      action = "retry_with_guidance";
     } else if (attemptCount === 1) {
       // Second retry: still try with guidance but longer delay
-      action = 'retry_with_guidance';
+      action = "retry_with_guidance";
       guidance = `Second retry attempt. ${analysis.suggestedFix}`;
     } else if (attemptCount === 2) {
       // Third retry: Consider spec refresh for code/test errors
-      if ((analysis.category === 'code_error' || analysis.category === 'test_failure')
-          && taskContext?.hasSpec) {
-        action = 'retry_with_spec_refresh';
-        guidance = 'Multiple failures suggest unclear requirements. Requesting spec clarification.';
+      if (
+        (analysis.category === "code_error" ||
+          analysis.category === "test_failure") &&
+        taskContext?.hasSpec
+      ) {
+        action = "retry_with_spec_refresh";
+        guidance =
+          "Multiple failures suggest unclear requirements. Requesting spec clarification.";
       } else {
-        action = 'retry_with_guidance';
+        action = "retry_with_guidance";
         guidance = `Third retry attempt. ${analysis.suggestedFix} Try a completely different approach.`;
       }
     } else if (attemptCount === 3) {
       // Fourth retry: Escalate to human
-      action = 'escalate_to_human';
+      action = "escalate_to_human";
       guidance = `Task has failed ${attemptCount + 1} times. Human review required.`;
     } else {
       // Fifth+ retry: Mark as blocked (shouldn't reach here due to max check)
-      action = 'mark_as_blocked';
+      action = "mark_as_blocked";
       guidance = `Task repeatedly failing. Marked as blocked for manual intervention.`;
     }
 
@@ -532,14 +582,15 @@ export class RetryStrategy {
 ```
 
 #### 3. Retry Scheduler Service
+
 **File:** `parent-harness/orchestrator/src/retry/retry-scheduler.ts`
 
 ```typescript
-import * as tasks from '../db/tasks.js';
-import { run, getOne, query } from '../db/index.js';
-import { v4 as uuidv4 } from 'uuid';
-import type { FailureCategory } from './failure-analyzer.js';
-import type { RecoveryAction } from './retry-strategy.js';
+import * as tasks from "../db/tasks.js";
+import { run, getOne, query } from "../db/index.js";
+import { v4 as uuidv4 } from "uuid";
+import type { FailureCategory } from "./failure-analyzer.js";
+import type { RecoveryAction } from "./retry-strategy.js";
 
 export interface ScheduledRetry {
   id: string;
@@ -552,7 +603,7 @@ export interface ScheduledRetry {
   delay_ms: number;
   error_message: string;
   guidance: string;
-  status: 'pending' | 'executed' | 'cancelled';
+  status: "pending" | "executed" | "cancelled";
   executed_at?: string;
   created_at: string;
 }
@@ -561,7 +612,8 @@ export interface ScheduledRetry {
  * Ensure scheduled_retries table exists
  */
 function ensureRetryScheduleTable(): void {
-  run(`
+  run(
+    `
     CREATE TABLE IF NOT EXISTS scheduled_retries (
       id TEXT PRIMARY KEY,
       task_id TEXT NOT NULL,
@@ -578,14 +630,19 @@ function ensureRetryScheduleTable(): void {
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (task_id) REFERENCES tasks(id)
     )
-  `, []);
+  `,
+    [],
+  );
 
   // Index for efficient pending retry queries
-  run(`
+  run(
+    `
     CREATE INDEX IF NOT EXISTS idx_scheduled_retries_pending
     ON scheduled_retries(status, next_retry_at)
     WHERE status = 'pending'
-  `, []);
+  `,
+    [],
+  );
 }
 
 ensureRetryScheduleTable();
@@ -600,7 +657,7 @@ export class RetryScheduler {
     action: RecoveryAction,
     delay: number,
     error: string,
-    guidance: string
+    guidance: string,
   ): ScheduledRetry {
     const task = tasks.getTask(taskId);
     if (!task) {
@@ -612,16 +669,26 @@ export class RetryScheduler {
     const nextRetryAt = new Date(now.getTime() + delay);
     const attemptNumber = (task.retry_count || 0) + 1;
 
-    run(`
+    run(
+      `
       INSERT INTO scheduled_retries (
         id, task_id, attempt_number, failure_category, recovery_action,
         scheduled_at, next_retry_at, delay_ms, error_message, guidance, status
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-    `, [
-      id, taskId, attemptNumber, category, action,
-      now.toISOString(), nextRetryAt.toISOString(), delay,
-      error, guidance
-    ]);
+    `,
+      [
+        id,
+        taskId,
+        attemptNumber,
+        category,
+        action,
+        now.toISOString(),
+        nextRetryAt.toISOString(),
+        delay,
+        error,
+        guidance,
+      ],
+    );
 
     // Update task retry metadata
     tasks.updateTask(taskId, {
@@ -630,10 +697,12 @@ export class RetryScheduler {
 
     const scheduled = this.getScheduledRetry(id);
     if (!scheduled) {
-      throw new Error('Failed to schedule retry');
+      throw new Error("Failed to schedule retry");
     }
 
-    console.log(`🔄 Scheduled retry #${attemptNumber} for ${task.display_id} in ${delay / 1000}s (${category})`);
+    console.log(
+      `🔄 Scheduled retry #${attemptNumber} for ${task.display_id} in ${delay / 1000}s (${category})`,
+    );
 
     return scheduled;
   }
@@ -643,8 +712,8 @@ export class RetryScheduler {
    */
   getScheduledRetry(id: string): ScheduledRetry | undefined {
     return getOne<ScheduledRetry>(
-      'SELECT * FROM scheduled_retries WHERE id = ?',
-      [id]
+      "SELECT * FROM scheduled_retries WHERE id = ?",
+      [id],
     );
   }
 
@@ -653,11 +722,14 @@ export class RetryScheduler {
    */
   getDueRetries(): ScheduledRetry[] {
     const now = new Date().toISOString();
-    return query<ScheduledRetry>(`
+    return query<ScheduledRetry>(
+      `
       SELECT * FROM scheduled_retries
       WHERE status = 'pending' AND next_retry_at <= ?
       ORDER BY next_retry_at ASC
-    `, [now]);
+    `,
+      [now],
+    );
   }
 
   /**
@@ -675,22 +747,28 @@ export class RetryScheduler {
    * Mark retry as executed
    */
   markExecuted(retryId: string): void {
-    run(`
+    run(
+      `
       UPDATE scheduled_retries
       SET status = 'executed', executed_at = datetime('now')
       WHERE id = ?
-    `, [retryId]);
+    `,
+      [retryId],
+    );
   }
 
   /**
    * Cancel pending retries for a task
    */
   cancelRetries(taskId: string): number {
-    const result = run(`
+    const result = run(
+      `
       UPDATE scheduled_retries
       SET status = 'cancelled'
       WHERE task_id = ? AND status = 'pending'
-    `, [taskId]);
+    `,
+      [taskId],
+    );
 
     return result?.changes || 0;
   }
@@ -699,11 +777,14 @@ export class RetryScheduler {
    * Get retry history for a task
    */
   getRetryHistory(taskId: string): ScheduledRetry[] {
-    return query<ScheduledRetry>(`
+    return query<ScheduledRetry>(
+      `
       SELECT * FROM scheduled_retries
       WHERE task_id = ?
       ORDER BY attempt_number ASC
-    `, [taskId]);
+    `,
+      [taskId],
+    );
   }
 
   /**
@@ -736,10 +817,13 @@ export class RetryScheduler {
       GROUP BY failure_category
     `);
 
-    const byCategoryCount = byCategory.reduce((acc, row) => {
-      acc[row.category] = row.count;
-      return acc;
-    }, {} as Record<FailureCategory, number>);
+    const byCategoryCount = byCategory.reduce(
+      (acc, row) => {
+        acc[row.category] = row.count;
+        return acc;
+      },
+      {} as Record<FailureCategory, number>,
+    );
 
     return {
       pendingRetries: stats?.pending || 0,
@@ -756,16 +840,17 @@ export default retryScheduler;
 ```
 
 #### 4. Integrated Retry System
+
 **File:** `parent-harness/orchestrator/src/retry/index.ts`
 
 ```typescript
-import { FailureAnalyzer } from './failure-analyzer.js';
-import { RetryStrategy } from './retry-strategy.js';
-import { RetryScheduler } from './retry-scheduler.js';
-import { bus } from '../events/bus.js';
-import * as tasks from '../db/tasks.js';
-import { transitionTask } from '../events/task-state-machine.js';
-import { ws } from '../websocket.js';
+import { FailureAnalyzer } from "./failure-analyzer.js";
+import { RetryStrategy } from "./retry-strategy.js";
+import { RetryScheduler } from "./retry-scheduler.js";
+import { bus } from "../events/bus.js";
+import * as tasks from "../db/tasks.js";
+import { transitionTask } from "../events/task-state-machine.js";
+import { ws } from "../websocket.js";
 
 const analyzer = new FailureAnalyzer();
 const strategy = new RetryStrategy();
@@ -774,11 +859,15 @@ const scheduler = new RetryScheduler();
 /**
  * Handle task failure - analyze and schedule retry
  */
-export async function handleTaskFailure(taskId: string, error: string, context?: {
-  agentId?: string;
-  sessionId?: string;
-  sessionOutput?: string;
-}): Promise<void> {
+export async function handleTaskFailure(
+  taskId: string,
+  error: string,
+  context?: {
+    agentId?: string;
+    sessionId?: string;
+    sessionOutput?: string;
+  },
+): Promise<void> {
   const task = tasks.getTask(taskId);
   if (!task) {
     console.error(`Cannot handle failure - task ${taskId} not found`);
@@ -794,10 +883,14 @@ export async function handleTaskFailure(taskId: string, error: string, context?:
     sessionOutput: context?.sessionOutput,
   });
 
-  console.log(`   Category: ${analysis.category} (confidence: ${(analysis.confidence * 100).toFixed(0)}%)`);
+  console.log(
+    `   Category: ${analysis.category} (confidence: ${(analysis.confidence * 100).toFixed(0)}%)`,
+  );
   console.log(`   Pattern: ${analysis.errorPattern}`);
   if (analysis.location) {
-    console.log(`   Location: ${analysis.location.file}${analysis.location.line ? `:${analysis.location.line}` : ''}`);
+    console.log(
+      `   Location: ${analysis.location.file}${analysis.location.line ? `:${analysis.location.line}` : ""}`,
+    );
   }
 
   // 2. Determine retry action
@@ -806,26 +899,28 @@ export async function handleTaskFailure(taskId: string, error: string, context?:
     lastAttemptError: error,
   });
 
-  console.log(`   Decision: ${decision.action} (delay: ${decision.delay / 1000}s)`);
+  console.log(
+    `   Decision: ${decision.action} (delay: ${decision.delay / 1000}s)`,
+  );
   console.log(`   Guidance: ${decision.guidance}`);
 
   // 3. Execute recovery action
   if (!decision.shouldRetry) {
     // Max retries exceeded - block task
     console.log(`❌ Max retries exceeded - blocking ${task.display_id}`);
-    transitionTask(taskId, 'blocked', {
+    transitionTask(taskId, "blocked", {
       reason: decision.guidance,
       error,
     });
 
-    bus.emit('task:retry_exhausted', { task, analysis, decision });
-    ws.broadcast('task:retry_exhausted', { taskId, reason: decision.guidance });
+    bus.emit("task:retry_exhausted", { task, analysis, decision });
+    ws.broadcast("task:retry_exhausted", { taskId, reason: decision.guidance });
     return;
   }
 
   // 4. Schedule retry based on action
   switch (decision.action) {
-    case 'retry_with_guidance': {
+    case "retry_with_guidance": {
       // Schedule retry with fix guidance
       const scheduled = scheduler.schedule(
         taskId,
@@ -833,7 +928,7 @@ export async function handleTaskFailure(taskId: string, error: string, context?:
         decision.action,
         decision.delay,
         error,
-        decision.guidance
+        decision.guidance,
       );
 
       // Update task description with guidance
@@ -843,8 +938,8 @@ export async function handleTaskFailure(taskId: string, error: string, context?:
 
       tasks.updateTask(taskId, { description: updatedDescription });
 
-      bus.emit('task:retry_scheduled', { task, scheduled, analysis, decision });
-      ws.broadcast('task:retry_scheduled', {
+      bus.emit("task:retry_scheduled", { task, scheduled, analysis, decision });
+      ws.broadcast("task:retry_scheduled", {
         taskId,
         attemptNumber: scheduled.attempt_number,
         nextRetryAt: scheduled.next_retry_at,
@@ -853,7 +948,7 @@ export async function handleTaskFailure(taskId: string, error: string, context?:
       break;
     }
 
-    case 'retry_with_spec_refresh': {
+    case "retry_with_spec_refresh": {
       // Request spec agent to clarify requirements
       console.log(`📋 Requesting spec refresh for ${task.display_id}`);
 
@@ -862,49 +957,57 @@ export async function handleTaskFailure(taskId: string, error: string, context?:
         display_id: `${task.display_id}-SPEC-REVIEW`,
         title: `Review specification for ${task.display_id}`,
         description: `The task "${task.title}" has failed ${task.retry_count} times with ${analysis.category} errors.\n\nPlease review and clarify the specification.\n\n**Recent error:**\n${error}\n\n**Suggested fix:**\n${decision.guidance}`,
-        category: 'specification',
+        category: "specification",
         priority: task.priority,
         task_list_id: task.task_list_id,
       });
 
       // Block original task pending spec review
-      transitionTask(taskId, 'blocked', {
-        reason: 'Awaiting spec clarification',
+      transitionTask(taskId, "blocked", {
+        reason: "Awaiting spec clarification",
         error,
       });
 
-      bus.emit('task:spec_refresh_requested', { task, specTask, analysis });
-      ws.broadcast('task:spec_refresh_requested', { taskId, specTaskId: specTask.id });
+      bus.emit("task:spec_refresh_requested", { task, specTask, analysis });
+      ws.broadcast("task:spec_refresh_requested", {
+        taskId,
+        specTaskId: specTask.id,
+      });
       break;
     }
 
-    case 'escalate_to_human': {
+    case "escalate_to_human": {
       // Block task and send Telegram notification
       console.log(`🚨 Escalating ${task.display_id} to human`);
 
-      transitionTask(taskId, 'blocked', {
-        reason: 'Escalated to human after multiple failures',
+      transitionTask(taskId, "blocked", {
+        reason: "Escalated to human after multiple failures",
         error,
       });
 
       // TODO: Send Telegram notification
 
-      bus.emit('task:escalated', { task, analysis, decision });
-      ws.broadcast('task:escalated', { taskId, reason: decision.guidance });
+      bus.emit("task:escalated", { task, analysis, decision });
+      ws.broadcast("task:escalated", { taskId, reason: decision.guidance });
       break;
     }
 
-    case 'mark_as_blocked': {
+    case "mark_as_blocked": {
       // Terminal failure - block permanently
-      console.log(`🛑 Marking ${task.display_id} as blocked (terminal failure)`);
+      console.log(
+        `🛑 Marking ${task.display_id} as blocked (terminal failure)`,
+      );
 
-      transitionTask(taskId, 'blocked', {
+      transitionTask(taskId, "blocked", {
         reason: decision.guidance,
         error,
       });
 
-      bus.emit('task:permanently_blocked', { task, analysis });
-      ws.broadcast('task:permanently_blocked', { taskId, reason: decision.guidance });
+      bus.emit("task:permanently_blocked", { task, analysis });
+      ws.broadcast("task:permanently_blocked", {
+        taskId,
+        reason: decision.guidance,
+      });
       break;
     }
   }
@@ -934,14 +1037,16 @@ export async function processDueRetries(): Promise<number> {
       }
 
       // Check if task still in failed state
-      if (task.status !== 'failed') {
-        console.log(`Task ${task.display_id} no longer failed (${task.status}) - skipping retry`);
+      if (task.status !== "failed") {
+        console.log(
+          `Task ${task.display_id} no longer failed (${task.status}) - skipping retry`,
+        );
         scheduler.markExecuted(retry.id);
         continue;
       }
 
       // Transition task back to pending
-      const result = transitionTask(retry.task_id, 'pending', {
+      const result = transitionTask(retry.task_id, "pending", {
         reason: `Retry attempt #${retry.attempt_number} (${retry.failure_category})`,
       });
 
@@ -949,9 +1054,11 @@ export async function processDueRetries(): Promise<number> {
         scheduler.markExecuted(retry.id);
         processedCount++;
 
-        console.log(`✅ Retried ${task.display_id} (attempt #${retry.attempt_number})`);
+        console.log(
+          `✅ Retried ${task.display_id} (attempt #${retry.attempt_number})`,
+        );
 
-        bus.emit('task:retry_executed', { task, retry });
+        bus.emit("task:retry_executed", { task, retry });
         ws.taskUpdated(tasks.getTask(retry.task_id));
       } else {
         console.error(`Failed to retry ${task.display_id}: ${result.error}`);
@@ -969,14 +1076,18 @@ export async function processDueRetries(): Promise<number> {
  */
 export function initializeRetrySystem(): void {
   const pending = scheduler.getAllPendingRetries();
-  console.log(`🔄 Retry system initialized - ${pending.length} pending retries`);
+  console.log(
+    `🔄 Retry system initialized - ${pending.length} pending retries`,
+  );
 
   // Log next few retries
   const upcoming = pending.slice(0, 5);
   for (const retry of upcoming) {
     const task = tasks.getTask(retry.task_id);
     const timeUntil = new Date(retry.next_retry_at).getTime() - Date.now();
-    console.log(`   - ${task?.display_id || retry.task_id}: ${retry.failure_category} in ${Math.round(timeUntil / 1000)}s`);
+    console.log(
+      `   - ${task?.display_id || retry.task_id}: ${retry.failure_category} in ${Math.round(timeUntil / 1000)}s`,
+    );
   }
 }
 
@@ -992,14 +1103,19 @@ export default {
 ```
 
 #### 5. Integration with Orchestrator
+
 **File:** `parent-harness/orchestrator/src/orchestrator/index.ts` (modifications)
 
 ```typescript
-import { handleTaskFailure, processDueRetries, initializeRetrySystem } from '../retry/index.js';
+import {
+  handleTaskFailure,
+  processDueRetries,
+  initializeRetrySystem,
+} from "../retry/index.js";
 
 // In startOrchestrator():
 export async function startOrchestrator(): Promise<void> {
-  console.log('🚀 Starting Vibe Parent Harness Orchestrator...');
+  console.log("🚀 Starting Vibe Parent Harness Orchestrator...");
 
   // ... existing initialization ...
 
@@ -1019,8 +1135,8 @@ async function tick(): Promise<void> {
   if (tickCount % 1 === 0) {
     await crashProtect(
       async () => processDueRetries(),
-      'processDueRetries'
-    ).then(count => {
+      "processDueRetries",
+    ).then((count) => {
       if (count > 0) {
         console.log(`🔄 Processed ${count} due retries`);
       }
@@ -1044,12 +1160,17 @@ export function failTask(taskId: string, agentId: string, error: string): void {
   tasks.failTask(taskId);
 
   // Update agent
-  agents.updateAgentStatus(agentId, 'idle', null, null);
+  agents.updateAgentStatus(agentId, "idle", null, null);
   agents.incrementTasksFailed(agentId);
 
   // Update session
   if (agent.current_session_id) {
-    sessions.updateSessionStatus(agent.current_session_id, 'failed', undefined, error);
+    sessions.updateSessionStatus(
+      agent.current_session_id,
+      "failed",
+      undefined,
+      error,
+    );
   }
 
   // Log event
@@ -1063,7 +1184,7 @@ export function failTask(taskId: string, agentId: string, error: string): void {
   handleTaskFailure(taskId, error, {
     agentId,
     sessionId: agent.current_session_id || undefined,
-  }).catch(err => {
+  }).catch((err) => {
     console.error(`Retry handling failed for ${task.display_id}:`, err);
   });
 }
@@ -1231,80 +1352,98 @@ ON failure_patterns(failure_category);
 **File:** `tests/parent-harness/retry-system.test.ts`
 
 ```typescript
-describe('Retry System', () => {
-  describe('FailureAnalyzer', () => {
-    it('classifies transient errors correctly', () => {
+describe("Retry System", () => {
+  describe("FailureAnalyzer", () => {
+    it("classifies transient errors correctly", () => {
       const analyzer = new FailureAnalyzer();
-      const analysis = analyzer.analyze('Network timeout: ETIMEDOUT');
-      expect(analysis.category).toBe('transient');
+      const analysis = analyzer.analyze("Network timeout: ETIMEDOUT");
+      expect(analysis.category).toBe("transient");
       expect(analysis.confidence).toBeGreaterThan(0.8);
     });
 
-    it('classifies TypeScript errors with location', () => {
+    it("classifies TypeScript errors with location", () => {
       const error = 'file.ts(45,12): error TS2304: Cannot find name "foo"';
       const analysis = analyzer.analyze(error);
-      expect(analysis.category).toBe('code_error');
-      expect(analysis.location?.file).toBe('file.ts');
+      expect(analysis.category).toBe("code_error");
+      expect(analysis.location?.file).toBe("file.ts");
       expect(analysis.location?.line).toBe(45);
     });
 
-    it('classifies test failures', () => {
-      const error = 'Test failed: expect(received).toEqual(expected)';
+    it("classifies test failures", () => {
+      const error = "Test failed: expect(received).toEqual(expected)";
       const analysis = analyzer.analyze(error);
-      expect(analysis.category).toBe('test_failure');
+      expect(analysis.category).toBe("test_failure");
     });
   });
 
-  describe('RetryStrategy', () => {
-    it('applies category-specific delays', () => {
+  describe("RetryStrategy", () => {
+    it("applies category-specific delays", () => {
       const strategy = new RetryStrategy();
       const decision = strategy.determineAction(
-        { category: 'transient', confidence: 0.9, errorPattern: 'timeout', suggestedFix: 'retry', isRetryable: true },
-        0
+        {
+          category: "transient",
+          confidence: 0.9,
+          errorPattern: "timeout",
+          suggestedFix: "retry",
+          isRetryable: true,
+        },
+        0,
       );
       expect(decision.delay).toBe(30_000); // 30s for first transient retry
     });
 
-    it('escalates to human after 3 failures', () => {
+    it("escalates to human after 3 failures", () => {
       const strategy = new RetryStrategy();
       const decision = strategy.determineAction(
-        { category: 'code_error', confidence: 0.85, errorPattern: 'TS2304', suggestedFix: 'fix import', isRetryable: true },
-        3
+        {
+          category: "code_error",
+          confidence: 0.85,
+          errorPattern: "TS2304",
+          suggestedFix: "fix import",
+          isRetryable: true,
+        },
+        3,
       );
-      expect(decision.action).toBe('escalate_to_human');
+      expect(decision.action).toBe("escalate_to_human");
     });
 
-    it('blocks task after max retries', () => {
+    it("blocks task after max retries", () => {
       const strategy = new RetryStrategy();
       const decision = strategy.determineAction(
-        { category: 'unknown', confidence: 0.5, errorPattern: 'unknown', suggestedFix: 'retry', isRetryable: true },
-        5
+        {
+          category: "unknown",
+          confidence: 0.5,
+          errorPattern: "unknown",
+          suggestedFix: "retry",
+          isRetryable: true,
+        },
+        5,
       );
       expect(decision.shouldRetry).toBe(false);
-      expect(decision.action).toBe('mark_as_blocked');
+      expect(decision.action).toBe("mark_as_blocked");
     });
   });
 
-  describe('RetryScheduler', () => {
-    it('schedules retry with correct delay', () => {
+  describe("RetryScheduler", () => {
+    it("schedules retry with correct delay", () => {
       const scheduler = new RetryScheduler();
-      const task = createMockTask({ id: 'test-1', retry_count: 0 });
+      const task = createMockTask({ id: "test-1", retry_count: 0 });
 
       const scheduled = scheduler.schedule(
         task.id,
-        'code_error',
-        'retry_with_guidance',
+        "code_error",
+        "retry_with_guidance",
         120_000,
-        'TS2304',
-        'Fix import'
+        "TS2304",
+        "Fix import",
       );
 
       expect(scheduled.delay_ms).toBe(120_000);
-      expect(scheduled.status).toBe('pending');
+      expect(scheduled.status).toBe("pending");
       expect(scheduled.attempt_number).toBe(1);
     });
 
-    it('retrieves due retries', () => {
+    it("retrieves due retries", () => {
       // Schedule retry in past
       // Query getDueRetries()
       // Expect retry to be returned
@@ -1318,21 +1457,21 @@ describe('Retry System', () => {
 **File:** `tests/integration/retry-workflow.test.ts`
 
 ```typescript
-describe('Retry Workflow', () => {
-  it('E2E: task fails → analysis → schedule → execute retry', async () => {
+describe("Retry Workflow", () => {
+  it("E2E: task fails → analysis → schedule → execute retry", async () => {
     // 1. Create task
     const task = createTask({
-      display_id: 'TEST-RETRY-001',
-      title: 'Test retry flow',
+      display_id: "TEST-RETRY-001",
+      title: "Test retry flow",
     });
 
     // 2. Simulate failure
-    await handleTaskFailure(task.id, 'Network timeout: ETIMEDOUT');
+    await handleTaskFailure(task.id, "Network timeout: ETIMEDOUT");
 
     // 3. Verify retry scheduled
     const pending = retryScheduler.getAllPendingRetries();
     expect(pending.length).toBe(1);
-    expect(pending[0].failure_category).toBe('transient');
+    expect(pending[0].failure_category).toBe("transient");
 
     // 4. Advance time to retry
     jest.advanceTimersByTime(30_000);
@@ -1343,15 +1482,15 @@ describe('Retry Workflow', () => {
 
     // 6. Verify task back to pending
     const updated = getTask(task.id);
-    expect(updated.status).toBe('pending');
+    expect(updated.status).toBe("pending");
   });
 
-  it('Spec refresh triggered after multiple code errors', async () => {
+  it("Spec refresh triggered after multiple code errors", async () => {
     // Fail task 3 times with code errors
     // Verify spec review task created
   });
 
-  it('Task blocked after max retries', async () => {
+  it("Task blocked after max retries", async () => {
     // Fail task 5 times
     // Verify task status = 'blocked'
     // Verify retry_exhausted event emitted
@@ -1374,32 +1513,40 @@ describe('Retry Workflow', () => {
 ## Risks & Mitigations
 
 ### Risk 1: Incorrect Failure Classification
+
 **Impact:** High (wrong retry delays, ineffective recovery)
 **Mitigation:**
+
 - Conservative confidence scores (require > 0.8 for specific categories)
 - Default to 'unknown' category with medium delays
 - Log classification decisions for monitoring
 - Allow manual reclassification via admin API
 
 ### Risk 2: Retry Storms
+
 **Impact:** High (overwhelm agents, waste resources)
 **Mitigation:**
+
 - Max 5 retries per task (hard limit)
 - Exponential backoff ensures delays increase
 - Pending retry count monitoring
 - Circuit breaker: pause retries if > 50 pending
 
 ### Risk 3: State Transition Deadlocks
+
 **Impact:** Medium (tasks stuck in failed state)
 **Mitigation:**
+
 - Validate transitions through state machine
 - Use database transactions for atomic updates
 - Timeout blocked tasks after 24 hours
 - Manual recovery API for stuck tasks
 
 ### Risk 4: Database Growth (scheduled_retries table)
+
 **Impact:** Low (disk space over time)
 **Mitigation:**
+
 - Auto-archive executed retries > 30 days old
 - Periodic cleanup job
 - Index optimization for pending queries
@@ -1409,29 +1556,34 @@ describe('Retry Workflow', () => {
 ## Implementation Plan
 
 ### Phase 1: Core Infrastructure (3-4 hours)
+
 1. Create `failure-analyzer.ts` with error classification
 2. Create `retry-strategy.ts` with category-specific configs
 3. Create `retry-scheduler.ts` with database layer
 4. Add `scheduled_retries` table migration
 
 ### Phase 2: Integration (2-3 hours)
+
 5. Create `retry/index.ts` unified interface
 6. Integrate `handleTaskFailure()` into `orchestrator/index.ts`
 7. Add `processDueRetries()` to orchestrator tick
 8. Add `initializeRetrySystem()` to startup
 
 ### Phase 3: Event System (1-2 hours)
+
 9. Emit retry events via event bus
 10. Add WebSocket broadcasting for dashboard
 11. Test event flow end-to-end
 
 ### Phase 4: Testing (3-4 hours)
+
 12. Write unit tests for analyzer, strategy, scheduler
 13. Write integration tests for full workflow
 14. Manual testing with real failures
 15. Performance testing (orchestrator overhead)
 
 ### Phase 5: Documentation & Polish (1 hour)
+
 16. Update STRATEGIC_PLAN.md progress
 17. Add retry flow diagrams to docs
 18. Document recovery action behaviors

@@ -19,12 +19,14 @@ This task represents the **integration layer** that brings together all three Ph
 ### Problem Statement
 
 Prior to this integration:
+
 - Each context source existed independently (Q&A sync, profile formatting, web research)
 - No unified mechanism to pass all context to evaluators
 - Evaluators had access to idea content but lacked structured data, creator capabilities, and external market validation
 - Result: Low-confidence scores (0.3-0.5) and generic reasoning lacking evidence
 
 After integration:
+
 - All three context sources flow through evaluation pipeline
 - Each specialized evaluator receives category-relevant excerpts
 - Evaluators cite specific evidence from Q&A, profiles, and research
@@ -140,6 +142,7 @@ After integration:
 #### 1. Context Assembly (scripts/evaluate.ts)
 
 **Functions:**
+
 - `getStructuredContext(ideaId)` → StructuredEvaluationContext
 - `getEvaluationProfileContext(ideaId)` → ProfileContext
 - `conductPreEvaluationResearch(content, claims, tracker, location)` → ResearchResult
@@ -150,13 +153,17 @@ After integration:
 // 1. Load profile context
 const profileContext = await getEvaluationProfileContext(ideaData.id);
 if (profileContext) {
-  logInfo("Found user profile - Personal Fit criteria will be evaluated with full context");
+  logInfo(
+    "Found user profile - Personal Fit criteria will be evaluated with full context",
+  );
 }
 
 // 2. Load structured Q&A context
 const structuredContext = await getStructuredContext(ideaData.id);
 if (structuredContext && structuredContext.coverage.overall > 0) {
-  logInfo(`Found structured answers - Coverage: ${Math.round(structuredContext.coverage.overall * 100)}%`);
+  logInfo(
+    `Found structured answers - Coverage: ${Math.round(structuredContext.coverage.overall * 100)}%`,
+  );
 }
 
 // 3. Conduct web research
@@ -178,14 +185,15 @@ const v2Result = await runAllSpecializedEvaluators(
   ideaContent,
   costTracker,
   broadcaster,
-  profileContext,      // ← Profile context
-  structuredContext,   // ← Q&A context
-  research,            // ← Research context
-  strategicContext,    // ← Positioning context (bonus)
+  profileContext, // ← Profile context
+  structuredContext, // ← Q&A context
+  research, // ← Research context
+  strategicContext, // ← Positioning context (bonus)
 );
 ```
 
 **Key Design Decisions:**
+
 - All context loaded sequentially before evaluation (not during)
 - Research phase can be skipped if WebSearch unavailable
 - Null-safe: evaluators handle missing context gracefully
@@ -209,10 +217,7 @@ const structuredSection = formatStructuredDataForPrompt(
   category,
 );
 
-const researchSection = formatResearchForCategory(
-  research ?? null,
-  category,
-);
+const researchSection = formatResearchForCategory(research ?? null, category);
 
 const strategicSection = formatStrategicContextForPrompt(
   strategicContext ?? null,
@@ -239,6 +244,7 @@ Provide a thorough evaluation for each of the ${criteria.length} criteria.`;
 ```
 
 **Context Ordering:**
+
 1. Research section (external validation first)
 2. Structured Q&A section (user-provided answers)
 3. Strategic positioning section (user's choices)
@@ -311,6 +317,7 @@ ${extractField(profile.lifeStageContext, "Tolerance") || "Not specified"}
 ```
 
 **Key Features:**
+
 - Category-specific excerpts (not full profile for all)
 - Explicit instructions on how to use profile data
 - Graceful fallback when profile missing
@@ -341,7 +348,7 @@ ${research.marketSize.userClaim ? `*User claimed: ${research.marketSize.userClai
 ${research.trends.evidence ? `Evidence: ${research.trends.evidence}` : ""}
 
 **Discovered Competitors:**
-${research.competitors.discovered.map(c => `- ${c}`).join("\n")}
+${research.competitors.discovered.map((c) => `- ${c}`).join("\n")}
 
 **Geographic Analysis:**
 ${formatGeographicData(research.geographicAnalysis)}
@@ -355,7 +362,7 @@ ${formatGeographicData(research.geographicAnalysis)}
 **Assessment:** ${research.techFeasibility.assessment}
 
 **Production Examples:**
-${research.techFeasibility.examples.map(e => `- ${e}`).join("\n")}
+${research.techFeasibility.examples.map((e) => `- ${e}`).join("\n")}
 
 *Sources: ${research.techFeasibility.sources.join(", ")}*`;
   }
@@ -365,6 +372,7 @@ ${research.techFeasibility.examples.map(e => `- ${e}`).join("\n")}
 ```
 
 **Key Features:**
+
 - Market evaluator gets full market intelligence
 - Solution evaluator gets tech feasibility only
 - Source attribution for verifiable claims
@@ -393,7 +401,9 @@ export function formatStructuredDataForPrompt(
   let section = `## Structured Development Answers (${category.toUpperCase()} category)\n\n`;
 
   for (const [field, answer] of Object.entries(categoryData)) {
-    const fieldLabel = field.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+    const fieldLabel = field
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (l) => l.toUpperCase());
     section += `**${fieldLabel}:** ${answer}\n\n`;
   }
 
@@ -402,6 +412,7 @@ export function formatStructuredDataForPrompt(
 ```
 
 **Key Features:**
+
 - Only shows answers relevant to current category
 - Human-readable field labels
 - Organized by category (problem, solution, feasibility, fit, market, risk)
@@ -419,6 +430,7 @@ npm run evaluate e2e-test-smart-wellness-tracker
 ```
 
 **Expected Output:**
+
 ```
 Found user profile - Personal Fit criteria will be evaluated with full context
 Found structured answers - Coverage: 87%
@@ -427,6 +439,7 @@ Research phase completed (4 searches)
 ```
 
 **Verification:**
+
 - ✅ Profile context logged if linked
 - ✅ Q&A coverage percentage displayed
 - ✅ Research searches performed count shown
@@ -443,14 +456,15 @@ export async function runSpecializedEvaluator(
   costTracker: CostTracker,
   broadcaster?: Broadcaster,
   _roundNumber?: number,
-  profileContext?: ProfileContext | null,      // ← TASK-02
-  structuredContext?: StructuredEvaluationContext | null,  // ← TASK-01
-  research?: ResearchResult | null,            // ← TASK-03
+  profileContext?: ProfileContext | null, // ← TASK-02
+  structuredContext?: StructuredEvaluationContext | null, // ← TASK-01
+  research?: ResearchResult | null, // ← TASK-03
   strategicContext?: StrategicPositioningContext | null,
-): Promise<EvaluationResult[]>
+): Promise<EvaluationResult[]>;
 ```
 
 **Verification:**
+
 - ✅ All 3 context parameters present in signature
 - ✅ Passed from `runAllSpecializedEvaluators()` (line 586)
 - ✅ Used in prompt assembly (lines 351-369)
@@ -464,6 +478,7 @@ npm run evaluate e2e-test-smart-wellness-tracker --verbose
 ```
 
 **Expected Behavior:**
+
 - ✅ Feasibility evaluator receives profile skills + time availability
 - ✅ Market evaluator receives profile network + research market data
 - ✅ Risk evaluator receives profile runway + risk tolerance
@@ -482,6 +497,7 @@ cat ideas/e2e-test-smart-wellness-tracker/evaluation.md
 ```
 
 **Expected Reasoning Quality:**
+
 - ✅ Cites specific Q&A answers ("The creator stated...")
 - ✅ References profile data ("With 10 years embedded systems experience...")
 - ✅ Mentions research findings ("External research shows TAM of $8.2B...")
@@ -500,6 +516,7 @@ npm run evaluate test-minimal
 ```
 
 **Expected Behavior:**
+
 - ✅ Evaluation completes without errors
 - ✅ Logs show "No user profile available"
 - ✅ Logs show "No structured answers available"
@@ -533,6 +550,7 @@ EOF
 ```
 
 **Expected Results:**
+
 ```
 problem      | 7.2 | 0.82
 solution     | 6.8 | 0.76
@@ -543,6 +561,7 @@ fit          | 9.1 | 0.92  ← High confidence with full profile
 ```
 
 **Verification:**
+
 - ✅ All categories scored (6/6)
 - ✅ Average confidence >0.8 (context improves confidence)
 - ✅ Fit category highest confidence (full profile available)
@@ -607,6 +626,7 @@ fit          | 9.1 | 0.92  ← High confidence with full profile
 ### Input: Complete Context Available
 
 **Profile:**
+
 ```
 Skills: 10 years embedded systems, TinyML expertise
 Time: 15 hrs/week available
@@ -615,6 +635,7 @@ Risk Tolerance: Moderate (has fallback employment)
 ```
 
 **Q&A Answers (development.md):**
+
 ```
 Q: What specific technical skills do you have?
 A: 10 years embedded systems including 3 years TinyML on ARM Cortex-M processors.
@@ -627,6 +648,7 @@ A: 18 months personal savings + $150k angel commitments = $280k total.
 ```
 
 **Research Results:**
+
 ```
 Market Size (verified): TAM $8.2B (wearables), SAM $1.1B (health tracking)
 Competitors: Fitbit, Whoop, Oura (discovered), Apple Watch, Garmin
@@ -644,16 +666,25 @@ const profileContext = await getEvaluationProfileContext(ideaId);
 const structuredContext = await getStructuredContext(ideaId);
 // → { answers: { feasibility: { skills: "10 years...", mvp: "8 months..." } }, coverage: { overall: 0.87 } }
 
-const research = await conductPreEvaluationResearch(content, claims, tracker, location);
+const research = await conductPreEvaluationResearch(
+  content,
+  claims,
+  tracker,
+  location,
+);
 // → { marketSize: { verified: "$8.2B TAM" }, competitors: { discovered: ["Oura"] }, ... }
 
 // 2. Pass to evaluators
 await runAllSpecializedEvaluators(
-  slug, ideaId, ideaContent, costTracker, broadcaster,
-  profileContext,    // ← TASK-02
+  slug,
+  ideaId,
+  ideaContent,
+  costTracker,
+  broadcaster,
+  profileContext, // ← TASK-02
   structuredContext, // ← TASK-01
-  research,          // ← TASK-03
-  strategicContext
+  research, // ← TASK-03
+  strategicContext,
 );
 ```
 
@@ -728,9 +759,7 @@ Provide a thorough evaluation for each of the 5 criteria.
         "Shipped 2 consumer hardware products",
         "8 months to functional prototype estimate"
       ],
-      "gapsIdentified": [
-        "Limited FDA regulatory experience"
-      ]
+      "gapsIdentified": ["Limited FDA regulatory experience"]
     },
     {
       "criterion": "Resource Requirements",
@@ -749,6 +778,7 @@ Provide a thorough evaluation for each of the 5 criteria.
 ```
 
 **Key Improvements from Context:**
+
 - **Before (no context):** "Feasibility is uncertain without knowing creator's capabilities" (confidence: 0.4)
 - **After (with context):** "Creator has exact skills needed, realistic timeline, sufficient capital" (confidence: 0.88)
 
@@ -971,6 +1001,7 @@ This specification documents the **fully implemented** integration of all three 
 **Status:** Production-ready, in active use.
 
 **Quality Impact:**
+
 - Confidence: 0.42 → 0.83 (+98%)
 - Evidence citations: 0.3 → 2.8 per evaluation (+833%)
 - Low-confidence evals: 68% → 12% (-82%)

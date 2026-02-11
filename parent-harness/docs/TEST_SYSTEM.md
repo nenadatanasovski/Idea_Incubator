@@ -5,23 +5,25 @@ Complete specification for test definitions, execution, and self-healing.
 ## Core Concept
 
 Tests are not just recorded - they trigger a **self-healing loop**:
+
 ```
 Test fails → Agent analyzes failure → Fixes code → Retry → Repeat until pass
 ```
 
 ## Test Types
 
-| Type | Purpose | Speed | Runner |
-|------|---------|-------|--------|
-| unit | Isolated function tests | Fast | Jest/Vitest |
-| integration | API/service tests | Medium | Jest |
-| e2e | Browser automation | Slow | Agent Browser (Claude Code skill) |
-| e2e-backup | Browser automation fallback | Slow | Puppeteer MCP |
-| verification | Phase gate checks | Medium | Bash scripts |
-| lint | Code quality | Fast | ESLint/Prettier |
-| typecheck | Type safety | Fast | tsc |
+| Type         | Purpose                     | Speed  | Runner                            |
+| ------------ | --------------------------- | ------ | --------------------------------- |
+| unit         | Isolated function tests     | Fast   | Jest/Vitest                       |
+| integration  | API/service tests           | Medium | Jest                              |
+| e2e          | Browser automation          | Slow   | Agent Browser (Claude Code skill) |
+| e2e-backup   | Browser automation fallback | Slow   | Puppeteer MCP                     |
+| verification | Phase gate checks           | Medium | Bash scripts                      |
+| lint         | Code quality                | Fast   | ESLint/Prettier                   |
+| typecheck    | Type safety                 | Fast   | tsc                               |
 
 **Browser Testing Stack:**
+
 - **Primary:** Agent Browser (Vercel Claude Code skill)
 - **Backup:** Puppeteer MCP (if Agent Browser unavailable)
 
@@ -195,6 +197,7 @@ test_fix_attempts
 ## Test Sources
 
 ### 1. Code-Based Tests
+
 ```typescript
 // Discovered from test files
 // Jest: **/*.test.ts, **/*.spec.ts
@@ -202,13 +205,16 @@ test_fix_attempts
 ```
 
 ### 2. PHASES.md Pass Criteria
+
 ```markdown
 **Pass Criteria:**
+
 - [ ] `npm run build` succeeds
-→ Creates test_case with step: "npm run build", assertion: exit_code = 0
+      → Creates test_case with step: "npm run build", assertion: exit_code = 0
 ```
 
 ### 3. Task Agent Created
+
 ```typescript
 // When task has acceptance criteria
 await taskAgent.createTestsFromCriteria(task);
@@ -216,6 +222,7 @@ await taskAgent.createTestsFromCriteria(task);
 ```
 
 ### 4. Planning Agent Created
+
 ```typescript
 // When Planning Agent identifies coverage gap
 await planningAgent.createRegressionTest({
@@ -276,21 +283,25 @@ await planningAgent.createRegressionTest({
 ## Integration Points
 
 ### With Tasks
+
 - Task completion requires linked tests to pass
 - Task Agent creates tests from acceptance criteria
 - Test failures can create bug tasks
 
 ### With Agents
+
 - Build Agent fixes failing tests
 - QA Agent runs verification tests
 - Planning Agent creates regression tests
 
 ### With Phases
+
 - Phase verification = special test suite
 - Must pass before next phase
 - Creates verification test records
 
 ### With CI
+
 - Triggered on git push
 - Results flow back to dashboard
 - Failures trigger fix loop

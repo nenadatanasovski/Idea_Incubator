@@ -28,6 +28,7 @@ The Vibe platform implements a self-improvement feedback loop where users submit
 ### Problem Statement
 
 Without a feedback dashboard widget:
+
 - Product teams have no visibility into feedback volume trends
 - Critical issues may not be identified quickly (buried in noise)
 - Response time SLAs cannot be monitored
@@ -39,6 +40,7 @@ Without a feedback dashboard widget:
 ### Solution
 
 Create an embeddable dashboard widget that:
+
 1. **Displays real-time metrics** - Volume, sentiment, response times with trend arrows
 2. **Visualizes sentiment distribution** - Pie chart breakdown of positive/neutral/negative
 3. **Highlights top issues** - Most reported problems with occurrence counts
@@ -57,19 +59,23 @@ Create an embeddable dashboard widget that:
 ### Functional Requirements
 
 #### FR-1: Feedback Volume Metrics
+
 **Priority:** P0 (Critical)
 
 MUST display three volume metrics with trend indicators:
+
 - **Today**: Total feedback submitted today with % change vs. yesterday
 - **This Week**: Total feedback this week with % change vs. last week
 - **This Month**: Total feedback this month with % change vs. last month
 
 **Trend Indicators:**
+
 - Green ↑ arrow for increasing volume (positive for engagement)
 - Red ↓ arrow for decreasing volume (potential engagement issue)
 - Gray → for flat/stable volume (±5%)
 
 **Display Format:**
+
 ```
 Today: 42 feedback items ↑ +15%
 This Week: 187 items ↑ +8%
@@ -77,46 +83,55 @@ This Month: 623 items ↓ -3%
 ```
 
 **Acceptance Criteria:**
+
 - Metrics recalculate on date boundaries (midnight UTC)
 - Trend calculations compare equivalent time periods
 - Handles zero-state (no feedback yet)
 - Shows loading skeleton during data fetch
 
 #### FR-2: Sentiment Pie Chart
+
 **Priority:** P0 (Critical)
 
 MUST display sentiment distribution as interactive pie chart:
+
 - **Positive**: Feedback score ≥4/5 (green segment)
 - **Neutral**: Feedback score 3/5 (yellow segment)
 - **Negative**: Feedback score ≤2/5 (red segment)
 
 **Sentiment Classification Rules:**
+
 - Bug reports: Always negative (implies broken experience)
 - Feature requests: Neutral (implies missing capability)
 - Satisfaction surveys: Use numeric score (1-5 scale)
 - General feedback: AI-derived sentiment from Intake Agent
 
 **Interactivity:**
+
 - Hover: Show exact count and percentage
 - Click: Filter to show only that sentiment category
 - Legend: Toggle segments on/off
 
 **Acceptance Criteria:**
+
 - Pie chart uses accessible color palette (WCAG 2.1 AA)
 - Percentages sum to 100% (handles rounding)
 - Handles edge case: all feedback one sentiment
 - Shows "No data" state with empty chart
 
 #### FR-3: Top 5 Issues List
+
 **Priority:** P0 (Critical)
 
 MUST display most reported problems with occurrence counts:
+
 - **Ranked List**: Issues sorted by report frequency (descending)
 - **Limit**: Show top 5 issues only
 - **Display Format**: `[Count]× Issue Title`
 - **Issue Grouping**: Similar feedback aggregated by Triage System
 
 **Issue Metadata:**
+
 - Issue title (truncated to 80 characters)
 - Occurrence count (number badge)
 - Severity indicator (critical/high/medium/low color)
@@ -124,6 +139,7 @@ MUST display most reported problems with occurrence counts:
 - Latest report date
 
 **Example Display:**
+
 ```
 1. 🔴 12× Dashboard crashes when loading tasks (CRITICAL)
 2. 🟡  8× Export to CSV fails with large datasets (HIGH)
@@ -133,50 +149,60 @@ MUST display most reported problems with occurrence counts:
 ```
 
 **Acceptance Criteria:**
+
 - Issues update in real-time as new feedback arrives
 - Click issue to see all related feedback items
 - Shows "No issues reported" when list is empty
 - Handles ties (equal counts) with consistent ordering
 
 #### FR-4: Average Response Time Metric
+
 **Priority:** P0 (Critical)
 
 MUST display response time performance vs. SLA target:
+
 - **Metric**: Average time from feedback submission to first response (agent assignment or status change)
 - **Target Comparison**: Visual indicator showing performance vs. 30-second SLA
 - **Format**: `Avg Response Time: 18.5s (Target: 30s) ✓`
 
 **Response Time Categories:**
+
 - **Critical Bug**: Target <60s (red if exceeded)
 - **High Priority**: Target <5 minutes (yellow if exceeded)
 - **Normal Feedback**: Target <30 minutes (green if met)
 
 **Display Variants:**
+
 - Green checkmark ✓ if meeting SLA
 - Yellow warning ⚠ if within 20% of SLA
 - Red alert 🚨 if exceeding SLA
 
 **Acceptance Criteria:**
+
 - Calculates response time from feedback creation to first status change
 - Excludes outliers (>99th percentile) from average
 - Shows P50, P95, P99 on hover
 - Updates every 30 seconds via WebSocket
 
 #### FR-5: Feedback-to-Task Conversion Rate
+
 **Priority:** P0 (Critical)
 
 MUST display conversion funnel metrics:
+
 - **Total Feedback**: All feedback submissions
 - **Triaged**: Feedback that passed intake processing
 - **Tasks Created**: Feedback converted to actionable tasks
 - **Conversion Rate**: (Tasks Created / Total Feedback) × 100%
 
 **Visual Representation:**
+
 - Progress bar showing conversion percentage
 - Target: ≥70% conversion rate (healthy triage)
 - Color coding: Green ≥70%, Yellow 50-69%, Red <50%
 
 **Example Display:**
+
 ```
 Feedback → Task Conversion
 █████████░ 87% (Target: ≥70%) ✓
@@ -184,120 +210,142 @@ Feedback → Task Conversion
 ```
 
 **Acceptance Criteria:**
+
 - Excludes spam/invalid feedback from denominator
 - Handles zero-state (no feedback yet)
 - Shows breakdown by feedback type on hover
 - Updates in real-time as tasks are created
 
 #### FR-6: Filter Controls
+
 **Priority:** P1 (High)
 
 MUST provide filtering capabilities:
+
 - **Date Range**: Today, This Week, This Month, Last 30 Days, Last 90 Days, Custom Range
 - **Feedback Type**: All, Bug Report, Feature Request, Satisfaction Survey, General
 - **Status**: All, New, In Progress, Resolved, Closed, Rejected
 - **Assigned Team**: All, Build Agent, Planning Agent, QA Agent, Unassigned
 
 **Filter Behavior:**
+
 - Filters apply to all widget metrics simultaneously
 - Filters persist across page navigation (URL query params)
 - "Reset Filters" button to clear all selections
 - Filter count badge shows active filter count
 
 **Acceptance Criteria:**
+
 - All metrics update within 500ms of filter change
 - Date range picker supports custom start/end dates
 - Multiple filters combine with AND logic
 - Invalid filter combinations show helpful error message
 
 #### FR-7: Drill-Down Capability
+
 **Priority:** P1 (High)
 
 MUST enable navigation to detailed feedback views:
+
 - **Click Volume Metrics**: Navigate to full feedback list filtered by date range
 - **Click Sentiment Segment**: Navigate to feedback list filtered by sentiment
 - **Click Top Issue**: Navigate to issue detail page showing all related feedback
 - **Click Response Time**: Navigate to performance analytics page
 
 **Modal/Overlay Behavior:**
+
 - Opens feedback detail modal without page navigation (preferred)
 - OR navigates to dedicated feedback page (alternative)
 - Back button/breadcrumb to return to dashboard
 
 **Acceptance Criteria:**
+
 - Click targets have hover states (cursor: pointer)
 - Keyboard navigation supported (Enter key)
 - Modal has proper focus management (trap focus)
 - Deep links work (shareable URLs to filtered views)
 
 #### FR-8: Widget Embedding Modes
+
 **Priority:** P1 (High)
 
 MUST support two embedding modes:
+
 1. **Dashboard Card Mode**: Compact widget for main dashboard (fixed height)
 2. **Standalone Page Mode**: Full-page widget with expanded metrics
 
 **Dashboard Card Mode:**
+
 - Fixed height: 400px
 - Scrollable content if overflow
 - Minimal padding (compact layout)
 - Collapses less critical metrics
 
 **Standalone Page Mode:**
+
 - Full viewport height
 - Additional metrics: Trend charts, agent workload, resolution time
 - Expanded top issues list (10 instead of 5)
 - Export controls visible
 
 **Acceptance Criteria:**
+
 - Mode prop: `<FeedbackWidget mode="card" | "page" />`
 - Card mode fits within dashboard grid (3-column layout)
 - Page mode responsive: 1280px-2560px widths
 - Both modes share same data fetching logic
 
 #### FR-9: Real-time Updates via WebSocket
+
 **Priority:** P0 (Critical)
 
 MUST subscribe to WebSocket events for live updates:
+
 - **Event Types**: `feedback:created`, `feedback:updated`, `feedback:assigned`, `feedback:resolved`
 - **Refresh Interval**: Update metrics within 30 seconds of event
 - **Optimistic Updates**: Immediate UI feedback before server confirmation
 
 **WebSocket Integration:**
+
 ```typescript
-const { connected, subscribe } = useWebSocket()
+const { connected, subscribe } = useWebSocket();
 
 useEffect(() => {
   const unsubscribe = subscribe((message) => {
-    if (message.type.startsWith('feedback:')) {
-      refetchMetrics() // Reload dashboard metrics
+    if (message.type.startsWith("feedback:")) {
+      refetchMetrics(); // Reload dashboard metrics
     }
-  })
-  return unsubscribe
-}, [subscribe, refetchMetrics])
+  });
+  return unsubscribe;
+}, [subscribe, refetchMetrics]);
 ```
 
 **Connection Indicator:**
+
 - Green dot: Connected and live
 - Yellow dot: Connecting/reconnecting
 - Red dot: Disconnected (fallback to polling)
 
 **Acceptance Criteria:**
+
 - Metrics update within 30 seconds of feedback submission
 - Connection indicator reflects actual WebSocket state
 - Automatic reconnection with exponential backoff
 - No memory leaks (proper cleanup on unmount)
 
 #### FR-10: PDF Export Functionality
+
 **Priority:** P2 (Medium)
 
 MUST generate PDF reports with current dashboard data:
+
 - **Export Button**: "Export Report" button in top-right corner
 - **Report Contents**: All visible metrics, charts, and tables
 - **Filename**: `feedback-report-YYYY-MM-DD.pdf`
 - **Branding**: Include Vibe logo and report generation timestamp
 
 **Report Sections:**
+
 1. Executive Summary (volume, sentiment, conversion rate)
 2. Sentiment Distribution Chart
 3. Top 10 Issues Table
@@ -306,11 +354,13 @@ MUST generate PDF reports with current dashboard data:
 6. Filter Settings Used
 
 **Technical Implementation:**
+
 - Client-side generation: Use `jsPDF` + `html2canvas`
 - OR Server-side generation: API endpoint `/api/feedback/export/pdf`
 - Progress indicator during generation (can take 3-5 seconds)
 
 **Acceptance Criteria:**
+
 - PDF matches dashboard visual layout
 - Charts render correctly (not broken/pixelated)
 - Export includes only filtered data (respects active filters)
@@ -319,6 +369,7 @@ MUST generate PDF reports with current dashboard data:
 ### Non-Functional Requirements
 
 #### NFR-1: Performance
+
 - **Initial Load**: Widget renders in <2 seconds (cold start)
 - **Metric Calculation**: All metrics compute in <500ms
 - **WebSocket Latency**: Event → UI update in <30 seconds
@@ -326,6 +377,7 @@ MUST generate PDF reports with current dashboard data:
 - **PDF Generation**: Report generates in <5 seconds
 
 #### NFR-2: Usability
+
 - **Responsive Design**: Support 1280px-2560px screen widths
 - **Color Accessibility**: WCAG 2.1 AA contrast ratios (≥4.5:1)
 - **Keyboard Navigation**: All interactive elements accessible via keyboard
@@ -333,18 +385,21 @@ MUST generate PDF reports with current dashboard data:
 - **Empty States**: Helpful messages when no data available
 
 #### NFR-3: Data Accuracy
+
 - **Metric Precision**: All percentages rounded to 1 decimal place
 - **Time Precision**: Response times rounded to nearest second (or minute if >60s)
 - **Consistency**: Metrics across widget must use same data snapshot
 - **Timezone Handling**: All dates in UTC, displayed in user's local timezone
 
 #### NFR-4: Reliability
+
 - **Error Handling**: Graceful fallback if API fails (show last known data)
 - **Zero State**: Widget functional with no feedback data
 - **Connection Loss**: Degrade gracefully to polling if WebSocket disconnects
 - **Concurrent Updates**: Handle race conditions in metric calculations
 
 #### NFR-5: Maintainability
+
 - **Type Safety**: Full TypeScript coverage for all components
 - **Component Isolation**: Widget self-contained (no global state pollution)
 - **Configuration**: Externalized color schemes, thresholds, SLA targets
@@ -973,78 +1028,78 @@ export function ExportButton({ data, filters }: ExportButtonProps) {
 **useFeedbackMetrics.ts** (`parent-harness/dashboard/src/hooks/useFeedbackMetrics.ts`)
 
 ```typescript
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from "react";
 
-const API_BASE = 'http://localhost:3333/api'
+const API_BASE = "http://localhost:3333/api";
 
 export interface FeedbackMetrics {
   volume: {
-    today: { count: number; trend: number }
-    thisWeek: { count: number; trend: number }
-    thisMonth: { count: number; trend: number }
-  }
+    today: { count: number; trend: number };
+    thisWeek: { count: number; trend: number };
+    thisMonth: { count: number; trend: number };
+  };
   sentiment: {
-    positive: number
-    neutral: number
-    negative: number
-  }
+    positive: number;
+    neutral: number;
+    negative: number;
+  };
   topIssues: Array<{
-    id: string
-    title: string
-    count: number
-    severity: 'critical' | 'high' | 'medium' | 'low'
-    firstReported: string
-    latestReport: string
-  }>
+    id: string;
+    title: string;
+    count: number;
+    severity: "critical" | "high" | "medium" | "low";
+    firstReported: string;
+    latestReport: string;
+  }>;
   responseTime: {
-    average: number
-    target: number
-    p50: number
-    p95: number
-    p99: number
-  }
+    average: number;
+    target: number;
+    p50: number;
+    p95: number;
+    p99: number;
+  };
   conversion: {
-    totalFeedback: number
-    tasksCreated: number
-    conversionRate: number
-    target: number
-  }
+    totalFeedback: number;
+    tasksCreated: number;
+    conversionRate: number;
+    target: number;
+  };
 }
 
 export function useFeedbackMetrics(filters: any) {
-  const [metrics, setMetrics] = useState<FeedbackMetrics | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const [metrics, setMetrics] = useState<FeedbackMetrics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   const fetchMetrics = useCallback(async () => {
     try {
-      setLoading(true)
-      const params = new URLSearchParams(filters)
-      const response = await fetch(`${API_BASE}/feedback/metrics?${params}`)
+      setLoading(true);
+      const params = new URLSearchParams(filters);
+      const response = await fetch(`${API_BASE}/feedback/metrics?${params}`);
 
-      if (!response.ok) throw new Error('Failed to fetch metrics')
+      if (!response.ok) throw new Error("Failed to fetch metrics");
 
-      const data = await response.json()
-      setMetrics(data)
-      setError(null)
+      const data = await response.json();
+      setMetrics(data);
+      setError(null);
     } catch (err) {
-      setError(err as Error)
-      console.error('Failed to fetch feedback metrics:', err)
+      setError(err as Error);
+      console.error("Failed to fetch feedback metrics:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [filters])
+  }, [filters]);
 
   useEffect(() => {
-    fetchMetrics()
-  }, [fetchMetrics])
+    fetchMetrics();
+  }, [fetchMetrics]);
 
   return {
     metrics,
     loading,
     error,
     refetch: fetchMetrics,
-  }
+  };
 }
 ```
 
@@ -1053,35 +1108,39 @@ export function useFeedbackMetrics(filters: any) {
 **feedback.ts** (`parent-harness/orchestrator/src/api/feedback.ts`)
 
 ```typescript
-import { Router } from 'express'
-import { query, getOne } from '../db/index.js'
+import { Router } from "express";
+import { query, getOne } from "../db/index.js";
 
-export const feedbackRouter = Router()
+export const feedbackRouter = Router();
 
 /**
  * GET /api/feedback/metrics - Get dashboard metrics
  */
-feedbackRouter.get('/metrics', async (req, res) => {
+feedbackRouter.get("/metrics", async (req, res) => {
   try {
-    const { dateRange, feedbackType, status, assignedTeam } = req.query
+    const { dateRange, feedbackType, status, assignedTeam } = req.query;
 
     // Calculate date range boundaries
-    const { startDate, endDate } = parseDateRange(dateRange as string)
+    const { startDate, endDate } = parseDateRange(dateRange as string);
 
     // Volume metrics
-    const volume = await calculateVolume(startDate, endDate)
+    const volume = await calculateVolume(startDate, endDate);
 
     // Sentiment distribution
-    const sentiment = await calculateSentiment(startDate, endDate, feedbackType as string)
+    const sentiment = await calculateSentiment(
+      startDate,
+      endDate,
+      feedbackType as string,
+    );
 
     // Top issues
-    const topIssues = await getTopIssues(startDate, endDate, 5)
+    const topIssues = await getTopIssues(startDate, endDate, 5);
 
     // Response time metrics
-    const responseTime = await calculateResponseTime(startDate, endDate)
+    const responseTime = await calculateResponseTime(startDate, endDate);
 
     // Conversion rate
-    const conversion = await calculateConversionRate(startDate, endDate)
+    const conversion = await calculateConversionRate(startDate, endDate);
 
     res.json({
       volume,
@@ -1089,84 +1148,96 @@ feedbackRouter.get('/metrics', async (req, res) => {
       topIssues,
       responseTime,
       conversion,
-    })
+    });
   } catch (error) {
-    console.error('Failed to calculate metrics:', error)
-    res.status(500).json({ error: 'Failed to calculate metrics' })
+    console.error("Failed to calculate metrics:", error);
+    res.status(500).json({ error: "Failed to calculate metrics" });
   }
-})
+});
 
 /**
  * POST /api/feedback/export/pdf - Generate PDF report
  */
-feedbackRouter.post('/export/pdf', async (req, res) => {
+feedbackRouter.post("/export/pdf", async (req, res) => {
   try {
-    const { data, filters } = req.body
+    const { data, filters } = req.body;
 
     // Generate PDF (implementation depends on PDF library choice)
     // Option 1: Use puppeteer to render HTML → PDF server-side
     // Option 2: Accept client-generated PDF and return
 
-    res.setHeader('Content-Type', 'application/pdf')
-    res.setHeader('Content-Disposition', `attachment; filename="feedback-report-${new Date().toISOString().split('T')[0]}.pdf"`)
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="feedback-report-${new Date().toISOString().split("T")[0]}.pdf"`,
+    );
 
     // TODO: Implement PDF generation
-    res.status(501).json({ error: 'PDF export not yet implemented' })
+    res.status(501).json({ error: "PDF export not yet implemented" });
   } catch (error) {
-    console.error('Failed to export PDF:', error)
-    res.status(500).json({ error: 'Failed to export report' })
+    console.error("Failed to export PDF:", error);
+    res.status(500).json({ error: "Failed to export report" });
   }
-})
+});
 
 // Helper functions
 
 function parseDateRange(range: string): { startDate: string; endDate: string } {
-  const now = new Date()
-  const endDate = now.toISOString()
-  let startDate: Date
+  const now = new Date();
+  const endDate = now.toISOString();
+  let startDate: Date;
 
   switch (range) {
-    case 'today':
-      startDate = new Date(now.setHours(0, 0, 0, 0))
-      break
-    case 'this-week':
-      startDate = new Date(now.setDate(now.getDate() - now.getDay()))
-      break
-    case 'this-month':
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1)
-      break
-    case 'last-30-days':
-      startDate = new Date(now.setDate(now.getDate() - 30))
-      break
-    case 'last-90-days':
-      startDate = new Date(now.setDate(now.getDate() - 90))
-      break
+    case "today":
+      startDate = new Date(now.setHours(0, 0, 0, 0));
+      break;
+    case "this-week":
+      startDate = new Date(now.setDate(now.getDate() - now.getDay()));
+      break;
+    case "this-month":
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      break;
+    case "last-30-days":
+      startDate = new Date(now.setDate(now.getDate() - 30));
+      break;
+    case "last-90-days":
+      startDate = new Date(now.setDate(now.getDate() - 90));
+      break;
     default:
-      startDate = new Date(now.setMonth(now.getMonth() - 1))
+      startDate = new Date(now.setMonth(now.getMonth() - 1));
   }
 
-  return { startDate: startDate.toISOString(), endDate }
+  return { startDate: startDate.toISOString(), endDate };
 }
 
 async function calculateVolume(startDate: string, endDate: string) {
   // Today's volume
-  const todayStart = new Date().setHours(0, 0, 0, 0)
-  const todayCount = await query(`
+  const todayStart = new Date().setHours(0, 0, 0, 0);
+  const todayCount = await query(
+    `
     SELECT COUNT(*) as count
     FROM spec_feedback
     WHERE created_at >= datetime(?)
-  `, [new Date(todayStart).toISOString()])
+  `,
+    [new Date(todayStart).toISOString()],
+  );
 
-  const yesterdayCount = await query(`
+  const yesterdayCount = await query(
+    `
     SELECT COUNT(*) as count
     FROM spec_feedback
     WHERE created_at >= datetime(?, '-1 day')
       AND created_at < datetime(?)
-  `, [new Date(todayStart).toISOString(), new Date(todayStart).toISOString()])
+  `,
+    [new Date(todayStart).toISOString(), new Date(todayStart).toISOString()],
+  );
 
-  const todayTrend = yesterdayCount[0].count > 0
-    ? ((todayCount[0].count - yesterdayCount[0].count) / yesterdayCount[0].count) * 100
-    : 0
+  const todayTrend =
+    yesterdayCount[0].count > 0
+      ? ((todayCount[0].count - yesterdayCount[0].count) /
+          yesterdayCount[0].count) *
+        100
+      : 0;
 
   // Similar calculations for week and month...
 
@@ -1174,28 +1245,36 @@ async function calculateVolume(startDate: string, endDate: string) {
     today: { count: todayCount[0].count, trend: todayTrend },
     thisWeek: { count: 0, trend: 0 }, // TODO
     thisMonth: { count: 0, trend: 0 }, // TODO
-  }
+  };
 }
 
-async function calculateSentiment(startDate: string, endDate: string, type: string) {
-  const rows = await query(`
+async function calculateSentiment(
+  startDate: string,
+  endDate: string,
+  type: string,
+) {
+  const rows = await query(
+    `
     SELECT
       SUM(CASE WHEN severity = 'low' THEN 1 ELSE 0 END) as positive,
       SUM(CASE WHEN severity = 'medium' THEN 1 ELSE 0 END) as neutral,
       SUM(CASE WHEN severity IN ('high', 'critical') THEN 1 ELSE 0 END) as negative
     FROM spec_feedback
     WHERE created_at >= ? AND created_at <= ?
-  `, [startDate, endDate])
+  `,
+    [startDate, endDate],
+  );
 
   return {
     positive: rows[0].positive || 0,
     neutral: rows[0].neutral || 0,
     negative: rows[0].negative || 0,
-  }
+  };
 }
 
 async function getTopIssues(startDate: string, endDate: string, limit: number) {
-  const rows = await query(`
+  const rows = await query(
+    `
     SELECT
       spec_id as id,
       feedback_text as title,
@@ -1208,20 +1287,23 @@ async function getTopIssues(startDate: string, endDate: string, limit: number) {
     GROUP BY spec_id, feedback_text, severity
     ORDER BY count DESC
     LIMIT ?
-  `, [startDate, endDate, limit])
+  `,
+    [startDate, endDate, limit],
+  );
 
-  return rows.map(row => ({
+  return rows.map((row) => ({
     id: row.id,
     title: row.title.substring(0, 80),
     count: row.count,
     severity: row.severity,
     firstReported: new Date(row.firstReported).toLocaleDateString(),
     latestReport: new Date(row.latestReport).toLocaleDateString(),
-  }))
+  }));
 }
 
 async function calculateResponseTime(startDate: string, endDate: string) {
-  const rows = await query(`
+  const rows = await query(
+    `
     SELECT
       AVG(CAST((julianday(reviewed_at) - julianday(created_at)) * 86400 AS INTEGER)) as avg,
       MIN(CAST((julianday(reviewed_at) - julianday(created_at)) * 86400 AS INTEGER)) as min,
@@ -1229,7 +1311,9 @@ async function calculateResponseTime(startDate: string, endDate: string) {
     FROM spec_feedback
     WHERE created_at >= ? AND created_at <= ?
       AND reviewed_at IS NOT NULL
-  `, [startDate, endDate])
+  `,
+    [startDate, endDate],
+  );
 
   return {
     average: rows[0].avg || 0,
@@ -1237,30 +1321,37 @@ async function calculateResponseTime(startDate: string, endDate: string) {
     p50: rows[0].avg || 0,
     p95: rows[0].max || 0,
     p99: rows[0].max || 0,
-  }
+  };
 }
 
 async function calculateConversionRate(startDate: string, endDate: string) {
-  const feedbackCount = await query(`
+  const feedbackCount = await query(
+    `
     SELECT COUNT(*) as count FROM spec_feedback
     WHERE created_at >= ? AND created_at <= ?
-  `, [startDate, endDate])
+  `,
+    [startDate, endDate],
+  );
 
-  const taskCount = await query(`
+  const taskCount = await query(
+    `
     SELECT COUNT(DISTINCT task_id) as count FROM spec_task_links
     WHERE created_at >= ? AND created_at <= ?
-  `, [startDate, endDate])
+  `,
+    [startDate, endDate],
+  );
 
-  const totalFeedback = feedbackCount[0].count
-  const tasksCreated = taskCount[0].count
-  const conversionRate = totalFeedback > 0 ? (tasksCreated / totalFeedback) * 100 : 0
+  const totalFeedback = feedbackCount[0].count;
+  const tasksCreated = taskCount[0].count;
+  const conversionRate =
+    totalFeedback > 0 ? (tasksCreated / totalFeedback) * 100 : 0;
 
   return {
     totalFeedback,
     tasksCreated,
     conversionRate,
     target: 70,
-  }
+  };
 }
 ```
 
@@ -1342,24 +1433,24 @@ export function Dashboard() {
 
 ### Upstream Dependencies (Must Exist First)
 
-| Dependency | Description | Status |
-|------------|-------------|--------|
-| spec_feedback table | Database table for feedback submissions | ✅ Required (from PHASE4-TASK-03) |
-| spec_task_links table | Links feedback to tasks | ✅ Required (from PHASE4-TASK-03) |
-| spec_quality_metrics table | Aggregated metrics | ✅ Required (from PHASE4-TASK-03) |
-| Feedback Submission API | `/api/feedback/submit` endpoint | ❓ Unknown |
-| Intake Agent | Processes feedback and assigns severity | ❓ Unknown |
-| Dashboard Layout | Parent Harness dashboard shell | ✅ Exists |
-| WebSocket Server | ws://localhost:3333/ws | ✅ Exists |
+| Dependency                 | Description                             | Status                            |
+| -------------------------- | --------------------------------------- | --------------------------------- |
+| spec_feedback table        | Database table for feedback submissions | ✅ Required (from PHASE4-TASK-03) |
+| spec_task_links table      | Links feedback to tasks                 | ✅ Required (from PHASE4-TASK-03) |
+| spec_quality_metrics table | Aggregated metrics                      | ✅ Required (from PHASE4-TASK-03) |
+| Feedback Submission API    | `/api/feedback/submit` endpoint         | ❓ Unknown                        |
+| Intake Agent               | Processes feedback and assigns severity | ❓ Unknown                        |
+| Dashboard Layout           | Parent Harness dashboard shell          | ✅ Exists                         |
+| WebSocket Server           | ws://localhost:3333/ws                  | ✅ Exists                         |
 
 ### Downstream Dependencies (Enabled By This)
 
-| Component | How It Benefits |
-|-----------|----------------|
-| Feedback Detail Page | Widget drill-down navigates to detailed view |
-| Issue Tracking Page | Top issues link to issue management interface |
-| Performance Analytics | Response time metrics inform SLA monitoring |
-| Team Dashboards | Agent-specific views of assigned feedback |
+| Component             | How It Benefits                               |
+| --------------------- | --------------------------------------------- |
+| Feedback Detail Page  | Widget drill-down navigates to detailed view  |
+| Issue Tracking Page   | Top issues link to issue management interface |
+| Performance Analytics | Response time metrics inform SLA monitoring   |
+| Team Dashboards       | Agent-specific views of assigned feedback     |
 
 ### Technical Dependencies
 
@@ -1528,68 +1619,70 @@ describe('useFeedbackMetrics', () => {
 
 ```typescript
 // __tests__/api/feedback.integration.test.ts
-describe('Feedback API', () => {
-  test('GET /api/feedback/metrics returns all metrics', async () => {
+describe("Feedback API", () => {
+  test("GET /api/feedback/metrics returns all metrics", async () => {
     const response = await request(app)
-      .get('/api/feedback/metrics?dateRange=this-month')
-      .expect(200)
+      .get("/api/feedback/metrics?dateRange=this-month")
+      .expect(200);
 
-    expect(response.body).toHaveProperty('volume')
-    expect(response.body).toHaveProperty('sentiment')
-    expect(response.body).toHaveProperty('topIssues')
-    expect(response.body).toHaveProperty('responseTime')
-    expect(response.body).toHaveProperty('conversion')
-  })
+    expect(response.body).toHaveProperty("volume");
+    expect(response.body).toHaveProperty("sentiment");
+    expect(response.body).toHaveProperty("topIssues");
+    expect(response.body).toHaveProperty("responseTime");
+    expect(response.body).toHaveProperty("conversion");
+  });
 
-  test('metrics respect date range filter', async () => {
+  test("metrics respect date range filter", async () => {
     // Create test feedback in database
-    await createTestFeedback({ createdAt: '2026-01-01' })
-    await createTestFeedback({ createdAt: '2026-02-01' })
+    await createTestFeedback({ createdAt: "2026-01-01" });
+    await createTestFeedback({ createdAt: "2026-02-01" });
 
     const response = await request(app)
-      .get('/api/feedback/metrics?dateRange=this-month')
-      .expect(200)
+      .get("/api/feedback/metrics?dateRange=this-month")
+      .expect(200);
 
-    expect(response.body.volume.thisMonth.count).toBe(1) // Only Feb feedback
-  })
-})
+    expect(response.body.volume.thisMonth.count).toBe(1); // Only Feb feedback
+  });
+});
 ```
 
 ### E2E Tests
 
 ```typescript
 // e2e/feedback-widget.spec.ts
-describe('Feedback Widget E2E', () => {
-  test('displays metrics and allows drill-down', async () => {
-    await page.goto('http://localhost:5173/dashboard')
+describe("Feedback Widget E2E", () => {
+  test("displays metrics and allows drill-down", async () => {
+    await page.goto("http://localhost:5173/dashboard");
 
     // Wait for widget to load
-    await page.waitForSelector('[data-testid="feedback-widget"]')
+    await page.waitForSelector('[data-testid="feedback-widget"]');
 
     // Check volume metrics visible
-    expect(await page.textContent('.volume-metric')).toContain('Today:')
+    expect(await page.textContent(".volume-metric")).toContain("Today:");
 
     // Click sentiment chart segment
-    await page.click('.sentiment-chart .recharts-pie-sector')
+    await page.click(".sentiment-chart .recharts-pie-sector");
 
     // Verify detail modal opens
-    expect(await page.isVisible('[data-testid="feedback-detail-modal"]')).toBe(true)
-  })
+    expect(await page.isVisible('[data-testid="feedback-detail-modal"]')).toBe(
+      true,
+    );
+  });
 
-  test('filters update all metrics', async () => {
-    await page.goto('http://localhost:5173/dashboard')
+  test("filters update all metrics", async () => {
+    await page.goto("http://localhost:5173/dashboard");
 
     // Change date range filter
-    await page.selectOption('select[name="dateRange"]', 'today')
+    await page.selectOption('select[name="dateRange"]', "today");
 
     // Wait for metrics to update
-    await page.waitForTimeout(500)
+    await page.waitForTimeout(500);
 
     // Verify metrics changed
-    const volumeText = await page.textContent('.volume-metric')
-    expect(volumeText).toContain('Today:')
-  })
-})
+    const volumeText = await page.textContent(".volume-metric");
+    expect(volumeText).toContain("Today:");
+  });
+});
 ```
 
 ---
@@ -1598,30 +1691,30 @@ describe('Feedback Widget E2E', () => {
 
 ### Operational Metrics
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| **Widget Load Time** | <2 seconds | Time from page load to widget render |
-| **Metric Calculation** | <500ms | API response time for /metrics endpoint |
-| **WebSocket Latency** | <30 seconds | Time from feedback event to UI update |
-| **Filter Response** | <500ms | Time from filter change to UI update |
+| Metric                 | Target      | Measurement                             |
+| ---------------------- | ----------- | --------------------------------------- |
+| **Widget Load Time**   | <2 seconds  | Time from page load to widget render    |
+| **Metric Calculation** | <500ms      | API response time for /metrics endpoint |
+| **WebSocket Latency**  | <30 seconds | Time from feedback event to UI update   |
+| **Filter Response**    | <500ms      | Time from filter change to UI update    |
 
 ### Quality Metrics
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| **Data Accuracy** | 100% | Metric calculations match manual verification |
-| **Zero State Handling** | Pass | Widget functional with no feedback data |
-| **Error Resilience** | Pass | Graceful fallback if API fails |
-| **Accessibility** | WCAG 2.1 AA | Contrast ratios ≥4.5:1, keyboard nav works |
+| Metric                  | Target      | Measurement                                   |
+| ----------------------- | ----------- | --------------------------------------------- |
+| **Data Accuracy**       | 100%        | Metric calculations match manual verification |
+| **Zero State Handling** | Pass        | Widget functional with no feedback data       |
+| **Error Resilience**    | Pass        | Graceful fallback if API fails                |
+| **Accessibility**       | WCAG 2.1 AA | Contrast ratios ≥4.5:1, keyboard nav works    |
 
 ### Business Impact
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| **Issue Discovery Time** | -50% | Time to identify critical issues |
-| **Feedback Response Rate** | +30% | Percentage of feedback receiving timely response |
-| **Team Awareness** | >90% | Product team checks dashboard daily |
-| **Actionable Insights** | >80% | Dashboard leads to concrete improvements |
+| Metric                     | Target | Measurement                                      |
+| -------------------------- | ------ | ------------------------------------------------ |
+| **Issue Discovery Time**   | -50%   | Time to identify critical issues                 |
+| **Feedback Response Rate** | +30%   | Percentage of feedback receiving timely response |
+| **Team Awareness**         | >90%   | Product team checks dashboard daily              |
+| **Actionable Insights**    | >80%   | Dashboard leads to concrete improvements         |
 
 ---
 
@@ -1679,6 +1772,7 @@ This specification defines a comprehensive Feedback Dashboard Widget that provid
 
 **Status:** Ready for implementation by Build Agent
 **Next Steps:**
+
 1. Confirm database schema exists (spec_feedback, spec_task_links tables)
 2. Implement component foundation (Phase 1)
 3. Create API endpoints and data integration (Phase 2)

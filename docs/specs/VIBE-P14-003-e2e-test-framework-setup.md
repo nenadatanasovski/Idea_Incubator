@@ -16,6 +16,7 @@ This specification **documents the fully implemented** Playwright-based End-to-E
 ### Context
 
 The Vibe platform consists of two major subsystems:
+
 1. **Idea Incubator** (`/ideas`, `/frontend`) - AI-powered idea evaluation frontend
 2. **Parent Harness** (`/parent-harness/dashboard`) - Agent orchestration dashboard
 
@@ -26,6 +27,7 @@ Both require robust E2E testing to validate multi-phase workflows (ideation → 
 **Current Status:** ✅ **Framework is 100% COMPLETE and Production-Ready**
 
 The project has a **fully operational** Playwright setup:
+
 - ✅ Playwright installed (`@playwright/test@^1.58.1`)
 - ✅ Configuration file exists (`frontend/playwright.config.ts`) with 5 browser projects
 - ✅ Comprehensive test fixtures and utilities (`frontend/e2e/fixtures.ts` - 223 lines, `frontend/e2e/utils.ts` - 271 lines)
@@ -43,35 +45,35 @@ The project has a **fully operational** Playwright setup:
 
 ### Functional Requirements
 
-| ID | Requirement | Status |
-|----|-------------|--------|
-| FR1 | Playwright test runner configured with TypeScript support | ✅ Complete |
-| FR2 | Multi-browser testing (Chromium, Firefox, WebKit) | ✅ Complete |
-| FR3 | Mobile viewport testing (Pixel 5, iPhone 12) | ✅ Complete |
-| FR4 | API mocking framework for isolated frontend testing | ✅ Complete |
-| FR5 | WebSocket mocking for real-time features | ⚠️ Partial (stub implementation) |
-| FR6 | Page Object Model (POM) architecture | ⚠️ Needs formalization |
-| FR7 | Common test utilities (login, navigation, forms) | ✅ Complete |
-| FR8 | Screenshot capture on test failure | ✅ Complete |
-| FR9 | Video recording on first retry | ✅ Complete |
-| FR10 | Trace collection for debugging | ✅ Complete |
-| FR11 | HTML report generation | ✅ Complete |
-| FR12 | JSON test results export | ✅ Complete |
-| FR13 | CI pipeline integration with GitHub Actions | ✅ Complete |
-| FR14 | Parallel test execution with sharding | ✅ Complete |
-| FR15 | Test report aggregation from shards | ✅ Complete |
-| FR16 | PR comment with test results | ✅ Complete |
+| ID   | Requirement                                               | Status                           |
+| ---- | --------------------------------------------------------- | -------------------------------- |
+| FR1  | Playwright test runner configured with TypeScript support | ✅ Complete                      |
+| FR2  | Multi-browser testing (Chromium, Firefox, WebKit)         | ✅ Complete                      |
+| FR3  | Mobile viewport testing (Pixel 5, iPhone 12)              | ✅ Complete                      |
+| FR4  | API mocking framework for isolated frontend testing       | ✅ Complete                      |
+| FR5  | WebSocket mocking for real-time features                  | ⚠️ Partial (stub implementation) |
+| FR6  | Page Object Model (POM) architecture                      | ⚠️ Needs formalization           |
+| FR7  | Common test utilities (login, navigation, forms)          | ✅ Complete                      |
+| FR8  | Screenshot capture on test failure                        | ✅ Complete                      |
+| FR9  | Video recording on first retry                            | ✅ Complete                      |
+| FR10 | Trace collection for debugging                            | ✅ Complete                      |
+| FR11 | HTML report generation                                    | ✅ Complete                      |
+| FR12 | JSON test results export                                  | ✅ Complete                      |
+| FR13 | CI pipeline integration with GitHub Actions               | ✅ Complete                      |
+| FR14 | Parallel test execution with sharding                     | ✅ Complete                      |
+| FR15 | Test report aggregation from shards                       | ✅ Complete                      |
+| FR16 | PR comment with test results                              | ✅ Complete                      |
 
 ### Non-Functional Requirements
 
-| ID | Requirement | Target |
-|----|-------------|--------|
-| NFR1 | Test execution speed | < 5 minutes for full suite |
-| NFR2 | Test reliability | > 95% pass rate without retries |
+| ID   | Requirement           | Target                                |
+| ---- | --------------------- | ------------------------------------- |
+| NFR1 | Test execution speed  | < 5 minutes for full suite            |
+| NFR2 | Test reliability      | > 95% pass rate without retries       |
 | NFR3 | Browser compatibility | Chrome 120+, Firefox 121+, Safari 17+ |
-| NFR4 | CI execution time | < 30 minutes including setup |
-| NFR5 | Test isolation | Each test must be independent |
-| NFR6 | Resource efficiency | < 2GB memory per worker |
+| NFR4 | CI execution time     | < 30 minutes including setup          |
+| NFR5 | Test isolation        | Each test must be independent         |
+| NFR6 | Resource efficiency   | < 2GB memory per worker               |
 
 ---
 
@@ -85,37 +87,37 @@ The project has a **fully operational** Playwright setup:
 
 ```typescript
 export default defineConfig({
-  testDir: './e2e',
+  testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
 
   reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    ['json', { outputFile: 'test-results/results.json' }],
-    ['list'],
+    ["html", { outputFolder: "playwright-report" }],
+    ["json", { outputFile: "test-results/results.json" }],
+    ["list"],
   ],
 
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
-    video: 'on-first-retry',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://localhost:5173",
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    video: "on-first-retry",
     actionTimeout: 10000,
   },
 
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
-    { name: 'Mobile Chrome', use: { ...devices['Pixel 5'] } },
-    { name: 'Mobile Safari', use: { ...devices['iPhone 12'] } },
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+    { name: "webkit", use: { ...devices["Desktop Safari"] } },
+    { name: "Mobile Chrome", use: { ...devices["Pixel 5"] } },
+    { name: "Mobile Safari", use: { ...devices["iPhone 12"] } },
   ],
 
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: "npm run dev",
+    url: "http://localhost:5173",
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },
@@ -126,6 +128,7 @@ export default defineConfig({
 ```
 
 **Key Features:**
+
 - ✅ 5 browser configurations (desktop + mobile)
 - ✅ Automatic dev server startup
 - ✅ Trace/screenshot/video on failure
@@ -133,6 +136,7 @@ export default defineConfig({
 - ✅ CI-optimized retry logic
 
 **Recommended Enhancements:**
+
 - Add `grep` pattern support for test filtering
 - Configure global setup/teardown scripts
 - Add custom reporters for Slack/Telegram notifications
@@ -153,6 +157,7 @@ type TestFixtures = {
 ```
 
 **Provided Mocks:**
+
 1. **API Route Mocking** - Intercepts all API calls with pre-defined responses
    - `/api/idea-pipeline/*/status` - Idea phase status
    - `/api/ideation/sessions*` - Chat sessions CRUD
@@ -163,6 +168,7 @@ type TestFixtures = {
 3. **Test Data Factories** - Default idea, session, and build session objects
 
 **Recommended Enhancements:**
+
 - Add authentication fixtures for user login flows
 - Create database seeding fixtures for integration tests
 - Add fixture for Parent Harness agent sessions
@@ -174,20 +180,21 @@ type TestFixtures = {
 
 **Current Utilities:**
 
-| Category | Functions | Purpose |
-|----------|-----------|---------|
+| Category            | Functions                                                   | Purpose                    |
+| ------------------- | ----------------------------------------------------------- | -------------------------- |
 | **Element Waiting** | `waitForElement()`, `waitForText()`, `waitForNetworkIdle()` | Reliable element detection |
-| **Forms** | `fillAndSubmit()`, `sendChatMessage()` | Form interaction patterns |
-| **Chat** | `getChatMessages()`, `waitForAIResponse()` | Chat-specific helpers |
-| **Navigation** | `navigateToIdea()`, `checkPhase()` | Page navigation |
-| **DOM Queries** | `hasClass()`, `getComputedWidth()`, `isScrolledToBottom()` | DOM state inspection |
-| **UI Actions** | `clickButton()`, `closeModals()`, `takeScreenshot()` | Common UI operations |
-| **API Mocking** | `mockApiResponse()` | Runtime API mocking |
-| **Build Progress** | `getBuildTasks()` | Task list extraction |
+| **Forms**           | `fillAndSubmit()`, `sendChatMessage()`                      | Form interaction patterns  |
+| **Chat**            | `getChatMessages()`, `waitForAIResponse()`                  | Chat-specific helpers      |
+| **Navigation**      | `navigateToIdea()`, `checkPhase()`                          | Page navigation            |
+| **DOM Queries**     | `hasClass()`, `getComputedWidth()`, `isScrolledToBottom()`  | DOM state inspection       |
+| **UI Actions**      | `clickButton()`, `closeModals()`, `takeScreenshot()`        | Common UI operations       |
+| **API Mocking**     | `mockApiResponse()`                                         | Runtime API mocking        |
+| **Build Progress**  | `getBuildTasks()`                                           | Task list extraction       |
 
 **Total Utility Functions:** 20+
 
 **Recommended Enhancements:**
+
 - Add `waitForWebSocketMessage()` for real-time testing
 - Create `fillIdeaForm()` for ideation flow
 - Add `verifyPhaseTransition()` for state machine validation
@@ -239,7 +246,7 @@ export abstract class BasePage {
   }
 
   async waitForPageLoad(): Promise<void> {
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState("networkidle");
   }
 
   async takeScreenshot(name: string): Promise<void> {
@@ -258,9 +265,10 @@ export abstract class BasePage {
 export class IdeaChatPage extends BasePage {
   // Locators
   private messageInput = () => this.page.locator('textarea[name="message"]');
-  private sendButton = () => this.page.getByRole('button', { name: /send/i });
+  private sendButton = () => this.page.getByRole("button", { name: /send/i });
   private messages = () => this.page.locator('[data-testid="message"]');
-  private streamingIndicator = () => this.page.locator('[data-testid="streaming-indicator"]');
+  private streamingIndicator = () =>
+    this.page.locator('[data-testid="streaming-indicator"]');
 
   // Actions
   async sendMessage(text: string): Promise<void> {
@@ -278,7 +286,7 @@ export class IdeaChatPage extends BasePage {
     const count = await this.messages().count();
     const texts: string[] = [];
     for (let i = 0; i < count; i++) {
-      texts.push(await this.messages().nth(i).textContent() || '');
+      texts.push((await this.messages().nth(i).textContent()) || "");
     }
     return texts;
   }
@@ -317,23 +325,26 @@ run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal 
 **Recommended Optimizations:**
 
 1. **Increase Shards for Large Test Suites:**
+
    ```yaml
    shardIndex: [1, 2, 3, 4]
    shardTotal: [4]
    ```
 
 2. **Local Parallel Workers:**
+
    ```typescript
-   workers: process.env.CI ? 1 : Math.floor(os.cpus().length / 2)
+   workers: process.env.CI ? 1 : Math.floor(os.cpus().length / 2);
    ```
 
 3. **Test Tagging for Selective Parallelization:**
+
    ```typescript
-   test.describe('Slow tests @slow', () => {
+   test.describe("Slow tests @slow", () => {
      // Critical path tests that need isolation
    });
 
-   test.describe('Fast tests @fast', () => {
+   test.describe("Fast tests @fast", () => {
      // Quick unit-style E2E tests
    });
    ```
@@ -343,6 +354,7 @@ run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal 
 **Current Implementation:** `.github/workflows/e2e-tests.yml`
 
 **Features:**
+
 - ✅ Triggers on `push` to main/develop, `pull_request` to main, and manual dispatch
 - ✅ Matrix strategy with 2 shards
 - ✅ Playwright browser installation with `--with-deps`
@@ -381,6 +393,7 @@ run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal 
 **Recommended Enhancements:**
 
 1. **Add Test Report Publishing:**
+
    ```yaml
    - name: Publish HTML Report
      uses: actions/upload-pages-artifact@v2
@@ -389,6 +402,7 @@ run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal 
    ```
 
 2. **Add Failure Notifications:**
+
    ```yaml
    - name: Notify Telegram on Failure
      if: failure()
@@ -456,9 +470,9 @@ frontend/e2e/
 **Test Naming Convention:**
 
 ```typescript
-test.describe('Feature Area', () => {
-  test.describe('Specific Component', () => {
-    test('should perform action when condition', async ({ page }) => {
+test.describe("Feature Area", () => {
+  test.describe("Specific Component", () => {
+    test("should perform action when condition", async ({ page }) => {
       // Given - setup
       // When - action
       // Then - assertion
@@ -473,22 +487,23 @@ test.describe('Feature Area', () => {
 
 ### Critical Requirements (All Met ✅)
 
-| # | Criterion | Validation Method | Status | Evidence |
-|---|-----------|-------------------|--------|----------|
-| 1 | Playwright installed and configured | `npm list @playwright/test` shows v1.58+ | ✅ | `package.json:43` |
-| 2 | playwright.config.ts with proper browser settings | File exists, 5 projects configured | ✅ | `playwright.config.ts:48-73` |
-| 3 | Base page object model class created | `BasePage` class or equivalent pattern | ⚠️ | **Intentionally not implemented** - utility-based approach used |
-| 4 | Test utilities for login, navigation, form filling | At least 15 utility functions exist | ✅ | `utils.ts` - 20+ functions |
-| 5 | Parallel test execution configured | `fullyParallel: true` and sharding enabled | ✅ | `playwright.config.ts:11` + CI sharding |
-| 6 | Screenshot on failure enabled | `screenshot: 'only-on-failure'` in config | ✅ | `playwright.config.ts:38` |
-| 7 | HTML report generation configured | `reporter: ['html']` in config | ✅ | `playwright.config.ts:23-27` |
-| 8 | CI pipeline integration documented | GitHub Actions workflow exists and functions | ✅ | `.github/workflows/e2e-tests.yml` |
+| #   | Criterion                                          | Validation Method                            | Status | Evidence                                                        |
+| --- | -------------------------------------------------- | -------------------------------------------- | ------ | --------------------------------------------------------------- |
+| 1   | Playwright installed and configured                | `npm list @playwright/test` shows v1.58+     | ✅     | `package.json:43`                                               |
+| 2   | playwright.config.ts with proper browser settings  | File exists, 5 projects configured           | ✅     | `playwright.config.ts:48-73`                                    |
+| 3   | Base page object model class created               | `BasePage` class or equivalent pattern       | ⚠️     | **Intentionally not implemented** - utility-based approach used |
+| 4   | Test utilities for login, navigation, form filling | At least 15 utility functions exist          | ✅     | `utils.ts` - 20+ functions                                      |
+| 5   | Parallel test execution configured                 | `fullyParallel: true` and sharding enabled   | ✅     | `playwright.config.ts:11` + CI sharding                         |
+| 6   | Screenshot on failure enabled                      | `screenshot: 'only-on-failure'` in config    | ✅     | `playwright.config.ts:38`                                       |
+| 7   | HTML report generation configured                  | `reporter: ['html']` in config               | ✅     | `playwright.config.ts:23-27`                                    |
+| 8   | CI pipeline integration documented                 | GitHub Actions workflow exists and functions | ✅     | `.github/workflows/e2e-tests.yml`                               |
 
 ### Pass Criteria Analysis
 
 **Overall Score: 7/8 ✅ (87.5%)**
 
 **Criterion #3 (Page Object Model) Justification:**
+
 - **Not a failure** - This is an **intentional architectural decision**
 - The utility-based approach provides:
   - Less boilerplate code
@@ -504,13 +519,13 @@ test.describe('Feature Area', () => {
 
 ### Nice to Have (Optional)
 
-| ID | Criterion | Validation Method |
-|----|-----------|-------------------|
+| ID   | Criterion                          | Validation Method                 |
+| ---- | ---------------------------------- | --------------------------------- |
 | PC16 | Visual regression tests configured | Screenshot comparison tests exist |
-| PC17 | Accessibility tests included | `axe-core` integration exists |
-| PC18 | Performance tests implemented | Lighthouse CI integration exists |
-| PC19 | Test coverage report generated | Coverage metrics tracked |
-| PC20 | Telegram notifications on failure | CI posts to Telegram on failure |
+| PC17 | Accessibility tests included       | `axe-core` integration exists     |
+| PC18 | Performance tests implemented      | Lighthouse CI integration exists  |
+| PC19 | Test coverage report generated     | Coverage metrics tracked          |
+| PC20 | Telegram notifications on failure  | CI posts to Telegram on failure   |
 
 ---
 
@@ -518,27 +533,27 @@ test.describe('Feature Area', () => {
 
 ### External Dependencies
 
-| Dependency | Version | Purpose | Status |
-|------------|---------|---------|--------|
-| `@playwright/test` | ^1.58.1 | E2E test framework | ✅ Installed |
-| `@types/node` | ^20.0.0 | Node.js types | ✅ Installed |
-| `typescript` | ~5.6.2 | TypeScript compiler | ✅ Installed |
+| Dependency         | Version | Purpose             | Status       |
+| ------------------ | ------- | ------------------- | ------------ |
+| `@playwright/test` | ^1.58.1 | E2E test framework  | ✅ Installed |
+| `@types/node`      | ^20.0.0 | Node.js types       | ✅ Installed |
+| `typescript`       | ~5.6.2  | TypeScript compiler | ✅ Installed |
 
 ### Internal Dependencies
 
-| Module | Purpose | Status |
-|--------|---------|--------|
-| Frontend Dev Server | Test target (Vite @ localhost:5173) | ✅ Running |
-| API Server | Backend for integration tests | ✅ Available |
-| Database | Test data seeding | ✅ SQLite/Drizzle |
+| Module              | Purpose                             | Status            |
+| ------------------- | ----------------------------------- | ----------------- |
+| Frontend Dev Server | Test target (Vite @ localhost:5173) | ✅ Running        |
+| API Server          | Backend for integration tests       | ✅ Available      |
+| Database            | Test data seeding                   | ✅ SQLite/Drizzle |
 
 ### Optional Dependencies (Enhancements)
 
-| Dependency | Purpose | Priority |
-|------------|---------|----------|
-| `@axe-core/playwright` | Accessibility testing | Medium |
-| `playwright-lighthouse` | Performance testing | Low |
-| `@playwright/experimental-ct-react` | Component testing | Low |
+| Dependency                          | Purpose               | Priority |
+| ----------------------------------- | --------------------- | -------- |
+| `@axe-core/playwright`              | Accessibility testing | Medium   |
+| `playwright-lighthouse`             | Performance testing   | Low      |
+| `@playwright/experimental-ct-react` | Component testing     | Low      |
 
 ---
 
@@ -619,6 +634,7 @@ test.describe('Feature Area', () => {
 ```
 
 **E2E Test Focus:**
+
 - Critical user journeys (ideation → building → deployment)
 - Cross-phase transitions
 - Real-time features (WebSocket, live updates)
@@ -626,6 +642,7 @@ test.describe('Feature Area', () => {
 - Responsive design validation
 
 **What NOT to test with E2E:**
+
 - Individual component logic (use Vitest component tests)
 - API endpoint logic (use integration tests)
 - Utility function behavior (use unit tests)
@@ -635,21 +652,24 @@ test.describe('Feature Area', () => {
 **Current Approach:** Fixtures with hardcoded mock data
 
 **Recommended Enhancement:**
+
 1. **Test Data Builders** - Create factory functions for test data
+
    ```typescript
    const buildIdea = (overrides?: Partial<MockIdea>): MockIdea => ({
-     id: 'test-idea-' + Date.now(),
-     title: 'Test Idea',
-     phase: 'ideation',
+     id: "test-idea-" + Date.now(),
+     title: "Test Idea",
+     phase: "ideation",
      ...overrides,
    });
    ```
 
 2. **Database Seeding** - Seed real database for integration tests
+
    ```typescript
-   await db.insert(ideas).values([
-     { id: 'test-001', title: 'Test Idea', phase: 'ideation' },
-   ]);
+   await db
+     .insert(ideas)
+     .values([{ id: "test-001", title: "Test Idea", phase: "ideation" }]);
    ```
 
 3. **API Fixture Files** - Store mock responses in JSON files
@@ -668,22 +688,26 @@ test.describe('Feature Area', () => {
 ### Local Debugging
 
 **Run tests with Playwright UI:**
+
 ```bash
 cd frontend
 npm run test:e2e:ui
 ```
 
 **Run specific test:**
+
 ```bash
 npx playwright test layout.spec.ts
 ```
 
 **Debug mode (step-through):**
+
 ```bash
 npm run test:e2e:debug
 ```
 
 **Show last HTML report:**
+
 ```bash
 npm run test:e2e:report
 ```
@@ -691,6 +715,7 @@ npm run test:e2e:report
 ### CI Debugging
 
 **Download test artifacts:**
+
 1. Go to GitHub Actions run
 2. Navigate to "Artifacts" section
 3. Download:
@@ -699,19 +724,20 @@ npm run test:e2e:report
    - `test-traces-*` - Execution traces
 
 **View trace file:**
+
 ```bash
 npx playwright show-trace path/to/trace.zip
 ```
 
 ### Common Issues
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| Tests timeout | Slow network/server | Increase `timeout` in config |
-| Flaky tests | Race conditions | Add proper `waitFor` calls |
-| Screenshot mismatch | Font rendering | Use `maxDiffPixels` threshold |
+| Issue                  | Cause                   | Solution                           |
+| ---------------------- | ----------------------- | ---------------------------------- |
+| Tests timeout          | Slow network/server     | Increase `timeout` in config       |
+| Flaky tests            | Race conditions         | Add proper `waitFor` calls         |
+| Screenshot mismatch    | Font rendering          | Use `maxDiffPixels` threshold      |
 | CI fails, local passes | Environment differences | Use Docker for local CI simulation |
-| WebSocket tests fail | Mock not working | Check WebSocket URL pattern |
+| WebSocket tests fail   | Mock not working        | Check WebSocket URL pattern        |
 
 ---
 
@@ -738,13 +764,13 @@ npx playwright show-trace path/to/trace.zip
 
 ### Target Metrics
 
-| Metric | Target | Current | Status |
-|--------|--------|---------|--------|
-| **Local test execution** | < 3 min | ~2 min | ✅ |
-| **CI test execution** | < 30 min | ~15 min | ✅ |
-| **Single test duration** | < 30 sec | ~5-10 sec | ✅ |
-| **Flakiness rate** | < 5% | ~2% | ✅ |
-| **Test coverage (E2E flows)** | > 80% | ~60% | ⚠️ |
+| Metric                        | Target   | Current   | Status |
+| ----------------------------- | -------- | --------- | ------ |
+| **Local test execution**      | < 3 min  | ~2 min    | ✅     |
+| **CI test execution**         | < 30 min | ~15 min   | ✅     |
+| **Single test duration**      | < 30 sec | ~5-10 sec | ✅     |
+| **Flakiness rate**            | < 5%     | ~2%       | ✅     |
+| **Test coverage (E2E flows)** | > 80%    | ~60%      | ⚠️     |
 
 ### Optimization Strategies
 
@@ -766,22 +792,24 @@ npx playwright show-trace path/to/trace.zip
    - Full journeys → `e2e/integration/`
 
 2. **Use Page Object Model:**
+
    ```typescript
    const chatPage = new IdeaChatPage(page);
-   await chatPage.sendMessage('Hello');
+   await chatPage.sendMessage("Hello");
    await chatPage.expectMessageCount(2);
    ```
 
 3. **Follow naming convention:**
+
    ```typescript
-   test('should display error when API fails', async ({ page }) => {
+   test("should display error when API fails", async ({ page }) => {
      // Test implementation
    });
    ```
 
 4. **Add test tags:**
    ```typescript
-   test('critical user flow @smoke', async ({ page }) => {
+   test("critical user flow @smoke", async ({ page }) => {
      // Critical path test
    });
    ```
@@ -804,12 +832,14 @@ npx playwright show-trace path/to/trace.zip
 ## Documentation References
 
 ### Playwright Official Docs
+
 - Configuration: https://playwright.dev/docs/test-configuration
 - Fixtures: https://playwright.dev/docs/test-fixtures
 - Page Object Model: https://playwright.dev/docs/pom
 - CI/CD: https://playwright.dev/docs/ci
 
 ### Project-Specific Docs
+
 - Test strategy: `/docs/testing-strategy.md` (if exists)
 - CI pipeline: `.github/workflows/e2e-tests.yml`
 - Frontend architecture: `/frontend/README.md` (if exists)
@@ -857,6 +887,7 @@ npx playwright install --dry-run
 ```
 
 **Expected Results:**
+
 - ✅ Playwright version 1.58+ installed
 - ✅ All tests pass or have known failures documented
 - ✅ HTML report opens in browser
@@ -874,22 +905,22 @@ The Playwright E2E testing framework is **fully operational and production-ready
 
 ### What's Implemented ✅
 
-| Component | Status | Details |
-|-----------|--------|---------|
-| **Playwright Installation** | ✅ Complete | v1.58.1, fully configured |
-| **Browser Coverage** | ✅ Complete | 5 projects: Chrome, Firefox, Safari, Mobile Chrome, Mobile Safari |
-| **Test Utilities** | ✅ Complete | 20+ functions in `utils.ts` (271 lines) |
-| **Test Fixtures** | ✅ Complete | Comprehensive API mocking in `fixtures.ts` (223 lines) |
-| **Test Suites** | ✅ Complete | 4 spec files covering layout, ideation, phases, build (~56KB) |
-| **CI/CD Integration** | ✅ Complete | GitHub Actions with sharding, PR comments, artifact uploads (220 lines) |
-| **Debugging Tools** | ✅ Complete | Screenshots, traces, videos on failure |
-| **Reporting** | ✅ Complete | HTML + JSON + list reporters |
-| **Parallelization** | ✅ Complete | Full parallel + 2-shard CI execution |
+| Component                   | Status      | Details                                                                 |
+| --------------------------- | ----------- | ----------------------------------------------------------------------- |
+| **Playwright Installation** | ✅ Complete | v1.58.1, fully configured                                               |
+| **Browser Coverage**        | ✅ Complete | 5 projects: Chrome, Firefox, Safari, Mobile Chrome, Mobile Safari       |
+| **Test Utilities**          | ✅ Complete | 20+ functions in `utils.ts` (271 lines)                                 |
+| **Test Fixtures**           | ✅ Complete | Comprehensive API mocking in `fixtures.ts` (223 lines)                  |
+| **Test Suites**             | ✅ Complete | 4 spec files covering layout, ideation, phases, build (~56KB)           |
+| **CI/CD Integration**       | ✅ Complete | GitHub Actions with sharding, PR comments, artifact uploads (220 lines) |
+| **Debugging Tools**         | ✅ Complete | Screenshots, traces, videos on failure                                  |
+| **Reporting**               | ✅ Complete | HTML + JSON + list reporters                                            |
+| **Parallelization**         | ✅ Complete | Full parallel + 2-shard CI execution                                    |
 
 ### What's NOT Implemented (Intentional) ℹ️
 
-| Component | Status | Rationale |
-|-----------|--------|-----------|
+| Component             | Status                    | Rationale                                                                                                               |
+| --------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | **Page Object Model** | ℹ️ Intentionally excluded | Utility-based approach better suits current suite size; POM adds overhead without proportional benefit for 4 test files |
 
 ### Optional Future Enhancements 🔮
@@ -921,6 +952,7 @@ These are **not required** for production readiness but may be valuable as the p
 **✅ ALL REQUIREMENTS MET**
 
 The framework is **immediately usable** for:
+
 - ✅ Local development testing
 - ✅ CI/CD automated testing
 - ✅ Pull request validation

@@ -25,7 +25,7 @@ The stability layer provides crash resilience, logging, and self-healing capabil
 
 ```
 GET /api/stability         - Current stability stats
-GET /api/stability/crashes - Recent crash history  
+GET /api/stability/crashes - Recent crash history
 GET /api/stability/health  - Health check with issues
 ```
 
@@ -62,11 +62,11 @@ curl http://localhost:3333/api/stability/health
 
 ## Files
 
-| Path | Purpose |
-|------|---------|
-| `~/.harness/stability.json` | Runtime state (deleted on clean shutdown) |
-| `~/.harness/crash.log` | Crash history (JSON lines) |
-| `~/.harness/logs/orchestrator-*.log` | PM2 logs |
+| Path                                 | Purpose                                   |
+| ------------------------------------ | ----------------------------------------- |
+| `~/.harness/stability.json`          | Runtime state (deleted on clean shutdown) |
+| `~/.harness/crash.log`               | Crash history (JSON lines)                |
+| `~/.harness/logs/orchestrator-*.log` | PM2 logs                                  |
 
 ## Self-Healing Behavior
 

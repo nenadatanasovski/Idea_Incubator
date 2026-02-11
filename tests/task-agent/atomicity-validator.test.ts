@@ -114,7 +114,9 @@ describe("AtomicityValidator", () => {
 
       const result = await atomicityValidator.validateById(taskId);
 
-      expect(result.violations.some((v) => v.rule === "time_bounded")).toBe(true);
+      expect(result.violations.some((v) => v.rule === "time_bounded")).toBe(
+        true,
+      );
     });
 
     it("should flag tasks with multiple concerns in title", async () => {
@@ -157,9 +159,9 @@ describe("AtomicityValidator", () => {
       const smallResult = await atomicityValidator.validateById(smallTask);
       const epicResult = await atomicityValidator.validateById(epicTask);
 
-      expect(smallResult.violations.some((v) => v.rule === "time_bounded")).toBe(
-        false,
-      );
+      expect(
+        smallResult.violations.some((v) => v.rule === "time_bounded"),
+      ).toBe(false);
       expect(epicResult.violations.some((v) => v.rule === "time_bounded")).toBe(
         true,
       );
@@ -234,7 +236,8 @@ describe("AtomicityValidator", () => {
       }
 
       const atomicResult = await atomicityValidator.validateById(atomicTask);
-      const nonAtomicResult = await atomicityValidator.validateById(nonAtomicTask);
+      const nonAtomicResult =
+        await atomicityValidator.validateById(nonAtomicTask);
 
       expect(atomicResult.score).toBeGreaterThan(nonAtomicResult.score);
     });

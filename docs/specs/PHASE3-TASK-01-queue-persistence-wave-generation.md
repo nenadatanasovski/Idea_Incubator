@@ -69,14 +69,14 @@ Implement comprehensive task queue persistence with proper wave/lane generation 
 
 ### Architecture Gap Analysis
 
-| Component | Current State | Missing Pieces | Impact |
-|-----------|--------------|----------------|--------|
-| Wave Planning | ✅ Implemented | ❌ Not automatic | Manual calls required |
-| Wave Number Assignment | ⚠️ Partial | ❌ Not during creation | Inconsistent wave numbers |
-| Execution Order | ❌ Column unused | ❌ No population logic | Can't enforce serial tasks within wave |
-| Queue Recovery | ❌ Not implemented | ❌ No startup init | Loses state on restart |
-| Lane Assignment | ✅ Frontend only | ❌ No backend logic | Can't use for scheduling |
-| Dependency Resolution | ✅ Working | ❌ Not integrated with creation | Must run separately |
+| Component              | Current State      | Missing Pieces                  | Impact                                 |
+| ---------------------- | ------------------ | ------------------------------- | -------------------------------------- |
+| Wave Planning          | ✅ Implemented     | ❌ Not automatic                | Manual calls required                  |
+| Wave Number Assignment | ⚠️ Partial         | ❌ Not during creation          | Inconsistent wave numbers              |
+| Execution Order        | ❌ Column unused   | ❌ No population logic          | Can't enforce serial tasks within wave |
+| Queue Recovery         | ❌ Not implemented | ❌ No startup init              | Loses state on restart                 |
+| Lane Assignment        | ✅ Frontend only   | ❌ No backend logic             | Can't use for scheduling               |
+| Dependency Resolution  | ✅ Working         | ❌ Not integrated with creation | Must run separately                    |
 
 ---
 
@@ -85,6 +85,7 @@ Implement comprehensive task queue persistence with proper wave/lane generation 
 ### Functional Requirements
 
 **FR-1: Automatic Wave Number Assignment**
+
 - All tasks MUST have wave numbers assigned during creation or import
 - Wave numbers calculated via topological sort of dependency graph
 - Tasks with no dependencies assigned to wave 0
@@ -93,6 +94,7 @@ Implement comprehensive task queue persistence with proper wave/lane generation 
 - Wave numbers persisted to `tasks.wave_number` column
 
 **FR-2: Execution Order Within Waves**
+
 - Tasks within the same wave MAY have execution_order to enforce serial execution
 - Execution order determined by:
   - Priority (P0 before P1 before P2, etc.)
@@ -102,6 +104,7 @@ Implement comprehensive task queue persistence with proper wave/lane generation 
 - Tasks without execution_order can run in any order (default parallel behavior)
 
 **FR-3: Lane Assignment for Parallel Execution**
+
 - Each task assigned to a lane based on category
 - Lane mapping:
   - `feature` → `api` lane
@@ -114,6 +117,7 @@ Implement comprehensive task queue persistence with proper wave/lane generation 
 - Multiple tasks in same lane can run in parallel (no lane conflicts)
 
 **FR-4: Queue Initialization on Startup**
+
 - Orchestrator MUST initialize queue state on startup
 - Load all incomplete tasks (status != 'completed')
 - Calculate missing wave numbers for tasks without them
@@ -122,6 +126,7 @@ Implement comprehensive task queue persistence with proper wave/lane generation 
 - Log recovery summary: X tasks restored, Y waves active
 
 **FR-5: Queue Persistence During Execution**
+
 - All queue state changes MUST persist to database immediately
 - Wave number changes logged to state history
 - Execution order changes logged to state history
@@ -129,6 +134,7 @@ Implement comprehensive task queue persistence with proper wave/lane generation 
 - Wave completion triggers next wave activation
 
 **FR-6: Wave Run Recovery**
+
 - Orchestrator can resume incomplete wave runs after restart
 - Wave run status (planning, running) restored from database
 - Current wave number restored
@@ -136,6 +142,7 @@ Implement comprehensive task queue persistence with proper wave/lane generation 
 - Failed/cancelled runs can be restarted or archived
 
 **FR-7: Task List to Wave Run Mapping**
+
 - Creating a task list automatically triggers wave planning
 - Each task list can have multiple wave runs (historical)
 - Active wave run tracked per task list
@@ -144,18 +151,21 @@ Implement comprehensive task queue persistence with proper wave/lane generation 
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Wave calculation for 100 tasks: < 500ms
 - Queue initialization on startup: < 2 seconds for 1000 tasks
 - Database writes batched where possible (insert multiple tasks in transaction)
 - Topological sort optimized with memoization
 
 **NFR-2: Reliability**
+
 - Database ACID guarantees ensure consistency
 - Foreign key constraints prevent orphaned records
 - Transactions used for multi-step operations
 - Graceful degradation if wave calculation fails (tasks still executable individually)
 
 **NFR-3: Observability**
+
 - Wave planning logs task counts per wave
 - Queue recovery logs restored task/wave counts
 - State transitions logged to state history table
@@ -163,6 +173,7 @@ Implement comprehensive task queue persistence with proper wave/lane generation 
 - Metrics tracked: avg tasks per wave, wave completion time, queue depth
 
 **NFR-4: Maintainability**
+
 - Wave/lane logic centralized in one module
 - Frontend utilities simplified to read from database
 - Clear separation: backend calculates, frontend displays
@@ -240,11 +251,11 @@ CREATE INDEX IF NOT EXISTS idx_wave_runs_active ON wave_runs(task_list_id, statu
 **Location:** `parent-harness/orchestrator/src/queue/index.ts`
 
 ```typescript
-import * as tasks from '../db/tasks.js';
-import * as waves from '../waves/index.js';
-import { query, run } from '../db/index.js';
-import { v4 as uuidv4 } from 'uuid';
-import { bus } from '../events/bus.js';
+import * as tasks from "../db/tasks.js";
+import * as waves from "../waves/index.js";
+import { query, run } from "../db/index.js";
+import { v4 as uuidv4 } from "uuid";
+import { bus } from "../events/bus.js";
 
 export interface QueueConfig {
   autoCalculateWaves: boolean;
@@ -266,11 +277,11 @@ export interface QueueStats {
  * Lane category mapping
  */
 const CATEGORY_TO_LANE: Record<string, string> = {
-  feature: 'api',
-  bug: 'types',
-  documentation: 'ui',
-  test: 'tests',
-  infrastructure: 'infrastructure',
+  feature: "api",
+  bug: "types",
+  documentation: "ui",
+  test: "tests",
+  infrastructure: "infrastructure",
 };
 
 /**
@@ -291,12 +302,15 @@ export function calculateWaveNumbers(taskIds: string[]): Map<string, number> {
   const taskSet = new Set(taskIds);
 
   // Get all dependency relationships for these tasks
-  const dependencies = query<{ source_task_id: string; target_task_id: string }>(
+  const dependencies = query<{
+    source_task_id: string;
+    target_task_id: string;
+  }>(
     `SELECT source_task_id, target_task_id
      FROM task_relationships
      WHERE relationship_type = 'depends_on'
-     AND source_task_id IN (${taskIds.map(() => '?').join(',')})`,
-    taskIds
+     AND source_task_id IN (${taskIds.map(() => "?").join(",")})`,
+    taskIds,
   );
 
   // Build dependency map
@@ -361,28 +375,33 @@ export function calculateWaveNumbers(taskIds: string[]): Map<string, number> {
  * Assign lane to a task based on category
  */
 export function assignLane(category: string | null): string {
-  if (!category) return 'general';
-  return CATEGORY_TO_LANE[category] || 'general';
+  if (!category) return "general";
+  return CATEGORY_TO_LANE[category] || "general";
 }
 
 /**
  * Calculate execution order within a wave
  */
 export function calculateExecutionOrder(
-  tasksInWave: Array<{ id: string; priority: string; created_at: string; category: string | null }>
+  tasksInWave: Array<{
+    id: string;
+    priority: string;
+    created_at: string;
+    category: string | null;
+  }>,
 ): Map<string, number> {
   // Sort by: priority (P0 first), then category (group similar), then creation time
   const sorted = tasksInWave.sort((a, b) => {
     // Priority comparison
-    const priorityA = a.priority || 'P2';
-    const priorityB = b.priority || 'P2';
+    const priorityA = a.priority || "P2";
+    const priorityB = b.priority || "P2";
     if (priorityA !== priorityB) {
       return priorityA.localeCompare(priorityB);
     }
 
     // Category comparison (group related tasks)
-    const categoryA = a.category || 'zzz';
-    const categoryB = b.category || 'zzz';
+    const categoryA = a.category || "zzz";
+    const categoryB = b.category || "zzz";
     if (categoryA !== categoryB) {
       return categoryA.localeCompare(categoryB);
     }
@@ -412,9 +431,9 @@ export async function processNewTasks(taskIds: string[]): Promise<void> {
   try {
     waveAssignments = calculateWaveNumbers(taskIds);
   } catch (err) {
-    console.error('❌ Failed to calculate wave numbers:', err);
+    console.error("❌ Failed to calculate wave numbers:", err);
     // Assign all to wave 0 as fallback
-    waveAssignments = new Map(taskIds.map(id => [id, 0]));
+    waveAssignments = new Map(taskIds.map((id) => [id, 0]));
   }
 
   // Group tasks by wave
@@ -429,7 +448,9 @@ export async function processNewTasks(taskIds: string[]): Promise<void> {
   // Update tasks with wave numbers, lanes, and execution order
   for (const [wave, waveTaskIds] of tasksByWave.entries()) {
     // Get full task details for execution order calculation
-    const waveTasks = tasks.getTasks({}).filter(t => waveTaskIds.includes(t.id));
+    const waveTasks = tasks
+      .getTasks({})
+      .filter((t) => waveTaskIds.includes(t.id));
     const executionOrders = calculateExecutionOrder(waveTasks);
 
     for (const task of waveTasks) {
@@ -440,19 +461,24 @@ export async function processNewTasks(taskIds: string[]): Promise<void> {
         `UPDATE tasks
          SET wave_number = ?, lane = ?, execution_order = ?, updated_at = datetime('now')
          WHERE id = ?`,
-        [wave, lane, executionOrder, task.id]
+        [wave, lane, executionOrder, task.id],
       );
     }
   }
 
-  console.log(`✅ Processed tasks: ${tasksByWave.size} waves, ${taskIds.length} tasks`);
+  console.log(
+    `✅ Processed tasks: ${tasksByWave.size} waves, ${taskIds.length} tasks`,
+  );
 
   // Emit event
-  bus.emit('queue:tasks_processed', {
+  bus.emit("queue:tasks_processed", {
     taskIds,
     wavesCount: tasksByWave.size,
     tasksPerWave: Object.fromEntries(
-      Array.from(tasksByWave.entries()).map(([wave, ids]) => [wave, ids.length])
+      Array.from(tasksByWave.entries()).map(([wave, ids]) => [
+        wave,
+        ids.length,
+      ]),
     ),
   });
 }
@@ -463,23 +489,29 @@ export async function processNewTasks(taskIds: string[]): Promise<void> {
  * - Restores active wave runs
  */
 export async function initializeQueue(): Promise<QueueStats> {
-  console.log('🚀 Initializing task queue...');
+  console.log("🚀 Initializing task queue...");
 
   // Find tasks without wave numbers
   const tasksWithoutWaves = query<{ id: string }>(
-    `SELECT id FROM tasks WHERE wave_number IS NULL AND status != 'completed'`
+    `SELECT id FROM tasks WHERE wave_number IS NULL AND status != 'completed'`,
   );
 
   if (tasksWithoutWaves.length > 0) {
-    console.log(`📋 Found ${tasksWithoutWaves.length} tasks without wave numbers`);
-    await processNewTasks(tasksWithoutWaves.map(t => t.id));
+    console.log(
+      `📋 Found ${tasksWithoutWaves.length} tasks without wave numbers`,
+    );
+    await processNewTasks(tasksWithoutWaves.map((t) => t.id));
   }
 
   // Restore active wave runs
-  const activeRuns = query<{ id: string; task_list_id: string; current_wave: number }>(
+  const activeRuns = query<{
+    id: string;
+    task_list_id: string;
+    current_wave: number;
+  }>(
     `SELECT id, task_list_id, current_wave
      FROM wave_runs
-     WHERE status IN ('planning', 'running')`
+     WHERE status IN ('planning', 'running')`,
   );
 
   for (const run of activeRuns) {
@@ -491,7 +523,9 @@ export async function initializeQueue(): Promise<QueueStats> {
   // Calculate stats
   const stats = getQueueStats();
 
-  console.log(`✅ Queue initialized: ${stats.totalTasks} tasks, ${stats.wavesCount} waves`);
+  console.log(
+    `✅ Queue initialized: ${stats.totalTasks} tasks, ${stats.wavesCount} waves`,
+  );
 
   return stats;
 }
@@ -515,9 +549,9 @@ export function getQueueStats(): QueueStats {
 
   return {
     totalTasks: allTasks.length,
-    queuedTasks: allTasks.filter(t => t.status === 'pending').length,
-    runningTasks: allTasks.filter(t => t.status === 'in_progress').length,
-    completedTasks: allTasks.filter(t => t.status === 'completed').length,
+    queuedTasks: allTasks.filter((t) => t.status === "pending").length,
+    runningTasks: allTasks.filter((t) => t.status === "in_progress").length,
+    completedTasks: allTasks.filter((t) => t.status === "completed").length,
     wavesCount: waveGroups.size,
     currentWave,
     tasksPerWave: Object.fromEntries(waveGroups.entries()),
@@ -539,16 +573,16 @@ export default {
 **1. Orchestrator Startup** (`parent-harness/orchestrator/src/orchestrator/index.ts`)
 
 ```typescript
-import * as queue from '../queue/index.js';
+import * as queue from "../queue/index.js";
 
 export async function startOrchestrator(): Promise<void> {
   if (isRunning) {
-    console.warn('⚠️ Orchestrator already running');
+    console.warn("⚠️ Orchestrator already running");
     return;
   }
 
   isRunning = true;
-  console.log('🎯 Orchestrator started');
+  console.log("🎯 Orchestrator started");
 
   // NEW: Initialize queue and restore state
   await queue.initializeQueue();
@@ -560,9 +594,11 @@ export async function startOrchestrator(): Promise<void> {
 **2. Task Creation Hook** (`parent-harness/orchestrator/src/db/tasks.ts`)
 
 ```typescript
-import * as queue from '../queue/index.js';
+import * as queue from "../queue/index.js";
 
-export function createTask(input: CreateTaskInput & { wave_number?: number }): Task {
+export function createTask(
+  input: CreateTaskInput & { wave_number?: number },
+): Task {
   const id = uuidv4();
 
   // ... existing creation logic
@@ -571,9 +607,9 @@ export function createTask(input: CreateTaskInput & { wave_number?: number }): T
 
   // NEW: Process task for wave/lane assignment if not manually set
   if (!input.wave_number) {
-    queue.processNewTasks([id]).catch(err =>
-      console.warn('Failed to process task for queue:', err)
-    );
+    queue
+      .processNewTasks([id])
+      .catch((err) => console.warn("Failed to process task for queue:", err));
   }
 
   return task;
@@ -583,7 +619,7 @@ export function createTask(input: CreateTaskInput & { wave_number?: number }): T
 **3. Task List Planning** (`parent-harness/orchestrator/src/planning/index.ts`)
 
 ```typescript
-import * as queue from '../queue/index.js';
+import * as queue from "../queue/index.js";
 
 export async function createTasksFromPlan(plan: TaskPlan): Promise<void> {
   const createdTaskIds: string[] = [];
@@ -610,8 +646,8 @@ export async function createTasksFromPlan(plan: TaskPlan): Promise<void> {
 **4. Dashboard API** (`parent-harness/orchestrator/src/api/queue.ts` - NEW)
 
 ```typescript
-import { Router } from 'express';
-import * as queue from '../queue/index.js';
+import { Router } from "express";
+import * as queue from "../queue/index.js";
 
 export const queueRouter = Router();
 
@@ -619,7 +655,7 @@ export const queueRouter = Router();
  * GET /api/queue/stats
  * Get current queue statistics
  */
-queueRouter.get('/stats', (_req, res) => {
+queueRouter.get("/stats", (_req, res) => {
   const stats = queue.getQueueStats();
   res.json(stats);
 });
@@ -628,11 +664,11 @@ queueRouter.get('/stats', (_req, res) => {
  * POST /api/queue/process
  * Manually trigger queue processing for specific tasks
  */
-queueRouter.post('/process', async (req, res) => {
+queueRouter.post("/process", async (req, res) => {
   const { taskIds } = req.body;
 
   if (!Array.isArray(taskIds)) {
-    return res.status(400).json({ error: 'taskIds must be an array' });
+    return res.status(400).json({ error: "taskIds must be an array" });
   }
 
   await queue.processNewTasks(taskIds);
@@ -643,7 +679,7 @@ queueRouter.post('/process', async (req, res) => {
  * POST /api/queue/initialize
  * Re-initialize queue (useful for recovery)
  */
-queueRouter.post('/initialize', async (_req, res) => {
+queueRouter.post("/initialize", async (_req, res) => {
   const stats = await queue.initializeQueue();
   res.json(stats);
 });
@@ -656,15 +692,23 @@ queueRouter.post('/initialize', async (_req, res) => {
 
 export function generateWavesFromTasks(tasks: Task[]): Wave[] {
   // Group by wave_number (now comes from database)
-  const waveMap = new Map<number, { total: number; completed: number; running: number; blocked: number }>();
+  const waveMap = new Map<
+    number,
+    { total: number; completed: number; running: number; blocked: number }
+  >();
 
-  tasks.forEach(task => {
+  tasks.forEach((task) => {
     const waveNum = task.wave_number ?? 0;
-    const existing = waveMap.get(waveNum) || { total: 0, completed: 0, running: 0, blocked: 0 };
+    const existing = waveMap.get(waveNum) || {
+      total: 0,
+      completed: 0,
+      running: 0,
+      blocked: 0,
+    };
     existing.total++;
-    if (task.status === 'completed') existing.completed++;
-    if (task.status === 'in_progress') existing.running++;
-    if (task.status === 'blocked') existing.blocked++;
+    if (task.status === "completed") existing.completed++;
+    if (task.status === "in_progress") existing.running++;
+    if (task.status === "blocked") existing.blocked++;
     waveMap.set(waveNum, existing);
   });
 
@@ -673,8 +717,12 @@ export function generateWavesFromTasks(tasks: Task[]): Wave[] {
     .map(([waveNum, stats]) => ({
       id: `wave-${waveNum}`,
       waveNumber: waveNum,
-      status: stats.completed === stats.total ? 'complete' as const :
-              stats.running > 0 ? 'active' as const : 'pending' as const,
+      status:
+        stats.completed === stats.total
+          ? ("complete" as const)
+          : stats.running > 0
+            ? ("active" as const)
+            : ("pending" as const),
       tasksTotal: stats.total,
       tasksCompleted: stats.completed,
       tasksRunning: stats.running,
@@ -687,8 +735,8 @@ export function generateLanesFromTasks(tasks: Task[]): Lane[] {
   // Group by lane (now comes from database)
   const laneMap = new Map<string, { name: string; tasks: Task[] }>();
 
-  tasks.forEach(task => {
-    const laneId = task.lane || 'general';
+  tasks.forEach((task) => {
+    const laneId = task.lane || "general";
     const existing = laneMap.get(laneId) || {
       name: laneId.charAt(0).toUpperCase() + laneId.slice(1),
       tasks: [],
@@ -708,58 +756,69 @@ export function generateLanesFromTasks(tasks: Task[]): Lane[] {
 All criteria must pass for task completion:
 
 **PC-1: Wave Number Calculation**
+
 - ✅ `calculateWaveNumbers()` correctly assigns wave 0 to tasks with no dependencies
 - ✅ Tasks depending on wave N tasks are assigned to wave N+1
 - ✅ Circular dependencies detected and throw error
 - ✅ 100 tasks with complex dependencies processed in < 500ms
 
 **PC-2: Lane Assignment**
+
 - ✅ `assignLane()` maps categories to correct lanes per CATEGORY_TO_LANE
 - ✅ Unknown categories default to 'general' lane
 - ✅ Lane persisted to `tasks.lane` column
 
 **PC-3: Execution Order**
+
 - ✅ `calculateExecutionOrder()` sorts tasks by priority, category, then creation time
 - ✅ Execution order persisted to `tasks.execution_order` column
 - ✅ Tasks in same wave have unique execution_order values
 
 **PC-4: Queue Processing**
+
 - ✅ `processNewTasks()` updates all tasks with wave_number, lane, execution_order
 - ✅ Database updates succeed in transaction (all or nothing)
 - ✅ Event emitted on successful processing
 
 **PC-5: Queue Initialization**
+
 - ✅ `initializeQueue()` finds and processes tasks without wave numbers
 - ✅ Active wave runs restored and resumed
 - ✅ Initialization completes in < 2s for 1000 tasks
 - ✅ Returns accurate QueueStats
 
 **PC-6: Orchestrator Integration**
+
 - ✅ Orchestrator calls `initializeQueue()` on startup
 - ✅ New tasks automatically processed for wave assignment
 - ✅ Task creation hook does not block (async processing)
 
 **PC-7: Database Schema**
+
 - ✅ Migration adds `lane` column to tasks table
 - ✅ Indexes created for wave_number, execution_order, lane
 - ✅ Existing data migration runs successfully
 
 **PC-8: API Endpoints**
+
 - ✅ `GET /api/queue/stats` returns current queue statistics
 - ✅ `POST /api/queue/process` manually processes task IDs
 - ✅ `POST /api/queue/initialize` re-initializes queue
 
 **PC-9: Frontend Updates**
+
 - ✅ `generateWavesFromTasks()` reads wave_number from database
 - ✅ `generateLanesFromTasks()` reads lane from database
 - ✅ Dashboard correctly displays wave/lane assignments
 
 **PC-10: Error Handling**
+
 - ✅ Circular dependency errors logged and reported
 - ✅ Failed queue processing falls back gracefully (wave 0 assignment)
 - ✅ Partial failures don't break orchestrator startup
 
 **PC-11: Testing**
+
 - ✅ Unit tests for wave calculation with dependencies
 - ✅ Unit tests for lane assignment
 - ✅ Unit tests for execution order calculation
@@ -772,14 +831,17 @@ All criteria must pass for task completion:
 ## Dependencies
 
 **Blocks:**
+
 - PHASE3-TASK-02: Dashboard Real-time Updates (needs queue stats API)
 - PHASE3-TASK-03: Agent Assignment Algorithm (needs wave/lane data)
 - PHASE4-TASK-01: Parallel Execution (needs lanes for scheduling)
 
 **Blocked By:**
+
 - None (foundational infrastructure)
 
 **Related:**
+
 - PHASE2-TASK-04: Task State Machine (uses state transitions, shares event bus)
 - PHASE2-TASK-01: Spec Agent (creates tasks that need wave assignment)
 
@@ -812,44 +874,47 @@ All criteria must pass for task completion:
 ### Testing Strategy
 
 **Unit Tests:**
+
 ```typescript
-describe('QueueManager', () => {
-  describe('calculateWaveNumbers', () => {
-    it('assigns wave 0 to tasks with no dependencies');
-    it('assigns wave N+1 to tasks depending on wave N');
-    it('throws error on circular dependencies');
-    it('handles complex dependency graphs');
+describe("QueueManager", () => {
+  describe("calculateWaveNumbers", () => {
+    it("assigns wave 0 to tasks with no dependencies");
+    it("assigns wave N+1 to tasks depending on wave N");
+    it("throws error on circular dependencies");
+    it("handles complex dependency graphs");
   });
 
-  describe('assignLane', () => {
-    it('maps categories to correct lanes');
-    it('defaults to general lane for unknown categories');
+  describe("assignLane", () => {
+    it("maps categories to correct lanes");
+    it("defaults to general lane for unknown categories");
   });
 
-  describe('calculateExecutionOrder', () => {
-    it('sorts by priority first');
-    it('groups by category second');
-    it('sorts by creation time third');
+  describe("calculateExecutionOrder", () => {
+    it("sorts by priority first");
+    it("groups by category second");
+    it("sorts by creation time third");
   });
 });
 ```
 
 **Integration Tests:**
+
 ```typescript
-describe('Queue Persistence', () => {
-  it('processes new tasks with wave/lane assignment');
-  it('initializes queue on startup');
-  it('restores active wave runs');
-  it('handles queue recovery after crash');
+describe("Queue Persistence", () => {
+  it("processes new tasks with wave/lane assignment");
+  it("initializes queue on startup");
+  it("restores active wave runs");
+  it("handles queue recovery after crash");
 });
 ```
 
 **E2E Tests:**
+
 ```typescript
-describe('End-to-End Queue Flow', () => {
-  it('creates task list → assigns waves → executes in order');
-  it('restarts orchestrator mid-wave → resumes correctly');
-  it('completes wave → advances to next wave');
+describe("End-to-End Queue Flow", () => {
+  it("creates task list → assigns waves → executes in order");
+  it("restarts orchestrator mid-wave → resumes correctly");
+  it("completes wave → advances to next wave");
 });
 ```
 
@@ -867,18 +932,22 @@ If issues discovered post-deployment:
 ## Success Metrics
 
 **Reliability:**
+
 - ✅ 0 queue state loss incidents after orchestrator restarts
 - ✅ 100% wave number assignment success rate (no nulls)
 
 **Performance:**
+
 - ✅ Queue initialization < 2s for 1000 tasks
 - ✅ Wave calculation < 500ms for 100 tasks
 
 **Correctness:**
+
 - ✅ 0 circular dependency errors in production
 - ✅ 100% correct wave progression (no wave skips)
 
 **Adoption:**
+
 - ✅ Dashboard uses database-driven waves (not client calculation)
 - ✅ All new tasks automatically processed
 
@@ -887,6 +956,7 @@ If issues discovered post-deployment:
 ## Future Enhancements
 
 **Phase 4+:**
+
 - Dynamic re-planning: Adjust waves when dependencies added/removed
 - Wave priority: High-priority waves execute before low-priority
 - Lane limits: Max concurrent tasks per lane

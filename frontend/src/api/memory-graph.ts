@@ -1,27 +1,61 @@
 /**
  * Memory Graph API Client
- * 
+ *
  * Connects to the FastAPI Memory Graph service (Neo4j backend).
  * Default: http://localhost:8000/api/v1/memory
  */
 
 // Use environment variable or default to localhost
-const MEMORY_API_BASE = (import.meta as any).env?.VITE_MEMORY_API_URL || 'http://localhost:8000/api/v1';
+const MEMORY_API_BASE =
+  (import.meta as any).env?.VITE_MEMORY_API_URL ||
+  "http://localhost:8000/api/v1";
 
 // Types matching the FastAPI Pydantic models
-export type BlockType = 
-  | 'knowledge' | 'decision' | 'assumption' | 'question' 
-  | 'requirement' | 'task' | 'proposal' | 'artifact' | 'evidence';
+export type BlockType =
+  | "knowledge"
+  | "decision"
+  | "assumption"
+  | "question"
+  | "requirement"
+  | "task"
+  | "proposal"
+  | "artifact"
+  | "evidence";
 
-export type BlockStatus = 'draft' | 'active' | 'validated' | 'superseded' | 'abandoned';
-export type AbstractionLevel = 'vision' | 'strategy' | 'tactic' | 'implementation';
+export type BlockStatus =
+  | "draft"
+  | "active"
+  | "validated"
+  | "superseded"
+  | "abandoned";
+export type AbstractionLevel =
+  | "vision"
+  | "strategy"
+  | "tactic"
+  | "implementation";
 
-export type LinkType = 
-  | 'addresses' | 'creates' | 'requires' | 'conflicts' | 'supports'
-  | 'depends_on' | 'enables' | 'suggests' | 'supersedes' | 'validates'
-  | 'invalidates' | 'references' | 'evidence_for' | 'elaborates'
-  | 'refines' | 'specializes' | 'alternative_to' | 'instance_of'
-  | 'constrained_by' | 'derived_from' | 'measured_by';
+export type LinkType =
+  | "addresses"
+  | "creates"
+  | "requires"
+  | "conflicts"
+  | "supports"
+  | "depends_on"
+  | "enables"
+  | "suggests"
+  | "supersedes"
+  | "validates"
+  | "invalidates"
+  | "references"
+  | "evidence_for"
+  | "elaborates"
+  | "refines"
+  | "specializes"
+  | "alternative_to"
+  | "instance_of"
+  | "constrained_by"
+  | "derived_from"
+  | "measured_by";
 
 export interface MemoryBlock {
   id: string;
@@ -69,10 +103,10 @@ export interface MemoryLink {
   target_block_id: string;
   link_type: LinkType;
   session_id: string;
-  degree?: 'full' | 'partial' | 'minimal';
+  degree?: "full" | "partial" | "minimal";
   confidence?: number;
   reason?: string;
-  status: 'active' | 'superseded' | 'removed';
+  status: "active" | "superseded" | "removed";
   created_at: string;
   updated_at: string;
 }
@@ -82,10 +116,10 @@ export interface MemoryLinkCreate {
   target_block_id: string;
   link_type: LinkType;
   session_id: string;
-  degree?: 'full' | 'partial' | 'minimal';
+  degree?: "full" | "partial" | "minimal";
   confidence?: number;
   reason?: string;
-  status?: 'active' | 'superseded' | 'removed';
+  status?: "active" | "superseded" | "removed";
 }
 
 export interface GraphStats {
@@ -119,13 +153,15 @@ class MemoryGraphClient {
     const response = await fetch(url, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...options.headers,
       },
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      const error = await response
+        .json()
+        .catch(() => ({ detail: "Unknown error" }));
       throw new Error(error.detail || `HTTP ${response.status}`);
     }
 
@@ -134,8 +170,8 @@ class MemoryGraphClient {
 
   // Block operations
   async createBlock(data: MemoryBlockCreate): Promise<MemoryBlock> {
-    return this.request('/memory/blocks', {
-      method: 'POST',
+    return this.request("/memory/blocks", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
@@ -146,56 +182,61 @@ class MemoryGraphClient {
 
   async listBlocks(query: GraphQuery = {}): Promise<MemoryBlock[]> {
     const params = new URLSearchParams();
-    if (query.session_id) params.set('session_id', query.session_id);
-    if (query.block_type) params.set('block_type', query.block_type);
-    if (query.status) params.set('status', query.status);
-    if (query.search) params.set('search', query.search);
-    if (query.limit) params.set('limit', query.limit.toString());
-    if (query.offset) params.set('offset', query.offset.toString());
+    if (query.session_id) params.set("session_id", query.session_id);
+    if (query.block_type) params.set("block_type", query.block_type);
+    if (query.status) params.set("status", query.status);
+    if (query.search) params.set("search", query.search);
+    if (query.limit) params.set("limit", query.limit.toString());
+    if (query.offset) params.set("offset", query.offset.toString());
 
     const qs = params.toString();
-    return this.request(`/memory/blocks${qs ? `?${qs}` : ''}`);
+    return this.request(`/memory/blocks${qs ? `?${qs}` : ""}`);
   }
 
-  async updateBlock(blockId: string, data: MemoryBlockUpdate): Promise<MemoryBlock> {
+  async updateBlock(
+    blockId: string,
+    data: MemoryBlockUpdate,
+  ): Promise<MemoryBlock> {
     return this.request(`/memory/blocks/${blockId}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
     });
   }
 
   async deleteBlock(blockId: string): Promise<void> {
-    await this.request(`/memory/blocks/${blockId}`, { method: 'DELETE' });
+    await this.request(`/memory/blocks/${blockId}`, { method: "DELETE" });
   }
 
   // Link operations
   async createLink(data: MemoryLinkCreate): Promise<MemoryLink> {
-    return this.request('/memory/links', {
-      method: 'POST',
+    return this.request("/memory/links", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
   async getBlockLinks(
     blockId: string,
-    direction: 'both' | 'incoming' | 'outgoing' = 'both',
+    direction: "both" | "incoming" | "outgoing" = "both",
   ): Promise<MemoryLink[]> {
-    return this.request(`/memory/blocks/${blockId}/links?direction=${direction}`);
+    return this.request(
+      `/memory/blocks/${blockId}/links?direction=${direction}`,
+    );
   }
 
   async deleteLink(linkId: string): Promise<void> {
-    await this.request(`/memory/links/${linkId}`, { method: 'DELETE' });
+    await this.request(`/memory/links/${linkId}`, { method: "DELETE" });
   }
 
   // Stats
   async getStats(sessionId?: string): Promise<GraphStats> {
-    const qs = sessionId ? `?session_id=${sessionId}` : '';
+    const qs = sessionId ? `?session_id=${sessionId}` : "";
     return this.request(`/memory/stats${qs}`);
   }
 
   // Health check
   async checkHealth(): Promise<{ status: string; neo4j: string }> {
-    return this.request('/health'.replace('/api/v1', ''));
+    return this.request("/health".replace("/api/v1", ""));
   }
 }
 

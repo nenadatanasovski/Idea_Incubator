@@ -1,7 +1,7 @@
 # P0 Code Audit Results
 
 > Audit of components blocking Phase 1 (Neo4j migration)
-> 
+>
 > **Date:** 2026-02-05
 > **Auditor:** Kai (AI Agent)
 
@@ -9,12 +9,12 @@
 
 ## Executive Summary
 
-| Component | Status | Blocker Issues | Effort |
-|-----------|--------|----------------|--------|
-| Memory Block Schema | 🔴 Major | Uses 15 old types, not 9 new | Medium |
-| Memory Link Schema | ✅ OK | Matches Neo4j schema | None |
-| Block Extractor | 🔴 Major | Uses 11 different types, SQLite queries | High |
-| Graph State Loader | 🟡 Minor | SQLite patterns, but abstracted | Medium |
+| Component           | Status   | Blocker Issues                          | Effort |
+| ------------------- | -------- | --------------------------------------- | ------ |
+| Memory Block Schema | 🔴 Major | Uses 15 old types, not 9 new            | Medium |
+| Memory Link Schema  | ✅ OK    | Matches Neo4j schema                    | None   |
+| Block Extractor     | 🔴 Major | Uses 11 different types, SQLite queries | High   |
+| Graph State Loader  | 🟡 Minor | SQLite patterns, but abstracted         | Medium |
 
 **Bottom line:** Block types are inconsistent across codebase. Three different type systems in use. Must unify before migration.
 
@@ -27,21 +27,34 @@
 ### Current State
 
 Uses **15 block types** (old organic growth):
+
 ```typescript
 export const blockTypes = [
-  "content", "link", "meta", "synthesis", "pattern",
-  "decision", "option", "derived", "assumption", "cycle",
-  "placeholder", "stakeholder_view", "topic", "external", "action",
+  "content",
+  "link",
+  "meta",
+  "synthesis",
+  "pattern",
+  "decision",
+  "option",
+  "derived",
+  "assumption",
+  "cycle",
+  "placeholder",
+  "stakeholder_view",
+  "topic",
+  "external",
+  "action",
 ] as const;
 ```
 
 ### ARCH Alignment
 
-| Decision | Status | Notes |
-|----------|--------|-------|
-| ARCH-001 (9 types) | ❌ Fail | Uses 15 types, need 9 |
-| Deterministic | ✅ OK | Schema is deterministic |
-| Observability | N/A | Schema doesn't trace |
+| Decision           | Status  | Notes                   |
+| ------------------ | ------- | ----------------------- |
+| ARCH-001 (9 types) | ❌ Fail | Uses 15 types, need 9   |
+| Deterministic      | ✅ OK   | Schema is deterministic |
+| Observability      | N/A     | Schema doesn't trace    |
 
 ### Issues
 
@@ -57,23 +70,23 @@ export const blockTypes = [
 
 ### Type Mapping (for migration)
 
-| Old Type | New Type | Notes |
-|----------|----------|-------|
-| content | knowledge | General content → knowledge |
-| synthesis | knowledge | Synthesized info → knowledge |
-| pattern | knowledge | Patterns are knowledge |
-| decision | decision | Direct map |
-| option | decision | Options are decisions (status: considered) |
-| assumption | assumption | Direct map |
-| action | task | Actions are tasks |
-| external | evidence | External data is evidence |
-| derived | knowledge | Derived info → knowledge |
-| cycle | knowledge | Cycle info → knowledge |
-| stakeholder_view | knowledge | Views are knowledge |
-| link | — | Remove, use graph edges |
-| meta | — | Remove, use block properties |
-| topic | — | Remove, use dimension tags |
-| placeholder | question | Placeholders become questions |
+| Old Type         | New Type   | Notes                                      |
+| ---------------- | ---------- | ------------------------------------------ |
+| content          | knowledge  | General content → knowledge                |
+| synthesis        | knowledge  | Synthesized info → knowledge               |
+| pattern          | knowledge  | Patterns are knowledge                     |
+| decision         | decision   | Direct map                                 |
+| option           | decision   | Options are decisions (status: considered) |
+| assumption       | assumption | Direct map                                 |
+| action           | task       | Actions are tasks                          |
+| external         | evidence   | External data is evidence                  |
+| derived          | knowledge  | Derived info → knowledge                   |
+| cycle            | knowledge  | Cycle info → knowledge                     |
+| stakeholder_view | knowledge  | Views are knowledge                        |
+| link             | —          | Remove, use graph edges                    |
+| meta             | —          | Remove, use block properties               |
+| topic            | —          | Remove, use dimension tags                 |
+| placeholder      | question   | Placeholders become questions              |
 
 ### Fix Required
 
@@ -81,7 +94,7 @@ export const blockTypes = [
 // New schema (ARCH-001 compliant)
 export const blockTypes = [
   "knowledge",
-  "decision", 
+  "decision",
   "assumption",
   "question",
   "requirement",
@@ -103,22 +116,39 @@ export const blockTypes = [
 ### Current State
 
 Uses **21 link types**:
+
 ```typescript
 export const linkTypes = [
-  "addresses", "creates", "requires", "conflicts", "supports",
-  "depends_on", "enables", "suggests", "supersedes", "validates",
-  "invalidates", "references", "evidence_for", "elaborates", "refines",
-  "specializes", "alternative_to", "instance_of", "constrained_by",
-  "derived_from", "measured_by",
+  "addresses",
+  "creates",
+  "requires",
+  "conflicts",
+  "supports",
+  "depends_on",
+  "enables",
+  "suggests",
+  "supersedes",
+  "validates",
+  "invalidates",
+  "references",
+  "evidence_for",
+  "elaborates",
+  "refines",
+  "specializes",
+  "alternative_to",
+  "instance_of",
+  "constrained_by",
+  "derived_from",
+  "measured_by",
 ] as const;
 ```
 
 ### ARCH Alignment
 
-| Decision | Status | Notes |
-|----------|--------|-------|
-| ARCH-001 | ✅ OK | Link types match Neo4j schema |
-| Deterministic | ✅ OK | Schema is deterministic |
+| Decision      | Status | Notes                         |
+| ------------- | ------ | ----------------------------- |
+| ARCH-001      | ✅ OK  | Link types match Neo4j schema |
+| Deterministic | ✅ OK  | Schema is deterministic       |
 
 ### Issues
 
@@ -135,23 +165,25 @@ None. Link types already match `02-NEO4J-SCHEMA.md`.
 ### Current State
 
 Uses **11 "canonical" block types** in extraction prompt:
+
 ```
 1. insight, 2. fact, 3. assumption, 4. question, 5. decision,
 6. action, 7. requirement, 8. option, 9. pattern, 10. synthesis, 11. meta
 ```
 
 This is a **third type system** that matches neither:
+
 - Not the schema's 15 types
 - Not ARCH-001's 9 types
 
 ### ARCH Alignment
 
-| Decision | Status | Notes |
-|----------|--------|-------|
-| ARCH-001 (9 types) | ❌ Fail | Uses 11 different types |
-| Deterministic routing | ✅ OK | Routing is code |
-| AI for extraction | ✅ OK | Correctly uses Haiku |
-| Observability | 🟡 Partial | Logs errors, no Langfuse |
+| Decision              | Status     | Notes                    |
+| --------------------- | ---------- | ------------------------ |
+| ARCH-001 (9 types)    | ❌ Fail    | Uses 11 different types  |
+| Deterministic routing | ✅ OK      | Routing is code          |
+| AI for extraction     | ✅ OK      | Correctly uses Haiku     |
+| Observability         | 🟡 Partial | Logs errors, no Langfuse |
 
 ### Issues
 
@@ -212,6 +244,7 @@ await session.run(`
 ### Current State
 
 Uses `graphQueryService` which abstracts database access:
+
 ```typescript
 const [userBlocks, marketBlocks, ...] = await Promise.all([
   graphQueryService.getUserProfile(ideaId),
@@ -222,11 +255,11 @@ const [userBlocks, marketBlocks, ...] = await Promise.all([
 
 ### ARCH Alignment
 
-| Decision | Status | Notes |
-|----------|--------|-------|
+| Decision           | Status     | Notes                         |
+| ------------------ | ---------- | ----------------------------- |
 | ARCH-001 (9 types) | 🟡 Partial | References old types in logic |
-| Deterministic | ✅ OK | Query logic is deterministic |
-| Observability | 🟡 Partial | No explicit tracing |
+| Deterministic      | ✅ OK      | Query logic is deterministic  |
+| Observability      | 🟡 Partial | No explicit tracing           |
 
 ### Issues
 
@@ -268,6 +301,7 @@ Graph State Loader ◀──queries── graphQueryService
 ```
 
 **Fix order:**
+
 1. Memory Block Schema (define correct types)
 2. Block Extractor (use correct types, Neo4j writes)
 3. graphQueryService (swap to Neo4j)
@@ -279,31 +313,31 @@ Graph State Loader ◀──queries── graphQueryService
 
 ### Phase 1a: Type Unification
 
-| Task | File | Change |
-|------|------|--------|
-| Update schema | `memory-block.ts` | 15 types → 9 types |
-| Update extractor prompt | `block-extractor.ts` | 11 types → 9 types |
-| Update extractor validation | `block-extractor.ts` | Remove complex remapping |
-| Update loader references | `graph-state-loader.ts` | insight/fact → knowledge |
+| Task                        | File                    | Change                   |
+| --------------------------- | ----------------------- | ------------------------ |
+| Update schema               | `memory-block.ts`       | 15 types → 9 types       |
+| Update extractor prompt     | `block-extractor.ts`    | 11 types → 9 types       |
+| Update extractor validation | `block-extractor.ts`    | Remove complex remapping |
+| Update loader references    | `graph-state-loader.ts` | insight/fact → knowledge |
 
 ### Phase 1b: Storage Migration
 
-| Task | File | Change |
-|------|------|--------|
-| Neo4j write | `block-extractor.ts` | SQLite → Cypher |
-| Neo4j query | `graphQueryService` | SQLite → Cypher |
+| Task             | File                        | Change             |
+| ---------------- | --------------------------- | ------------------ |
+| Neo4j write      | `block-extractor.ts`        | SQLite → Cypher    |
+| Neo4j query      | `graphQueryService`         | SQLite → Cypher    |
 | Migration script | `scripts/migrate-blocks.ts` | Move existing data |
 
 ### Total Effort Estimate
 
-| Component | Hours |
-|-----------|-------|
-| Memory Block Schema | 2-4 |
-| Block Extractor | 6-8 |
-| Graph State Loader | 3-4 |
-| Migration Script | 4-6 |
-| Testing | 4-6 |
-| **Total** | **19-28 hours** |
+| Component           | Hours           |
+| ------------------- | --------------- |
+| Memory Block Schema | 2-4             |
+| Block Extractor     | 6-8             |
+| Graph State Loader  | 3-4             |
+| Migration Script    | 4-6             |
+| Testing             | 4-6             |
+| **Total**           | **19-28 hours** |
 
 ---
 
@@ -328,4 +362,4 @@ Graph State Loader ◀──queries── graphQueryService
 
 ---
 
-*Audit complete. Ready for review.*
+_Audit complete. Ready for review._

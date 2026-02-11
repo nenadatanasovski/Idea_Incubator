@@ -108,7 +108,9 @@ describe("ArchitectureValidator", () => {
         };
 
         const report = validator.validate(arch);
-        const godComponentIssues = report.issues.filter(i => i.type === "god-component");
+        const godComponentIssues = report.issues.filter(
+          (i) => i.type === "god-component",
+        );
 
         expect(godComponentIssues.length).toBeGreaterThan(0);
         expect(godComponentIssues[0].severity).toBe("warning");
@@ -154,7 +156,9 @@ describe("ArchitectureValidator", () => {
         };
 
         const report = validator.validate(arch);
-        const godComponentIssues = report.issues.filter(i => i.type === "god-component");
+        const godComponentIssues = report.issues.filter(
+          (i) => i.type === "god-component",
+        );
 
         expect(godComponentIssues.length).toBe(0);
       });
@@ -206,7 +210,9 @@ describe("ArchitectureValidator", () => {
         };
 
         const report = validator.validate(arch);
-        const circularIssues = report.issues.filter(i => i.type === "circular-dependency");
+        const circularIssues = report.issues.filter(
+          (i) => i.type === "circular-dependency",
+        );
 
         expect(circularIssues.length).toBeGreaterThan(0);
         expect(circularIssues[0].severity).toBe("error");
@@ -258,7 +264,9 @@ describe("ArchitectureValidator", () => {
         };
 
         const report = validator.validate(arch);
-        const circularIssues = report.issues.filter(i => i.type === "circular-dependency");
+        const circularIssues = report.issues.filter(
+          (i) => i.type === "circular-dependency",
+        );
 
         expect(circularIssues.length).toBe(0);
       });
@@ -298,7 +306,9 @@ describe("ArchitectureValidator", () => {
         };
 
         const report = validator.validate(arch);
-        const authIssues = report.issues.filter(i => i.type === "missing-authentication");
+        const authIssues = report.issues.filter(
+          (i) => i.type === "missing-authentication",
+        );
 
         expect(authIssues.length).toBeGreaterThan(0);
         expect(authIssues[0].severity).toBe("error");
@@ -339,7 +349,9 @@ describe("ArchitectureValidator", () => {
         };
 
         const report = validator.validate(arch);
-        const authIssues = report.issues.filter(i => i.type === "missing-authentication");
+        const authIssues = report.issues.filter(
+          (i) => i.type === "missing-authentication",
+        );
 
         expect(authIssues.length).toBe(0);
       });
@@ -377,7 +389,9 @@ describe("ArchitectureValidator", () => {
         };
 
         const report = validator.validate(arch);
-        const rateLimitIssues = report.issues.filter(i => i.type === "missing-rate-limiting");
+        const rateLimitIssues = report.issues.filter(
+          (i) => i.type === "missing-rate-limiting",
+        );
 
         expect(rateLimitIssues.length).toBeGreaterThan(0);
         expect(rateLimitIssues[0].severity).toBe("warning");
@@ -428,7 +442,9 @@ describe("ArchitectureValidator", () => {
         };
 
         const report = validator.validate(arch);
-        const namingIssues = report.issues.filter(i => i.type === "inconsistent-naming");
+        const namingIssues = report.issues.filter(
+          (i) => i.type === "inconsistent-naming",
+        );
 
         expect(namingIssues.length).toBeGreaterThan(0);
         expect(namingIssues[0].severity).toBe("warning");
@@ -481,7 +497,9 @@ describe("ArchitectureValidator", () => {
         };
 
         const report = validator.validate(arch);
-        const paginationIssues = report.issues.filter(i => i.type === "missing-pagination");
+        const paginationIssues = report.issues.filter(
+          (i) => i.type === "missing-pagination",
+        );
 
         expect(paginationIssues.length).toBeGreaterThan(0);
         expect(paginationIssues[0].severity).toBe("warning");
@@ -507,8 +525,18 @@ describe("ArchitectureValidator", () => {
                 name: "users",
                 description: "User table",
                 columns: [
-                  { name: "email", type: "VARCHAR", nullable: false, description: "Email" },
-                  { name: "name", type: "VARCHAR", nullable: false, description: "Name" },
+                  {
+                    name: "email",
+                    type: "VARCHAR",
+                    nullable: false,
+                    description: "Email",
+                  },
+                  {
+                    name: "name",
+                    type: "VARCHAR",
+                    nullable: false,
+                    description: "Name",
+                  },
                 ],
                 primaryKey: [], // Missing primary key!
               },
@@ -526,7 +554,9 @@ describe("ArchitectureValidator", () => {
         };
 
         const report = validator.validate(arch);
-        const pkIssues = report.issues.filter(i => i.type === "missing-primary-key");
+        const pkIssues = report.issues.filter(
+          (i) => i.type === "missing-primary-key",
+        );
 
         expect(pkIssues.length).toBeGreaterThan(0);
         expect(pkIssues[0].severity).toBe("error");
@@ -550,9 +580,24 @@ describe("ArchitectureValidator", () => {
                 name: "posts",
                 description: "Posts table",
                 columns: [
-                  { name: "id", type: "INT", nullable: false, description: "ID" },
-                  { name: "user_id", type: "INT", nullable: false, description: "User ID" }, // FK without index!
-                  { name: "title", type: "VARCHAR", nullable: false, description: "Title" },
+                  {
+                    name: "id",
+                    type: "INT",
+                    nullable: false,
+                    description: "ID",
+                  },
+                  {
+                    name: "user_id",
+                    type: "INT",
+                    nullable: false,
+                    description: "User ID",
+                  }, // FK without index!
+                  {
+                    name: "title",
+                    type: "VARCHAR",
+                    nullable: false,
+                    description: "Title",
+                  },
                 ],
                 primaryKey: ["id"],
               },
@@ -571,7 +616,9 @@ describe("ArchitectureValidator", () => {
         };
 
         const report = validator.validate(arch);
-        const indexIssues = report.issues.filter(i => i.type === "missing-index");
+        const indexIssues = report.issues.filter(
+          (i) => i.type === "missing-index",
+        );
 
         expect(indexIssues.length).toBeGreaterThan(0);
         expect(indexIssues[0].severity).toBe("warning");
@@ -596,9 +643,24 @@ describe("ArchitectureValidator", () => {
                 name: "users",
                 description: "User table",
                 columns: [
-                  { name: "id", type: "INT", nullable: false, description: "ID" },
-                  { name: "email", type: "VARCHAR", nullable: false, description: "Email" },
-                  { name: "name", type: "VARCHAR", nullable: false, description: "Name" },
+                  {
+                    name: "id",
+                    type: "INT",
+                    nullable: false,
+                    description: "ID",
+                  },
+                  {
+                    name: "email",
+                    type: "VARCHAR",
+                    nullable: false,
+                    description: "Email",
+                  },
+                  {
+                    name: "name",
+                    type: "VARCHAR",
+                    nullable: false,
+                    description: "Name",
+                  },
                 ],
                 primaryKey: ["id"],
                 // No soft delete column!
@@ -617,7 +679,9 @@ describe("ArchitectureValidator", () => {
         };
 
         const report = validator.validate(arch);
-        const softDeleteIssues = report.issues.filter(i => i.type === "missing-soft-delete");
+        const softDeleteIssues = report.issues.filter(
+          (i) => i.type === "missing-soft-delete",
+        );
 
         expect(softDeleteIssues.length).toBeGreaterThan(0);
         expect(softDeleteIssues[0].severity).toBe("info");
@@ -657,7 +721,9 @@ describe("ArchitectureValidator", () => {
       };
 
       const report = validator.validate(arch);
-      const securityIssues = report.issues.filter(i => i.type === "missing-authentication-strategy");
+      const securityIssues = report.issues.filter(
+        (i) => i.type === "missing-authentication-strategy",
+      );
 
       expect(securityIssues.length).toBeGreaterThan(0);
       expect(securityIssues[0].severity).toBe("error");
@@ -700,7 +766,9 @@ describe("ArchitectureValidator", () => {
       };
 
       const report = validator.validate(arch);
-      const cachingIssues = report.issues.filter(i => i.type === "missing-caching-strategy");
+      const cachingIssues = report.issues.filter(
+        (i) => i.type === "missing-caching-strategy",
+      );
 
       expect(cachingIssues.length).toBeGreaterThan(0);
       expect(cachingIssues[0].severity).toBe("warning");
@@ -824,9 +892,24 @@ describe("ArchitectureValidator", () => {
               description: "Users",
               columns: [
                 { name: "id", type: "INT", nullable: false, description: "ID" },
-                { name: "email", type: "VARCHAR", nullable: false, description: "Email" },
-                { name: "created_at", type: "TIMESTAMP", nullable: false, description: "Created" },
-                { name: "deleted_at", type: "TIMESTAMP", nullable: true, description: "Soft delete" },
+                {
+                  name: "email",
+                  type: "VARCHAR",
+                  nullable: false,
+                  description: "Email",
+                },
+                {
+                  name: "created_at",
+                  type: "TIMESTAMP",
+                  nullable: false,
+                  description: "Created",
+                },
+                {
+                  name: "deleted_at",
+                  type: "TIMESTAMP",
+                  nullable: true,
+                  description: "Soft delete",
+                },
               ],
               primaryKey: ["id"],
             },
@@ -856,7 +939,7 @@ describe("ArchitectureValidator", () => {
       // Log errors if any for debugging
       if (report.errorCount > 0) {
         console.log("Unexpected errors found:");
-        console.log(report.issues.filter(i => i.severity === "error"));
+        console.log(report.issues.filter((i) => i.severity === "error"));
       }
 
       expect(report.errorCount).toBe(0);
@@ -920,7 +1003,12 @@ describe("ArchitectureValidator", () => {
               description: "Posts",
               columns: [
                 { name: "id", type: "INT", nullable: false, description: "ID" },
-                { name: "user_id", type: "INT", nullable: false, description: "User" },
+                {
+                  name: "user_id",
+                  type: "INT",
+                  nullable: false,
+                  description: "User",
+                },
               ],
               primaryKey: [],
             },
@@ -940,7 +1028,7 @@ describe("ArchitectureValidator", () => {
       const report = validator.validate(arch);
 
       // Get unique issue types
-      const issueTypes = new Set(report.issues.map(i => i.type));
+      const issueTypes = new Set(report.issues.map((i) => i.type));
 
       expect(issueTypes.size).toBeGreaterThanOrEqual(5);
       expect(report.totalIssues).toBeGreaterThanOrEqual(5);

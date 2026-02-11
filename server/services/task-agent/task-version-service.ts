@@ -58,13 +58,16 @@ export class TaskVersionService {
   // Implementation signature
   async createVersion(
     taskId: string,
-    changedFieldsOrUpdateOrReason?: string[] | string | {
-      title?: string;
-      description?: string;
-      category?: string;
-      changedBy?: string;
-      changeReason?: string;
-    },
+    changedFieldsOrUpdateOrReason?:
+      | string[]
+      | string
+      | {
+          title?: string;
+          description?: string;
+          category?: string;
+          changedBy?: string;
+          changeReason?: string;
+        },
     reason?: string,
     userId: string = "system",
   ): Promise<TaskVersion> {
@@ -72,10 +75,9 @@ export class TaskVersionService {
     const isUpdateObject =
       changedFieldsOrUpdateOrReason &&
       !Array.isArray(changedFieldsOrUpdateOrReason) &&
-      typeof changedFieldsOrUpdateOrReason === 'object';
+      typeof changedFieldsOrUpdateOrReason === "object";
 
-    const isSimpleString =
-      typeof changedFieldsOrUpdateOrReason === 'string';
+    const isSimpleString = typeof changedFieldsOrUpdateOrReason === "string";
 
     let changedFields: string[] = [];
     let actualReason: string | null = reason || null;
@@ -105,37 +107,37 @@ export class TaskVersionService {
       const updateValues: (string | null)[] = [];
 
       if (updates.title !== undefined) {
-        updateFields.push('title = ?');
+        updateFields.push("title = ?");
         updateValues.push(updates.title);
-        changedFields.push('title');
+        changedFields.push("title");
       }
       if (updates.description !== undefined) {
-        updateFields.push('description = ?');
+        updateFields.push("description = ?");
         updateValues.push(updates.description);
-        changedFields.push('description');
+        changedFields.push("description");
       }
       if (updates.category !== undefined) {
-        updateFields.push('category = ?');
+        updateFields.push("category = ?");
         updateValues.push(updates.category);
-        changedFields.push('category');
+        changedFields.push("category");
       }
 
       if (updateFields.length > 0) {
-        updateFields.push('updated_at = ?');
+        updateFields.push("updated_at = ?");
         updateValues.push(new Date().toISOString());
         updateValues.push(taskId);
         await run(
-          `UPDATE tasks SET ${updateFields.join(', ')} WHERE id = ?`,
+          `UPDATE tasks SET ${updateFields.join(", ")} WHERE id = ?`,
           updateValues,
         );
       }
 
       actualReason = updates.changeReason || null;
-      actualUserId = updates.changedBy || 'system';
+      actualUserId = updates.changedBy || "system";
     } else if (isSimpleString) {
       // Signature 3: simple reason + userId
       actualReason = changedFieldsOrUpdateOrReason;
-      actualUserId = reason || 'system'; // reason parameter becomes userId in this case
+      actualUserId = reason || "system"; // reason parameter becomes userId in this case
     } else if (Array.isArray(changedFieldsOrUpdateOrReason)) {
       // Signature 1: array of changed fields
       changedFields = changedFieldsOrUpdateOrReason;
@@ -236,10 +238,9 @@ export class TaskVersionService {
 
     // Build changes as array of field diffs
     const changes: Array<{ field: string; from: unknown; to: unknown }> = [];
-    const allFields = Array.from(new Set([
-      ...Object.keys(from.snapshot),
-      ...Object.keys(to.snapshot),
-    ]));
+    const allFields = Array.from(
+      new Set([...Object.keys(from.snapshot), ...Object.keys(to.snapshot)]),
+    );
 
     for (const field of allFields) {
       const fromValue = from.snapshot[field];
@@ -407,10 +408,7 @@ export class TaskVersionService {
     reason?: string,
     userId: string = "system",
   ): Promise<Task> {
-    return this.restore(
-      { taskId, targetVersion, reason },
-      userId,
-    );
+    return this.restore({ taskId, targetVersion, reason }, userId);
   }
 }
 

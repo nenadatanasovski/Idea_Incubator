@@ -1,6 +1,6 @@
 /**
  * Agent Memory System
- * 
+ *
  * Provides persistent memory for agents across sessions.
  * Each agent has its own memory store with:
  * - Short-term context (current task)
@@ -8,13 +8,18 @@
  * - Task history (what worked, what didn't)
  */
 
-import { query, run, getOne } from '../db/index.js';
-import { v4 as uuidv4 } from 'uuid';
+import { query, run, getOne } from "../db/index.js";
+import { v4 as uuidv4 } from "uuid";
 
 export interface MemoryEntry {
   id: string;
   agent_id: string;
-  type: 'context' | 'learning' | 'preference' | 'error_pattern' | 'success_pattern';
+  type:
+    | "context"
+    | "learning"
+    | "preference"
+    | "error_pattern"
+    | "success_pattern";
   key: string;
   value: string;
   metadata: string | null;
@@ -27,7 +32,8 @@ export interface MemoryEntry {
 
 // Ensure memory table exists
 function ensureMemoryTable(): void {
-  run(`
+  run(
+    `
     CREATE TABLE IF NOT EXISTS agent_memory (
       id TEXT PRIMARY KEY,
       agent_id TEXT NOT NULL,
@@ -42,10 +48,18 @@ function ensureMemoryTable(): void {
       expires_at TEXT,
       UNIQUE(agent_id, type, key)
     )
-  `, []);
+  `,
+    [],
+  );
 
-  run(`CREATE INDEX IF NOT EXISTS idx_agent_memory_agent ON agent_memory(agent_id)`, []);
-  run(`CREATE INDEX IF NOT EXISTS idx_agent_memory_type ON agent_memory(type)`, []);
+  run(
+    `CREATE INDEX IF NOT EXISTS idx_agent_memory_agent ON agent_memory(agent_id)`,
+    [],
+  );
+  run(
+    `CREATE INDEX IF NOT EXISTS idx_agent_memory_type ON agent_memory(type)`,
+    [],
+  );
 }
 
 // Initialize on module load
@@ -56,38 +70,41 @@ ensureMemoryTable();
  */
 export function remember(
   agentId: string,
-  type: MemoryEntry['type'],
+  type: MemoryEntry["type"],
   key: string,
   value: string,
   options?: {
     metadata?: object;
     importance?: number;
     expiresIn?: number; // seconds
-  }
+  },
 ): MemoryEntry {
   const id = uuidv4();
-  const expiresAt = options?.expiresIn 
+  const expiresAt = options?.expiresIn
     ? new Date(Date.now() + options.expiresIn * 1000).toISOString()
     : null;
 
-  run(`
+  run(
+    `
     INSERT OR REPLACE INTO agent_memory 
     (id, agent_id, type, key, value, metadata, importance, expires_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `, [
-    id,
-    agentId,
-    type,
-    key,
-    value,
-    options?.metadata ? JSON.stringify(options.metadata) : null,
-    options?.importance ?? 5,
-    expiresAt,
-  ]);
+  `,
+    [
+      id,
+      agentId,
+      type,
+      key,
+      value,
+      options?.metadata ? JSON.stringify(options.metadata) : null,
+      options?.importance ?? 5,
+      expiresAt,
+    ],
+  );
 
   return getOne<MemoryEntry>(
-    'SELECT * FROM agent_memory WHERE agent_id = ? AND type = ? AND key = ?',
-    [agentId, type, key]
+    "SELECT * FROM agent_memory WHERE agent_id = ? AND type = ? AND key = ?",
+    [agentId, type, key],
   )!;
 }
 
@@ -96,21 +113,24 @@ export function remember(
  */
 export function recall(
   agentId: string,
-  type: MemoryEntry['type'],
-  key: string
+  type: MemoryEntry["type"],
+  key: string,
 ): MemoryEntry | undefined {
   const entry = getOne<MemoryEntry>(
-    'SELECT * FROM agent_memory WHERE agent_id = ? AND type = ? AND key = ?',
-    [agentId, type, key]
+    "SELECT * FROM agent_memory WHERE agent_id = ? AND type = ? AND key = ?",
+    [agentId, type, key],
   );
 
   if (entry) {
     // Update access stats
-    run(`
+    run(
+      `
       UPDATE agent_memory 
       SET access_count = access_count + 1, last_accessed = datetime('now')
       WHERE id = ?
-    `, [entry.id]);
+    `,
+      [entry.id],
+    );
   }
 
   return entry;
@@ -121,18 +141,18 @@ export function recall(
  */
 export function recallAll(
   agentId: string,
-  type?: MemoryEntry['type']
+  type?: MemoryEntry["type"],
 ): MemoryEntry[] {
   if (type) {
     return query<MemoryEntry>(
-      'SELECT * FROM agent_memory WHERE agent_id = ? AND type = ? ORDER BY importance DESC, access_count DESC',
-      [agentId, type]
+      "SELECT * FROM agent_memory WHERE agent_id = ? AND type = ? ORDER BY importance DESC, access_count DESC",
+      [agentId, type],
     );
   }
 
   return query<MemoryEntry>(
-    'SELECT * FROM agent_memory WHERE agent_id = ? ORDER BY importance DESC, access_count DESC',
-    [agentId]
+    "SELECT * FROM agent_memory WHERE agent_id = ? ORDER BY importance DESC, access_count DESC",
+    [agentId],
   );
 }
 
@@ -141,12 +161,12 @@ export function recallAll(
  */
 export function forget(
   agentId: string,
-  type: MemoryEntry['type'],
-  key: string
+  type: MemoryEntry["type"],
+  key: string,
 ): boolean {
   const result = run(
-    'DELETE FROM agent_memory WHERE agent_id = ? AND type = ? AND key = ?',
-    [agentId, type, key]
+    "DELETE FROM agent_memory WHERE agent_id = ? AND type = ? AND key = ?",
+    [agentId, type, key],
   );
   return result.changes > 0;
 }
@@ -154,16 +174,16 @@ export function forget(
 /**
  * Forget all memories of a type
  */
-export function forgetAll(agentId: string, type?: MemoryEntry['type']): number {
+export function forgetAll(agentId: string, type?: MemoryEntry["type"]): number {
   if (type) {
     const result = run(
-      'DELETE FROM agent_memory WHERE agent_id = ? AND type = ?',
-      [agentId, type]
+      "DELETE FROM agent_memory WHERE agent_id = ? AND type = ?",
+      [agentId, type],
     );
     return result.changes;
   }
 
-  const result = run('DELETE FROM agent_memory WHERE agent_id = ?', [agentId]);
+  const result = run("DELETE FROM agent_memory WHERE agent_id = ?", [agentId]);
   return result.changes;
 }
 
@@ -172,7 +192,7 @@ export function forgetAll(agentId: string, type?: MemoryEntry['type']): number {
  */
 export function cleanupExpired(): number {
   const result = run(
-    "DELETE FROM agent_memory WHERE expires_at IS NOT NULL AND expires_at < datetime('now')"
+    "DELETE FROM agent_memory WHERE expires_at IS NOT NULL AND expires_at < datetime('now')",
   );
   return result.changes;
 }
@@ -186,7 +206,7 @@ export function getMemorySummary(agentId: string): {
   topMemories: MemoryEntry[];
 } {
   const all = recallAll(agentId);
-  
+
   const byType: Record<string, number> = {};
   for (const entry of all) {
     byType[entry.type] = (byType[entry.type] || 0) + 1;
@@ -205,21 +225,27 @@ export function getMemorySummary(agentId: string): {
 export function setTaskContext(
   agentId: string,
   taskId: string,
-  context: object
+  context: object,
 ): MemoryEntry {
-  return remember(agentId, 'context', `task:${taskId}`, JSON.stringify(context), {
-    expiresIn: 24 * 60 * 60, // 24 hours
-    importance: 3,
-  });
+  return remember(
+    agentId,
+    "context",
+    `task:${taskId}`,
+    JSON.stringify(context),
+    {
+      expiresIn: 24 * 60 * 60, // 24 hours
+      importance: 3,
+    },
+  );
 }
 
 /**
  * Get task context
  */
 export function getTaskContext(agentId: string, taskId: string): object | null {
-  const entry = recall(agentId, 'context', `task:${taskId}`);
+  const entry = recall(agentId, "context", `task:${taskId}`);
   if (!entry) return null;
-  
+
   try {
     return JSON.parse(entry.value);
   } catch {
@@ -233,11 +259,17 @@ export function getTaskContext(agentId: string, taskId: string): object | null {
 export function learnSuccess(
   agentId: string,
   pattern: string,
-  details: object
+  details: object,
 ): MemoryEntry {
-  return remember(agentId, 'success_pattern', pattern, JSON.stringify(details), {
-    importance: 7,
-  });
+  return remember(
+    agentId,
+    "success_pattern",
+    pattern,
+    JSON.stringify(details),
+    {
+      importance: 7,
+    },
+  );
 }
 
 /**
@@ -246,9 +278,9 @@ export function learnSuccess(
 export function learnError(
   agentId: string,
   pattern: string,
-  details: object
+  details: object,
 ): MemoryEntry {
-  return remember(agentId, 'error_pattern', pattern, JSON.stringify(details), {
+  return remember(agentId, "error_pattern", pattern, JSON.stringify(details), {
     importance: 8, // Errors are important to remember
   });
 }
@@ -256,8 +288,11 @@ export function learnError(
 /**
  * Check if agent has seen this error pattern before
  */
-export function hasSeenError(agentId: string, pattern: string): MemoryEntry | undefined {
-  return recall(agentId, 'error_pattern', pattern);
+export function hasSeenError(
+  agentId: string,
+  pattern: string,
+): MemoryEntry | undefined {
+  return recall(agentId, "error_pattern", pattern);
 }
 
 export default {

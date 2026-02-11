@@ -1,20 +1,20 @@
 /**
  * TaskDetailModal Component
- * 
+ *
  * Modal popup showing comprehensive task details with tabs for:
  * - Overview: Core task information
  * - Criteria: Pass criteria and test plans
- * - Dependencies: Task relationships  
+ * - Dependencies: Task relationships
  * - History: State changes
- * 
+ *
  * Ported from Vibe Platform for parent-harness dashboard.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import type { Task } from '../api/types';
-import api from '../api/client';
-import { formatDateTime } from '../utils/format';
-import { ExecutionsPanel } from './ExecutionsPanel';
+import { useState, useEffect, useCallback } from "react";
+import type { Task } from "../api/types";
+import api from "../api/client";
+import { formatDateTime } from "../utils/format";
+import { ExecutionsPanel } from "./ExecutionsPanel";
 
 interface TaskDetailModalProps {
   taskId: string;
@@ -22,14 +22,19 @@ interface TaskDetailModalProps {
   onNavigateToTask?: (taskId: string) => void;
 }
 
-type TabType = 'overview' | 'criteria' | 'dependencies' | 'history' | 'executions';
+type TabType =
+  | "overview"
+  | "criteria"
+  | "dependencies"
+  | "history"
+  | "executions";
 
 const TAB_CONFIG: { id: TabType; label: string; icon: string }[] = [
-  { id: 'overview', label: 'Overview', icon: '📋' },
-  { id: 'criteria', label: 'Pass Criteria', icon: '✅' },
-  { id: 'dependencies', label: 'Dependencies', icon: '🔗' },
-  { id: 'history', label: 'History', icon: '📜' },
-  { id: 'executions', label: 'Executions', icon: '🔄' },
+  { id: "overview", label: "Overview", icon: "📋" },
+  { id: "criteria", label: "Pass Criteria", icon: "✅" },
+  { id: "dependencies", label: "Dependencies", icon: "🔗" },
+  { id: "history", label: "History", icon: "📜" },
+  { id: "executions", label: "Executions", icon: "🔄" },
 ];
 
 // Extended task type with additional fields from API
@@ -67,7 +72,7 @@ export function TaskDetailModal({
   const [task, setTask] = useState<TaskDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [activeTab, setActiveTab] = useState<TabType>("overview");
 
   const fetchTaskDetail = useCallback(async () => {
     try {
@@ -76,7 +81,7 @@ export function TaskDetailModal({
       const data = await api.get<TaskDetail>(`/api/tasks/${taskId}`);
       setTask(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load task');
+      setError(err instanceof Error ? err.message : "Failed to load task");
     } finally {
       setLoading(false);
     }
@@ -89,10 +94,10 @@ export function TaskDetailModal({
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === "Escape") onClose();
     };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
   }, [onClose]);
 
   const handleTaskClick = (relatedTaskId: string) => {
@@ -128,8 +133,18 @@ export function TaskDetailModal({
             onClick={onClose}
             className="p-2 hover:bg-gray-700 rounded transition-colors text-gray-400 hover:text-white"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -145,8 +160,8 @@ export function TaskDetailModal({
                 border-b-2 -mb-px transition-colors
                 ${
                   activeTab === tab.id
-                    ? 'border-blue-500 text-blue-400'
-                    : 'border-transparent text-gray-400 hover:text-gray-200'
+                    ? "border-blue-500 text-blue-400"
+                    : "border-transparent text-gray-400 hover:text-gray-200"
                 }
               `}
             >
@@ -164,13 +179,15 @@ export function TaskDetailModal({
             <ErrorState error={error} onRetry={fetchTaskDetail} />
           ) : task ? (
             <>
-              {activeTab === 'overview' && <OverviewTab task={task} />}
-              {activeTab === 'criteria' && <CriteriaTab task={task} />}
-              {activeTab === 'dependencies' && (
+              {activeTab === "overview" && <OverviewTab task={task} />}
+              {activeTab === "criteria" && <CriteriaTab task={task} />}
+              {activeTab === "dependencies" && (
                 <DependenciesTab task={task} onTaskClick={handleTaskClick} />
               )}
-              {activeTab === 'history' && <HistoryTab task={task} />}
-              {activeTab === 'executions' && <ExecutionsPanel taskId={task.id} />}
+              {activeTab === "history" && <HistoryTab task={task} />}
+              {activeTab === "executions" && (
+                <ExecutionsPanel taskId={task.id} />
+              )}
             </>
           ) : null}
         </div>
@@ -182,11 +199,11 @@ export function TaskDetailModal({
 // Helper Components
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { bg: string; text: string }> = {
-    pending: { bg: 'bg-gray-700', text: 'text-gray-300' },
-    in_progress: { bg: 'bg-blue-900/50', text: 'text-blue-300' },
-    completed: { bg: 'bg-green-900/50', text: 'text-green-300' },
-    failed: { bg: 'bg-red-900/50', text: 'text-red-300' },
-    blocked: { bg: 'bg-amber-900/50', text: 'text-amber-300' },
+    pending: { bg: "bg-gray-700", text: "text-gray-300" },
+    in_progress: { bg: "bg-blue-900/50", text: "text-blue-300" },
+    completed: { bg: "bg-green-900/50", text: "text-green-300" },
+    failed: { bg: "bg-red-900/50", text: "text-red-300" },
+    blocked: { bg: "bg-amber-900/50", text: "text-amber-300" },
   };
 
   const statusConfig = config[status] || config.pending;
@@ -195,7 +212,7 @@ function StatusBadge({ status }: { status: string }) {
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${statusConfig.bg} ${statusConfig.text}`}
     >
-      {status.replace(/_/g, ' ')}
+      {status.replace(/_/g, " ")}
     </span>
   );
 }
@@ -203,18 +220,44 @@ function StatusBadge({ status }: { status: string }) {
 function LoadingState() {
   return (
     <div className="flex items-center justify-center h-64">
-      <svg className="w-8 h-8 text-blue-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      <svg
+        className="w-8 h-8 text-blue-500 animate-spin"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+        />
       </svg>
     </div>
   );
 }
 
-function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) {
+function ErrorState({
+  error,
+  onRetry,
+}: {
+  error: string;
+  onRetry: () => void;
+}) {
   return (
     <div className="flex flex-col items-center justify-center h-64">
-      <svg className="w-8 h-8 text-red-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      <svg
+        className="w-8 h-8 text-red-500 mb-2"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+        />
       </svg>
       <p className="text-red-400 mb-4">{error}</p>
       <button
@@ -234,20 +277,24 @@ function OverviewTab({ task }: { task: TaskDetail }) {
       {/* Description */}
       {task.description && (
         <div>
-          <h3 className="text-sm font-medium text-gray-400 mb-2">Description</h3>
-          <p className="text-gray-200 whitespace-pre-wrap">{task.description}</p>
+          <h3 className="text-sm font-medium text-gray-400 mb-2">
+            Description
+          </h3>
+          <p className="text-gray-200 whitespace-pre-wrap">
+            {task.description}
+          </p>
         </div>
       )}
 
       {/* Properties Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <PropertyCard label="Category">{task.category || '—'}</PropertyCard>
-        <PropertyCard label="Priority">{task.priority || '—'}</PropertyCard>
+        <PropertyCard label="Category">{task.category || "—"}</PropertyCard>
+        <PropertyCard label="Priority">{task.priority || "—"}</PropertyCard>
         <PropertyCard label="Status">
           <StatusBadge status={task.status} />
         </PropertyCard>
         <PropertyCard label="Assigned Agent">
-          {task.assigned_agent_id || 'Unassigned'}
+          {task.assigned_agent_id || "Unassigned"}
         </PropertyCard>
         <PropertyCard label="Task List">{task.task_list_id}</PropertyCard>
         {task.parent_task_id && (
@@ -257,26 +304,36 @@ function OverviewTab({ task }: { task: TaskDetail }) {
 
       {/* Timestamps */}
       <div className="border-t border-gray-700 pt-4">
-        <h3 className="text-sm font-medium text-gray-400 mb-3">📅 Timestamps</h3>
+        <h3 className="text-sm font-medium text-gray-400 mb-3">
+          📅 Timestamps
+        </h3>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="text-gray-500">Created:</span>{' '}
-            <span className="text-gray-300">{formatDateTime(task.created_at)}</span>
+            <span className="text-gray-500">Created:</span>{" "}
+            <span className="text-gray-300">
+              {formatDateTime(task.created_at)}
+            </span>
           </div>
           <div>
-            <span className="text-gray-500">Updated:</span>{' '}
-            <span className="text-gray-300">{formatDateTime(task.updated_at)}</span>
+            <span className="text-gray-500">Updated:</span>{" "}
+            <span className="text-gray-300">
+              {formatDateTime(task.updated_at)}
+            </span>
           </div>
           {task.started_at && (
             <div>
-              <span className="text-gray-500">Started:</span>{' '}
-              <span className="text-gray-300">{formatDateTime(task.started_at)}</span>
+              <span className="text-gray-500">Started:</span>{" "}
+              <span className="text-gray-300">
+                {formatDateTime(task.started_at)}
+              </span>
             </div>
           )}
           {task.completed_at && (
             <div>
-              <span className="text-gray-500">Completed:</span>{' '}
-              <span className="text-gray-300">{formatDateTime(task.completed_at)}</span>
+              <span className="text-gray-500">Completed:</span>{" "}
+              <span className="text-gray-300">
+                {formatDateTime(task.completed_at)}
+              </span>
             </div>
           )}
         </div>
@@ -285,7 +342,13 @@ function OverviewTab({ task }: { task: TaskDetail }) {
   );
 }
 
-function PropertyCard({ label, children }: { label: string; children: React.ReactNode }) {
+function PropertyCard({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="bg-gray-700/50 rounded-lg p-3">
       <div className="text-gray-500 text-xs mb-1">{label}</div>
@@ -299,7 +362,9 @@ function CriteriaTab({ task }: { task: TaskDetail }) {
     <div className="space-y-6">
       {/* Pass Criteria */}
       <div>
-        <h3 className="text-sm font-medium text-gray-400 mb-2">✅ Pass Criteria</h3>
+        <h3 className="text-sm font-medium text-gray-400 mb-2">
+          ✅ Pass Criteria
+        </h3>
         {task.pass_criteria ? (
           <div className="bg-gray-700/50 rounded-lg p-4">
             <pre className="text-gray-200 whitespace-pre-wrap font-mono text-sm">
@@ -314,7 +379,9 @@ function CriteriaTab({ task }: { task: TaskDetail }) {
       {/* Test Plan */}
       {task.test_plan && (
         <div>
-          <h3 className="text-sm font-medium text-gray-400 mb-2">🧪 Test Plan</h3>
+          <h3 className="text-sm font-medium text-gray-400 mb-2">
+            🧪 Test Plan
+          </h3>
           <div className="bg-gray-700/50 rounded-lg p-4">
             <pre className="text-gray-200 whitespace-pre-wrap font-mono text-sm">
               {task.test_plan}
@@ -331,7 +398,10 @@ function CriteriaTab({ task }: { task: TaskDetail }) {
           </h3>
           <ul className="space-y-2">
             {task.acceptance_criteria.map((criterion, i) => (
-              <li key={i} className="flex items-start gap-2 bg-gray-700/50 rounded-lg p-3">
+              <li
+                key={i}
+                className="flex items-start gap-2 bg-gray-700/50 rounded-lg p-3"
+              >
                 <span className="text-green-400 mt-0.5">☐</span>
                 <span className="text-gray-200">{criterion}</span>
               </li>
@@ -341,25 +411,28 @@ function CriteriaTab({ task }: { task: TaskDetail }) {
       )}
 
       {/* Empty state */}
-      {!task.pass_criteria && !task.test_plan && (!task.acceptance_criteria || task.acceptance_criteria.length === 0) && (
-        <div className="text-center py-12 text-gray-500">
-          <span className="text-4xl mb-4 block">📋</span>
-          <p>No criteria or test plans defined for this task</p>
-        </div>
-      )}
+      {!task.pass_criteria &&
+        !task.test_plan &&
+        (!task.acceptance_criteria ||
+          task.acceptance_criteria.length === 0) && (
+          <div className="text-center py-12 text-gray-500">
+            <span className="text-4xl mb-4 block">📋</span>
+            <p>No criteria or test plans defined for this task</p>
+          </div>
+        )}
     </div>
   );
 }
 
-function DependenciesTab({ 
-  task, 
-  onTaskClick 
-}: { 
-  task: TaskDetail; 
+function DependenciesTab({
+  task,
+  onTaskClick,
+}: {
+  task: TaskDetail;
   onTaskClick: (id: string) => void;
 }) {
   const deps = task.dependencies;
-  
+
   if (!deps || (deps.depends_on.length === 0 && deps.blocks.length === 0)) {
     return (
       <div className="text-center py-12 text-gray-500">
@@ -379,10 +452,10 @@ function DependenciesTab({
           </h3>
           <div className="space-y-2">
             {deps.depends_on.map((dep) => (
-              <DependencyCard 
-                key={dep.id} 
-                task={dep} 
-                onClick={() => onTaskClick(dep.id)} 
+              <DependencyCard
+                key={dep.id}
+                task={dep}
+                onClick={() => onTaskClick(dep.id)}
               />
             ))}
           </div>
@@ -397,10 +470,10 @@ function DependenciesTab({
           </h3>
           <div className="space-y-2">
             {deps.blocks.map((dep) => (
-              <DependencyCard 
-                key={dep.id} 
-                task={dep} 
-                onClick={() => onTaskClick(dep.id)} 
+              <DependencyCard
+                key={dep.id}
+                task={dep}
+                onClick={() => onTaskClick(dep.id)}
               />
             ))}
           </div>
@@ -410,11 +483,11 @@ function DependenciesTab({
   );
 }
 
-function DependencyCard({ 
-  task, 
-  onClick 
-}: { 
-  task: TaskRelation; 
+function DependencyCard({
+  task,
+  onClick,
+}: {
+  task: TaskRelation;
   onClick: () => void;
 }) {
   return (
@@ -423,7 +496,9 @@ function DependencyCard({
       className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors"
     >
       <div className="flex items-center gap-2">
-        <span className="font-mono text-xs text-blue-400">{task.display_id}</span>
+        <span className="font-mono text-xs text-blue-400">
+          {task.display_id}
+        </span>
         <span className="text-gray-200 truncate">{task.title}</span>
       </div>
       <StatusBadge status={task.status} />
@@ -454,8 +529,18 @@ function HistoryTab({ task }: { task: TaskDetail }) {
             {sh.from_status && (
               <>
                 <StatusBadge status={sh.from_status} />
-                <svg className="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                <svg
+                  className="w-4 h-4 text-gray-500 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M14 5l7 7m0 0l-7 7m7-7H3"
+                  />
                 </svg>
               </>
             )}

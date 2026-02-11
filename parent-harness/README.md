@@ -16,15 +16,15 @@ open http://localhost:3333
 
 ## Documentation
 
-| Doc | Description |
-|-----|-------------|
-| [DECISIONS.md](./DECISIONS.md) | Approved architecture decisions |
-| [docs/FRONTEND.md](./docs/FRONTEND.md) | Dashboard UI specification |
-| [docs/BACKEND.md](./docs/BACKEND.md) | API and orchestrator spec |
-| [docs/DATA_MODEL.md](./docs/DATA_MODEL.md) | Database schema |
-| [docs/AGENTS.md](./docs/AGENTS.md) | Agent definitions |
-| [docs/PHASES.md](./docs/PHASES.md) | Build order and phases |
-| [docs/CRITICAL_GAPS.md](./docs/CRITICAL_GAPS.md) | Missing pieces analysis |
+| Doc                                              | Description                     |
+| ------------------------------------------------ | ------------------------------- |
+| [DECISIONS.md](./DECISIONS.md)                   | Approved architecture decisions |
+| [docs/FRONTEND.md](./docs/FRONTEND.md)           | Dashboard UI specification      |
+| [docs/BACKEND.md](./docs/BACKEND.md)             | API and orchestrator spec       |
+| [docs/DATA_MODEL.md](./docs/DATA_MODEL.md)       | Database schema                 |
+| [docs/AGENTS.md](./docs/AGENTS.md)               | Agent definitions               |
+| [docs/PHASES.md](./docs/PHASES.md)               | Build order and phases          |
+| [docs/CRITICAL_GAPS.md](./docs/CRITICAL_GAPS.md) | Missing pieces analysis         |
 
 ## Architecture
 
@@ -62,16 +62,16 @@ open http://localhost:3333
 
 ## Agents
 
-| Agent | Model | Channel |
-|-------|-------|---------|
-| Orchestrator | Haiku | @vibe-orchestrator |
-| Build Agent | Opus | @vibe-build |
-| Spec Agent | Opus | @vibe-spec |
-| QA Agent | Opus | @vibe-qa |
-| Task Agent | Sonnet | @vibe-task |
-| SIA | Opus | @vibe-sia |
+| Agent               | Model  | Channel             |
+| ------------------- | ------ | ------------------- |
+| Orchestrator        | Haiku  | @vibe-orchestrator  |
+| Build Agent         | Opus   | @vibe-build         |
+| Spec Agent          | Opus   | @vibe-spec          |
+| QA Agent            | Opus   | @vibe-qa            |
+| Task Agent          | Sonnet | @vibe-task          |
+| SIA                 | Opus   | @vibe-sia           |
 | Clarification Agent | Sonnet | @vibe-clarification |
-| Human Sim Agent | Sonnet | @vibe-human-sim |
+| Human Sim Agent     | Sonnet | @vibe-human-sim     |
 
 ## Files
 

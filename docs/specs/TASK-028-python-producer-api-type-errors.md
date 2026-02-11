@@ -26,18 +26,21 @@ Add explicit type assertions (`as any[]`) to tell TypeScript the expected shape 
 ### Functional Requirements
 
 **FR1: Resolve All TS2571 Type Errors**
+
 - Fix TS2571 errors at lines 315, 342, 343, 378, and 394
 - Add proper type assertions to database query results
 - Maintain existing test functionality and assertions
 - Preserve test coverage and behavior
 
 **FR2: Preserve Type Safety**
+
 - Use appropriate type assertions without compromising type checking
 - Ensure TypeScript understands the shape of query responses
 - Maintain consistency with existing test patterns in codebase
 - No `@ts-ignore` or `@ts-expect-error` suppressions
 
 **FR3: Maintain Test Integrity**
+
 - All existing tests must continue to pass
 - No changes to test logic or assertions
 - No changes to expected behavior or outcomes
@@ -46,12 +49,14 @@ Add explicit type assertions (`as any[]`) to tell TypeScript the expected shape 
 ### Non-Functional Requirements
 
 **NFR1: Code Quality**
+
 - Follow existing test file conventions
 - Maintain readability and clarity
 - Use consistent type assertion patterns
 - Preserve test documentation and comments
 
 **NFR2: Compilation Success**
+
 - TypeScript compilation must succeed with `npx tsc --noEmit`
 - No new type errors introduced
 - No warnings generated from changes
@@ -95,21 +100,25 @@ const payload = JSON.parse(result[0].payload);
 **Five locations with TS2571 errors:**
 
 1. **Line 315** - Skill trace tool_calls parsing
+
    ```typescript
    const toolCalls = JSON.parse(result[0].tool_calls);
    ```
 
 2. **Line 342** - Build agent instance status check
+
    ```typescript
    expect(result[0].status).toBe("active");
    ```
 
 3. **Line 343** - Build agent instance task_id check
+
    ```typescript
    expect(result[0].current_task_id).toBe("task-001");
    ```
 
 4. **Line 378** - Transcript to tool use linking
+
    ```typescript
    expect(toolUseResult[0].transcript_entry_id).toBe(transcriptEntryId);
    ```
@@ -128,15 +137,17 @@ Add explicit type assertion to query results:
 const result = await query("SELECT * FROM table WHERE id = ?", [id]);
 
 // After (resolves TS2571)
-const result = await query("SELECT * FROM table WHERE id = ?", [id]) as any[];
+const result = (await query("SELECT * FROM table WHERE id = ?", [id])) as any[];
 ```
 
 This tells TypeScript:
+
 - The result is an array
 - Array elements have properties matching the database schema
 - Tests can safely access these properties
 
 **Rationale for `as any[]`:**
+
 - Test uses mocked data with dynamic shapes
 - Full type definitions would be overly complex for test context
 - Pattern is consistent with other test files in codebase
@@ -170,16 +181,17 @@ Apply type assertions to **all query result assignments**:
 
 ```typescript
 // Pattern applied consistently throughout file
-const result = await query(
-  "SELECT * FROM table WHERE condition = ?",
-  [value]
-) as any[];
+const result = (await query("SELECT * FROM table WHERE condition = ?", [
+  value,
+])) as any[];
 ```
 
 **Files Modified:**
+
 - `tests/integration/observability/python-producer-api.test.ts`
 
 **Changes:**
+
 - ~13 type assertions added
 - No logic changes
 - No test behavior changes
@@ -191,6 +203,7 @@ npx tsc --noEmit
 ```
 
 **Expected:**
+
 - Exit code 0
 - No TS2571 errors in python-producer-api.test.ts
 - No new errors introduced
@@ -202,6 +215,7 @@ npm test -- tests/integration/observability/python-producer-api.test.ts --run
 ```
 
 **Expected:**
+
 - All tests pass
 - Same number of assertions
 - No behavior changes
@@ -213,6 +227,7 @@ npm test --run
 ```
 
 **Expected:**
+
 - All previously passing tests still pass
 - No new failures introduced
 - Build succeeds
@@ -230,6 +245,7 @@ npx tsc --noEmit 2>&1 | grep "python-producer-api.test.ts" | grep "TS2571"
 **Expected:** No output (0 matches)
 
 **Verification:**
+
 - No TS2571 errors at lines 315, 342, 343, 378, 394
 - No new type errors introduced
 - Clean TypeScript compilation
@@ -244,6 +260,7 @@ echo $?
 **Expected:** Exit code 0
 
 **Verification:**
+
 - No compilation errors
 - No type checking failures
 - All types properly resolved
@@ -257,6 +274,7 @@ npm test -- tests/integration/observability/python-producer-api.test.ts --run
 **Expected:** All 18 tests pass
 
 **Test Structure:**
+
 - Message Bus Log Format (2 tests)
 - Transcript Entry Format (2 tests)
 - Tool Use Format (3 tests)
@@ -268,6 +286,7 @@ npm test -- tests/integration/observability/python-producer-api.test.ts --run
 ### ✅ Pass Criterion 4: No Test Behavior Changes
 
 **Manual verification:**
+
 - All test assertions remain unchanged
 - No test logic modified
 - Mock data structures unchanged
@@ -288,15 +307,18 @@ npm test -- tests/integration/observability/python-producer-api.test.ts --run
 ### File Dependencies
 
 **Primary File:**
+
 - `tests/integration/observability/python-producer-api.test.ts` (modified)
 
 **Related Files:**
+
 - `database/db.js` (mocked, not modified)
 - Other integration tests using similar patterns
 
 ### Pattern Consistency
 
 This fix aligns with existing type assertion patterns used in:
+
 - `tests/integration/observability/api-to-db.test.ts`
 - `tests/integration/anthropic-client.test.ts`
 - Other integration tests with mocked database queries
@@ -308,6 +330,7 @@ This fix aligns with existing type assertion patterns used in:
 ### Low Risk ✅
 
 **Why this is low risk:**
+
 - Changes are isolated to test file only
 - No production code affected
 - Type assertions don't change runtime behavior
@@ -317,16 +340,19 @@ This fix aligns with existing type assertion patterns used in:
 ### Potential Issues (All Mitigated)
 
 **Issue 1: Type assertion masking real type errors**
+
 - **Mitigation:** Tests validate expected structure with assertions
 - **Mitigation:** Mock data defines explicit shapes
 - **Mitigation:** Runtime behavior unchanged
 
 **Issue 2: Inconsistent type assertion patterns**
+
 - **Mitigation:** Pattern matches existing test conventions
 - **Mitigation:** Applied consistently throughout file
 - **Mitigation:** Code review ensures consistency
 
 **Issue 3: Future refactoring complications**
+
 - **Mitigation:** Type assertions are explicit and searchable
 - **Mitigation:** When real types added, assertions can be replaced
 - **Mitigation:** Test structure supports gradual type strengthening

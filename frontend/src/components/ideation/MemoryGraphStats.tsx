@@ -1,11 +1,14 @@
 /**
  * Memory Graph Statistics Panel
- * 
+ *
  * Displays Neo4j memory graph statistics for the current session.
  */
 
-import { useMemoryStats, useMemoryGraphHealth } from '../../hooks/useMemoryGraph';
-import type { BlockType } from '../../api/memory-graph';
+import {
+  useMemoryStats,
+  useMemoryGraphHealth,
+} from "../../hooks/useMemoryGraph";
+import type { BlockType } from "../../api/memory-graph";
 
 interface MemoryGraphStatsProps {
   sessionId?: string;
@@ -13,30 +16,33 @@ interface MemoryGraphStatsProps {
 }
 
 const BLOCK_TYPE_ICONS: Record<BlockType, string> = {
-  knowledge: '📚',
-  decision: '⚖️',
-  assumption: '🤔',
-  question: '❓',
-  requirement: '📋',
-  task: '✅',
-  proposal: '💡',
-  artifact: '📦',
-  evidence: '🔍',
+  knowledge: "📚",
+  decision: "⚖️",
+  assumption: "🤔",
+  question: "❓",
+  requirement: "📋",
+  task: "✅",
+  proposal: "💡",
+  artifact: "📦",
+  evidence: "🔍",
 };
 
 const BLOCK_TYPE_COLORS: Record<BlockType, string> = {
-  knowledge: 'bg-blue-100 text-blue-800',
-  decision: 'bg-purple-100 text-purple-800',
-  assumption: 'bg-yellow-100 text-yellow-800',
-  question: 'bg-orange-100 text-orange-800',
-  requirement: 'bg-red-100 text-red-800',
-  task: 'bg-green-100 text-green-800',
-  proposal: 'bg-indigo-100 text-indigo-800',
-  artifact: 'bg-gray-100 text-gray-800',
-  evidence: 'bg-teal-100 text-teal-800',
+  knowledge: "bg-blue-100 text-blue-800",
+  decision: "bg-purple-100 text-purple-800",
+  assumption: "bg-yellow-100 text-yellow-800",
+  question: "bg-orange-100 text-orange-800",
+  requirement: "bg-red-100 text-red-800",
+  task: "bg-green-100 text-green-800",
+  proposal: "bg-indigo-100 text-indigo-800",
+  artifact: "bg-gray-100 text-gray-800",
+  evidence: "bg-teal-100 text-teal-800",
 };
 
-export function MemoryGraphStats({ sessionId, compact = false }: MemoryGraphStatsProps) {
+export function MemoryGraphStats({
+  sessionId,
+  compact = false,
+}: MemoryGraphStatsProps) {
   const { stats, loading, error } = useMemoryStats(sessionId);
   const { healthy, loading: healthLoading } = useMemoryGraphHealth();
 
@@ -78,7 +84,10 @@ export function MemoryGraphStats({ sessionId, compact = false }: MemoryGraphStat
     );
   }
 
-  const blockTypes = Object.entries(stats.blocks_by_type) as [BlockType, number][];
+  const blockTypes = Object.entries(stats.blocks_by_type) as [
+    BlockType,
+    number,
+  ][];
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-4">
@@ -92,11 +101,15 @@ export function MemoryGraphStats({ sessionId, compact = false }: MemoryGraphStat
       {/* Summary Stats */}
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="text-center p-3 bg-gray-50 rounded-lg">
-          <div className="text-2xl font-bold text-gray-900">{stats.total_blocks}</div>
+          <div className="text-2xl font-bold text-gray-900">
+            {stats.total_blocks}
+          </div>
           <div className="text-sm text-gray-500">Total Blocks</div>
         </div>
         <div className="text-center p-3 bg-gray-50 rounded-lg">
-          <div className="text-2xl font-bold text-gray-900">{stats.total_links}</div>
+          <div className="text-2xl font-bold text-gray-900">
+            {stats.total_links}
+          </div>
           <div className="text-sm text-gray-500">Total Links</div>
         </div>
       </div>

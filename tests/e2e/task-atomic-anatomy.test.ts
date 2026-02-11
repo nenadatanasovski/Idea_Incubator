@@ -99,14 +99,8 @@ describe("8.1 PRD → Task Extraction → Execution", () => {
           "Users can log in with email/password",
           "Session persists across page reloads",
         ],
-        constraints: [
-          "Must use JWT tokens",
-          "Must support OAuth2",
-        ],
-        outOfScope: [
-          "Social login",
-          "Two-factor authentication",
-        ],
+        constraints: ["Must use JWT tokens", "Must support OAuth2"],
+        outOfScope: ["Social login", "Two-factor authentication"],
       } as Parameters<typeof prdService.create>[0],
       "test-user",
     );
@@ -664,12 +658,8 @@ describe("8.3 Cascade Propagation", () => {
     );
 
     // Check if dependent tasks should be blocked
-    await getOne(`SELECT status FROM tasks WHERE id = ?`, [
-      task2Id,
-    ]) as any;
-    await getOne(`SELECT status FROM tasks WHERE id = ?`, [
-      task3Id,
-    ]) as any;
+    (await getOne(`SELECT status FROM tasks WHERE id = ?`, [task2Id])) as any;
+    (await getOne(`SELECT status FROM tasks WHERE id = ?`, [task3Id])) as any;
 
     // Tasks with unmet dependencies should be blockable
     // The actual blocking happens during execution, but we can check the dependency chain
@@ -705,9 +695,7 @@ describe("8.3 Cascade Propagation", () => {
 
   it("should generate cascade report for task edit", async () => {
     // Simulate editing task1 description
-    await getOne(`SELECT * FROM tasks WHERE id = ?`, [
-      task1Id,
-    ]);
+    await getOne(`SELECT * FROM tasks WHERE id = ?`, [task1Id]);
 
     // Generate cascade report
     const report = await cascadeAnalyzerService.generateCascadeReport(task1Id);

@@ -106,26 +106,26 @@ export type ValidationSeverity = "error" | "warning" | "info";
 
 // Individual validation issue
 export interface ValidationIssue {
-  id: string;                    // Unique identifier (e.g., "god-component-comp-1")
-  type: string;                  // Classification (e.g., "god-component")
-  severity: ValidationSeverity;  // Impact level
-  component?: string;            // Affected component name
-  description: string;           // Problem description
-  remediation: string;           // Actionable fix suggestion
-  references?: string[];         // Best practices, standards
+  id: string; // Unique identifier (e.g., "god-component-comp-1")
+  type: string; // Classification (e.g., "god-component")
+  severity: ValidationSeverity; // Impact level
+  component?: string; // Affected component name
+  description: string; // Problem description
+  remediation: string; // Actionable fix suggestion
+  references?: string[]; // Best practices, standards
 }
 
 // Validation report output
 export interface ValidationReport {
-  projectName: string;           // From architecture.projectName
-  generatedAt: Date;             // Timestamp
-  isValid: boolean;              // true if errorCount === 0
-  totalIssues: number;           // Total number of issues
-  errorCount: number;            // Blocking errors
-  warningCount: number;          // Advisory warnings
-  infoCount: number;             // Informational suggestions
-  issues: ValidationIssue[];     // All detected issues
-  summary: string;               // Human-readable summary
+  projectName: string; // From architecture.projectName
+  generatedAt: Date; // Timestamp
+  isValid: boolean; // true if errorCount === 0
+  totalIssues: number; // Total number of issues
+  errorCount: number; // Blocking errors
+  warningCount: number; // Advisory warnings
+  infoCount: number; // Informational suggestions
+  issues: ValidationIssue[]; // All detected issues
+  summary: string; // Human-readable summary
 }
 ```
 
@@ -134,17 +134,20 @@ export interface ValidationReport {
 #### 1. Component Structure Validation
 
 **God Component Detection:**
+
 - **Pattern:** Component with >8 responsibilities
 - **Severity:** Warning
 - **Rationale:** Violates Single Responsibility Principle
 - **Remediation:** "Break down into smaller components with 3-5 responsibilities each"
 
 **Missing Description:**
+
 - **Pattern:** description.length < 10
 - **Severity:** Info
 - **Remediation:** "Add clear, detailed description of purpose and responsibilities"
 
 **No Design Patterns:**
+
 - **Pattern:** designPatterns.length === 0
 - **Severity:** Info
 - **Remediation:** "Document design patterns used (MVC, Factory, Observer, etc.)"
@@ -152,6 +155,7 @@ export interface ValidationReport {
 #### 2. Circular Dependency Detection
 
 **Algorithm:** Depth-First Search (DFS) with recursion stack
+
 - Build adjacency map from component dependencies
 - Detect cycles using visited set + recursion stack
 - **Severity:** Error (blocking)
@@ -160,33 +164,39 @@ export interface ValidationReport {
 #### 3. API Design Validation
 
 **Missing Authentication:**
+
 - **Pattern:** api.authentication === undefined
 - **Severity:** Error
 - **Remediation:** "Define authentication mechanism (JWT, OAuth2, API Key) and apply to endpoints"
 - **References:** OWASP API Security, REST Security Best Practices
 
 **Missing Rate Limiting:**
+
 - **Pattern:** api.rateLimit === undefined
 - **Severity:** Warning
 - **Remediation:** "Implement rate limiting (e.g., 1000 req/hour) to prevent abuse"
 
 **Inconsistent Naming:**
+
 - **Pattern:** `/[A-Z]/.test(pathPart)` (camelCase in path)
 - **Severity:** Warning
 - **Remediation:** "Use kebab-case for path segments (/user-profiles not /userProfiles)"
 - **References:** REST API Best Practices, RFC 3986
 
 **Missing Pagination:**
+
 - **Pattern:** GET endpoint with "list" in path or plural ending, no limit/offset/page params
 - **Severity:** Warning
 - **Remediation:** "Add pagination parameters (limit/offset or page/size)"
 
 **Missing Response Specs:**
+
 - **Pattern:** endpoint.responses is empty
 - **Severity:** Info
 - **Remediation:** "Document all response codes (200, 400, 401, 500) and schemas"
 
 **Duplicate Endpoints:**
+
 - **Pattern:** Same path appears multiple times
 - **Severity:** Error
 - **Remediation:** "Remove or consolidate duplicate endpoint definitions"
@@ -194,22 +204,26 @@ export interface ValidationReport {
 #### 4. Database Design Validation
 
 **Missing Primary Key:**
+
 - **Pattern:** table.primaryKey.length === 0
 - **Severity:** Error
 - **Remediation:** "Define primary key (typically an id column) to uniquely identify rows"
 
 **Missing Foreign Key Indexes:**
+
 - **Pattern:** Column name ends with "_id" or contains "id_", not in indexes list
 - **Severity:** Warning
 - **Remediation:** "Add index on foreign key column to improve join performance"
 - **References:** Database Performance, N+1 Query Prevention
 
 **No Soft Delete:**
+
 - **Pattern:** No deleted_at or is_deleted column
 - **Severity:** Info
 - **Remediation:** "Add soft delete column to preserve historical data and maintain referential integrity"
 
 **Missing Audit Columns:**
+
 - **Pattern:** No created_at or updated_at columns
 - **Severity:** Info
 - **Remediation:** "Add created_at and updated_at columns for tracking record lifecycle"
@@ -217,17 +231,20 @@ export interface ValidationReport {
 #### 5. Security Validation
 
 **No Authentication Strategy:**
+
 - **Pattern:** No APIs have authentication defined
 - **Severity:** Error
 - **Remediation:** "Define centralized authentication mechanism and apply consistently"
 - **References:** OWASP Top 10, API Security
 
 **Missing Security Quality Attributes:**
+
 - **Pattern:** No quality attributes with category "security"
 - **Severity:** Warning
 - **Remediation:** "Add security quality attributes (encryption, access control, audit logging)"
 
 **Exposed Secrets:**
+
 - **Pattern:** Hardcoded credentials in JSON (`"password": "value"`, `aws_access_key`, etc.)
 - **Severity:** Error
 - **Remediation:** "Remove hardcoded secrets. Use environment variables or secret management systems"
@@ -236,6 +253,7 @@ export interface ValidationReport {
 #### 6. Caching Strategy Validation
 
 **No Caching Strategy:**
+
 - **Pattern:** No component design patterns mention "cache", no performance quality attributes
 - **Severity:** Warning
 - **Remediation:** "Define caching strategy (application-level, CDN, or database query caching)"
@@ -244,6 +262,7 @@ export interface ValidationReport {
 ### Implementation Details
 
 **File Structure:**
+
 ```
 agents/architect/
 ├── architecture-validator.ts    # Main validator class
@@ -353,16 +372,19 @@ for (const componentId of adjacencyMap.keys()) {
 ### Error vs Warning vs Info Distinction
 
 **Error (Blocking):**
+
 - Issues that will cause runtime failures or security vulnerabilities
 - Examples: circular dependencies, missing primary keys, no authentication, exposed secrets
 - Action required: Must fix before deployment
 
 **Warning (Advisory):**
+
 - Issues that degrade quality but won't cause immediate failures
 - Examples: god components, missing rate limiting, no indexes, inconsistent naming
 - Action recommended: Should fix to improve architecture quality
 
 **Info (Nice-to-have):**
+
 - Suggestions for improved maintainability
 - Examples: missing descriptions, no soft delete, no audit columns, missing design patterns
 - Action optional: Consider for better documentation and long-term maintenance
@@ -370,11 +392,13 @@ for (const componentId of adjacencyMap.keys()) {
 ## Pass Criteria
 
 ✅ **1. ArchitectureValidator class with validate() method exists**
+
 - Implementation: `agents/architect/architecture-validator.ts` lines 55-88
 - Exports `ArchitectureValidator` class with public `validate(architecture: ArchitectureDoc)` method
 - Returns `ValidationReport` with all required fields
 
 ✅ **2. Detects at least 5 different anti-patterns**
+
 - God Component (validateComponentStructure)
 - Circular Dependencies (validateCircularDependencies)
 - Missing Authentication (validateAPIDesign)
@@ -388,16 +412,19 @@ for (const componentId of adjacencyMap.keys()) {
 - **Total: 10+ anti-patterns detected**
 
 ✅ **3. Returns ValidationReport with severity and remediation fields**
+
 - ValidationReport structure includes all required fields (lines 38-48)
 - Each ValidationIssue includes severity and remediation (lines 24-33)
 - Severity is typed as "error" | "warning" | "info"
 
 ✅ **4. Validates API, database, and security concerns**
+
 - API validation: lines 196-307 (authentication, rate limiting, naming, pagination, responses)
 - Database validation: lines 310-386 (primary keys, indexes, soft deletes, audit columns)
 - Security validation: lines 389-442 (auth strategy, security QA, exposed secrets)
 
 ✅ **5. Can distinguish between error (blocking) and warning (advisory) issues**
+
 - Errors: circular dependencies, missing primary keys, no authentication, exposed secrets
 - Warnings: god components, missing rate limiting, missing indexes, inconsistent naming
 - Info: missing descriptions, no soft delete, no audit columns, no design patterns
@@ -406,14 +433,17 @@ for (const componentId of adjacencyMap.keys()) {
 ## Dependencies
 
 **Code Dependencies:**
+
 - `agents/architect/types.ts` - ArchitectureDoc and related types
 - TypeScript 5.x - Type safety and interfaces
 
 **Test Dependencies:**
+
 - Vitest - Test framework
 - `tests/unit/agents/architecture-validator.test.ts` - 20 comprehensive test cases
 
 **Integration Points:**
+
 - Architect Agent (VIBE-P10-001) - Uses validator to assess generated architectures
 - Architecture Template System (VIBE-P10-002) - Validates template outputs
 - Database Schema Generator (VIBE-P10-006) - Validates schema designs
@@ -423,6 +453,7 @@ for (const componentId of adjacencyMap.keys()) {
 **Test Coverage:** 20 test cases in `tests/unit/agents/architecture-validator.test.ts`
 
 **Test Categories:**
+
 1. **Method existence and structure** (2 tests)
    - validate() method exists
    - Returns ValidationReport with required fields
@@ -464,6 +495,7 @@ for (const componentId of adjacencyMap.keys()) {
     - All issues include remediation suggestions
 
 **Test Execution:**
+
 ```bash
 npm test -- tests/unit/agents/architecture-validator.test.ts
 ```
@@ -490,7 +522,9 @@ const report = validator.validate(architecture);
 // Check results
 if (report.isValid) {
   console.log("✅ Architecture is valid!");
-  console.log(`Found ${report.warningCount} warnings and ${report.infoCount} suggestions`);
+  console.log(
+    `Found ${report.warningCount} warnings and ${report.infoCount} suggestions`,
+  );
 } else {
   console.error(`❌ Architecture has ${report.errorCount} blocking errors`);
   console.log(report.summary);

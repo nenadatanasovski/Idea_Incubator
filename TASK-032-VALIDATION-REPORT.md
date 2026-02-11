@@ -20,7 +20,8 @@ export function parseQAFromMarkdown(content: string): ParsedQA[] {
   const seen = new Set<string>();
 
   // Pattern 1: **Q:** / **A:** format (common in skills)
-  const qaPattern1 = /\*\*Q:\s*(.+?)\*\*\s*\n+\s*(?:\*\*A:\*\*|A:)?\s*(.+?)(?=\n\*\*Q:|\n##|$)/gs;
+  const qaPattern1 =
+    /\*\*Q:\s*(.+?)\*\*\s*\n+\s*(?:\*\*A:\*\*|A:)?\s*(.+?)(?=\n\*\*Q:|\n##|$)/gs;
 
   // ... additional patterns for flexibility
 
@@ -29,6 +30,7 @@ export function parseQAFromMarkdown(content: string): ParsedQA[] {
 ```
 
 **Verification:**
+
 - Function exists and is exported
 - Located in dedicated parser module (`questions/parser.ts`)
 - Imported in `scripts/sync.ts:18`
@@ -41,6 +43,7 @@ export function parseQAFromMarkdown(content: string): ParsedQA[] {
 **Implementation:** `questions/parser.ts:32-47`
 
 The parser supports **multiple formats** for flexibility:
+
 1. **Pattern 1:** `**Q:** / **A:**` format (primary format)
 2. **Pattern 2:** `### Question / Answer` heading format
 3. **Pattern 3:** `Q: / A:` simple format
@@ -48,12 +51,14 @@ The parser supports **multiple formats** for flexibility:
 5. **Pattern 5:** Bold question with answer below
 
 **Test Coverage:**
+
 - 11 tests in `tests/unit/questions/parser.test.ts`
 - Pattern 1 tests: Lines 9-52
 - Edge cases: Lines 94-173
 - All tests passing ✅
 
 **Key Features:**
+
 - Handles both `**A:**` and plain `A:` markers
 - Cleans markdown artifacts from answers
 - Skips questions/answers < 10 chars
@@ -83,6 +88,7 @@ export function classifyQuestionToId(question: string): string | null {
 ```
 
 **Pattern Coverage:**
+
 - 60+ question IDs mapped across 6 categories:
   - **Problem:** P1_CORE, P1_SCOPE, P2_PAIN, P2_COST, P3_WHO, P3_SEGMENT, etc.
   - **Solution:** S1_WHAT, S1_VALUE_PROP, S2_TECH, S2_HARD, S3_DIFF, etc.
@@ -92,11 +98,13 @@ export function classifyQuestionToId(question: string): string | null {
   - **Fit:** FT1_GOALS, FT2_PASSION, FT3_SKILLS, FT4_NETWORK, etc.
 
 **Usage in sync.ts:** Line 95
+
 ```typescript
 const questionId = classifyQuestionToId(question);
 ```
 
 **Test Coverage:**
+
 - Tests at `tests/unit/questions/classifier.test.ts`
 - All tests passing ✅
 
@@ -125,6 +133,7 @@ export async function saveAnswer(
 ```
 
 **Integration in sync.ts:** Lines 98-105
+
 ```typescript
 if (questionId) {
   try {
@@ -138,11 +147,13 @@ if (questionId) {
 ```
 
 **Database Schema:**
+
 - Table: `idea_answers`
 - Columns: `id`, `idea_id`, `question_id`, `answer`, `answer_source`, `confidence`, `answered_at`, `updated_at`
 - Source defaults to `"user"` as required
 
 **Verification:**
+
 - Function called in `syncDevelopmentAnswers()` at line 99
 - Proper error handling and logging
 - Triggers readiness recalculation after save
@@ -157,7 +168,7 @@ if (questionId) {
 function computeIdeaHash(ideaPath: string): string {
   const filesToHash = [
     path.join(ideaPath, "README.md"),
-    path.join(ideaPath, "development.md"),  // ✅ Included!
+    path.join(ideaPath, "development.md"), // ✅ Included!
   ];
 
   // Also include any research files
@@ -180,11 +191,13 @@ function computeIdeaHash(ideaPath: string): string {
 ```
 
 **Usage:** Lines 155, 199
+
 - Hash computed for new ideas (line 155): `const hash = computeIdeaHash(ideaFolder);`
 - Hash compared for existing ideas (line 199): `if (idea.content_hash !== hash)`
 - Triggers re-sync when development.md changes
 
 **Staleness Detection:**
+
 - Hash stored in `ideas.content_hash` column
 - Change triggers update and re-evaluation
 - Documented at lines 39-41 with clear comment
@@ -194,12 +207,14 @@ function computeIdeaHash(ideaPath: string): string {
 ## Test Results
 
 ### TypeScript Compilation
+
 ```bash
 $ npx tsc --noEmit
 ✅ No errors (0 compilation errors)
 ```
 
 ### Test Suite
+
 ```bash
 $ npm test
 ✅ 106 test files passed
@@ -208,6 +223,7 @@ $ npm test
 ```
 
 **Relevant Test Files:**
+
 1. `tests/unit/questions/parser.test.ts` - 11 tests ✅
 2. `tests/unit/questions/classifier.test.ts` - 22 tests ✅
 3. `tests/sync-development.test.ts` - 5 tests ✅
@@ -254,6 +270,7 @@ Beyond the basic requirements, the implementation includes:
 **TASK-032 is COMPLETE and fully validated.**
 
 All 5 pass criteria have been met:
+
 1. ✅ parseQAFromMarkdown() exists and is well-tested
 2. ✅ Extracts Q&A from **Q:**/**A:** format (+ 4 other formats)
 3. ✅ classifyQuestionToId() maps questions to 60+ YAML IDs

@@ -7,13 +7,16 @@ QA verification reported test failures for TASK-014. Investigation reveals the i
 ## Problem Analysis
 
 ### Surface Issue
+
 ```
 DatabaseError: Database error during run: no such table: task_versions
  ❯ cleanupTestData tests/task-agent/task-version-service.test.ts:41:3
 ```
 
 ### Root Cause
+
 The test database at `database/test.db` exists but is empty (0 bytes initially, or not properly migrated). The `globalSetup.ts` is supposed to:
+
 1. Delete old test database
 2. Configure path to test database
 3. Run all migrations
@@ -22,6 +25,7 @@ The test database at `database/test.db` exists but is empty (0 bytes initially, 
 However, the database ends up without any tables, not even the `_migrations` tracking table.
 
 ### Verification
+
 ```bash
 # Database exists but is empty
 $ ls -la database/test.db
@@ -37,6 +41,7 @@ database/migrations/085_create_task_versions.sql
 ```
 
 ### API Signature Status
+
 The TaskVersionService API is **correctly implemented** with three method overloads:
 
 ```typescript
@@ -57,15 +62,17 @@ async createVersion(taskId: string, reason: string, userId: string): Promise<Tas
 ```
 
 The tests correctly use Overload 2 (update object signature):
+
 ```typescript
 await taskVersionService.createVersion(testTaskId, {
   title: "Title v1",
   changeReason: "v1",
-  changedBy: "system"
+  changedBy: "system",
 });
 ```
 
 The VersionDiff type is **correctly defined** with changes as an array:
+
 ```typescript
 export interface VersionDiff {
   fromVersion: number;
@@ -81,6 +88,7 @@ export interface VersionDiff {
 The issue is in the test infrastructure, not the code being tested. Fix the global setup to ensure migrations run properly.
 
 #### Option 1: Fix globalSetup.ts (Recommended)
+
 Ensure migrations are actually applied by adding better error handling and verification:
 
 ```typescript
@@ -116,11 +124,13 @@ export async function setup() {
   // Verify critical tables exist
   const { query } = await import("../database/db.js");
   const tables = await query<{ name: string }>(
-    "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('tasks', 'task_versions', '_migrations')"
+    "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('tasks', 'task_versions', '_migrations')",
   );
 
   if (tables.length < 3) {
-    throw new Error(`Expected 3 critical tables, found ${tables.length}: ${tables.map(t => t.name).join(', ')}`);
+    throw new Error(
+      `Expected 3 critical tables, found ${tables.length}: ${tables.map((t) => t.name).join(", ")}`,
+    );
   }
 
   // Save and close
@@ -131,6 +141,7 @@ export async function setup() {
 ```
 
 #### Option 2: Per-Test Migration Check
+
 Add a check at the start of TaskVersionService tests:
 
 ```typescript
@@ -139,10 +150,12 @@ describe("TaskVersionService", () => {
   beforeAll(async () => {
     // Verify task_versions table exists
     const tables = await query<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name='task_versions'"
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='task_versions'",
     );
     if (tables.length === 0) {
-      throw new Error("task_versions table does not exist - migrations not applied");
+      throw new Error(
+        "task_versions table does not exist - migrations not applied",
+      );
     }
 
     await cleanupTestData();
@@ -161,12 +174,14 @@ describe("TaskVersionService", () => {
 ## Requirements
 
 ### Functional Requirements
+
 - FR1: Test database must be created with all migrations applied before tests run
 - FR2: Migration 085 (task_versions table) must be applied successfully
 - FR3: All TaskVersionService tests must pass
 - FR4: Setup must fail fast with clear error if migrations don't apply
 
 ### Non-Functional Requirements
+
 - NFR1: Setup process must complete within 5 seconds
 - NFR2: Error messages must clearly indicate which migration failed
 - NFR3: Test database must be isolated from development database
@@ -174,12 +189,14 @@ describe("TaskVersionService", () => {
 ## Pass Criteria
 
 1. ✅ All tests pass with no database errors:
+
    ```bash
    npm test -- task-version-service.test.ts --pool=forks --poolOptions.forks.maxForks=1
    # PASS tests/task-agent/task-version-service.test.ts (11 tests)
    ```
 
 2. ✅ Verify task_versions table exists in test database:
+
    ```bash
    sqlite3 database/test.db ".schema task_versions"
    # Should output CREATE TABLE statement
@@ -199,6 +216,7 @@ describe("TaskVersionService", () => {
    - previewRestore: show what would change
 
 4. ✅ Build succeeds:
+
    ```bash
    npm run build
    ```
@@ -218,20 +236,24 @@ describe("TaskVersionService", () => {
 ## Notes
 
 ### Why This Wasn't Caught Earlier
+
 - The test output shows migrations running but with "[INFO] No pending migrations" which suggests either:
   1. The migration glob pattern isn't finding .sql files
-  2. All migrations were marked as applied in _migrations table despite tables not existing
+  2. All migrations were marked as applied in \_migrations table despite tables not existing
   3. A different database instance is being used during migration vs during tests
 
 ### Alternative Root Causes to Investigate
+
 If Option 1 doesn't fix the issue, investigate:
+
 - Database connection pooling issues
 - Path resolution differences between setup and test execution
 - WAL mode conflicts causing schema changes to not be visible
-- Migration transaction rollbacks leaving _migrations marked but tables not created
+- Migration transaction rollbacks leaving \_migrations marked but tables not created
 
 ### Success Metrics
+
 - 11/11 tests passing
 - No DatabaseError exceptions
 - task_versions table present with correct schema
-- Migrations applied in sequence (verify _migrations table)
+- Migrations applied in sequence (verify \_migrations table)

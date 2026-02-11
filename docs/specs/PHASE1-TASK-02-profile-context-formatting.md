@@ -15,11 +15,13 @@ This specification documents the **already implemented** profile context formatt
 ### Problem Statement
 
 **Before Implementation:**
+
 - Only the Fit evaluator received profile context (full profile dump)
 - Other evaluators (Feasibility, Market, Risk) made assessments without creator capability information
 - Result: Generic reasoning like "without knowing creator's skills..." with low confidence (0.3-0.5)
 
 **After Implementation:**
+
 - All relevant evaluators receive category-specific profile excerpts
 - Feasibility evaluator gets skills, time availability, and skill gaps
 - Market evaluator gets network connections and community access
@@ -40,24 +42,28 @@ This specification documents the **already implemented** profile context formatt
 ### Functional Requirements
 
 **FR1: Category-Specific Profile Formatting**
+
 - Extract relevant profile sections based on evaluator category
 - Format with clear section headers and field labels
 - Include explicit instructions on how to use profile data in assessment
 - Return empty string for categories that don't need profile context
 
 **FR2: Field Extraction from Profile Context**
+
 - Parse profile context strings to extract specific fields
 - Support flexible field name matching (e.g., "Hours Available", "Weekly Hours")
 - Gracefully handle missing fields with "Not specified" fallback
 - Use regex-based extraction for key-value pairs
 
 **FR3: Null Safety**
+
 - Handle null/missing profile gracefully
 - Return uncertainty message when profile unavailable
 - Instruct evaluators to note uncertainty and apply lower confidence (0.4-0.5)
 - Never crash evaluation due to missing profile
 
 **FR4: Integration with Specialized Evaluators**
+
 - Called by each specialized evaluator before prompt assembly
 - Receives `ProfileContext | null` and `Category` parameters
 - Returns formatted string ready for prompt injection
@@ -66,18 +72,21 @@ This specification documents the **already implemented** profile context formatt
 ### Non-Functional Requirements
 
 **NFR1: Token Efficiency**
+
 - Category-specific excerpts: ~150 tokens per evaluator
 - Full profile dump would be: ~800 tokens per evaluator
 - Savings: 650 tokens × 6 evaluators = 3,900 tokens per evaluation
 - Cost reduction: ~$0.01 per evaluation at current token prices
 
 **NFR2: Maintainability**
+
 - Single source of truth: `utils/profile-context.ts`
 - Category logic centralized in switch statement
 - Easy to add new categories or modify existing formatting
 - Helper function `extractField()` for DRY principle
 
 **NFR3: Testability**
+
 - Pure function (no side effects, no database calls)
 - Deterministic output for given inputs
 - 100% unit test coverage (24 test cases)
@@ -151,11 +160,11 @@ This specification documents the **already implemented** profile context formatt
 
 ```typescript
 export interface ProfileContext {
-  goalsContext: string;       // Personal/business goals (FT1)
-  passionContext: string;      // Passion & motivation (FT2)
-  skillsContext: string;       // Technical skills & experience (FT3)
-  networkContext: string;      // Industry connections & community (FT4)
-  lifeStageContext: string;    // Life stage, capacity, runway (FT5)
+  goalsContext: string; // Personal/business goals (FT1)
+  passionContext: string; // Passion & motivation (FT2)
+  skillsContext: string; // Technical skills & experience (FT3)
+  networkContext: string; // Industry connections & community (FT4)
+  lifeStageContext: string; // Life stage, capacity, runway (FT5)
 }
 ```
 
@@ -166,11 +175,12 @@ export interface ProfileContext {
 **File:** `utils/profile-context.ts`
 
 **Function Signature:**
+
 ```typescript
 export function formatProfileForCategory(
   profile: ProfileContext | null,
   category: Category,
-): string
+): string;
 ```
 
 **Implementation Details:**
@@ -244,6 +254,7 @@ ${extractField(profile.skillsContext, "Experience") || "Not specified"}
 #### 3. Field Extraction Helper
 
 **Function:**
+
 ```typescript
 function extractField(context: string, fieldName: string): string | null {
   const pattern = new RegExp(`${fieldName}[:\\s]+(.+?)(?:\\n|$)`, "i");
@@ -255,17 +266,20 @@ function extractField(context: string, fieldName: string): string | null {
 **Purpose:** Extract specific fields from free-form profile context strings
 
 **Example:**
-```typescript
-const lifeStage = "Status: Employed. Hours Available: 20/week. Runway: 12 months.";
 
-extractField(lifeStage, "Hours Available")  // → "20/week"
-extractField(lifeStage, "Runway")           // → "12 months"
-extractField(lifeStage, "Missing")          // → null
+```typescript
+const lifeStage =
+  "Status: Employed. Hours Available: 20/week. Runway: 12 months.";
+
+extractField(lifeStage, "Hours Available"); // → "20/week"
+extractField(lifeStage, "Runway"); // → "12 months"
+extractField(lifeStage, "Missing"); // → null
 ```
 
 #### 4. Full Profile Formatter (Fit Evaluator)
 
 **Function:**
+
 ```typescript
 function formatFullProfileContext(profile: ProfileContext): string {
   return `## Creator Profile (REQUIRED for Personal Fit Evaluation)
@@ -297,14 +311,14 @@ ${profile.lifeStageContext}
 
 ### Category Mapping
 
-| Category | Profile Sections Used | Rationale |
-|----------|----------------------|-----------|
-| **Problem** | None | Problem definition is objective; creator capabilities irrelevant |
-| **Solution** | None | Solution quality is objective; independent of who builds it |
-| **Feasibility** | Skills, Time, Gaps | F1 (complexity), F3 (skills), F4 (time-to-value) depend on creator capability |
-| **Market** | Network, Connections | M4 (barriers) can be lowered by industry connections; GTM feasibility |
-| **Risk** | Runway, Tolerance, Status, Experience | R1 (execution), R4 (financial), R9 (personal) directly tied to creator risk profile |
-| **Fit** | All 5 dimensions | FT1-FT5 explicitly evaluate personal alignment across all profile aspects |
+| Category        | Profile Sections Used                 | Rationale                                                                           |
+| --------------- | ------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Problem**     | None                                  | Problem definition is objective; creator capabilities irrelevant                    |
+| **Solution**    | None                                  | Solution quality is objective; independent of who builds it                         |
+| **Feasibility** | Skills, Time, Gaps                    | F1 (complexity), F3 (skills), F4 (time-to-value) depend on creator capability       |
+| **Market**      | Network, Connections                  | M4 (barriers) can be lowered by industry connections; GTM feasibility               |
+| **Risk**        | Runway, Tolerance, Status, Experience | R1 (execution), R4 (financial), R9 (personal) directly tied to creator risk profile |
+| **Fit**         | All 5 dimensions                      | FT1-FT5 explicitly evaluate personal alignment across all profile aspects           |
 
 ### Integration Points
 
@@ -314,7 +328,9 @@ ${profile.lifeStageContext}
 // Line ~240
 const profileContext = await getEvaluationProfileContext(ideaData.id);
 if (profileContext) {
-  logInfo("Found user profile - Personal Fit criteria will be evaluated with full context");
+  logInfo(
+    "Found user profile - Personal Fit criteria will be evaluated with full context",
+  );
 }
 ```
 
@@ -328,7 +344,7 @@ const v2Result = await runAllSpecializedEvaluators(
   ideaContent,
   costTracker,
   broadcaster,
-  profileContext,      // ← Passed to all evaluators
+  profileContext, // ← Passed to all evaluators
   structuredContext,
   research,
   strategicContext,
@@ -406,15 +422,17 @@ Plant hobbyist forums (5,000 members). Health tech Slack channels.
 ### ✅ 1. Function Exists and Exported
 
 **Verification:**
+
 ```typescript
 // utils/profile-context.ts
 export function formatProfileForCategory(
   profile: ProfileContext | null,
   category: Category,
-): string
+): string;
 ```
 
 **Test:** Import in `agents/specialized-evaluators.ts` (line 18)
+
 ```typescript
 import { formatProfileForCategory } from "../utils/profile-context.js";
 ```
@@ -438,6 +456,7 @@ default:             // ✅ Returns empty string (safety)
 ```
 
 **Test:** Run unit tests
+
 ```bash
 npm test -- profile-context
 ```
@@ -454,14 +473,14 @@ npm test -- profile-context
 
 **Verification:**
 
-| Category | Profile Sections | Token Count | Pass? |
-|----------|-----------------|-------------|-------|
-| Feasibility | Skills, Time, Gaps | ~150 | ✅ Excerpt |
-| Market | Network, Connections | ~120 | ✅ Excerpt |
-| Risk | Runway, Tolerance, Status, Experience | ~180 | ✅ Excerpt |
-| Fit | All 5 sections | ~800 | ✅ Full profile (correct) |
-| Problem | None | 0 | ✅ No profile |
-| Solution | None | 0 | ✅ No profile |
+| Category    | Profile Sections                      | Token Count | Pass?                     |
+| ----------- | ------------------------------------- | ----------- | ------------------------- |
+| Feasibility | Skills, Time, Gaps                    | ~150        | ✅ Excerpt                |
+| Market      | Network, Connections                  | ~120        | ✅ Excerpt                |
+| Risk        | Runway, Tolerance, Status, Experience | ~180        | ✅ Excerpt                |
+| Fit         | All 5 sections                        | ~800        | ✅ Full profile (correct) |
+| Problem     | None                                  | 0           | ✅ No profile             |
+| Solution    | None                                  | 0           | ✅ No profile             |
 
 **Status:** ✅ PASS - Token efficiency achieved through category-specific formatting
 
@@ -475,16 +494,16 @@ npm test -- profile-context
 
 ```typescript
 // Feasibility
-"**IMPORTANT**: Use this profile to assess whether the creator can realistically build this solution."
+"**IMPORTANT**: Use this profile to assess whether the creator can realistically build this solution.";
 
 // Market
-"**IMPORTANT**: Use this profile to assess go-to-market feasibility. Consider whether the creator has connections..."
+"**IMPORTANT**: Use this profile to assess go-to-market feasibility. Consider whether the creator has connections...";
 
 // Risk
-"**IMPORTANT**: Use this profile to assess execution risk (R1), financial risk (R4), and overall risk exposure."
+"**IMPORTANT**: Use this profile to assess execution risk (R1), financial risk (R4), and overall risk exposure.";
 
 // Fit
-"**CRITICAL**: You MUST use this detailed profile information to provide accurate, high-confidence assessments..."
+"**CRITICAL**: You MUST use this detailed profile information to provide accurate, high-confidence assessments...";
 ```
 
 **Status:** ✅ PASS - All categories with profile context include explicit instructions
@@ -496,22 +515,25 @@ npm test -- profile-context
 **Requirement:** Gracefully handle missing profile without crashing
 
 **Test:**
+
 ```typescript
 const result = formatProfileForCategory(null, "feasibility");
 // Should return uncertainty message, not throw error
 ```
 
 **Expected Output:**
+
 ```
 ## Creator Context
 No user profile available. Where creator capabilities affect your assessment, note this uncertainty and apply lower confidence (0.4-0.5).
 ```
 
 **Verification:** Unit test coverage
+
 ```typescript
 describe("when profile is null", () => {
-  it("should return uncertainty message");      // ✅ PASS
-  it("should work for all categories");          // ✅ PASS
+  it("should return uncertainty message"); // ✅ PASS
+  it("should work for all categories"); // ✅ PASS
 });
 ```
 
@@ -539,11 +561,13 @@ ${profileSection}    // ← Injected into prompt
 ```
 
 **Test:** Run evaluation and check logs
+
 ```bash
 npm run evaluate e2e-test-smart-wellness-tracker --verbose
 ```
 
 **Expected Log Output:**
+
 ```
 Found user profile - Personal Fit criteria will be evaluated with full context
 Running specialized evaluator: Feasibility Analyst
@@ -559,6 +583,7 @@ Running specialized evaluator: Feasibility Analyst
 **Requirement:** Evaluators cite profile data in reasoning when available
 
 **Test:** Run evaluation and inspect reasoning
+
 ```bash
 npm run evaluate e2e-test-smart-wellness-tracker
 cat ideas/e2e-test-smart-wellness-tracker/evaluation.md
@@ -567,12 +592,14 @@ cat ideas/e2e-test-smart-wellness-tracker/evaluation.md
 **Expected Reasoning Quality:**
 
 **Before (no profile context):**
+
 ```
 F3 (Skills): 5/10, confidence 0.4
 Reasoning: "Cannot assess skill match without knowing creator's background. Assuming average capability."
 ```
 
 **After (with profile context):**
+
 ```
 F3 (Skills): 8/10, confidence 0.88
 Reasoning: "The creator has 10 years embedded systems experience including 3 years TinyML on ARM Cortex-M processors - the exact technology stack needed. They've shipped 2 consumer hardware products previously. Strong skill match."
@@ -588,23 +615,25 @@ Evidence: ["10 years embedded systems", "3 years TinyML", "Shipped 2 products"]
 **Requirement:** Extract fields from various profile formats
 
 **Test Cases:**
+
 ```typescript
 // Flexible field name matching
-extractField("Hours Available: 20/week", "Hours Available")    // → "20/week"
-extractField("Weekly Hours: 20", "Hours")                      // → "20"
-extractField("Runway: 12 months", "Runway")                    // → "12 months"
-extractField("Financial Runway: 12 months", "Runway")          // → "12 months"
+extractField("Hours Available: 20/week", "Hours Available"); // → "20/week"
+extractField("Weekly Hours: 20", "Hours"); // → "20"
+extractField("Runway: 12 months", "Runway"); // → "12 months"
+extractField("Financial Runway: 12 months", "Runway"); // → "12 months"
 
 // Missing field handling
-extractField("Status: Employed", "Runway")                     // → null (handled)
+extractField("Status: Employed", "Runway"); // → null (handled)
 ```
 
 **Verification:** Unit test suite
+
 ```typescript
 describe("field extraction", () => {
-  it("should extract Hours Available from lifeStageContext");   // ✅ PASS
-  it("should extract Runway from lifeStageContext");            // ✅ PASS
-  it("should handle missing fields gracefully");                // ✅ PASS
+  it("should extract Hours Available from lifeStageContext"); // ✅ PASS
+  it("should extract Runway from lifeStageContext"); // ✅ PASS
+  it("should handle missing fields gracefully"); // ✅ PASS
 });
 ```
 
@@ -640,6 +669,7 @@ describe("field extraction", () => {
 **Coverage:** 24 test cases, 100% code coverage
 
 **Test Structure:**
+
 ```typescript
 describe("formatProfileForCategory", () => {
   describe("when profile is null", () => {
@@ -739,12 +769,14 @@ grep "Creator Profile (REQUIRED" eval-log.txt  # Fit evaluator (full profile)
 ### Token Efficiency
 
 **Before (full profile to all evaluators):**
+
 ```
 6 evaluators × 800 tokens each = 4,800 tokens per evaluation
 Cost: ~$0.014 per evaluation (at $3/M input tokens)
 ```
 
 **After (category-specific excerpts):**
+
 ```
 Problem:      0 tokens
 Solution:     0 tokens
@@ -760,12 +792,12 @@ Savings: $0.01 per evaluation (71% reduction in profile token usage)
 
 ### Quality Improvement
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Avg Confidence (with profile) | 0.45 | 0.86 | +91% |
-| Evidence Citations (Feasibility) | 0.2 | 2.4 | +1,100% |
-| "Cannot assess..." statements | 34% | 3% | -91% |
-| Profile-aware reasoning | 0% | 87% | +87pp |
+| Metric                           | Before | After | Change  |
+| -------------------------------- | ------ | ----- | ------- |
+| Avg Confidence (with profile)    | 0.45   | 0.86  | +91%    |
+| Evidence Citations (Feasibility) | 0.2    | 2.4   | +1,100% |
+| "Cannot assess..." statements    | 34%    | 3%    | -91%    |
+| Profile-aware reasoning          | 0%     | 87%   | +87pp   |
 
 ---
 
@@ -776,12 +808,13 @@ Savings: $0.01 per evaluation (71% reduction in profile token usage)
 **Issue:** `extractField()` uses regex pattern matching which may fail on unusual formats
 
 **Example:**
+
 ```typescript
 // Works
-extractField("Runway: 12 months", "Runway")  // → "12 months"
+extractField("Runway: 12 months", "Runway"); // → "12 months"
 
 // Fails
-extractField("I have about 12 months of runway", "Runway")  // → null
+extractField("I have about 12 months of runway", "Runway"); // → null
 ```
 
 **Mitigation:** Profile creation UI should enforce structured format, but fallback to "Not specified" prevents errors
@@ -799,6 +832,7 @@ extractField("I have about 12 months of runway", "Runway")  // → null
 **Issue:** Profile changes after evaluation don't trigger re-evaluation
 
 **Example:**
+
 1. Evaluate idea with profile showing "Runway: 6 months"
 2. User updates profile to "Runway: 24 months"
 3. Old evaluation still reflects 6-month runway
@@ -831,6 +865,7 @@ This specification documents the **fully implemented** profile context formattin
 **Status:** Production-ready, in active use as part of Phase 1 evaluation pipeline.
 
 **Quality Impact:**
+
 - Confidence: +91% improvement
 - Evidence citations: +1,100% improvement
 - Token efficiency: 71% reduction in profile token usage

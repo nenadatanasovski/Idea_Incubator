@@ -17,6 +17,7 @@ This specification documents the **pre-evaluation web research phase** that enri
 ### Problem Statement
 
 **Before Implementation:**
+
 - Evaluators relied entirely on user-provided claims with no external verification
 - Market size assertions went unchallenged (e.g., "$10B TAM" accepted without validation)
 - Competitor analysis missed major players not mentioned by the user
@@ -28,6 +29,7 @@ This specification documents the **pre-evaluation web research phase** that enri
 ### Solution
 
 A pre-evaluation research phase that:
+
 1. **Extracts claims** from idea content (domain, tech stack, competitors, market size)
 2. **Conducts web searches** using Claude's native WebSearch tool (5-8 targeted queries)
 3. **Verifies market data** against current industry sources
@@ -43,40 +45,47 @@ A pre-evaluation research phase that:
 ### Functional Requirements
 
 **FR1: Claims Extraction** ✅ IMPLEMENTED
+
 - Extract verifiable claims from README.md content
 - Identify: domain, technology stack, competitors, market size claims, target market
 - Implementation: `utils/claims-extractor.ts` → `extractClaimsFromContent()`
 
 **FR2: Search Query Generation** ✅ IMPLEMENTED
+
 - Build 5-8 targeted search queries from extracted claims
 - Include geographic-specific queries when creator location known
 - Implementation: `utils/claims-extractor.ts` → `buildSearchQueries()`
 
 **FR3: Web Search Execution** ✅ IMPLEMENTED
+
 - Use Claude's native WebSearch tool via `runClaudeCliWithPrompt()`
 - Model: Opus 4.6 (best search synthesis capabilities)
 - Track costs via CostTracker
 - Implementation: `agents/research.ts` → `conductResearchViaCli()`
 
 **FR4: Geographic Market Analysis** ✅ IMPLEMENTED
+
 - Extract creator location from profile (country + optional city)
 - Conduct dual research: LOCAL market vs. GLOBAL market
 - Compare TAM/SAM/SOM, competitors, entry barriers, timing
 - Implementation: `agents/research.ts` → `GeographicMarketData` interface
 
 **FR5: Structured Result Storage** ✅ IMPLEMENTED
+
 - Return typed `ResearchResult` with market, competitor, trend, tech data
 - Include geographic breakdown (`localMarket`, `globalMarket`)
 - Preserve source URLs for all findings
 - Implementation: `agents/research.ts` → `ResearchResult` interface
 
 **FR6: Category-Specific Formatting** ✅ IMPLEMENTED
+
 - **Market Evaluator:** Full geographic analysis, competitor intensity, entry barriers
 - **Solution Evaluator:** Technology feasibility with production examples only
 - **Other Categories:** Empty string (research not relevant)
 - Implementation: `agents/research.ts` → `formatResearchForCategory()`
 
 **FR7: Evaluation Pipeline Integration** ✅ IMPLEMENTED
+
 - Run after profile context loading, before evaluator execution
 - Pass research to `runAllSpecializedEvaluators()`
 - Handle failures gracefully (proceed with null research)
@@ -85,21 +94,25 @@ A pre-evaluation research phase that:
 ### Non-Functional Requirements
 
 **NFR1: Cost Management** ✅ IMPLEMENTED
+
 - Research costs ~$0.50-1.50 per evaluation (Opus 4.6)
 - Budget increased from $10 to $15 to accommodate research
 - Track costs separately: operation name `research-websearch-cli`
 
 **NFR2: Performance** ✅ IMPLEMENTED
+
 - Research completes in 30-60 seconds
 - Non-blocking: research failure does not block evaluation
 - Log progress: "Research phase completed (N searches)"
 
 **NFR3: Reliability** ✅ IMPLEMENTED
+
 - Graceful degradation: proceed with null research if search fails
 - JSON parsing with fallback to empty result
 - Error logging via `logWarning()` for debugging
 
 **NFR4: Source Attribution** ✅ IMPLEMENTED
+
 - All findings include source URLs
 - Evaluators instructed to cite sources in reasoning
 - Traceability for market size claims and competitor discoveries
@@ -159,23 +172,26 @@ Evaluation Pipeline (scripts/evaluate.ts)
 **Purpose:** Extract verifiable claims from idea content for research targeting
 
 **Interface:**
+
 ```typescript
 export interface ExtractedClaims {
-  domain: string;              // "plant care", "fintech", "healthcare SaaS"
-  technology: string[];        // ["AI", "React Native", "computer vision"]
-  competitors: string[];       // Competitors mentioned by user
-  marketSize: string | null;   // "$50B TAM" or null
-  targetMarket: string;        // "small business owners", "home gardeners"
-  keyAssumptions: string[];    // ["users willing to pay $10/mo"]
+  domain: string; // "plant care", "fintech", "healthcare SaaS"
+  technology: string[]; // ["AI", "React Native", "computer vision"]
+  competitors: string[]; // Competitors mentioned by user
+  marketSize: string | null; // "$50B TAM" or null
+  targetMarket: string; // "small business owners", "home gardeners"
+  keyAssumptions: string[]; // ["users willing to pay $10/mo"]
 }
 ```
 
 **Functions:**
+
 - `extractClaimsFromContent(content, costTracker)` - LLM-based (Haiku 3.5)
 - `extractClaimsManually(content)` - Pattern matching fallback
 - `buildSearchQueries(claims)` - Generate targeted queries
 
 **Query Templates:**
+
 1. `{domain} market size 2026`
 2. `{domain} industry analysis report 2026`
 3. `{domain} companies startups 2026`
@@ -188,16 +204,18 @@ export interface ExtractedClaims {
 **Purpose:** Conduct web research using Claude's native WebSearch tool
 
 **Core Function:**
+
 ```typescript
 export async function conductPreEvaluationResearch(
-  _ideaContent: string,           // Reserved for future use
+  _ideaContent: string, // Reserved for future use
   claims: ExtractedClaims,
   costTracker: CostTracker,
-  creatorLocation?: CreatorLocation  // Optional geographic context
-): Promise<ResearchResult>
+  creatorLocation?: CreatorLocation, // Optional geographic context
+): Promise<ResearchResult>;
 ```
 
 **Research Process:**
+
 1. Build search queries from claims
 2. Check if research should be skipped (currently always false)
 3. Execute `conductResearchViaCli()`:
@@ -209,6 +227,7 @@ export async function conductPreEvaluationResearch(
 5. Return `ResearchResult` with source attribution
 
 **Result Interface:**
+
 ```typescript
 export interface ResearchResult {
   marketSize: {
@@ -243,13 +262,14 @@ export interface ResearchResult {
 ```
 
 **Geographic Market Data:**
+
 ```typescript
 export interface GeographicMarketData {
-  region: string;              // "Australia", "Global", etc.
+  region: string; // "Australia", "Global", etc.
   marketSize: {
-    tam: string | null;        // Total Addressable Market
-    sam: string | null;        // Serviceable Addressable Market
-    som: string | null;        // Serviceable Obtainable Market
+    tam: string | null; // Total Addressable Market
+    sam: string | null; // Serviceable Addressable Market
+    som: string | null; // Serviceable Obtainable Market
     sources: string[];
   };
   competitors: {
@@ -273,69 +293,82 @@ export interface GeographicMarketData {
 #### 3. Research Formatter (`agents/research.ts`)
 
 **Function:**
+
 ```typescript
 export function formatResearchForCategory(
   research: ResearchResult | null,
-  category: string
-): string
+  category: string,
+): string;
 ```
 
 **Market Evaluator Output Format:**
+
 ```markdown
 ## External Research (Web Search Results)
 
 **Market Size (Global Overview):**
+
 - User claimed: $50B TAM
 - Verified: $15.6 billion globally in 2026
 - Sources: https://...
 
 **Competitors (Global Overview):**
+
 - User mentioned: CompetitorA, CompetitorB
 - Discovered: CompetitorC, CompetitorD, CompetitorE
 - Sources: https://...
 
 **Market Trends:**
+
 - Direction: growing
 - Evidence: 18% CAGR 2024-2028
 
 ---
 
 ## Geographic Market Analysis
+
 **Creator Location:** Sydney, Australia
 
 ### LOCAL MARKET (Australia)
 
 **Local Market Size:**
+
 - TAM: $2.3 billion AUD
 - SAM: $800 million AUD
 - Sources: https://...
 
 **Local Competitors:**
+
 - Key Players: LocalCompA, LocalCompB
 - Competition Intensity: moderate
 
 **Local Entry Barriers:**
+
 - Regulatory: APRA approval required
 - Capital Requirements: $1M AUD minimum
 - Relationship/Network: Banking partnerships essential
 
 **Local Market Timing:**
+
 - Readiness: growing
 - Catalysts: Open banking legislation, digital transformation
 
 ### GLOBAL MARKET
 
 **Global Market Size:**
+
 - TAM: $50 billion USD
 - SAM: $15 billion USD
 
 **Global Competitors:**
+
 - Key Players: GlobalCompA, GlobalCompB
 - Competition Intensity: intense
 
 ---
 
 **GEOGRAPHIC ANALYSIS INSTRUCTIONS:**
+
 1. Score each criterion considering BOTH local and global markets
 2. For M1 (Market Size): Report local TAM and global TAM separately
 3. For M3 (Competition): Note differences between local and global intensity
@@ -346,10 +379,12 @@ export function formatResearchForCategory(
 ```
 
 **Solution Evaluator Output Format:**
+
 ```markdown
 ## Technology Research (Web Search Results)
 
 **Technical Feasibility Assessment:**
+
 - Status: proven
 - Production Examples: TechCompanyA, ProductB, StartupC
 
@@ -388,7 +423,9 @@ if (!shouldSkipResearch()) {
 
   // Log results
   if (research.competitors.discovered.length > 0) {
-    logInfo(`Found ${research.competitors.discovered.length} additional competitors`);
+    logInfo(
+      `Found ${research.competitors.discovered.length} additional competitors`,
+    );
   }
   if (research.marketSize.verified) {
     logInfo(`Market size verified: ${research.marketSize.verified}`);
@@ -401,7 +438,7 @@ await runAllSpecializedEvaluators(
   profileContext,
   structuredContext,
   strategicContext,
-  research,  // ← Research data injected here
+  research, // ← Research data injected here
   costTracker,
   broadcaster,
 );
@@ -414,18 +451,21 @@ await runAllSpecializedEvaluators(
 ### Testable Success Criteria
 
 **PC1: Claims Extraction Works** ✅
+
 ```bash
 npm run evaluate test-web-search-validation
 
 # Expected log output:
 # "Extracted claims: domain="X", N competitors, tech: Y"
 ```
+
 - Domain identified from content
 - Technologies extracted (AI, React, etc.)
 - Competitors from Competition section
 - Market size claim if present
 
 **PC2: Web Research Executes** ✅
+
 ```bash
 npm run evaluate test-web-search-validation
 
@@ -434,12 +474,14 @@ npm run evaluate test-web-search-validation
 # "Using Claude native WebSearch tool..."
 # "Research found X additional competitors"
 ```
+
 - 5-8 search queries generated
 - WebSearch tool invoked via CLI
 - Completes within 60 seconds
 - Structured JSON response parsed
 
 **PC3: Geographic Analysis (with location)** ✅
+
 ```bash
 # Ensure test idea has linked profile with country
 npm run profile link test-web-search-validation <profile-slug>
@@ -450,11 +492,13 @@ npm run evaluate test-web-search-validation
 # "Local TAM: $X million AUD"
 # "Global market: TAM $X billion USD"
 ```
+
 - Dual local + global research conducted
 - GeographicMarketData populated for both regions
 - Local vs. global recommendations in Market evaluator
 
 **PC4: Market Evaluator Receives Full Research** ✅
+
 ```bash
 npm run evaluate test-web-search-validation --verbose
 
@@ -463,11 +507,13 @@ npm run evaluate test-web-search-validation --verbose
 # - "Geographic Market Analysis"
 # - Source URLs included
 ```
+
 - Market evaluator: Full research section with geographic analysis
 - Solution evaluator: Tech feasibility only
 - Other evaluators: No research section
 
 **PC5: Graceful Degradation** ✅
+
 ```bash
 # Test with minimal idea (no competitors, no market size)
 npm run evaluate <minimal-idea-slug>
@@ -475,11 +521,13 @@ npm run evaluate <minimal-idea-slug>
 # Should complete without errors
 # Research section shows "Not specified" / "Could not verify"
 ```
+
 - No crashes on missing data
 - Empty/null values handled gracefully
 - Evaluation continues with limited research
 
 **PC6: Cost Tracking** ✅
+
 ```bash
 npm run evaluate test-web-search-validation
 
@@ -487,6 +535,7 @@ npm run evaluate test-web-search-validation
 # - "research-websearch-cli" in breakdown
 # - ~3000 input + 1500 output tokens logged
 ```
+
 - Research cost tracked separately
 - Total cost includes research phase
 - No runaway token usage
@@ -497,23 +546,23 @@ npm run evaluate test-web-search-validation
 
 ### Internal Dependencies
 
-| Component | File | Status |
-|-----------|------|--------|
-| Claims Extractor | `utils/claims-extractor.ts` | ✅ Implemented |
-| Research Agent | `agents/research.ts` | ✅ Implemented |
-| Anthropic Client | `utils/anthropic-client.ts` | ✅ Exists |
-| Cost Tracker | `utils/cost-tracker.ts` | ✅ Exists |
-| Specialized Evaluators | `agents/specialized-evaluators.ts` | ✅ Integrated |
-| Profile Context | `scripts/profile.ts` | ✅ Exists |
-| Evaluation Script | `scripts/evaluate.ts` | ✅ Integrated |
+| Component              | File                               | Status         |
+| ---------------------- | ---------------------------------- | -------------- |
+| Claims Extractor       | `utils/claims-extractor.ts`        | ✅ Implemented |
+| Research Agent         | `agents/research.ts`               | ✅ Implemented |
+| Anthropic Client       | `utils/anthropic-client.ts`        | ✅ Exists      |
+| Cost Tracker           | `utils/cost-tracker.ts`            | ✅ Exists      |
+| Specialized Evaluators | `agents/specialized-evaluators.ts` | ✅ Integrated  |
+| Profile Context        | `scripts/profile.ts`               | ✅ Exists      |
+| Evaluation Script      | `scripts/evaluate.ts`              | ✅ Integrated  |
 
 ### External Dependencies
 
-| Dependency | Status |
-|------------|--------|
+| Dependency                 | Status       |
+| -------------------------- | ------------ |
 | Claude Code WebSearch Tool | ✅ Available |
-| Opus 4.6 Model | ✅ Available |
-| Haiku 3.5 Model | ✅ Available |
+| Opus 4.6 Model             | ✅ Available |
+| Haiku 3.5 Model            | ✅ Available |
 
 ### Database Dependencies
 
@@ -526,22 +575,27 @@ npm run evaluate test-web-search-validation
 ## Design Decisions
 
 **D1: Use Claude's Native WebSearch Instead of External APIs**
+
 - **Rationale:** Reliable, well-maintained, no API key management needed
 - **Trade-off:** Tied to Claude Code environment, but worth it for simplicity
 
 **D2: Always Run Research Phase (No Skipping)**
+
 - **Rationale:** Research improves evaluation quality; cost is acceptable
 - **Trade-off:** Slightly higher cost (~$1/evaluation), significantly better accuracy
 
 **D3: Use Opus 4.6 for Research**
+
 - **Rationale:** Best web search quality and synthesis capabilities
 - **Trade-off:** Higher cost than Haiku, but worth it for accuracy
 
 **D4: Geographic Analysis Optional**
+
 - **Rationale:** Only perform when creator location available in profile
 - **Trade-off:** Richer analysis when available, still works globally without it
 
 **D5: Research Failure Does Not Block Evaluation**
+
 - **Rationale:** Evaluations should proceed even if external data unavailable
 - **Trade-off:** Lower quality without research, but still useful
 
@@ -552,18 +606,21 @@ npm run evaluate test-web-search-validation
 ### Unit Tests
 
 **UT1: Claims Extraction** ✅
+
 - File: `tests/ideation/web-search.test.ts`
 - Coverage: Pattern matching, technology keywords, market size regex, competitor parsing
 
 ### Integration Tests
 
 **IT1: End-to-End Evaluation with Research** ✅ (Manual)
+
 ```bash
 npm run evaluate e2e-test-smart-wellness-tracker
 # Validates: Research executes, results appear in evaluator reasoning
 ```
 
 **IT2: Geographic Analysis with Profile** ✅ (Manual)
+
 ```bash
 npm run profile link test-idea test-profile
 npm run evaluate test-idea --verbose
@@ -571,6 +628,7 @@ npm run evaluate test-idea --verbose
 ```
 
 **IT3: Research Failure Graceful Degradation** ✅ (Manual)
+
 ```bash
 # Validates: Evaluation completes with warning when research fails
 ```
@@ -591,6 +649,7 @@ export function shouldSkipResearch(): boolean {
 ```
 
 Evaluations will continue with:
+
 - Q&A context from development.md ✅
 - User profile context ✅
 - Idea content from README.md ✅
@@ -609,6 +668,7 @@ Evaluations will continue with:
 ## Future Enhancements
 
 ### Research Result Caching
+
 ```typescript
 // Cache research by content hash + timestamp
 // Reuse if < 7 days old and content unchanged
@@ -620,12 +680,14 @@ interface ResearchCache {
 ```
 
 ### Incremental Research
+
 ```typescript
 // If user updates Competition section → re-research competitors only
 // If user updates market size claim → re-verify market size only
 ```
 
 ### Multi-Region Analysis
+
 ```typescript
 // Expand beyond local+global to key expansion markets
 // e.g., If based in Australia, also research US, UK, Singapore
@@ -636,6 +698,7 @@ expansionMarkets: [
 ```
 
 ### Research Quality Scoring
+
 ```typescript
 // Score research quality based on:
 // - Number of sources found
@@ -643,7 +706,7 @@ expansionMarkets: [
 // - Consistency across sources
 // - Authority of sources (e.g., Gartner, CB Insights)
 interface ResearchQuality {
-  score: number;           // 0-1
+  score: number; // 0-1
   sourceCount: number;
   recency: "current" | "recent" | "stale";
   authority: "high" | "medium" | "low";
@@ -655,12 +718,14 @@ interface ResearchQuality {
 ## Success Metrics
 
 ### Pre-Implementation (Baseline)
+
 - **Market Evaluator Confidence:** ~60% (user claims only)
 - **Competitor Discovery:** Only user-mentioned competitors
 - **Technology Validation:** No external verification
 - **Market Size Accuracy:** Trust user claims without verification
 
 ### Post-Implementation (Current)
+
 - **Market Evaluator Confidence:** ~80-90% (with external validation)
 - **Competitor Discovery:** 2-5 additional competitors per idea
 - **Technology Validation:** Feasibility assessment (proven/emerging/experimental)
@@ -671,6 +736,7 @@ interface ResearchQuality {
 ### Quality Indicators
 
 **Good Research Result:**
+
 - ✅ Market size verified with source URL
 - ✅ 2+ additional competitors discovered
 - ✅ Market trend direction identified (growing/stable/declining)
@@ -678,6 +744,7 @@ interface ResearchQuality {
 - ✅ Geographic analysis with local TAM (if location known)
 
 **Poor Research Result:**
+
 - ❌ Market size "Could not verify"
 - ❌ No additional competitors discovered
 - ❌ Trends "unknown"
@@ -702,6 +769,7 @@ interface ResearchQuality {
 PHASE1-TASK-03 is **fully implemented and operational**.
 
 **Deliverables:**
+
 - ✅ Claims extraction from idea content
 - ✅ Web search via Claude's native WebSearch tool
 - ✅ Market size verification with current data

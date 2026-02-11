@@ -5,6 +5,7 @@
 **Verified**: 2026-02-08 15:15
 **Agent**: Spec Agent
 **Related Tasks**:
+
 - TASK-014 (original issue, fixed 2026-02-07)
 - TASK-022 (duplicate report)
 - FIX-TASK-022-9IRY (first retry, verified already complete)
@@ -21,9 +22,11 @@ This specification documents the triple-nested retry task FIX-FIX-TASK-022-9IRY-
 ## Problem Statement (As Reported)
 
 The task description states:
+
 > QA verification failed for FIX-TASK-022-9IRY.
 >
 > Failed checks:
+>
 > - Tests: Command failed: npm test -- --pool=forks --poolOptions.forks.maxForks=1 2>&1 || echo "No test script"
 >
 > Original task: In tests/task-agent/task-version-service.test.ts, lines 205-206 attempt to call diff.from() and diff.to() as functions, but the diff property is typed as `{ from: unknown; to: unknown; }` (an object, not a callable). This causes TS2349 "This expression is not callable" errors.
@@ -33,6 +36,7 @@ The task description states:
 ### Historical Context
 
 The original issue (TASK-014/TASK-022) was:
+
 - `VersionDiff.changes` was typed as `Record<string, { from: unknown; to: unknown }>`
 - But the implementation built it as an array `Array<{ field: string; from: unknown; to: unknown }>`
 - Tests tried to use array methods like `.some()` on what TypeScript thought was a Record
@@ -67,6 +71,7 @@ export interface VersionDiff {
 The current codebase correctly implements the array-based approach:
 
 **types/task-version.ts:35-40**
+
 ```typescript
 export interface VersionDiff {
   fromVersion: number;
@@ -76,6 +81,7 @@ export interface VersionDiff {
 ```
 
 **server/services/task-agent/task-version-service.ts:225-254**
+
 ```typescript
 async diff(
   taskId: string,
@@ -110,6 +116,7 @@ async diff(
 ```
 
 **tests/task-agent/task-version-service.test.ts:188-208**
+
 ```typescript
 describe("diff", () => {
   it("should calculate diff between versions", async () => {
@@ -135,6 +142,7 @@ describe("diff", () => {
 ```
 
 **Note**: Lines 205-206 in the test file mentioned in the task description are:
+
 - Line 205: `expect(diff.changes.some((c) => c.field === "title")).toBe(true);`
 - Line 206: `expect(diff.changes.some((c) => c.field === "priority")).toBe(true);`
 
@@ -162,6 +170,7 @@ Test Files  1 passed (1)
 ```
 
 All tests passing:
+
 1. createVersion: should create initial version (v1) ✅
 2. createVersion: should increment version numbers ✅
 3. createVersion: should capture task snapshot ✅
@@ -183,6 +192,7 @@ $ npm run build
 **Result**: ✅ **TypeScript compilation successful with zero errors**
 
 Output:
+
 ```
 > idea-incubator@0.1.0 build
 > tsc
@@ -195,6 +205,7 @@ Clean exit with no errors, warnings, or type issues.
 **Result**: ✅ **No TypeScript errors in any files**
 
 The TypeScript compiler successfully processes:
+
 - `types/task-version.ts` - Type definitions with correct `VersionDiff` interface
 - `server/services/task-agent/task-version-service.ts` - Service implementation
 - `tests/task-agent/task-version-service.test.ts` - Test suite
@@ -270,6 +281,7 @@ ecfaf59 fix: Exclude integration and e2e tests from default test run
 ```
 
 Timeline:
+
 - **2026-02-07 18:44:41** - Commit `6ce2bc1` fixes the issue (TASK-014)
 - **2026-02-08 15:08** - Verification shows TASK-022 already complete
 - **2026-02-08 15:08** - FIX-TASK-022-9IRY created (retry of TASK-022)
@@ -282,11 +294,11 @@ Timeline:
 
 ## Pass Criteria Summary
 
-| Criterion | Status | Evidence |
-|-----------|--------|----------|
-| All tests pass | ✅ PASS | 11/11 tests pass in task-version-service.test.ts |
-| Build succeeds | ✅ PASS | `npm run build` exits cleanly with no errors |
-| TypeScript compiles | ✅ PASS | tsc produces no type errors |
+| Criterion           | Status  | Evidence                                         |
+| ------------------- | ------- | ------------------------------------------------ |
+| All tests pass      | ✅ PASS | 11/11 tests pass in task-version-service.test.ts |
+| Build succeeds      | ✅ PASS | `npm run build` exits cleanly with no errors     |
+| TypeScript compiles | ✅ PASS | tsc produces no type errors                      |
 
 ## Conclusion
 
@@ -301,11 +313,13 @@ expect(diff.changes.some((c) => c.field === "priority")).toBe(true);
 ```
 
 The original issue was fixed in commit `6ce2bc1` on 2026-02-07 as part of TASK-014, which:
+
 1. Changed `VersionDiff.changes` from `Record` to `Array` type
 2. Updated the service implementation to build an array
 3. Ensured tests use array methods
 
 **All three pass criteria are verified as passing**:
+
 - ✅ Tests: 11/11 pass in 321ms
 - ✅ Build: TypeScript compilation clean
 - ✅ TypeScript: No type errors

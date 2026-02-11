@@ -1,6 +1,7 @@
 # TASK-023: Fix task-queue-persistence.test.ts Unknown Type Assertions
 
 ## Status
+
 **COMPLETED** ✅ (Fixed in commit 26c8366)
 
 ## Overview
@@ -14,7 +15,7 @@ The test file `tests/task-queue-persistence.test.ts` had 15 TS2571 errors where 
 The `query()` function from `database/db.ts` is a generic function that can return typed results:
 
 ```typescript
-export async function query<T = any>(sql: string, params?: any[]): Promise<T[]>
+export async function query<T = any>(sql: string, params?: any[]): Promise<T[]>;
 ```
 
 However, when called without a type parameter, it defaults to `any` in the implementation but TypeScript strict mode treats the results as `unknown[]` in test files. This caused 15 TS2571 errors when trying to access properties on the returned rows.
@@ -99,6 +100,7 @@ interface ExecutorStateRow {
 ### Type Parameter Usage
 
 **Before (15 errors):**
+
 ```typescript
 const queueItems = await query(
   "SELECT * FROM task_queue WHERE task_list_path = ? ORDER BY position ASC",
@@ -107,6 +109,7 @@ const queueItems = await query(
 ```
 
 **After (typed correctly):**
+
 ```typescript
 const queueItems = await query<TaskQueueRow>(
   "SELECT * FROM task_queue WHERE task_list_path = ? ORDER BY position ASC",
@@ -118,15 +121,15 @@ const queueItems = await query<TaskQueueRow>(
 
 The following query calls were updated with type parameters:
 
-| Line | Query Target | Type Parameter | Occurrences |
-|------|-------------|----------------|-------------|
-| 107-110 | task_queue (all rows) | `TaskQueueRow` | 1 |
-| 145-148 | executor_state | `ExecutorStateRow` | 1 |
-| 176-179 | task_queue (single task) | `TaskQueueRow` | 1 |
-| 188-191 | task_queue (all rows) | `TaskQueueRow` | 1 |
-| 204-207 | executor_state | `ExecutorStateRow` | 1 |
-| 218-221 | task_queue (skipped task) | `TaskQueueRow` | 1 |
-| 235-238 | task_queue (requeued task) | `TaskQueueRow` | 1 |
+| Line    | Query Target               | Type Parameter     | Occurrences |
+| ------- | -------------------------- | ------------------ | ----------- |
+| 107-110 | task_queue (all rows)      | `TaskQueueRow`     | 1           |
+| 145-148 | executor_state             | `ExecutorStateRow` | 1           |
+| 176-179 | task_queue (single task)   | `TaskQueueRow`     | 1           |
+| 188-191 | task_queue (all rows)      | `TaskQueueRow`     | 1           |
+| 204-207 | executor_state             | `ExecutorStateRow` | 1           |
+| 218-221 | task_queue (skipped task)  | `TaskQueueRow`     | 1           |
+| 235-238 | task_queue (requeued task) | `TaskQueueRow`     | 1           |
 
 **Total**: 7 distinct query calls, each with 1-3 property accesses = 15 TS2571 errors resolved.
 
@@ -135,6 +138,7 @@ The following query calls were updated with type parameters:
 The type definitions align with the database schema defined in `database/migrations/034_task_queue_persistence.sql`:
 
 ### task_queue Table
+
 ```sql
 CREATE TABLE task_queue (
     id TEXT PRIMARY KEY,
@@ -158,6 +162,7 @@ CREATE TABLE task_queue (
 ```
 
 ### executor_state Table
+
 ```sql
 CREATE TABLE executor_state (
     id TEXT PRIMARY KEY,
@@ -180,24 +185,30 @@ CREATE TABLE executor_state (
 ## Pass Criteria
 
 ### ✅ PC-1: Zero TS2571 Errors
+
 **Status**: PASS
 **Evidence**: `npx tsc --noEmit` returns exit code 0 with zero errors
 
 ### ✅ PC-2: Proper Type Assertions
+
 **Status**: PASS
 **Evidence**: All 7 `query()` calls use generic type parameters (`query<TaskQueueRow>` or `query<ExecutorStateRow>`)
 
 ### ✅ PC-3: TypeScript Compilation Passes
+
 **Status**: PASS
 **Evidence**:
+
 ```bash
 $ npx tsc --noEmit
 # Exit code: 0 (no errors)
 ```
 
 ### ✅ PC-4: All Tests Pass
+
 **Status**: PASS
 **Evidence**:
+
 ```bash
 $ npm test task-queue-persistence
 ✓ tests/task-queue-persistence.test.ts (8 tests) 27ms
@@ -206,6 +217,7 @@ $ npm test task-queue-persistence
 ```
 
 **Test Coverage:**
+
 - ✓ should persist queue to database on load
 - ✓ should restore queue from database on restart
 - ✓ should persist executor state
@@ -218,14 +230,17 @@ $ npm test task-queue-persistence
 ## Dependencies
 
 ### Files Modified
+
 - `tests/task-queue-persistence.test.ts` (52 lines changed in commit 26c8366)
 
 ### Files Referenced
+
 - `database/db.ts` - Generic `query<T>()` function
 - `database/migrations/034_task_queue_persistence.sql` - Schema definitions
 - `server/services/task-executor.ts` - TaskExecutor implementation
 
 ### Related Tasks
+
 - **EXE-004**: Task Queue Persistence (parent feature)
 - **TASK-012**: TaskTestService type fixes (similar type assertion issue)
 - **TASK-021**: QuestionEngine type fixes (similar pattern)
@@ -233,12 +248,15 @@ $ npm test task-queue-persistence
 ## Alternative Approaches Considered
 
 ### Alternative 1: Type Assertion with `as`
+
 ```typescript
 const queueItems = (await query(...)) as TaskQueueRow[];
 ```
+
 **Rejected**: Less type-safe, bypasses TypeScript checking, doesn't leverage generics
 
 ### Alternative 2: Inline Type Definitions
+
 ```typescript
 const queueItems = await query<{
   id: string;
@@ -246,19 +264,23 @@ const queueItems = await query<{
   // ... all fields
 }>(...);
 ```
+
 **Rejected**: Verbose, not reusable, hard to maintain
 
 ### Alternative 3: Central Type Definition File
+
 Create `types/database-rows.ts` with all row types.
 **Rejected**: Over-engineering for test-only usage, but could be reconsidered if types are needed elsewhere
 
 ### Selected Approach: Local Interface Definitions ✅
+
 Define interfaces at the top of the test file and use generic type parameters.
 **Selected**: Clean, type-safe, reusable within the file, easy to maintain
 
 ## Testing Strategy
 
 ### Unit Tests
+
 All existing tests in `tests/task-queue-persistence.test.ts` verify the fix:
 
 1. **Type Safety**: TypeScript compiler enforces correct types
@@ -266,6 +288,7 @@ All existing tests in `tests/task-queue-persistence.test.ts` verify the fix:
 3. **Property Access**: All property accesses are type-checked
 
 ### Verification Commands
+
 ```bash
 # Check for TypeScript errors
 npx tsc --noEmit
@@ -280,11 +303,13 @@ npx tsc --noEmit tests/task-queue-persistence.test.ts
 ## Documentation
 
 ### Related Documentation
+
 - [Task Queue Persistence](../task-execution/queue-persistence.md) - Feature documentation
 - [Database Schema](../../database/schema.sql) - Schema reference
 - [Migration 034](../../database/migrations/034_task_queue_persistence.sql) - Table definitions
 
 ### Code Comments
+
 Inline comment added to clarify purpose of type definitions:
 
 ```typescript
@@ -311,6 +336,7 @@ When using the generic `query<T>()` function from `database/db.ts`:
 ### Similar Issues in Codebase
 
 This same pattern was applied to fix:
+
 - **TASK-012**: TaskTestService type errors (verification #S257)
 - **TASK-021**: QuestionEngine type errors (verification #S256)
 
@@ -326,15 +352,18 @@ To prevent similar issues in the future:
 ## Implementation Notes
 
 ### Commit Information
+
 - **Commit**: 26c8366
 - **Message**: "save"
 - **Files Changed**: 1 (tests/task-queue-persistence.test.ts)
 - **Lines Changed**: +52 (added type definitions and type parameters)
 
 ### Implementation Date
+
 Implemented prior to 2026-02-08 (task verification session #S250, #S252)
 
 ### Implementation Approach
+
 1. Analyzed TS2571 errors to identify all affected query calls
 2. Reviewed database schema to create accurate type definitions
 3. Added `TaskQueueRow` and `ExecutorStateRow` interfaces

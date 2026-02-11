@@ -12,7 +12,13 @@ import {
   CascadeTrigger,
   CascadeSuggestedAction,
 } from "../../../types/cascade.js";
-import { TaskImpact, ImpactConflict, ImpactType, ImpactOperation, ImpactSource } from "../../../types/task-impact.js";
+import {
+  TaskImpact,
+  ImpactConflict,
+  ImpactType,
+  ImpactOperation,
+  ImpactSource,
+} from "../../../types/task-impact.js";
 import { TaskImpactRow } from "../../../types/task-impact.js";
 
 /**
@@ -393,15 +399,16 @@ export class CascadeAnalyzerService {
       [impactType, targetPath],
     );
 
-    return tasks.map((t) => ({ id: t.task_id, displayId: t.display_id || t.task_id }));
+    return tasks.map((t) => ({
+      id: t.task_id,
+      displayId: t.display_id || t.task_id,
+    }));
   }
 
   /**
    * Generate a cascade report for a task showing all potential effects
    */
-  async generateCascadeReport(
-    taskId: string,
-  ): Promise<{
+  async generateCascadeReport(taskId: string): Promise<{
     taskId: string;
     impacts: TaskImpact[];
     dependentTasks: Array<{ taskId: string; reason: string }>;
@@ -445,10 +452,14 @@ export class CascadeAnalyzerService {
     // Generate recommendations
     const recommendations: string[] = [];
     if (dependentTasks.length > 0) {
-      recommendations.push(`${dependentTasks.length} tasks depend on this task`);
+      recommendations.push(
+        `${dependentTasks.length} tasks depend on this task`,
+      );
     }
     if (impactOverlaps.length > 0) {
-      recommendations.push(`${impactOverlaps.length} files overlap with other tasks`);
+      recommendations.push(
+        `${impactOverlaps.length} files overlap with other tasks`,
+      );
     }
 
     return {

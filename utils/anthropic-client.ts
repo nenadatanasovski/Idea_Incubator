@@ -6,11 +6,11 @@
  * 3. Otherwise → Claude Code CLI (OAuth via CLI session)
  */
 import Anthropic from "@anthropic-ai/sdk";
-import { 
-  streamAnthropic, 
-  getEnvApiKey, 
-  getModel, 
-  registerBuiltInApiProviders 
+import {
+  streamAnthropic,
+  getEnvApiKey,
+  getModel,
+  registerBuiltInApiProviders,
 } from "@mariozechner/pi-ai";
 import { createCliClient, callClaudeCli } from "./claude-cli-client.js";
 
@@ -58,8 +58,14 @@ function createPiAiClient(): AnthropicClient {
         // Get the model from pi-ai registry
         // We need to dynamically get the model, but getModel has strict typing
         // Use a type assertion to work with dynamic model strings
-        type AnthropicModels = "claude-3-5-sonnet-20241022" | "claude-3-5-haiku-20241022" | "claude-3-opus-20240229";
-        const model = getModel("anthropic", (params.model || "claude-3-5-sonnet-20241022") as AnthropicModels);
+        type AnthropicModels =
+          | "claude-3-5-sonnet-20241022"
+          | "claude-3-5-haiku-20241022"
+          | "claude-3-opus-20240229";
+        const model = getModel(
+          "anthropic",
+          (params.model || "claude-3-5-sonnet-20241022") as AnthropicModels,
+        );
         if (!model) {
           throw new Error(`Model not found: ${params.model}`);
         }
@@ -68,14 +74,15 @@ function createPiAiClient(): AnthropicClient {
         // Import the Message types to ensure compatibility
         type PiAiMessage = import("@mariozechner/pi-ai").Message;
         type PiAiUserMessage = import("@mariozechner/pi-ai").UserMessage;
-        type PiAiAssistantMessage = import("@mariozechner/pi-ai").AssistantMessage;
+        type PiAiAssistantMessage =
+          import("@mariozechner/pi-ai").AssistantMessage;
 
-        const messages: PiAiMessage[] = params.messages.map(m => {
+        const messages: PiAiMessage[] = params.messages.map((m) => {
           if (m.role === "user") {
             const userMsg: PiAiUserMessage = {
               role: "user" as const,
               content: [{ type: "text" as const, text: m.content }],
-              timestamp: Date.now()
+              timestamp: Date.now(),
             };
             return userMsg;
           } else {
@@ -97,11 +104,11 @@ function createPiAiClient(): AnthropicClient {
                   output: 0,
                   cacheRead: 0,
                   cacheWrite: 0,
-                  total: 0
-                }
+                  total: 0,
+                },
               },
               stopReason: "stop" as const,
-              timestamp: Date.now()
+              timestamp: Date.now(),
             };
             return assistantMsg;
           }
@@ -109,7 +116,7 @@ function createPiAiClient(): AnthropicClient {
 
         const context: import("@mariozechner/pi-ai").Context = {
           systemPrompt: params.system,
-          messages: messages
+          messages: messages,
         };
 
         const content: Array<{ type: "text"; text: string }> = [];
@@ -119,7 +126,7 @@ function createPiAiClient(): AnthropicClient {
 
         const response = streamAnthropic(model, context, {
           apiKey: apiKey!,
-          maxTokens: params.max_tokens
+          maxTokens: params.max_tokens,
         });
 
         let text = "";

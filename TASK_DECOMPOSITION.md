@@ -6,11 +6,12 @@
 
 ---
 
-### TASK_LIST_START ###
+### TASK_LIST_START
 
 ## PHASE 1: Idea Incubator Finalization ✅ (Already Complete)
 
 All Phase 1 deliverables completed:
+
 - ✅ Markdown→Database sync for Q&A
 - ✅ Category-relevant profile context
 - ✅ Web research phase for Market/Solution
@@ -30,6 +31,7 @@ WAVE: 1
 DEPENDS_ON: none
 DESCRIPTION: Review existing database schema (33 tables), document entity relationships, identify gaps for Phase 2-3 requirements (agent sessions, task queue, WebSocket events)
 PASS_CRITERIA:
+
 - Data model document created at parent-harness/docs/DATA-MODEL.md
 - All 33 existing tables documented with relationships
 - New tables identified for: task_queue, agent_sessions, events (if not existing)
@@ -44,6 +46,7 @@ WAVE: 1
 DEPENDS_ON: none
 DESCRIPTION: Set up Express server (port 3333), TypeScript compilation, basic error handling, CORS configuration, and health endpoint. Files: parent-harness/src/api/server.ts, parent-harness/src/api/routes/health.ts
 PASS_CRITERIA:
+
 - Express server starts without errors on port 3333
 - GET /health returns { status: 'ok', timestamp: ISO }
 - CORS headers present in responses
@@ -59,6 +62,7 @@ WAVE: 1
 DEPENDS_ON: Create Express REST API Scaffolding
 DESCRIPTION: Set up better-sqlite3 connection pool, migrations system, connection pooling. Files: parent-harness/src/db/connection.ts, parent-harness/database/migrate.ts
 PASS_CRITERIA:
+
 - SQLite database file created at parent-harness/data/harness.db
 - Migration system runs automatically on startup
 - Connection pooling configured
@@ -76,6 +80,7 @@ WAVE: 2
 DEPENDS_ON: none
 DESCRIPTION: Initialize Vite React project at parent-harness/dashboard/, configure Tailwind CSS 4, set up TypeScript, build pipeline. Files: parent-harness/dashboard/vite.config.ts, parent-harness/dashboard/src/main.tsx
 PASS_CRITERIA:
+
 - npm run dev dashboard starts on port 5173
 - npm run build succeeds
 - Tailwind classes render correctly
@@ -91,6 +96,7 @@ WAVE: 2
 DEPENDS_ON: Set Up React 19 + Vite + Tailwind CSS 4 Frontend
 DESCRIPTION: Build three-column responsive layout: left sidebar (agent status), main area (content), right sidebar (events/queue). Files: parent-harness/dashboard/src/components/Layout.tsx
 PASS_CRITERIA:
+
 - Layout.tsx renders 3 columns (3-6-3 responsive grid)
 - Header with Vibe logo and title
 - Left sidebar with data-testid="sidebar-agents"
@@ -105,8 +111,9 @@ CATEGORY: feature
 PRIORITY: P0
 WAVE: 2
 DEPENDS_ON: Create Dashboard Layout Shell
-DESCRIPTION: Set up React Router v6, page components, active route highlighting. Routes: Dashboard, Tasks, Sessions, Config. Files: parent-harness/dashboard/src/App.tsx, parent-harness/dashboard/src/pages/*
+DESCRIPTION: Set up React Router v6, page components, active route highlighting. Routes: Dashboard, Tasks, Sessions, Config. Files: parent-harness/dashboard/src/App.tsx, parent-harness/dashboard/src/pages/\*
 PASS_CRITERIA:
+
 - React Router configured with 4 pages
 - Navigation links highlight active page
 - Each page loads without console errors
@@ -124,6 +131,7 @@ WAVE: 3
 DEPENDS_ON: Implement SQLite Database Connection
 DESCRIPTION: Create agents list endpoint returning all agents with status, last_heartbeat, current_task. Files: parent-harness/src/api/routes/agents.ts
 PASS_CRITERIA:
+
 - GET /api/agents returns { agents: Agent[] }
 - Each agent includes: id, name, model, status, lastHeartbeat, currentTask
 - Endpoint response time <100ms
@@ -139,6 +147,7 @@ WAVE: 3
 DEPENDS_ON: Implement SQLite Database Connection
 DESCRIPTION: Create CRUD endpoints for task management: GET /api/tasks, POST /api/tasks, GET /api/tasks/:id, PATCH /api/tasks/:id. Files: parent-harness/src/api/routes/tasks.ts
 PASS_CRITERIA:
+
 - GET /api/tasks returns list with pagination
 - POST /api/tasks creates task, returns id
 - GET /api/tasks/:id returns single task
@@ -154,6 +163,7 @@ WAVE: 3
 DEPENDS_ON: Implement SQLite Database Connection
 DESCRIPTION: Create sessions list endpoint returning agent sessions with status, start_time, task_count. Files: parent-harness/src/api/routes/sessions.ts
 PASS_CRITERIA:
+
 - GET /api/sessions returns { sessions: Session[] }
 - Each session includes: id, agentId, status, startTime, taskCount
 - Sessions can be filtered by agent or status
@@ -168,6 +178,7 @@ WAVE: 3
 DEPENDS_ON: Implement SQLite Database Connection
 DESCRIPTION: Create events stream endpoint for dashboard. Files: parent-harness/src/api/routes/events.ts
 PASS_CRITERIA:
+
 - GET /api/events returns recent events (last 100)
 - Each event includes: id, type, timestamp, agentId, taskId, data
 - Events ordered by timestamp DESC
@@ -182,8 +193,9 @@ CATEGORY: feature
 PRIORITY: P0
 WAVE: 4
 DEPENDS_ON: Implement Agents API Endpoint (GET /api/agents)
-DESCRIPTION: Build custom hooks: useAgents, useTasks, useSessions, useEvents. Files: parent-harness/dashboard/src/hooks/*.ts
+DESCRIPTION: Build custom hooks: useAgents, useTasks, useSessions, useEvents. Files: parent-harness/dashboard/src/hooks/\*.ts
 PASS_CRITERIA:
+
 - useAgents returns { agents, loading, error }
 - useTasks returns { tasks, loading, error }
 - useSessions returns { sessions, loading, error }
@@ -200,6 +212,7 @@ WAVE: 4
 DEPENDS_ON: Create React Hooks for API Data Fetching
 DESCRIPTION: Create component displaying agent status grid (name, model, status, last_heartbeat, current_task). Files: parent-harness/dashboard/src/components/AgentStatusCards.tsx
 PASS_CRITERIA:
+
 - Component displays all agents in a grid
 - Each card shows: name, model, status badge (online/offline/busy)
 - Last heartbeat shown as relative time ("2m ago")
@@ -215,6 +228,7 @@ WAVE: 4
 DEPENDS_ON: Create React Hooks for API Data Fetching
 DESCRIPTION: Create component showing task list with status, priority, progress. Files: parent-harness/dashboard/src/components/TaskQueue.tsx
 PASS_CRITERIA:
+
 - Component displays tasks in a table or card list
 - Each task shows: id, title, status (pending/assigned/running/completed), priority
 - Progress bar for tasks in execution
@@ -230,6 +244,7 @@ WAVE: 4
 DEPENDS_ON: Create React Hooks for API Data Fetching
 DESCRIPTION: Create component showing recent events (agent events, task events, system events). Files: parent-harness/dashboard/src/components/EventStream.tsx
 PASS_CRITERIA:
+
 - Component displays events in chronological order
 - Each event shows: type, timestamp, agent/task involved, brief description
 - Events colored by type (agent:blue, task:green, system:red)
@@ -247,6 +262,7 @@ WAVE: 5
 DEPENDS_ON: Build Agent Status Cards Component, Build Task Queue Display Component, Build Event Stream Component
 DESCRIPTION: Create main dashboard page combining agent cards, task queue, event stream. Files: parent-harness/dashboard/src/pages/Dashboard.tsx
 PASS_CRITERIA:
+
 - Page loads without errors
 - Shows agent status cards in left column
 - Shows task queue in main column
@@ -263,6 +279,7 @@ WAVE: 5
 DEPENDS_ON: Build Task Queue Display Component
 DESCRIPTION: Create dedicated tasks page with detailed view, filtering, search. Files: parent-harness/dashboard/src/pages/Tasks.tsx
 PASS_CRITERIA:
+
 - Page displays all tasks in detailed table format
 - Filter by status: pending, assigned, running, completed, failed
 - Filter by priority: P0, P1, P2, P3
@@ -279,6 +296,7 @@ WAVE: 5
 DEPENDS_ON: Create React Hooks for API Data Fetching
 DESCRIPTION: Create page showing agent sessions, session logs, heartbeat timeline. Files: parent-harness/dashboard/src/pages/Sessions.tsx
 PASS_CRITERIA:
+
 - Page displays sessions in table with: agent, status, start_time, duration, task_count
 - Click session to see detailed log
 - Session log shows chronological events
@@ -294,6 +312,7 @@ WAVE: 5
 DEPENDS_ON: Implement Tasks API Endpoints (CRUD)
 DESCRIPTION: Create page for system configuration: agent settings, thresholds, timeouts. Files: parent-harness/dashboard/src/pages/Config.tsx
 PASS_CRITERIA:
+
 - Page displays config form with sections: agents, execution, thresholds
 - Save button persists changes to API
 - Validation prevents invalid inputs
@@ -309,6 +328,7 @@ WAVE: 5
 DEPENDS_ON: Implement Dashboard Page, Implement Tasks Page, Implement Sessions Page, Implement Config Page
 DESCRIPTION: Create 21 test cases covering dashboard, API, error handling. Files: tests/parent-harness/phase-1-3.test.ts
 PASS_CRITERIA:
+
 - 21 test cases defined and passing
 - Test categories: frontend grid (5), API CRUD (8), error handling (4), navigation (4)
 - All tests pass npm test
@@ -325,6 +345,7 @@ WAVE: 6
 DEPENDS_ON: Implement Dashboard Page, Implement Agents API Endpoint (GET /api/agents), Implement Tasks API Endpoints (CRUD), Implement Sessions API Endpoint (GET /api/sessions), Implement Events API Endpoint (GET /api/events)
 DESCRIPTION: Test all frontend components fetch and display data from live API. Files: tests/parent-harness/integration.test.ts
 PASS_CRITERIA:
+
 - All hooks fetch data without errors
 - Components display data correctly
 - Error states handled gracefully
@@ -340,6 +361,7 @@ WAVE: 6
 DEPENDS_ON: Implement Dashboard Page
 DESCRIPTION: Create npm scripts for building and running full system. Files: package.json updates, build scripts
 PASS_CRITERIA:
+
 - npm run dev starts both API (3333) and Dashboard (5173)
 - npm run build succeeds for frontend and backend
 - npm run test runs all test suites
@@ -361,6 +383,7 @@ WAVE: 7
 DEPENDS_ON: Create Express REST API Scaffolding
 DESCRIPTION: Set up ws library, broadcast server on ws://localhost:3333/ws. Files: parent-harness/src/api/websocket.ts
 PASS_CRITERIA:
+
 - WebSocket server runs on port 3333
 - Accepts client connections
 - Broadcasts messages to all connected clients
@@ -373,9 +396,10 @@ TASK: Create WebSocket Event Broadcasting System
 CATEGORY: feature
 PRIORITY: P0
 WAVE: 7
-DEPENDS_ON: Implement WebSocket Server
-DESCRIPTION: Build event broadcasting for agent:*, task:*, session:*, event:* subscriptions. Files: parent-harness/src/api/events-manager.ts
+DEPENDS*ON: Implement WebSocket Server
+DESCRIPTION: Build event broadcasting for agent:*, task:_, session:_, event:\_ subscriptions. Files: parent-harness/src/api/events-manager.ts
 PASS_CRITERIA:
+
 - Events broadcast within <100ms of occurrence
 - Clients can subscribe to specific event types
 - Message format: { type, timestamp, data }
@@ -391,6 +415,7 @@ WAVE: 7
 DEPENDS_ON: Create WebSocket Event Broadcasting System
 DESCRIPTION: Create useWebSocket hook for real-time dashboard updates. Files: parent-harness/dashboard/src/hooks/useWebSocket.ts
 PASS_CRITERIA:
+
 - Hook connects to ws://localhost:3333/ws
 - Reconnects automatically on disconnect (exponential backoff)
 - Updates component state when events received
@@ -408,6 +433,7 @@ WAVE: 8
 DEPENDS_ON: Implement Tasks API Endpoints (CRUD)
 DESCRIPTION: Create clarification agent that triggers on new user tasks, uses question_engine to generate clarifying questions. Files: parent-harness/orchestrator/src/clarification/index.ts
 PASS_CRITERIA:
+
 - Agent detects new user-created tasks (owner_type='user')
 - Calls question_engine.generateQuestions() for task description
 - Creates clarification_session with status='pending_response'
@@ -423,6 +449,7 @@ WAVE: 8
 DEPENDS_ON: Implement Clarification Agent Core Logic
 DESCRIPTION: Implement vagueness detection for task descriptions (port from agents/ideation/vagueness-detector.ts). Files: parent-harness/orchestrator/src/agents/vagueness-detector.ts
 PASS_CRITERIA:
+
 - Detects hedging language ("maybe", "possibly")
 - Detects non-committal phrases ("it depends", "either way")
 - Detects unclear references ("stuff", "things")
@@ -438,6 +465,7 @@ WAVE: 8
 DEPENDS_ON: Implement Clarification Agent Core Logic
 DESCRIPTION: Create API endpoints for clarification sessions: GET /api/clarifications, POST /api/clarifications/:id/response. Files: parent-harness/src/api/routes/clarifications.ts
 PASS_CRITERIA:
+
 - GET /api/clarifications returns pending clarification sessions
 - POST /api/clarifications/:id/response accepts user answers
 - Endpoint updates task description with clarification answers
@@ -453,6 +481,7 @@ WAVE: 8
 DEPENDS_ON: Implement Clarification Q&A API Endpoints
 DESCRIPTION: Create modal/form component for answering clarification questions. Files: parent-harness/dashboard/src/components/ClarificationModal.tsx
 PASS_CRITERIA:
+
 - Modal displays all clarification questions
 - Text input for answers
 - Submit button sends POST /api/clarifications/:id/response
@@ -470,6 +499,7 @@ WAVE: 9
 DEPENDS_ON: Implement Clarification Agent Core Logic
 DESCRIPTION: Document human simulator agent: personas (technical, power-user, casual, confused, impatient), browser automation approach. Files: parent-harness/docs/HUMAN-SIM-AGENT.md
 PASS_CRITERIA:
+
 - 5 personas defined with distinct characteristics
 - User journey scenarios for each persona
 - Browser automation approach documented (Agent Browser MCP)
@@ -485,6 +515,7 @@ WAVE: 9
 DEPENDS_ON: Design Human Sim Agent Architecture
 DESCRIPTION: Create human sim agent that triggers after Build Agent completes UI tasks. Files: parent-harness/orchestrator/src/agents/human-sim.ts
 PASS_CRITERIA:
+
 - Agent detects completed UI tasks (type='UI' or tags include 'UI')
 - Spawns 5 persona instances
 - Each persona tests happy path + error recovery
@@ -506,6 +537,7 @@ WAVE: 10
 DEPENDS_ON: Implement SQLite Database Connection
 DESCRIPTION: Create database schema for agent learning: agent_memories, technique_effectiveness, build_interventions. Files: parent-harness/database/migrations/XXX_agent_memory.sql
 PASS_CRITERIA:
+
 - agent_memories table: id, agent_id, decision_type, context, outcome, effectiveness_score
 - technique_effectiveness table: id, error_pattern, technique_used, success_count, failure_count, confidence
 - build_interventions table: id, build_agent_id, original_agent_id, task_id, error_type, resolution, outcome
@@ -521,6 +553,7 @@ WAVE: 10
 DEPENDS_ON: Create Agent Memory Database Tables
 DESCRIPTION: Build service for saving/retrieving agent memories, similarity matching. Files: parent-harness/src/services/agent-memory.ts
 PASS_CRITERIA:
+
 - saveMemory(agentId, context, decision, outcome) stores memory
 - getRelevantMemories(agentId, context) retrieves similar past decisions
 - Similarity matching uses Levenshtein distance (error messages)
@@ -536,6 +569,7 @@ WAVE: 10
 DEPENDS_ON: Implement Agent Memory Service
 DESCRIPTION: Build service for tracking which fixes work for which errors. Files: parent-harness/src/services/technique-effectiveness.ts
 PASS_CRITERIA:
+
 - recordAttempt(errorPattern, technique, success) logs attempt
 - getSuggestedTechniques(errorPattern) returns ranked techniques
 - Success rate calculated per technique (successes / total_attempts)
@@ -557,6 +591,7 @@ WAVE: 11
 DEPENDS_ON: Implement Tasks API Endpoints (CRUD), Create WebSocket Event Broadcasting System
 DESCRIPTION: Create main orchestrator loop running every 60s. Files: parent-harness/orchestrator/src/orchestrator/index.ts
 PASS_CRITERIA:
+
 - Loop runs every 60 seconds without blocking
 - Fetches all tasks and agent status
 - Calculates ready tasks (all dependencies met)
@@ -574,6 +609,7 @@ WAVE: 11
 DEPENDS_ON: Implement Orchestrator Cron Loop
 DESCRIPTION: Develop algorithm for wave/lane calculation and conflict detection. Files: parent-harness/src/services/task-assignment.ts
 PASS_CRITERIA:
+
 - Wave/lane calculation groups parallelizable tasks
 - Conflict detection prevents concurrent file edits
 - Agent capability matching (Opus for complex, Sonnet for routine)
@@ -589,6 +625,7 @@ WAVE: 11
 DEPENDS_ON: Implement Orchestrator Cron Loop
 DESCRIPTION: Create QA loop analyzing CLI output, detecting stuck agents, validating completions. Files: parent-harness/orchestrator/src/qa-validator/index.ts
 PASS_CRITERIA:
+
 - Detects stuck agents (no activity >30min)
 - Analyzes CLI output for error patterns
 - Validates pass criteria met for completed tasks
@@ -606,6 +643,7 @@ WAVE: 12
 DEPENDS_ON: Implement Orchestrator Cron Loop
 DESCRIPTION: Manage agent session startup, heartbeat, completion. Files: parent-harness/orchestrator/src/sessions/index.ts
 PASS_CRITERIA:
+
 - Startup: create session record, spawn agent CLI
 - Heartbeat: agent sends status every 10s, recorded in database
 - Task execution: track start/end, capture output
@@ -621,6 +659,7 @@ WAVE: 12
 DEPENDS_ON: Implement Task Assignment Algorithm
 DESCRIPTION: Analyze which files each task modifies, prevent parallel file edits. Files: parent-harness/src/services/file-impact-analyzer.ts
 PASS_CRITERIA:
+
 - Identifies files modified by each task (from task spec)
 - Detects conflicts (same file in multiple parallel tasks)
 - Suggests lane adjustments to avoid conflicts
@@ -642,6 +681,7 @@ WAVE: 13
 DEPENDS_ON: Implement Orchestrator Cron Loop, Implement Agent Memory Service
 DESCRIPTION: Create Planning Agent (Opus) that analyzes system and suggests improvement tasks. Files: parent-harness/orchestrator/src/agents/planning.ts
 PASS_CRITERIA:
+
 - Runs every 2 hours or after major completions
 - Analyzes codebase: test coverage, error patterns, completeness
 - Reads user vision from config/vision.md
@@ -658,6 +698,7 @@ WAVE: 13
 DEPENDS_ON: Implement Planning Agent Core
 DESCRIPTION: Analyze failed tasks, identify systemic issues, group by error type. Files: parent-harness/src/services/pattern-analyzer.ts
 PASS_CRITERIA:
+
 - Groups failed tasks by error type/category
 - Identifies repeated issues (same error 3+ times)
 - Calculates impact (how many tasks blocked by this issue)
@@ -679,6 +720,7 @@ WAVE: 14
 DEPENDS_ON: Implement Orchestrator Cron Loop
 DESCRIPTION: Create Telegram bot connecting to agent channels and user notifications. Files: parent-harness/orchestrator/src/telegram/bot.ts
 PASS_CRITERIA:
+
 - Bot connects to Telegram Bot API
 - Supports 12+ agent-specific channels
 - Sends messages within 5 seconds of event
@@ -694,6 +736,7 @@ WAVE: 14
 DEPENDS_ON: Implement Telegram Bot Service
 DESCRIPTION: Route events to appropriate Telegram channels (agent channels, user notifications, alerts). Files: parent-harness/orchestrator/src/telegram/router.ts
 PASS_CRITERIA:
+
 - Task assigned → Build Agent channel
 - Task completed → Build Agent channel
 - Task failed → User urgent notifications
@@ -709,6 +752,7 @@ WAVE: 14
 DEPENDS_ON: Implement Telegram Event Routing
 DESCRIPTION: Design markdown message templates for all event types. Files: parent-harness/docs/TELEGRAM-TEMPLATES.md
 PASS_CRITERIA:
+
 - Task assigned template with task title, description, pass criteria
 - Task completed template with completion summary, duration
 - Task failed template with error details, suggestions
@@ -730,6 +774,7 @@ WAVE: 15
 DEPENDS_ON: Implement Tasks API Endpoints (CRUD)
 DESCRIPTION: Create task_versions table and version service for rollback capability. Files: parent-harness/src/services/task-version.ts
 PASS_CRITERIA:
+
 - Task version created on each modification
 - Version includes: timestamp, modified_by, changes, pass_criteria_diff
 - Rollback restores previous version and status
@@ -745,6 +790,7 @@ WAVE: 15
 DEPENDS_ON: Implement Task Version History
 DESCRIPTION: Create service linking tasks to specifications to code to tests. Files: parent-harness/src/services/traceability.ts
 PASS_CRITERIA:
+
 - Links spec_id → task_id → code_commits → test_ids
 - Gap detection: spec not covered by tasks, tasks not in code, code not tested
 - Coverage metrics dashboard view
@@ -763,6 +809,7 @@ WAVE: 1
 DEPENDS_ON: none
 DESCRIPTION: Address any TypeScript errors blocking builds (currently all passing)
 PASS_CRITERIA:
+
 - npm run build succeeds without errors
 - No TS compilation warnings
 - Type coverage >95%
@@ -776,6 +823,7 @@ WAVE: 15
 DEPENDS_ON: Complete Build & Deployment Scripts
 DESCRIPTION: Create Dockerfile for ParentHarness, docker-compose for full stack. Files: Dockerfile, docker-compose.yml
 PASS_CRITERIA:
+
 - Docker image builds successfully
 - docker-compose up starts full stack (API + Dashboard + DB)
 - Health checks pass
@@ -790,6 +838,7 @@ WAVE: 1
 DEPENDS_ON: none
 DESCRIPTION: Document task checklist for team coordination, dependencies, and phase gates. Files: parent-harness/docs/IMPLEMENTATION-CHECKLIST.md
 PASS_CRITERIA:
+
 - Checklist lists all 50+ tasks with wave numbers
 - Dependency relationships documented
 - Phase gates clearly marked
@@ -798,7 +847,7 @@ PASS_CRITERIA:
 
 ---
 
-### TASK_LIST_END ###
+### TASK_LIST_END
 
 ---
 
@@ -807,6 +856,7 @@ PASS_CRITERIA:
 **Total Atomic Tasks:** 59 tasks across 15 waves
 
 **Phase Distribution:**
+
 - Phase 1: 0 tasks (✅ Already complete)
 - Phase 2: 32 tasks (Waves 1-6)
 - Phase 3: 9 tasks (Waves 7-9)
@@ -828,40 +878,48 @@ PASS_CRITERIA:
 ## WAVE EXECUTION GUIDE
 
 ### WAVE 1: Database & API Foundation (5 tasks, ~2-3 hours)
+
 - Can start immediately
 - Foundation for all other waves
 - No external dependencies
 
 ### WAVE 2: React Shell (3 tasks, ~2-3 hours)
+
 - Independent of Wave 1 (can run in parallel)
 - Must complete before Wave 4
 
 ### WAVE 3: API Endpoints (5 tasks, ~4-5 hours)
+
 - Depends on Wave 1
 - Parallelizable among team members
 - Each endpoint ~45 minutes
 
 ### WAVE 4: React Hooks & Components (4 tasks, ~3-4 hours)
+
 - Depends on Wave 3
 - Parallelizable
 - Each component ~1 hour
 
 ### WAVE 5: Page Implementations (5 tasks, ~4-5 hours)
+
 - Depends on Waves 3 & 4
 - Can assign to different team members
 - Testing phase integrated
 
 ### WAVE 6: Integration & Testing (2 tasks, ~2-3 hours)
+
 - Depends on Wave 5
 - Validates all Phase 2 work
 - **PHASE 2 GATE**: All tests pass before Phase 3
 
 ### WAVE 7-9: WebSocket & Agents (11 tasks, ~10-12 hours)
+
 - Depends on Phase 2 complete
 - Parallelizable after Wave 7
 - **PHASE 3 GATE**: Clarification Agent tested, Human Sim architecture approved
 
 ### WAVE 10-15: Memory, Orchestration, Planning, Telegram, Version Control (18 tasks, ~18-20 hours)
+
 - Staggered dependencies
 - Phase gates between 11, 13, 14
 - Estimated 4-5 weeks total
@@ -871,6 +929,7 @@ PASS_CRITERIA:
 ## FILE MODIFICATIONS SUMMARY
 
 ### New Directories to Create
+
 - `parent-harness/src/api/routes/` - API endpoints
 - `parent-harness/dashboard/src/components/` - React components
 - `parent-harness/dashboard/src/pages/` - Page components
@@ -881,6 +940,7 @@ PASS_CRITERIA:
 - `parent-harness/database/migrations/` - Database migrations
 
 ### Modified Files
+
 - `package.json` - Add dev scripts, dependencies
 - `parent-harness/src/api/server.ts` - Express setup
 - `.env.example` - Add new environment variables

@@ -60,9 +60,7 @@ import { splitIdeationRouter } from "./routes/ideation/index.js";
 import buildsRouter from "./routes/builds.js";
 import statsRouter from "./routes/stats.js";
 import { apiCounter } from "./middleware/api-counter.js";
-import {
-  apiRateLimiter,
-} from "./middleware/rate-limiter.js";
+import { apiRateLimiter } from "./middleware/rate-limiter.js";
 import systemRouter from "./routes/system.js";
 import ideasRouter from "./routes/ideas.js";
 import profilesRouter from "./routes/profiles.js";
@@ -100,7 +98,11 @@ import { getCommunicationHub } from "./communication/communication-hub.js";
 import { initializeOrchestrator } from "./pipeline/orchestrator.js";
 import { initializeSpecBridge } from "./pipeline/spec-bridge.js";
 import { initializeBuildBridge } from "./pipeline/build-bridge.js";
-import { run as dbRun, getOne as dbGetOne, query as dbQuery } from "../database/db.js";
+import {
+  run as dbRun,
+  getOne as dbGetOne,
+  query as dbQuery,
+} from "../database/db.js";
 
 // Database adapter for orchestrator (matches expected interface)
 const dbAdapter = {
@@ -113,7 +115,7 @@ const dbAdapter = {
   },
   async all<T>(sql: string, params?: unknown[]) {
     return dbQuery<T>(sql, params as (string | number | boolean | null)[]);
-  }
+  },
 };
 
 const app = express();
@@ -245,7 +247,7 @@ initNotificationSystem();
 const specBridge = initializeSpecBridge();
 const buildBridge = initializeBuildBridge();
 initializeOrchestrator(dbAdapter, specBridge, buildBridge);
-console.log('[API] Pipeline orchestrator initialized');
+console.log("[API] Pipeline orchestrator initialized");
 
 // Types
 interface ApiResponse<T> {

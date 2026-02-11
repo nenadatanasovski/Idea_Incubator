@@ -11,11 +11,13 @@
 ## Problem Summary
 
 TASK-029 failed 5 times with the same error pattern:
+
 ```
 Agent spec_agent: You've hit your limit · resets 2am (Australia/Sydney)
 ```
 
 The task was stuck in a retry loop where:
+
 1. Orchestrator assigned task to spec_agent
 2. Spec_agent hit API rate limit immediately
 3. Task marked as failed, retry count incremented
@@ -51,16 +53,19 @@ The task was stuck in a retry loop where:
 **The spec phase was complete, but the orchestrator didn't know it.**
 
 **Issue #1: Missing Spec Link**
+
 - Spec_agent created the specification files successfully
 - However, the `spec_link` field in the tasks table was never populated
 - Without this link, the orchestrator couldn't determine that spec phase was done
 
 **Issue #2: No Verification Status**
+
 - The `verification_status` field remained NULL
 - This prevented the task from progressing to the build phase
 - Orchestrator kept assigning it back to spec_agent
 
 **Issue #3: Rate Limit Cascade**
+
 - Once spec_agent hit its API rate limit, every retry failed immediately
 - The orchestrator didn't detect "rate limit" as a different failure mode than "spec not complete"
 - This caused a rapid cascade of failed retries (5 failures in ~8 minutes)
@@ -72,11 +77,13 @@ The task was stuck in a retry loop where:
 **Problem:** Agent completion signals are not reliably propagating to task state.
 
 This is the **same systemic issue** found in:
+
 - TASK-011 (Anthropic client TypeScript errors - already completed but marked blocked)
 - PHASE4-TASK-05 (Memory persistence - already completed but marked blocked)
 - FIX-TASK-022-9IRY (Task version service - already completed but marked blocked)
 
 **Pattern:**
+
 1. Agent successfully completes work
 2. Agent session writes "TASK_COMPLETE" to output field
 3. Parent harness records the session as "completed"
@@ -85,38 +92,39 @@ This is the **same systemic issue** found in:
 6. Retry count increments on repeated failures
 
 **Missing Logic in Orchestrator:**
+
 ```typescript
 // orchestrator/index.ts needs:
 async function processAgentCompletion(session: AgentSession) {
   const task = await getTask(session.task_id);
 
   // Parse completion signal
-  if (session.output?.includes('TASK_COMPLETE')) {
+  if (session.output?.includes("TASK_COMPLETE")) {
     // Spec agent completion
-    if (session.agent_id === 'spec_agent') {
+    if (session.agent_id === "spec_agent") {
       await updateTask(task.id, {
         spec_link: extractSpecLink(session.output),
-        verification_status: 'passed',
-        status: 'pending',
-        retry_count: 0
+        verification_status: "passed",
+        status: "pending",
+        retry_count: 0,
       });
     }
 
     // Build agent completion
-    if (session.agent_id === 'build_agent') {
+    if (session.agent_id === "build_agent") {
       await updateTask(task.id, {
-        status: 'pending_verification',
-        retry_count: 0
+        status: "pending_verification",
+        retry_count: 0,
       });
     }
 
     // QA agent completion
-    if (session.agent_id === 'qa_agent') {
-      const passed = session.output?.includes('VALIDATION PASS');
+    if (session.agent_id === "qa_agent") {
+      const passed = session.output?.includes("VALIDATION PASS");
       await updateTask(task.id, {
-        status: passed ? 'completed' : 'in_progress',
-        verification_status: passed ? 'passed' : 'needs_revision',
-        retry_count: 0
+        status: passed ? "completed" : "in_progress",
+        verification_status: passed ? "passed" : "needs_revision",
+        retry_count: 0,
       });
     }
   }
@@ -152,6 +160,7 @@ TASK-029 | pending | build_agent | docs/specs/TASK-029-clarification-agent-imple
 ## Evidence of Completion
 
 ### Spec Agent Session Output (2026-02-08 05:12:32)
+
 ```
 TASK_COMPLETE: Successfully created comprehensive technical specification
 for TASK-029 Clarification Agent
@@ -164,6 +173,7 @@ Clarification Agent implementation requirement from CRITICAL_GAPS.md Gap #1.
 ### Spec File Contents
 
 **TASK-029-clarification-agent-implementation.md** includes:
+
 - ✅ Overview and problem statement
 - ✅ Current state analysis (existing infrastructure identified)
 - ✅ Functional & non-functional requirements
@@ -192,7 +202,7 @@ Add completion detection logic to main orchestrator loop:
 ```typescript
 async function processCompletedSession(session: AgentSession) {
   const task = await getTask(session.task_id);
-  const output = session.output || '';
+  const output = session.output || "";
 
   // Detect completion signals
   const isComplete = /TASK_COMPLETE/i.test(output);
@@ -200,39 +210,41 @@ async function processCompletedSession(session: AgentSession) {
 
   // Agent-specific completion handling
   switch (session.agent_id) {
-    case 'spec_agent':
+    case "spec_agent":
       const specLink = extractSpecPath(output);
       if (specLink) {
         await updateTask(task.id, {
           spec_link: specLink,
-          verification_status: 'passed',
-          status: 'pending',
+          verification_status: "passed",
+          status: "pending",
           retry_count: 0,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         });
         console.log(`✅ Spec complete for ${task.display_id}: ${specLink}`);
       }
       break;
 
-    case 'build_agent':
+    case "build_agent":
       await updateTask(task.id, {
-        status: 'pending_verification',
+        status: "pending_verification",
         retry_count: 0,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       });
       console.log(`✅ Build complete for ${task.display_id}, queuing QA`);
       break;
 
-    case 'qa_agent':
+    case "qa_agent":
       const passed = /VALIDATION[_\s]PASS/i.test(output);
       await updateTask(task.id, {
-        status: passed ? 'completed' : 'in_progress',
-        verification_status: passed ? 'passed' : 'needs_revision',
+        status: passed ? "completed" : "in_progress",
+        verification_status: passed ? "passed" : "needs_revision",
         retry_count: 0,
         completed_at: passed ? new Date().toISOString() : null,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       });
-      console.log(`${passed ? '✅' : '⚠️'} QA ${passed ? 'passed' : 'failed'} for ${task.display_id}`);
+      console.log(
+        `${passed ? "✅" : "⚠️"} QA ${passed ? "passed" : "failed"} for ${task.display_id}`,
+      );
       break;
   }
 }
@@ -243,31 +255,38 @@ async function processCompletedSession(session: AgentSession) {
 **Problem:** Same agent repeatedly failing on same task indicates systemic issue, not transient failure.
 
 ```typescript
-async function shouldRetryTask(task: Task, lastSession: AgentSession): Promise<boolean> {
+async function shouldRetryTask(
+  task: Task,
+  lastSession: AgentSession,
+): Promise<boolean> {
   // Don't retry if already completed
-  if (lastSession.status === 'completed' &&
-      lastSession.output?.includes('TASK_COMPLETE')) {
-    console.log(`⏩ Skipping retry - task already completed in previous session`);
+  if (
+    lastSession.status === "completed" &&
+    lastSession.output?.includes("TASK_COMPLETE")
+  ) {
+    console.log(
+      `⏩ Skipping retry - task already completed in previous session`,
+    );
     return false;
   }
 
   // Don't retry rate limits immediately
-  if (lastSession.output?.includes('hit your limit')) {
+  if (lastSession.output?.includes("hit your limit")) {
     console.log(`⏸️ Rate limit hit, pausing task until rate limit resets`);
     await updateTask(task.id, {
-      status: 'blocked',
+      status: "blocked",
       metadata: JSON.stringify({
-        reason: 'rate_limit',
-        retry_after: estimateRateLimitReset(lastSession.output)
-      })
+        reason: "rate_limit",
+        retry_after: estimateRateLimitReset(lastSession.output),
+      }),
     });
     return false;
   }
 
   // Check for repeated identical failures
   const recentSessions = await getRecentSessions(task.id, 3);
-  const allSameError = recentSessions.every(s =>
-    s.output === lastSession.output
+  const allSameError = recentSessions.every(
+    (s) => s.output === lastSession.output,
   );
 
   if (allSameError && task.retry_count >= 3) {
@@ -287,22 +306,22 @@ async function shouldRetryTask(task: Task, lastSession: AgentSession): Promise<b
 ```typescript
 async function assignTaskToAgent(task: Task): Promise<string | null> {
   // Respect explicit owner assignment
-  if (task.owner && task.owner !== 'human') {
+  if (task.owner && task.owner !== "human") {
     console.log(`📌 Task ${task.display_id} explicitly owned by ${task.owner}`);
     return task.owner;
   }
 
   // Phase-based assignment for unowned tasks
-  if (task.spec_link && task.verification_status === 'passed') {
-    return 'build_agent';
+  if (task.spec_link && task.verification_status === "passed") {
+    return "build_agent";
   }
 
-  if (task.status === 'pending_verification') {
-    return 'qa_agent';
+  if (task.status === "pending_verification") {
+    return "qa_agent";
   }
 
   if (!task.spec_link) {
-    return 'spec_agent';
+    return "spec_agent";
   }
 
   return null;
@@ -329,17 +348,20 @@ async function assignTaskToAgent(task: Task): Promise<string | null> {
 ## Next Steps
 
 **Immediate (Task-Specific):**
+
 - ✅ TASK-029 is unblocked and ready for build_agent
 - Task will be picked up in next orchestrator cycle
 - Build agent will implement the Clarification Agent per the comprehensive spec
 
 **Medium-Term (Systemic):**
+
 - [ ] Implement agent completion detection logic in orchestrator
 - [ ] Add retry circuit breaker for rate limits and repeated failures
 - [ ] Respect task owner field during assignment
 - [ ] Add orchestrator tests for completion signal handling
 
 **Long-Term (Monitoring):**
+
 - [ ] Add metrics for "task completion detected" events
 - [ ] Track time between agent completion and task state update
 - [ ] Alert on tasks with >3 retries of same error
@@ -349,6 +371,7 @@ async function assignTaskToAgent(task: Task): Promise<string | null> {
 ## Impact
 
 **Tasks Fixed by This Pattern:**
+
 1. TASK-029 (this task) - Clarification Agent spec complete but not linked
 2. TASK-011 - Anthropic client complete but marked blocked
 3. PHASE4-TASK-05 - Memory persistence complete but marked blocked

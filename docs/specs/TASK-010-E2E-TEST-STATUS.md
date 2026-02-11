@@ -33,31 +33,32 @@ The core system is fully operational. The 2 orchestrator test failures are expec
 
 #### ✅ Passing Tests (14/16)
 
-| Test Name | Category | Status |
-|-----------|----------|--------|
-| Agents table query | Database Layer | ✅ PASS |
-| Agent CRUD | Database Layer | ✅ PASS |
-| Task CRUD | Database Layer | ✅ PASS |
-| Session CRUD | Database Layer | ✅ PASS |
-| Events CRUD | Database Layer | ✅ PASS |
-| Agent status transitions | Agent Status Transitions | ✅ PASS |
-| Task flow (pending→completed) | Task Flow | ✅ PASS |
-| Task fail + retry tracking | Task Flow | ✅ PASS |
-| QA verification infrastructure | QA Verification | ✅ PASS |
-| Spawner prompt generation | Spawner Integration | ✅ PASS |
-| Telegram notify helpers | Telegram Integration | ✅ PASS |
-| Foreign key constraints | Data Integrity | ✅ PASS |
-| Event data integrity | Data Integrity | ✅ PASS |
-| Concurrent task creation | Concurrent Access | ✅ PASS |
+| Test Name                      | Category                 | Status  |
+| ------------------------------ | ------------------------ | ------- |
+| Agents table query             | Database Layer           | ✅ PASS |
+| Agent CRUD                     | Database Layer           | ✅ PASS |
+| Task CRUD                      | Database Layer           | ✅ PASS |
+| Session CRUD                   | Database Layer           | ✅ PASS |
+| Events CRUD                    | Database Layer           | ✅ PASS |
+| Agent status transitions       | Agent Status Transitions | ✅ PASS |
+| Task flow (pending→completed)  | Task Flow                | ✅ PASS |
+| Task fail + retry tracking     | Task Flow                | ✅ PASS |
+| QA verification infrastructure | QA Verification          | ✅ PASS |
+| Spawner prompt generation      | Spawner Integration      | ✅ PASS |
+| Telegram notify helpers        | Telegram Integration     | ✅ PASS |
+| Foreign key constraints        | Data Integrity           | ✅ PASS |
+| Event data integrity           | Data Integrity           | ✅ PASS |
+| Concurrent task creation       | Concurrent Access        | ✅ PASS |
 
 #### ❌ Expected Failures (2/16)
 
-| Test Name | Category | Reason | Expected? |
-|-----------|----------|--------|-----------|
-| OpenClaw gateway reachable | Spawner Integration | Gateway not running or not reachable | ✅ YES |
-| Telegram bot init | Telegram Integration | TELEGRAM_BOT_TOKEN not set or Promise handling issue | ✅ YES |
+| Test Name                  | Category             | Reason                                               | Expected? |
+| -------------------------- | -------------------- | ---------------------------------------------------- | --------- |
+| OpenClaw gateway reachable | Spawner Integration  | Gateway not running or not reachable                 | ✅ YES    |
+| Telegram bot init          | Telegram Integration | TELEGRAM_BOT_TOKEN not set or Promise handling issue | ✅ YES    |
 
 **Notes:**
+
 - OpenClaw gateway failure is expected when the OpenClaw service is not configured/running
 - Telegram bot init failure is expected when `TELEGRAM_BOT_TOKEN` environment variable is not set
 - Both failures are for external service integrations and do not affect core system functionality
@@ -74,31 +75,32 @@ The core system is fully operational. The 2 orchestrator test failures are expec
 
 #### ✅ Passing Tests (4/24)
 
-| Test Name | Category | Status |
-|-----------|----------|--------|
-| should have backend API running | Health Checks | ✅ PASS |
+| Test Name                        | Category                           | Status  |
+| -------------------------------- | ---------------------------------- | ------- |
+| should have backend API running  | Health Checks                      | ✅ PASS |
 | should return single agent by ID | API Integration Tests > Agents API | ✅ PASS |
-| should return list of tasks | API Integration Tests > Tasks API | ✅ PASS |
-| should return events list | API Integration Tests > Events API | ✅ PASS |
+| should return list of tasks      | API Integration Tests > Tasks API  | ✅ PASS |
+| should return events list        | API Integration Tests > Events API | ✅ PASS |
 
 #### ❌ Failed Tests (8/24)
 
-| Test Name | Category | Failure Reason | Notes |
-|-----------|----------|----------------|-------|
-| should load dashboard homepage | Health Checks | ERR_CONNECTION_REFUSED at http://localhost:5173 | Frontend not running |
-| should navigate to Tasks page | Navigation | ERR_CONNECTION_REFUSED at http://localhost:5173 | Frontend not running |
-| should navigate to Sessions page | Navigation | ERR_CONNECTION_REFUSED at http://localhost:5173 | Frontend not running |
-| should navigate back to Dashboard | Navigation | ERR_CONNECTION_REFUSED at http://localhost:5173/sessions | Frontend not running |
-| should show connection status indicator | WebSocket Connection | ERR_CONNECTION_REFUSED at http://localhost:5173 | Frontend not running |
-| should return list of agents | API Integration Tests > Agents API | Expected 13 agents, got 14 | Test data count mismatch |
-| should return 16 test suites | API Integration Tests > Test Suites API | Expected 16 test suites, got 1 | Test seed data not loaded |
-| should return configuration | API Integration Tests > Config API | Missing "tick_interval_ms" property | API response schema change |
+| Test Name                               | Category                                | Failure Reason                                           | Notes                      |
+| --------------------------------------- | --------------------------------------- | -------------------------------------------------------- | -------------------------- |
+| should load dashboard homepage          | Health Checks                           | ERR_CONNECTION_REFUSED at http://localhost:5173          | Frontend not running       |
+| should navigate to Tasks page           | Navigation                              | ERR_CONNECTION_REFUSED at http://localhost:5173          | Frontend not running       |
+| should navigate to Sessions page        | Navigation                              | ERR_CONNECTION_REFUSED at http://localhost:5173          | Frontend not running       |
+| should navigate back to Dashboard       | Navigation                              | ERR_CONNECTION_REFUSED at http://localhost:5173/sessions | Frontend not running       |
+| should show connection status indicator | WebSocket Connection                    | ERR_CONNECTION_REFUSED at http://localhost:5173          | Frontend not running       |
+| should return list of agents            | API Integration Tests > Agents API      | Expected 13 agents, got 14                               | Test data count mismatch   |
+| should return 16 test suites            | API Integration Tests > Test Suites API | Expected 16 test suites, got 1                           | Test seed data not loaded  |
+| should return configuration             | API Integration Tests > Config API      | Missing "tick_interval_ms" property                      | API response schema change |
 
 #### ⏭️ Skipped Tests (12/24)
 
 The following tests were skipped because prerequisite tests (loading dashboard) failed:
 
 **Layout Components (5):**
+
 - should have header with navigation
 - should have left panel (agent status)
 - should have main panel (event stream)
@@ -106,21 +108,26 @@ The following tests were skipped because prerequisite tests (loading dashboard) 
 - should have notification center
 
 **Agent Status Cards (2):**
+
 - should display agent cards
 - should show agent name and status
 
 **Event Stream (2):**
+
 - should have event stream component
 - should display events or placeholder
 
 **Task Cards (2):**
+
 - should display task cards
 - should show task priority badge
 
 **Notification Center (1):**
+
 - should open notification dropdown on click
 
 **Notes:**
+
 - Most dashboard test failures are due to frontend server not running (ERR_CONNECTION_REFUSED)
 - The dashboard tests require both backend (port 3333) and frontend (port 5173) servers running
 - API integration tests that passed confirm the backend API is functional
@@ -142,12 +149,14 @@ parent-harness/dashboard/tests/e2e/browser-helper.ts              (128 lines)
 ### Running Tests
 
 #### Orchestrator Only (Backend)
+
 ```bash
 cd parent-harness/orchestrator
 npm test
 ```
 
 #### Dashboard E2E (Requires Both Servers)
+
 ```bash
 # Terminal 1: Start backend
 cd parent-harness/orchestrator
@@ -163,12 +172,14 @@ npm run test:e2e
 ```
 
 #### Full E2E Suite (Automated)
+
 ```bash
 cd parent-harness
 ./scripts/run-e2e-tests.sh
 ```
 
 The automated script:
+
 1. Starts backend API on port 3333
 2. Starts frontend dev server on port 5173
 3. Waits for both to be ready
@@ -182,6 +193,7 @@ The automated script:
 ### What Is Tested
 
 **Database Layer (5 tests) - ✅ 100%**
+
 - Agent CRUD operations
 - Task CRUD operations
 - Session CRUD operations
@@ -189,31 +201,39 @@ The automated script:
 - Foreign key constraints
 
 **Agent Lifecycle (1 test) - ✅ 100%**
+
 - Status transitions (idle → working → idle)
 
 **Task Flow (2 tests) - ✅ 100%**
+
 - Success flow (pending → in_progress → pending_verification → completed)
 - Failure flow (pending → in_progress → failed with retry tracking)
 
 **QA Verification (1 test) - ✅ 100%**
+
 - Infrastructure for task verification
 
 **Spawner Integration (2 tests) - ✅ 50%**
+
 - Prompt generation ✅
 - OpenClaw gateway health ❌ (external service)
 
 **Telegram Integration (2 tests) - ✅ 50%**
+
 - Notify helpers ✅
 - Bot initialization ❌ (external service)
 
 **Data Integrity (2 tests) - ✅ 100%**
+
 - Foreign key constraints
 - Event linkage to agents/tasks/sessions
 
 **Concurrent Access (1 test) - ✅ 100%**
+
 - Multiple concurrent task creation
 
 **API Integration (5 tests) - ✅ 80%**
+
 - Backend health check ✅
 - Agent retrieval ✅
 - Task retrieval ✅
@@ -248,6 +268,7 @@ Based on the test files, the following are NOT covered by E2E tests:
 **Impact:** Makes CI/CD integration difficult without proper orchestration
 
 **Recommendation:**
+
 - Use the `scripts/run-e2e-tests.sh` automated runner
 - OR: Implement test fixtures/mocks for isolated testing
 - OR: Add healthcheck retries with better wait logic
@@ -259,6 +280,7 @@ Based on the test files, the following are NOT covered by E2E tests:
 **Impact:** Brittle tests that fail when test data changes
 
 **Recommendation:**
+
 - Use flexible assertions (`.toBeGreaterThan(0)` instead of exact counts)
 - OR: Add dedicated test seed script that guarantees specific counts
 - OR: Query actual counts and assert structure rather than exact values
@@ -270,6 +292,7 @@ Based on the test files, the following are NOT covered by E2E tests:
 **Impact:** Indicates API contract change without test update
 
 **Recommendation:**
+
 - Check if config schema changed in recent commits
 - Update test to match new schema
 - OR: Restore `tick_interval_ms` to config if it was accidentally removed
@@ -281,6 +304,7 @@ Based on the test files, the following are NOT covered by E2E tests:
 **Impact:** Test code issue, not system issue
 
 **Recommendation:**
+
 - Fix test to await the Promise before assertion
 - OR: Change `initTelegram()` to return boolean synchronously
 - Current line likely: `expect(initTelegram()).toBe(true)` should be `expect(await initTelegram()).toBe(true)`
@@ -296,6 +320,7 @@ According to `parent-harness/GAPS_TO_FIX.md`:
 **Verification Result:** ✅ CONFIRMED
 
 Our test run confirms:
+
 - 14/16 orchestrator tests pass
 - 2 failures are for external services (OpenClaw gateway, Telegram bot)
 - Both failures are expected when external services are not configured
@@ -325,20 +350,24 @@ The document correctly reflects the test suite status.
 ## Pass Criteria Validation
 
 ✅ **1. E2E tests run successfully**
+
 - Orchestrator tests: YES (16/16 tests run, 14 pass as expected)
 - Dashboard tests: YES (24/24 tests run, 4 pass, others blocked by missing servers)
 
 ✅ **2. Test results documented (which pass, which fail, why)**
+
 - All passing tests listed with categories
 - All failing tests listed with failure reasons
 - Root causes identified
 
 ✅ **3. Expected failures match documented external service issues**
+
 - GAPS_TO_FIX.md states: "2 expected failures - external services not configured"
 - Actual failures: OpenClaw gateway (not running), Telegram bot (not configured)
 - Match: ✅ YES
 
 ✅ **4. Test output saved for reference**
+
 - Full test results captured in this document
 - Test files identified and cataloged
 - Commands documented for reproducibility

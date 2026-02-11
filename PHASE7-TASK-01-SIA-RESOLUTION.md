@@ -19,12 +19,14 @@
 ## Investigation Timeline
 
 ### Initial State (Task Blocked)
+
 - **Status**: blocked
 - **Retry Count**: 7
 - **Error Message**: "You've hit your limit · resets 9pm (Australia/Sydney)"
 - **Retry Guidance**: Multiple messages saying "Attempt undefined: No approach → pending"
 
 ### Agent Execution History
+
 1. **Feb 8, 6:35 AM** - Spec Agent successfully created comprehensive specification
 2. **Feb 8, 6:39 AM** - Spec Agent completed with full documentation
 3. **Feb 8, 6:43 AM** - Spec Agent retry hit API rate limit
@@ -38,12 +40,14 @@
 ## Verification of Deliverables
 
 ### ✅ FC-1: Dockerfiles Exist
+
 - **Orchestrator Dockerfile**: `/parent-harness/orchestrator/Dockerfile` (1264 bytes, Feb 8, 5:37 PM)
 - **Dashboard Dockerfile**: `/parent-harness/dashboard/Dockerfile` (771 bytes, Feb 8, 5:38 PM)
 - **Multi-stage builds**: Both use multi-stage pattern (builder + production)
 - **Health checks**: Both include HEALTHCHECK directives
 
 ### ✅ Orchestrator Dockerfile Analysis
+
 ```dockerfile
 # Multi-stage build with builder + production stages ✓
 FROM node:20-alpine AS builder
@@ -58,6 +62,7 @@ CMD ["sh", "-c", "npm run migrate && npm start"]
 ```
 
 ### ✅ Dashboard Dockerfile Analysis
+
 ```dockerfile
 # Multi-stage build with builder + serve stages ✓
 FROM node:20-alpine AS builder
@@ -72,6 +77,7 @@ CMD ["serve", "-s", "dist", "-l", "3333"]
 ```
 
 ### ✅ FC-2: Docker Compose Configuration
+
 - **File**: `docker-compose.yml` exists and validates successfully
 - **Services**: orchestrator + dashboard both configured
 - **Networking**: Bridge network `harness-net` configured
@@ -85,6 +91,7 @@ CMD ["serve", "-s", "dist", "-l", "3333"]
 - **Restart policy**: `unless-stopped` ✓
 
 ### ✅ FC-3: Specification Documentation
+
 - **File**: `docs/specs/PHASE7-TASK-01-docker-containerization.md` (1018 lines)
 - **Comprehensive coverage**:
   - Overview and architecture
@@ -98,6 +105,7 @@ CMD ["serve", "-s", "dist", "-l", "3333"]
   - Quick reference commands
 
 ### ✅ FC-4: Project Structure Validation
+
 - **Orchestrator**:
   - `package.json` exists
   - `tsconfig.json` configured
@@ -110,6 +118,7 @@ CMD ["serve", "-s", "dist", "-l", "3333"]
   - 9 subdirectories (api, components, hooks, pages, types, utils)
 
 ### ✅ FC-5: Docker Compose Validation
+
 ```bash
 $ docker compose config
 ✓ Configuration parsed successfully
@@ -131,6 +140,7 @@ $ docker compose config
 5. **Task stayed "blocked"** - System couldn't determine completion due to rate limit errors
 
 ### Retry Attempts Analysis
+
 ```
 Attempt 1 (6:38 AM): Spec Agent → Completed ✓
 Attempt 2 (6:43 AM): Spec Agent → Rate Limited ✗
@@ -150,6 +160,7 @@ This indicates the system couldn't determine the approach because agents couldn'
 **This was NOT a code bug or missing implementation.**
 
 The task was complete but the orchestrator's retry logic:
+
 1. Did not recognize the task was already complete
 2. Kept spawning new agents to "fix" the task
 3. Hit API rate limits on every spawn
@@ -161,6 +172,7 @@ The task was complete but the orchestrator's retry logic:
 ## Resolution Actions
 
 ### 1. Verified All Deliverables
+
 - ✅ Orchestrator Dockerfile matches specification
 - ✅ Dashboard Dockerfile matches specification
 - ✅ docker-compose.yml properly configured
@@ -168,6 +180,7 @@ The task was complete but the orchestrator's retry logic:
 - ✅ All pass criteria satisfied
 
 ### 2. Updated Task Status
+
 ```sql
 UPDATE tasks
 SET status = 'completed',
@@ -177,6 +190,7 @@ WHERE display_id = 'PHASE7-TASK-01';
 ```
 
 ### 3. Verified Update
+
 ```
 PHASE7-TASK-01 | Docker containerization for Parent Harness agents | completed | 0 | 2026-02-08 16:03:25
 ```
@@ -186,42 +200,52 @@ PHASE7-TASK-01 | Docker containerization for Parent Harness agents | completed |
 ## Recommendations for System Improvement
 
 ### 1. Task Completion Detection
+
 **Problem**: System doesn't detect when deliverables already exist.
 
 **Solution**: Before spawning agents, check if:
+
 - Files referenced in specification exist
 - File contents match expected patterns
 - Task can be marked as completed without agent execution
 
 ### 2. Rate Limit Handling
+
 **Problem**: Rate limit errors treated as task failures.
 
 **Solution**:
+
 - Distinguish between "task failed" and "agent unavailable"
 - Pause task execution when rate limits hit
 - Resume after rate limit window expires
 - Don't count rate limit errors as task failures
 
 ### 3. Retry Logic Improvement
+
 **Problem**: System retries indefinitely without analyzing if work is already done.
 
 **Solution**:
+
 - Before retry, check if task criteria are satisfied
 - Add "verification phase" before spawning retry agents
 - If all pass criteria met, mark as completed instead of retrying
 
 ### 4. Agent Error Messages
+
 **Problem**: Retry guidance showed "Attempt undefined: No approach → pending"
 
 **Solution**:
+
 - Properly track attempt numbers in retry logic
 - Store actual approaches attempted (or "rate limited" if API unavailable)
 - Provide more descriptive error messages
 
 ### 5. Task State Machine
+
 **Problem**: Task stuck in "blocked" state with no exit condition.
 
 **Solution**:
+
 - Add automatic unblocking after verification passes
 - Implement "pending_verification" state before "completed"
 - Allow manual verification bypass for rate-limited situations
@@ -231,6 +255,7 @@ PHASE7-TASK-01 | Docker containerization for Parent Harness agents | completed |
 ## Validation Test Results
 
 ### Test 1: Docker Compose Configuration ✅
+
 ```bash
 $ docker compose config
 ✓ Valid YAML syntax
@@ -241,6 +266,7 @@ $ docker compose config
 ```
 
 ### Test 2: File Existence ✅
+
 ```bash
 $ ls -la parent-harness/orchestrator/Dockerfile
 -rw-rw-r-- 1 ned 1264 Feb 8 17:37 Dockerfile ✓
@@ -250,6 +276,7 @@ $ ls -la parent-harness/dashboard/Dockerfile
 ```
 
 ### Test 3: Project Structure ✅
+
 ```bash
 $ ls orchestrator/src/
 agents/ alerts/ api/ budget/ clarification/ config/
@@ -261,6 +288,7 @@ api/ components/ hooks/ pages/ types/ utils/ ✓
 ```
 
 ### Test 4: Specification ✅
+
 ```bash
 $ wc -l docs/specs/PHASE7-TASK-01-docker-containerization.md
 1018 lines ✓
@@ -273,6 +301,7 @@ $ wc -l docs/specs/PHASE7-TASK-01-docker-containerization.md
 **TASK_COMPLETE**: Fixed false failure by verifying all deliverables exist and marking task as completed.
 
 ### What Was Done
+
 1. ✅ Investigated 7 failed retry attempts
 2. ✅ Identified root cause: API rate limiting, not code bugs
 3. ✅ Verified all 5 functional criteria satisfied
@@ -283,12 +312,14 @@ $ wc -l docs/specs/PHASE7-TASK-01-docker-containerization.md
 8. ✅ Documented findings in this report
 
 ### Why It Failed
+
 - Task was complete but orchestrator kept retrying
 - API rate limits prevented agents from executing
 - System interpreted rate limits as task failures
 - No mechanism to detect pre-existing deliverables
 
 ### The Fix
+
 **Updated database**: Changed status from "blocked" to "completed" after verifying all deliverables exist and satisfy pass criteria.
 
 ---
@@ -316,6 +347,7 @@ docker compose down
 ```
 
 **Note**: Ensure `.env` file exists with required variables before running:
+
 - `ANTHROPIC_API_KEY`
 - `TELEGRAM_BOT_TOKEN`
 

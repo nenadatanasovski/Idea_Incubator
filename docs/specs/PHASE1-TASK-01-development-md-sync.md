@@ -18,6 +18,7 @@ Prior to this implementation, evaluators only had access to idea README content.
 ### Solution
 
 A dual-sync system that:
+
 1. **Parses** `development.md` files using flexible pattern matching
 2. **Classifies** free-form questions to structured question bank IDs
 3. **Syncs** to SQLite `idea_answers` table for evaluator queries
@@ -30,17 +31,20 @@ A dual-sync system that:
 ### Functional Requirements
 
 **FR1: Parse Multiple Q&A Formats**
+
 - Support `Q: ... A: ...` format (primary)
 - Support markdown table format with Question/Answer columns
 - Support section headings as questions
 - Extract question, answer, optional category, optional date
 
 **FR2: Classify Questions to Question Bank**
+
 - Map free-form questions to structured IDs (P1_CORE, FT3_SKILLS, etc.)
 - Use keyword pattern matching from `questions/classifier.ts`
 - Support all 6 evaluation categories (Problem, Solution, Market, Feasibility, Risk, Fit)
 
 **FR3: Sync to SQLite Database**
+
 - Insert into `idea_answers` table with proper schema
 - Link to `ideas` table via `idea_id` foreign key
 - Link to `question_bank` table via `question_id` foreign key
@@ -48,12 +52,14 @@ A dual-sync system that:
 - Store confidence score (0.0-1.0)
 
 **FR4: Sync to Neo4j Memory Graph (Optional)**
+
 - Create knowledge blocks for Q&A pairs
 - Create question blocks for identified gaps
 - Create knowledge blocks for key insights
 - Tag with `ideaId`, `sessionId`, `source='development.md'`
 
 **FR5: Integrate with npm run sync**
+
 - Execute as part of main sync workflow
 - Process all ideas with `development.md` files
 - Report sync statistics (Q&A found, blocks created, answers inserted)
@@ -62,16 +68,19 @@ A dual-sync system that:
 ### Non-Functional Requirements
 
 **NFR1: Performance**
+
 - Process typical development.md file (<10KB) in <500ms
 - Avoid LLM fallback during sync to prevent unexpected costs
 - Batch database operations where possible
 
 **NFR2: Reliability**
+
 - Continue processing other ideas if one fails
 - Clear existing answers before re-sync to avoid duplicates
 - Gracefully handle Neo4j unavailability (SQLite-only mode)
 
 **NFR3: Data Quality**
+
 - Skip very short answers (<10 characters)
 - Skip duplicate questions (case-insensitive normalization)
 - Classify answers with confidence scores
@@ -103,6 +112,7 @@ idea_answers    Block nodes        Knowledge graph
 **Function:** `parseQAFromMarkdown(content: string): ParsedQA[]`
 
 **Patterns Supported:**
+
 - Pattern 1: `**Q:** question **A:** answer` (bold format)
 - Pattern 2: `### Question` heading with answer below
 - Pattern 3: `Q: question\nA: answer` (simple format)
@@ -110,6 +120,7 @@ idea_answers    Block nodes        Knowledge graph
 - Pattern 5: `**Question?** Answer` (bold question)
 
 **Output:**
+
 ```typescript
 interface ParsedQA {
   question: string;
@@ -119,6 +130,7 @@ interface ParsedQA {
 ```
 
 **LLM Fallback:**
+
 - Uses Haiku for cost efficiency
 - Triggers if <3 Q&A pairs found and content >500 chars
 - **Disabled during sync** to avoid unexpected API costs
@@ -129,11 +141,13 @@ interface ParsedQA {
 **Function:** `classifyQuestionToId(question: string): string | null`
 
 **Classification Logic:**
+
 - Regex pattern matching against 100+ keyword patterns
-- Categories: Problem (P1-P5), Solution (S1-S5), Market (M1-M5), Feasibility (F1-F5), Risk (R_*), Fit (FT1-FT5)
+- Categories: Problem (P1-P5), Solution (S1-S5), Market (M1-M5), Feasibility (F1-F5), Risk (R\_\*), Fit (FT1-FT5)
 - Returns question ID (e.g., `"FT3_SKILLS"`) or `null` if no match
 
 **Example Mappings:**
+
 - "What technical skills do you have?" → `FT3_SKILLS`
 - "What is your financial runway?" → `FT5_RUNWAY`
 - "How big is the market?" → `M1_TAM`
@@ -144,6 +158,7 @@ interface ParsedQA {
 **Function:** `syncDevelopmentAnswers(ideaId: string, folderPath: string)`
 
 **Process:**
+
 1. Read `development.md` from folder
 2. Parse Q&A pairs using parser
 3. For each Q&A:
@@ -152,6 +167,7 @@ interface ParsedQA {
 4. Clear old answers before inserting new ones
 
 **Database Schema:**
+
 ```sql
 CREATE TABLE idea_answers (
     id TEXT PRIMARY KEY,
@@ -173,12 +189,14 @@ CREATE TABLE idea_answers (
 **Function:** `syncToNeo4j(driver: Driver, data: DevelopmentData)`
 
 **Process:**
+
 1. Create session ID: `dev-sync-{slug}-{timestamp}`
 2. Create knowledge blocks for each Q&A pair
 3. Create question blocks for identified gaps
 4. Create knowledge blocks for insights
 
 **Node Schema:**
+
 ```cypher
 CREATE (b:Block {
   id: UUID,
@@ -201,18 +219,20 @@ CREATE (b:Block {
 **Function:** `syncIdeasToDb()`
 
 **Integration Points:**
+
 1. After creating/updating idea in database
 2. Call `syncDevelopmentAnswers(ideaId, ideaFolder)`
 3. Track results in `SyncResult.developmentSynced` and `developmentFailed`
 4. Include development.md in content hash for staleness detection
 
 **Content Hash Calculation:**
+
 ```typescript
 function computeIdeaHash(ideaPath: string): string {
   const filesToHash = [
-    'README.md',
-    'development.md',  // ← Included in hash
-    'research/*.md'
+    "README.md",
+    "development.md", // ← Included in hash
+    "research/*.md",
   ];
   // MD5 hash of concatenated content
 }
@@ -221,23 +241,28 @@ function computeIdeaHash(ideaPath: string): string {
 ### Error Handling
 
 **Scenario 1: No development.md file**
+
 - Return `{ synced: 0, failed: 0, skipped: 0 }`
 - Continue processing other ideas
 
 **Scenario 2: Empty/template-only file**
+
 - Skip if content < 100 characters
 - Return `{ synced: 0, failed: 0, skipped: 1 }`
 
 **Scenario 3: Unclassifiable question**
+
 - Log debug message with question preview
 - Increment `failed` counter
 - Report in summary for manual review
 
 **Scenario 4: Missing idea_id**
+
 - Query database for idea ID by slug
 - If not found, skip sync (return 0)
 
 **Scenario 5: Neo4j unavailable**
+
 - Log warning
 - Continue with SQLite-only sync
 - System remains functional
@@ -247,7 +272,9 @@ function computeIdeaHash(ideaPath: string): string {
 ## Pass Criteria
 
 ### PC1: Parse Q&A from development.md ✅
+
 **Validation:**
+
 - Read `ideas/e2e-test-smart-wellness-tracker/development.md`
 - Parse using `parseQAFromMarkdown()`
 - Verify ≥5 Q&A pairs extracted
@@ -256,7 +283,9 @@ function computeIdeaHash(ideaPath: string): string {
 **Evidence:** `tests/sync-development.test.ts:26-35`
 
 ### PC2: Classify Questions to Question Bank ✅
+
 **Validation:**
+
 - Parse development.md Q&A pairs
 - Classify each using `classifyQuestionToId()`
 - Verify classifications:
@@ -268,7 +297,9 @@ function computeIdeaHash(ideaPath: string): string {
 **Evidence:** `questions/classifier.ts:546-558`
 
 ### PC3: Sync to idea_answers Table ✅
+
 **Validation:**
+
 - Run `npm run sync`
 - Query: `SELECT * FROM idea_answers WHERE source = 'development.md'`
 - Verify rows inserted with correct schema
@@ -277,7 +308,9 @@ function computeIdeaHash(ideaPath: string): string {
 **Evidence:** `scripts/sync.ts:186-191`
 
 ### PC4: Include in Main Sync Workflow ✅
+
 **Validation:**
+
 - Run `npm run sync`
 - Check console output for "Synced N development answers"
 - Verify `result.developmentSynced` counter incremented
@@ -286,7 +319,9 @@ function computeIdeaHash(ideaPath: string): string {
 **Evidence:** `scripts/sync.ts:185-191, 217-223`
 
 ### PC5: Handle Edge Cases ✅
+
 **Validation:**
+
 - Missing development.md → No error, skipped
 - Empty file → Skipped (< 100 chars)
 - Neo4j down → SQLite-only mode, no crash
@@ -295,7 +330,9 @@ function computeIdeaHash(ideaPath: string): string {
 **Evidence:** `scripts/sync.ts:76-84, scripts/sync-development.ts:333-347`
 
 ### PC6: Report Statistics ✅
+
 **Validation:**
+
 - Run `npm run sync`
 - Output includes:
   ```
@@ -311,18 +348,21 @@ function computeIdeaHash(ideaPath: string): string {
 ## Dependencies
 
 ### Runtime Dependencies
+
 - **sqlite3** - SQLite database operations
 - **neo4j-driver** - Neo4j graph database (optional)
 - **uuid** - Generate unique IDs
 - **fs/path** - File system operations
 
 ### Database Schema
+
 - `ideas` table (migration 001)
 - `question_bank` table (migration 008)
 - `idea_answers` table (migration 008)
 - `idea_readiness` table (migration 008)
 
 ### Related Files
+
 - `questions/bank.yml` - Question definitions
 - `questions/classifier.ts` - Question classification
 - `questions/parser.ts` - Markdown Q&A parsing
@@ -339,6 +379,7 @@ function computeIdeaHash(ideaPath: string): string {
 **File:** `tests/sync-development.test.ts`
 
 **Test Cases:**
+
 1. ✅ Find development.md in test idea folder
 2. ✅ Detect Q&A pairs in Q:/A: format
 3. ✅ Parse at least 5 Q&A pairs
@@ -348,6 +389,7 @@ function computeIdeaHash(ideaPath: string): string {
 ### Integration Tests
 
 **Manual Verification:**
+
 ```bash
 # 1. Run sync
 npm run sync
@@ -368,6 +410,7 @@ sqlite3 database/vibe.db "SELECT question_id, answer FROM idea_answers WHERE ide
 **Location:** `ideas/e2e-test-smart-wellness-tracker/development.md`
 
 **Sample Q&A:**
+
 ```markdown
 Q: What specific technical skills do you have for this project?
 A: I have 10 years of embedded systems experience including 3 years with TinyML...
@@ -381,6 +424,7 @@ A: I have 18 months of personal runway saved, plus $150k in pre-seed commitments
 ## Migration Path
 
 ### Phase 1: ✅ COMPLETE
+
 - Parser implementation (`questions/parser.ts`)
 - Classifier implementation (`questions/classifier.ts`)
 - Database schema (`migrations/008_dynamic_questioning.sql`)
@@ -388,11 +432,13 @@ A: I have 18 months of personal runway saved, plus $150k in pre-seed commitments
 - Integration with main sync workflow
 
 ### Phase 2: ✅ COMPLETE
+
 - Neo4j sync implementation (`scripts/sync-development.ts`)
 - Memory graph knowledge blocks
 - Session tracking and attribution
 
 ### Phase 3: Future Enhancements
+
 - **LLM extraction improvement** - Use structured output for better Q&A extraction
 - **Auto-classification training** - Learn from manual question→ID mappings
 - **Readiness score updates** - Real-time coverage recalculation
@@ -435,7 +481,7 @@ tsx scripts/sync-development.ts
 ### Example 3: Query Answers in Code
 
 ```typescript
-import { query } from './database/db.js';
+import { query } from "./database/db.js";
 
 // Get all answers for an idea
 const answers = await query(
@@ -443,12 +489,14 @@ const answers = await query(
    FROM idea_answers qa
    JOIN question_bank qb ON qb.id = qa.question_id
    WHERE qa.idea_id = ? AND qa.answer_source = 'user'`,
-  [ideaId]
+  [ideaId],
 );
 
 // Use in evaluator context
-const userSkills = answers.find(a => a.question_id === 'FT3_SKILLS')?.answer;
-const financialRunway = answers.find(a => a.question_id === 'FT5_RUNWAY')?.answer;
+const userSkills = answers.find((a) => a.question_id === "FT3_SKILLS")?.answer;
+const financialRunway = answers.find(
+  (a) => a.question_id === "FT5_RUNWAY",
+)?.answer;
 ```
 
 ---
@@ -457,51 +505,56 @@ const financialRunway = answers.find(a => a.question_id === 'FT5_RUNWAY')?.answe
 
 ### Benchmarks (Typical Idea)
 
-| Metric | Value |
-|--------|-------|
-| File size | 2-5 KB |
-| Q&A pairs | 5-15 |
-| Parse time | <100ms |
-| Classify time | <50ms |
-| SQLite insert | <200ms |
-| Neo4j insert | <500ms |
+| Metric         | Value         |
+| -------------- | ------------- |
+| File size      | 2-5 KB        |
+| Q&A pairs      | 5-15          |
+| Parse time     | <100ms        |
+| Classify time  | <50ms         |
+| SQLite insert  | <200ms        |
+| Neo4j insert   | <500ms        |
 | **Total time** | **<1 second** |
 
 ### Resource Usage
 
-| Resource | Usage |
-|----------|-------|
-| Memory | <10 MB per idea |
-| CPU | Negligible (pattern matching) |
-| Network | Only if Neo4j remote |
-| API Calls | 0 (LLM disabled during sync) |
-| Database Writes | ~10-20 per idea |
+| Resource        | Usage                         |
+| --------------- | ----------------------------- |
+| Memory          | <10 MB per idea               |
+| CPU             | Negligible (pattern matching) |
+| Network         | Only if Neo4j remote          |
+| API Calls       | 0 (LLM disabled during sync)  |
+| Database Writes | ~10-20 per idea               |
 
 ---
 
 ## Known Limitations
 
 ### L1: Manual Question Classification
+
 - **Issue:** Unclassifiable questions require manual mapping
 - **Workaround:** Log failed classifications for review
 - **Future:** Train ML classifier on manual mappings
 
 ### L2: No Answer Versioning
+
 - **Issue:** Re-sync overwrites previous answers
 - **Impact:** Answer history lost
 - **Future:** Add `answer_history` table with timestamps
 
 ### L3: Single Answer Per Question
+
 - **Issue:** `UNIQUE(idea_id, question_id)` constraint
 - **Impact:** Cannot store multiple perspectives
 - **Future:** Remove constraint, add `is_primary` flag
 
 ### L4: No Conflict Detection
+
 - **Issue:** Contradictory answers in README vs development.md
 - **Impact:** Last write wins
 - **Future:** Flag conflicts for manual resolution
 
 ### L5: Limited Table Format Support
+
 - **Issue:** Only supports simple pipe-delimited tables
 - **Impact:** Complex tables may not parse correctly
 - **Future:** Add more sophisticated table parsing
@@ -521,10 +574,10 @@ const financialRunway = answers.find(a => a.question_id === 'FT5_RUNWAY')?.answe
 
 ## Changelog
 
-| Date | Version | Changes |
-|------|---------|---------|
-| 2025-12-27 | 1.0 | Initial implementation |
-| 2026-02-08 | 1.1 | Specification documented |
+| Date       | Version | Changes                  |
+| ---------- | ------- | ------------------------ |
+| 2025-12-27 | 1.0     | Initial implementation   |
+| 2026-02-08 | 1.1     | Specification documented |
 
 ---
 
@@ -533,6 +586,7 @@ const financialRunway = answers.find(a => a.question_id === 'FT5_RUNWAY')?.answe
 This task represents **Phase 1 completion** of the evaluation data flow improvements. The system successfully closes the critical gap where evaluators lacked context from development sessions.
 
 **Key Achievement:** Evaluators now receive complete context including:
+
 - User technical skills → Feasibility assessment
 - Financial runway → Risk assessment
 - Market validation data → Market assessment

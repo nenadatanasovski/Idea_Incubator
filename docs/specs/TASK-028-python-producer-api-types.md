@@ -11,10 +11,11 @@ This specification defines the solution: create proper TypeScript interfaces for
 ### Current Implementation Issues
 
 1. **Overly Broad Type Assertions**: All database query results use `as any[]` casting:
+
    ```typescript
-   const result = await query("SELECT * FROM message_bus_log WHERE id = ?", [
+   const result = (await query("SELECT * FROM message_bus_log WHERE id = ?", [
      pythonProducedLog.id,
-   ]) as any[];
+   ])) as any[];
    ```
 
 2. **Loss of Type Safety**: Accessing `result[0]` returns `any`, and accessing properties on `any` can result in `unknown` types under certain TypeScript configurations.
@@ -36,6 +37,7 @@ All of these access properties on `result[0]` where `result` is typed as `any[]`
 ## Requirements
 
 ### FR-1: Type Definitions for Observability Tables
+
 Create TypeScript interfaces for all Python-produced observability data structures tested in the file:
 
 1. `MessageBusLogRecord` - Message bus event logs
@@ -47,21 +49,23 @@ Create TypeScript interfaces for all Python-produced observability data structur
 7. `ParallelExecutionWaveRecord` - Wave execution metadata
 
 ### FR-2: Replace Type Assertions
+
 Replace all `as any[]` type assertions with properly typed interfaces:
 
 ```typescript
 // Before
-const result = await query("SELECT * FROM message_bus_log WHERE id = ?", [
+const result = (await query("SELECT * FROM message_bus_log WHERE id = ?", [
   pythonProducedLog.id,
-]) as any[];
+])) as any[];
 
 // After
-const result = await query("SELECT * FROM message_bus_log WHERE id = ?", [
+const result = (await query("SELECT * FROM message_bus_log WHERE id = ?", [
   pythonProducedLog.id,
-]) as MessageBusLogRecord[];
+])) as MessageBusLogRecord[];
 ```
 
 ### FR-3: Type-Safe Property Access
+
 Ensure all property accesses are type-safe and compile without TS2571 errors:
 
 ```typescript
@@ -71,16 +75,19 @@ const payload = JSON.parse(result[0].payload);
 ```
 
 ### NFR-1: Backward Compatibility
+
 - Tests must continue to pass with identical behavior
 - No changes to test logic or assertions
 - Only type annotations should change
 
 ### NFR-2: Maintainability
+
 - Type definitions should be in a separate file for reusability
 - Type definitions should match actual database schema
 - Use consistent naming conventions with database column names
 
 ### NFR-3: Documentation
+
 - Add JSDoc comments to type interfaces describing their purpose
 - Document which Python script produces each data structure
 - Include field descriptions for non-obvious properties
@@ -96,6 +103,7 @@ This file will contain all observability record type definitions used by the int
 ### 2. Interface Definitions
 
 #### MessageBusLogRecord
+
 ```typescript
 /**
  * Message Bus Log Record
@@ -120,6 +128,7 @@ export interface MessageBusLogRecord {
 ```
 
 #### TranscriptEntryRecord
+
 ```typescript
 /**
  * Transcript Entry Record
@@ -145,6 +154,7 @@ export interface TranscriptEntryRecord {
 ```
 
 #### ToolUseRecord
+
 ```typescript
 /**
  * Tool Use Record
@@ -170,6 +180,7 @@ export interface ToolUseRecord {
 ```
 
 #### AssertionResultRecord
+
 ```typescript
 /**
  * Assertion Result Record
@@ -189,6 +200,7 @@ export interface AssertionResultRecord {
 ```
 
 #### SkillTraceRecord
+
 ```typescript
 /**
  * Skill Trace Record
@@ -212,6 +224,7 @@ export interface SkillTraceRecord {
 ```
 
 #### BuildAgentInstanceRecord
+
 ```typescript
 /**
  * Build Agent Instance Record
@@ -232,6 +245,7 @@ export interface BuildAgentInstanceRecord {
 ```
 
 #### ParallelExecutionWaveRecord
+
 ```typescript
 /**
  * Parallel Execution Wave Record
@@ -247,9 +261,11 @@ export interface ParallelExecutionWaveRecord {
 ### 3. Implementation Changes
 
 #### Step 1: Create Type Definitions File
+
 Create `tests/integration/observability/types.ts` with all interface definitions listed above.
 
 #### Step 2: Update Test Imports
+
 Add import statement to `python-producer-api.test.ts`:
 
 ```typescript
@@ -265,104 +281,123 @@ import {
 ```
 
 #### Step 3: Replace Type Assertions
+
 Update all occurrences of `as any[]` to use appropriate typed interfaces:
 
 **Line 49-51** (Message Bus Log Format test):
+
 ```typescript
-const result = await query("SELECT * FROM message_bus_log WHERE id = ?", [
+const result = (await query("SELECT * FROM message_bus_log WHERE id = ?", [
   pythonProducedLog.id,
-]) as MessageBusLogRecord[];
+])) as MessageBusLogRecord[];
 ```
 
 **Line 73** (Python timestamp format test):
+
 ```typescript
-const result = await query("SELECT * FROM message_bus_log LIMIT 1") as MessageBusLogRecord[];
+const result = (await query(
+  "SELECT * FROM message_bus_log LIMIT 1",
+)) as MessageBusLogRecord[];
 ```
 
 **Line 109-112** (Transcript Entry Format test):
+
 ```typescript
-const result = await query(
-  "SELECT * FROM transcript_entries WHERE id = ?",
-  [pythonTranscriptEntry.id],
-) as TranscriptEntryRecord[];
+const result = (await query("SELECT * FROM transcript_entries WHERE id = ?", [
+  pythonTranscriptEntry.id,
+])) as TranscriptEntryRecord[];
 ```
 
 **Line 139** (Wave event entries test):
+
 ```typescript
-const result = await query("SELECT * FROM transcript_entries LIMIT 1") as TranscriptEntryRecord[];
+const result = (await query(
+  "SELECT * FROM transcript_entries LIMIT 1",
+)) as TranscriptEntryRecord[];
 ```
 
 **Line 170-172** (Tool Use Format test):
+
 ```typescript
-const result = await query("SELECT * FROM tool_uses WHERE id = ?", [
+const result = (await query("SELECT * FROM tool_uses WHERE id = ?", [
   pythonToolUse.id,
-]) as ToolUseRecord[];
+])) as ToolUseRecord[];
 ```
 
 **Line 191** (Tool errors test):
+
 ```typescript
-const result = await query("SELECT * FROM tool_uses WHERE is_error = 1") as ToolUseRecord[];
+const result = (await query(
+  "SELECT * FROM tool_uses WHERE is_error = 1",
+)) as ToolUseRecord[];
 ```
 
 **Line 211-213** (Blocked tools test):
+
 ```typescript
-const result = await query(
+const result = (await query(
   "SELECT * FROM tool_uses WHERE is_blocked = 1",
-) as ToolUseRecord[];
+)) as ToolUseRecord[];
 ```
 
 **Line 242-245** (Assertion Result Format test):
+
 ```typescript
-const result = await query(
-  "SELECT * FROM assertion_results WHERE id = ?",
-  [pythonAssertion.id],
-) as AssertionResultRecord[];
+const result = (await query("SELECT * FROM assertion_results WHERE id = ?", [
+  pythonAssertion.id,
+])) as AssertionResultRecord[];
 ```
 
 **Line 274-276** (Failed assertions test):
+
 ```typescript
-const result = await query(
+const result = (await query(
   "SELECT * FROM assertion_results WHERE result = 'fail'",
-) as AssertionResultRecord[];
+)) as AssertionResultRecord[];
 ```
 
 **Line 306-308** (Skill Trace Format test):
+
 ```typescript
-const result = await query("SELECT * FROM skill_traces WHERE id = ?", [
+const result = (await query("SELECT * FROM skill_traces WHERE id = ?", [
   pythonSkillTrace.id,
-]) as SkillTraceRecord[];
+])) as SkillTraceRecord[];
 ```
 
 **Line 337-340** (Build Agent Instance Format test):
+
 ```typescript
-const result = await query(
+const result = (await query(
   "SELECT * FROM build_agent_instances WHERE id = ?",
   [pythonAgent.id],
-) as BuildAgentInstanceRecord[];
+)) as BuildAgentInstanceRecord[];
 ```
 
 **Line 369-372** (Cross-source transcript entries test):
+
 ```typescript
-const transcriptResult = await query(
+const transcriptResult = (await query(
   "SELECT * FROM transcript_entries WHERE id = ?",
   [transcriptEntryId],
-) as TranscriptEntryRecord[];
+)) as TranscriptEntryRecord[];
 ```
 
 **Line 373-376** (Cross-source tool uses test):
+
 ```typescript
-const toolUseResult = await query(
+const toolUseResult = (await query(
   "SELECT * FROM tool_uses WHERE transcript_entry_id = ?",
   [transcriptEntryId],
-) as ToolUseRecord[];
+)) as ToolUseRecord[];
 ```
 
 **Line 389-392** (Links execution runs test):
+
 ```typescript
-const result = await query(
+const result = (await query(
   "SELECT * FROM parallel_execution_waves WHERE execution_run_id = ?",
   [executionId],
-) as ParallelExecutionWaveRecord[];
+)) as ParallelExecutionWaveRecord[];
 ```
 
 ### 4. TypeScript Compilation Verification
@@ -378,17 +413,22 @@ Should produce **zero TS2571 errors** for `python-producer-api.test.ts`.
 ## Pass Criteria
 
 ### PC1: TypeScript Compilation
+
 **Description**: TypeScript compiles without TS2571 errors
 **Verification**:
+
 ```bash
 npx tsc --noEmit 2>&1 | grep -c "TS2571.*python-producer-api.test.ts"
 # Expected output: 0
 ```
+
 **Status**: ❌ Not Started
 
 ### PC2: Type Definitions Created
+
 **Description**: `types.ts` file exists with all required interfaces
 **Verification**:
+
 ```bash
 test -f tests/integration/observability/types.ts && \
 grep -q "export interface MessageBusLogRecord" tests/integration/observability/types.ts && \
@@ -396,20 +436,26 @@ grep -q "export interface ToolUseRecord" tests/integration/observability/types.t
 grep -q "export interface BuildAgentInstanceRecord" tests/integration/observability/types.ts
 # Expected exit code: 0
 ```
+
 **Status**: ❌ Not Started
 
 ### PC3: Type Assertions Replaced
+
 **Description**: No `as any[]` assertions remain in python-producer-api.test.ts
 **Verification**:
+
 ```bash
 grep -c "as any\[\]" tests/integration/observability/python-producer-api.test.ts
 # Expected output: 0
 ```
+
 **Status**: ❌ Not Started
 
 ### PC4: Tests Pass
+
 **Description**: All tests in the file pass successfully
 **Verification**:
+
 ```bash
 # Note: Integration tests are excluded by default in vitest.config.ts
 # This is intentional as they require database setup
@@ -417,33 +463,41 @@ grep -c "as any\[\]" tests/integration/observability/python-producer-api.test.ts
 npx tsc --noEmit tests/integration/observability/python-producer-api.test.ts
 # Expected exit code: 0
 ```
+
 **Status**: ❌ Not Started
 
 ### PC5: No Regressions
+
 **Description**: Full test suite continues to pass
 **Verification**:
+
 ```bash
 npm test
 # Expected: All tests pass (same count as before changes)
 ```
+
 **Status**: ❌ Not Started
 
 ## Dependencies
 
 ### Internal Dependencies
+
 - `tests/integration/observability/python-producer-api.test.ts` (file to be modified)
 - `database/db.js` (mocked query function)
 
 ### External Dependencies
+
 - TypeScript 5.x
 - Vitest testing framework
 
 ### Blockers
+
 None
 
 ## Implementation Notes
 
 ### Why Not Use Drizzle/Zod Schema?
+
 The main codebase uses Drizzle ORM with Zod schemas in `schema/entities/`. However:
 
 1. These tests are for the **parent-harness** orchestrator database, not the main Idea Incubator database
@@ -452,18 +506,23 @@ The main codebase uses Drizzle ORM with Zod schemas in `schema/entities/`. Howev
 4. Creating lightweight interfaces is more appropriate for mock-based testing
 
 ### Alternative: Generate Types from SQL Schema
+
 For future iterations, consider using tools like `sql-ts` or `kysely-codegen` to auto-generate TypeScript interfaces from the SQL migration files. This would ensure types stay in sync with database schema changes.
 
 ### Testing Strategy
+
 Since integration tests are excluded by default (they require database setup), the primary verification is:
+
 1. TypeScript compilation succeeds
 2. No type errors in the file
 3. Full test suite continues to pass (unit tests only)
 
 ## Related Tasks
+
 - None
 
 ## References
+
 - TypeScript Documentation: [Object is of type 'unknown' (TS2571)](https://www.typescriptlang.org/docs/handbook/2/narrowing.html)
 - Test file: `tests/integration/observability/python-producer-api.test.ts`
 - Database schema: `parent-harness/orchestrator/database/migrations/001_vibe_patterns.sql`

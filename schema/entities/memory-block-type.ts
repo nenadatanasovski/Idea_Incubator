@@ -10,19 +10,19 @@ import { memoryBlocks } from "./memory-block.js";
 
 /**
  * ARCH-001: 9 canonical block types
- * 
+ *
  * Consolidated from 21 organic types. See ARCH-001-TYPE-MAPPING.md for migration.
  */
 export const canonicalBlockTypes = [
-  "knowledge",    // Verified facts, patterns, insights (was: insight, fact, pattern, synthesis, learning, persona)
-  "decision",     // Choices made with rationale (was: decision, option)
-  "assumption",   // Unverified beliefs to test
-  "question",     // Open unknowns to investigate
-  "requirement",  // Constraints, must-haves (was: requirement, constraint)
-  "task",         // Work items, actions (was: action, task, story, bug, epic, blocker, milestone)
-  "proposal",     // Suggested changes awaiting approval
-  "artifact",     // Outputs (code, docs, specs)
-  "evidence",     // Validation data, proof (was: evaluation)
+  "knowledge", // Verified facts, patterns, insights (was: insight, fact, pattern, synthesis, learning, persona)
+  "decision", // Choices made with rationale (was: decision, option)
+  "assumption", // Unverified beliefs to test
+  "question", // Open unknowns to investigate
+  "requirement", // Constraints, must-haves (was: requirement, constraint)
+  "task", // Work items, actions (was: action, task, story, bug, epic, blocker, milestone)
+  "proposal", // Suggested changes awaiting approval
+  "artifact", // Outputs (code, docs, specs)
+  "evidence", // Validation data, proof (was: evaluation)
 ] as const;
 
 export type CanonicalBlockType = (typeof canonicalBlockTypes)[number];

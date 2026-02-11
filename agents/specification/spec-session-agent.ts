@@ -1,14 +1,14 @@
 /**
  * Spec Session Agent
- * 
+ *
  * Manages specification sessions with persistent state.
  * Implements the full session flow: start → answer questions → finalize.
- * 
+ *
  * SPEC-002: Full session management implementation
  */
 
-import { EventEmitter } from 'events';
-import { v4 as uuid } from 'uuid';
+import { EventEmitter } from "events";
+import { v4 as uuid } from "uuid";
 import {
   SpecSessionManager,
   SpecSession,
@@ -19,8 +19,8 @@ import {
   Feature,
   IdeationToSpecHandoff,
   getSessionManager,
-} from './session-manager.js';
-import { ClaudeClient } from './claude-client.js';
+} from "./session-manager.js";
+import { ClaudeClient } from "./claude-client.js";
 
 // System prompts for spec generation
 const SPEC_SYSTEM_PROMPT = `You are a software specification expert. Your job is to transform idea handoffs into comprehensive, actionable specifications.
@@ -54,7 +54,7 @@ export interface SpecSessionAgentConfig {
 }
 
 export interface ChatIntent {
-  type: 'question_answer' | 'spec_feedback' | 'clarification' | 'unknown';
+  type: "question_answer" | "spec_feedback" | "clarification" | "unknown";
   questionId?: string;
   confidence: number;
 }
@@ -75,10 +75,10 @@ export class SpecSessionAgent extends EventEmitter {
 
   constructor(config: SpecSessionAgentConfig = {}) {
     super();
-    
+
     this.claudeClient = new ClaudeClient({
       apiKey: config.apiKey,
-      model: config.model || 'claude-opus-4-6',
+      model: config.model || "claude-opus-4-6",
       maxTokens: config.maxTokens,
     });
   }
@@ -98,13 +98,17 @@ export class SpecSessionAgent extends EventEmitter {
    */
   async startSession(
     ideaId: string,
-    handoff: IdeationToSpecHandoff
+    handoff: IdeationToSpecHandoff,
   ): Promise<SpecSession> {
     await this.ensureInitialized();
 
     // Check for existing session
     const existing = await this.sessionManager.loadByIdeaId(ideaId);
-    if (existing && existing.status !== 'complete' && existing.status !== 'failed') {
+    if (
+      existing &&
+      existing.status !== "complete" &&
+      existing.status !== "failed"
+    ) {
       // Return existing active session
       return existing;
     }
@@ -123,13 +127,13 @@ export class SpecSessionAgent extends EventEmitter {
       session.pendingQuestions = questions;
 
       // Update status based on questions
-      session.status = questions.length > 0 ? 'pending_input' : 'active';
+      session.status = questions.length > 0 ? "pending_input" : "active";
 
       // Save session
       await this.sessionManager.saveSession(session);
 
       // Emit event
-      this.emit('sessionStarted', {
+      this.emit("sessionStarted", {
         sessionId: session.id,
         ideaId,
         questionCount: questions.length,
@@ -138,7 +142,7 @@ export class SpecSessionAgent extends EventEmitter {
       return session;
     } catch (error) {
       // Mark session as failed
-      session.status = 'failed';
+      session.status = "failed";
       await this.sessionManager.saveSession(session);
       throw error;
     }
@@ -148,24 +152,25 @@ export class SpecSessionAgent extends EventEmitter {
    * Generate initial specification draft from handoff
    */
   private async generateInitialDraft(
-    handoff: IdeationToSpecHandoff
+    handoff: IdeationToSpecHandoff,
   ): Promise<Specification> {
     const prompt = this.buildDraftPrompt(handoff);
 
     const response = await this.claudeClient.complete({
       messages: [
-        { role: 'system', content: SPEC_SYSTEM_PROMPT },
-        { role: 'user', content: prompt },
+        { role: "system", content: SPEC_SYSTEM_PROMPT },
+        { role: "user", content: prompt },
       ],
     });
 
     try {
       // Extract JSON from response
-      const jsonMatch = response.match(/```json\n?([\s\S]*?)\n?```/) ||
-                       response.match(/\{[\s\S]*\}/);
-      
+      const jsonMatch =
+        response.match(/```json\n?([\s\S]*?)\n?```/) ||
+        response.match(/\{[\s\S]*\}/);
+
       if (!jsonMatch) {
-        throw new Error('No valid JSON in response');
+        throw new Error("No valid JSON in response");
       }
 
       const jsonStr = jsonMatch[1] || jsonMatch[0];
@@ -173,11 +178,11 @@ export class SpecSessionAgent extends EventEmitter {
 
       // Ensure required fields
       return {
-        version: spec.version || '1.0.0',
+        version: spec.version || "1.0.0",
         overview: spec.overview || {
           name: handoff.ideaId,
-          description: handoff.solutionDescription || '',
-          problemStatement: handoff.problemStatement || '',
+          description: handoff.solutionDescription || "",
+          problemStatement: handoff.problemStatement || "",
           targetUsers: handoff.targetUsers ? [handoff.targetUsers] : [],
         },
         features: spec.features || [],
@@ -189,11 +194,11 @@ export class SpecSessionAgent extends EventEmitter {
     } catch {
       // Return a basic spec if parsing fails
       return {
-        version: '1.0.0',
+        version: "1.0.0",
         overview: {
           name: handoff.ideaId,
-          description: handoff.solutionDescription || 'Solution pending',
-          problemStatement: handoff.problemStatement || 'Problem pending',
+          description: handoff.solutionDescription || "Solution pending",
+          problemStatement: handoff.problemStatement || "Problem pending",
           targetUsers: handoff.targetUsers ? [handoff.targetUsers] : [],
         },
         features: this.extractFeaturesFromHandoff(handoff),
@@ -212,19 +217,19 @@ export class SpecSessionAgent extends EventEmitter {
     return `Generate a software specification for the following idea:
 
 ## Problem Statement
-${handoff.problemStatement || 'Not specified'}
+${handoff.problemStatement || "Not specified"}
 
 ## Proposed Solution
-${handoff.solutionDescription || 'Not specified'}
+${handoff.solutionDescription || "Not specified"}
 
 ## Target Users
-${handoff.targetUsers || 'Not specified'}
+${handoff.targetUsers || "Not specified"}
 
 ## Additional Context
-${handoff.conversationSummary || 'No additional context'}
+${handoff.conversationSummary || "No additional context"}
 
 ## Artifacts
-${handoff.artifacts.map(a => `- ${a.type}: ${a.content}`).join('\n') || 'None'}
+${handoff.artifacts.map((a) => `- ${a.type}: ${a.content}`).join("\n") || "None"}
 
 Please generate a complete specification in JSON format matching this structure:
 {
@@ -259,18 +264,23 @@ Please generate a complete specification in JSON format matching this structure:
   /**
    * Extract features from handoff artifacts
    */
-  private extractFeaturesFromHandoff(handoff: IdeationToSpecHandoff): Feature[] {
+  private extractFeaturesFromHandoff(
+    handoff: IdeationToSpecHandoff,
+  ): Feature[] {
     const features: Feature[] = [];
-    
+
     for (const artifact of handoff.artifacts) {
-      if (artifact.type.includes('feature') || artifact.type.includes('requirement')) {
+      if (
+        artifact.type.includes("feature") ||
+        artifact.type.includes("requirement")
+      ) {
         features.push({
           id: `feat-${uuid().slice(0, 8)}`,
           name: artifact.content.slice(0, 50),
           description: artifact.content,
-          priority: 'should-have',
+          priority: "should-have",
           acceptanceCriteria: [],
-          estimatedComplexity: 'medium',
+          estimatedComplexity: "medium",
         });
       }
     }
@@ -278,12 +288,12 @@ Please generate a complete specification in JSON format matching this structure:
     // Ensure at least one feature
     if (features.length === 0) {
       features.push({
-        id: 'feat-core',
-        name: 'Core Functionality',
-        description: 'Main feature to be defined based on problem statement',
-        priority: 'must-have',
-        acceptanceCriteria: ['Feature works as expected'],
-        estimatedComplexity: 'medium',
+        id: "feat-core",
+        name: "Core Functionality",
+        description: "Main feature to be defined based on problem statement",
+        priority: "must-have",
+        acceptanceCriteria: ["Feature works as expected"],
+        estimatedComplexity: "medium",
       });
     }
 
@@ -295,7 +305,7 @@ Please generate a complete specification in JSON format matching this structure:
    */
   private async identifyGaps(
     draft: Specification,
-    handoff: IdeationToSpecHandoff
+    handoff: IdeationToSpecHandoff,
   ): Promise<SpecQuestion[]> {
     const prompt = `${QUESTION_PROMPT}
 
@@ -319,21 +329,26 @@ Generate questions in JSON array format:
     try {
       const response = await this.claudeClient.complete({
         messages: [
-          { role: 'system', content: 'You are a specification analyst. Identify gaps and ambiguities.' },
-          { role: 'user', content: prompt },
+          {
+            role: "system",
+            content:
+              "You are a specification analyst. Identify gaps and ambiguities.",
+          },
+          { role: "user", content: prompt },
         ],
       });
 
-      const jsonMatch = response.match(/```json\n?([\s\S]*?)\n?```/) ||
-                       response.match(/\[[\s\S]*\]/);
-      
+      const jsonMatch =
+        response.match(/```json\n?([\s\S]*?)\n?```/) ||
+        response.match(/\[[\s\S]*\]/);
+
       if (!jsonMatch) return [];
 
       const jsonStr = jsonMatch[1] || jsonMatch[0];
       const questions = JSON.parse(jsonStr) as SpecQuestion[];
 
       // Add timestamps and ensure IDs
-      return questions.map(q => ({
+      return questions.map((q) => ({
         ...q,
         id: q.id || `q-${uuid().slice(0, 8)}`,
         createdAt: new Date(),
@@ -349,19 +364,21 @@ Generate questions in JSON array format:
   async answerQuestion(
     sessionId: string,
     questionId: string,
-    answer: string
+    answer: string,
   ): Promise<{ updated: boolean; remainingQuestions: number }> {
     await this.ensureInitialized();
 
     const session = await this.sessionManager.loadSession(sessionId);
     if (!session) {
-      throw new Error('Session not found');
+      throw new Error("Session not found");
     }
 
     // Find the question
-    const questionIndex = session.pendingQuestions.findIndex(q => q.id === questionId);
+    const questionIndex = session.pendingQuestions.findIndex(
+      (q) => q.id === questionId,
+    );
     if (questionIndex === -1) {
-      throw new Error('Question not found');
+      throw new Error("Question not found");
     }
 
     const question = session.pendingQuestions[questionIndex];
@@ -380,7 +397,7 @@ Generate questions in JSON array format:
       const refinedDraft = await this.refineSpecWithAnswer(
         session.currentDraft,
         question,
-        answer
+        answer,
       );
       session.currentDraft = refinedDraft;
       session.draftVersion++;
@@ -390,20 +407,23 @@ Generate questions in JSON array format:
     if (session.pendingQuestions.length === 0 && session.currentDraft) {
       const newQuestions = await this.identifyGaps(
         session.currentDraft,
-        session.handoffData!
+        session.handoffData!,
       );
-      
+
       // Only add truly new questions (not similar to answered ones)
-      const filteredQuestions = newQuestions.filter(nq =>
-        !session.answeredQuestions.some(aq =>
-          aq.question.toLowerCase().includes(nq.question.toLowerCase().slice(0, 20))
-        )
+      const filteredQuestions = newQuestions.filter(
+        (nq) =>
+          !session.answeredQuestions.some((aq) =>
+            aq.question
+              .toLowerCase()
+              .includes(nq.question.toLowerCase().slice(0, 20)),
+          ),
       );
 
       if (filteredQuestions.length > 0) {
         session.pendingQuestions = filteredQuestions;
       } else {
-        session.status = 'active';
+        session.status = "active";
       }
     }
 
@@ -421,7 +441,7 @@ Generate questions in JSON array format:
   private async refineSpecWithAnswer(
     draft: Specification,
     question: SpecQuestion,
-    answer: string
+    answer: string,
   ): Promise<Specification> {
     const prompt = `${REFINEMENT_PROMPT}
 
@@ -429,7 +449,7 @@ Current Specification:
 ${JSON.stringify(draft, null, 2)}
 
 Question: ${question.question}
-Context: ${question.context || 'N/A'}
+Context: ${question.context || "N/A"}
 Category: ${question.category}
 
 User's Answer: ${answer}
@@ -439,14 +459,19 @@ Return the updated specification as JSON, incorporating this new information.`;
     try {
       const response = await this.claudeClient.complete({
         messages: [
-          { role: 'system', content: 'You are a specification editor. Update specs based on clarifications.' },
-          { role: 'user', content: prompt },
+          {
+            role: "system",
+            content:
+              "You are a specification editor. Update specs based on clarifications.",
+          },
+          { role: "user", content: prompt },
         ],
       });
 
-      const jsonMatch = response.match(/```json\n?([\s\S]*?)\n?```/) ||
-                       response.match(/\{[\s\S]*\}/);
-      
+      const jsonMatch =
+        response.match(/```json\n?([\s\S]*?)\n?```/) ||
+        response.match(/\{[\s\S]*\}/);
+
       if (!jsonMatch) return draft;
 
       const jsonStr = jsonMatch[1] || jsonMatch[0];
@@ -455,7 +480,7 @@ Return the updated specification as JSON, incorporating this new information.`;
       // Preserve metadata
       updated.version = draft.version;
       updated.generatedFrom = draft.generatedFrom;
-      
+
       return updated;
     } catch {
       return draft;
@@ -465,41 +490,42 @@ Return the updated specification as JSON, incorporating this new information.`;
   /**
    * Handle chat message during spec session
    */
-  async chat(
-    sessionId: string,
-    message: string
-  ): Promise<ChatResult> {
+  async chat(sessionId: string, message: string): Promise<ChatResult> {
     await this.ensureInitialized();
 
     const session = await this.sessionManager.loadSession(sessionId);
     if (!session) {
-      throw new Error('Session not found');
+      throw new Error("Session not found");
     }
 
     // Determine intent
     const intent = await this.classifyIntent(message, session);
 
     switch (intent.type) {
-      case 'question_answer':
+      case "question_answer":
         if (intent.questionId) {
-          const result = await this.answerQuestion(sessionId, intent.questionId, message);
+          const result = await this.answerQuestion(
+            sessionId,
+            intent.questionId,
+            message,
+          );
           return {
             response: this.formatQuestionResponse(result, session),
             updatedSpec: true,
-            changes: ['Incorporated answer into specification'],
+            changes: ["Incorporated answer into specification"],
           };
         }
         break;
 
-      case 'spec_feedback':
+      case "spec_feedback":
         const refined = await this.incorporateFeedback(session, message);
         return {
-          response: `I've updated the specification based on your feedback. ${refined.changes.join(', ')}`,
+          response: `I've updated the specification based on your feedback. ${refined.changes.join(", ")}`,
           updatedSpec: true,
           changes: refined.changes,
         };
 
-      case 'clarification':
+      case "clarification":
         return {
           response: await this.answerClarification(session, message),
           updatedSpec: false,
@@ -507,7 +533,8 @@ Return the updated specification as JSON, incorporating this new information.`;
     }
 
     return {
-      response: "I'm not sure what you mean. Could you clarify? You can provide feedback on the spec, answer pending questions, or ask about specific features.",
+      response:
+        "I'm not sure what you mean. Could you clarify? You can provide feedback on the spec, answer pending questions, or ask about specific features.",
       updatedSpec: false,
     };
   }
@@ -517,19 +544,22 @@ Return the updated specification as JSON, incorporating this new information.`;
    */
   private async classifyIntent(
     message: string,
-    session: SpecSession
+    session: SpecSession,
   ): Promise<ChatIntent> {
     // Check if answering a pending question
     for (const question of session.pendingQuestions) {
       // Simple heuristic: if message seems to answer the question
-      const questionKeywords = question.question.toLowerCase().split(' ').slice(0, 5);
-      const messageHasContext = questionKeywords.some(kw =>
-        message.toLowerCase().includes(kw)
+      const questionKeywords = question.question
+        .toLowerCase()
+        .split(" ")
+        .slice(0, 5);
+      const messageHasContext = questionKeywords.some((kw) =>
+        message.toLowerCase().includes(kw),
       );
-      
+
       if (messageHasContext || session.pendingQuestions.length === 1) {
         return {
-          type: 'question_answer',
+          type: "question_answer",
           questionId: question.id,
           confidence: messageHasContext ? 0.8 : 0.6,
         };
@@ -537,18 +567,34 @@ Return the updated specification as JSON, incorporating this new information.`;
     }
 
     // Check for feedback keywords
-    const feedbackKeywords = ['change', 'update', 'modify', 'add', 'remove', 'should be', 'instead'];
-    if (feedbackKeywords.some(kw => message.toLowerCase().includes(kw))) {
-      return { type: 'spec_feedback', confidence: 0.7 };
+    const feedbackKeywords = [
+      "change",
+      "update",
+      "modify",
+      "add",
+      "remove",
+      "should be",
+      "instead",
+    ];
+    if (feedbackKeywords.some((kw) => message.toLowerCase().includes(kw))) {
+      return { type: "spec_feedback", confidence: 0.7 };
     }
 
     // Check for question keywords
-    const questionKeywords = ['what', 'how', 'why', 'when', 'where', 'can you', 'tell me'];
-    if (questionKeywords.some(kw => message.toLowerCase().startsWith(kw))) {
-      return { type: 'clarification', confidence: 0.7 };
+    const questionKeywords = [
+      "what",
+      "how",
+      "why",
+      "when",
+      "where",
+      "can you",
+      "tell me",
+    ];
+    if (questionKeywords.some((kw) => message.toLowerCase().startsWith(kw))) {
+      return { type: "clarification", confidence: 0.7 };
     }
 
-    return { type: 'unknown', confidence: 0.3 };
+    return { type: "unknown", confidence: 0.3 };
   }
 
   /**
@@ -556,7 +602,7 @@ Return the updated specification as JSON, incorporating this new information.`;
    */
   private formatQuestionResponse(
     result: { updated: boolean; remainingQuestions: number },
-    session: SpecSession
+    session: SpecSession,
   ): string {
     if (result.remainingQuestions > 0) {
       const nextQ = session.pendingQuestions[0];
@@ -570,7 +616,7 @@ Return the updated specification as JSON, incorporating this new information.`;
    */
   private async incorporateFeedback(
     session: SpecSession,
-    feedback: string
+    feedback: string,
   ): Promise<{ changes: string[] }> {
     if (!session.currentDraft) {
       return { changes: [] };
@@ -588,14 +634,19 @@ Return the updated specification as JSON, and list what changes you made.`;
     try {
       const response = await this.claudeClient.complete({
         messages: [
-          { role: 'system', content: 'You are a specification editor. Incorporate feedback into specs.' },
-          { role: 'user', content: prompt },
+          {
+            role: "system",
+            content:
+              "You are a specification editor. Incorporate feedback into specs.",
+          },
+          { role: "user", content: prompt },
         ],
       });
 
-      const jsonMatch = response.match(/```json\n?([\s\S]*?)\n?```/) ||
-                       response.match(/\{[\s\S]*\}/);
-      
+      const jsonMatch =
+        response.match(/```json\n?([\s\S]*?)\n?```/) ||
+        response.match(/\{[\s\S]*\}/);
+
       if (jsonMatch) {
         const jsonStr = jsonMatch[1] || jsonMatch[0];
         session.currentDraft = JSON.parse(jsonStr);
@@ -603,7 +654,7 @@ Return the updated specification as JSON, and list what changes you made.`;
         await this.sessionManager.saveSession(session);
       }
 
-      return { changes: ['Updated based on feedback'] };
+      return { changes: ["Updated based on feedback"] };
     } catch {
       return { changes: [] };
     }
@@ -614,7 +665,7 @@ Return the updated specification as JSON, and list what changes you made.`;
    */
   private async answerClarification(
     session: SpecSession,
-    question: string
+    question: string,
   ): Promise<string> {
     if (!session.currentDraft) {
       return "No specification draft available yet.";
@@ -632,8 +683,11 @@ Provide a helpful, concise answer.`;
     try {
       const response = await this.claudeClient.complete({
         messages: [
-          { role: 'system', content: 'You are a helpful assistant explaining specifications.' },
-          { role: 'user', content: prompt },
+          {
+            role: "system",
+            content: "You are a helpful assistant explaining specifications.",
+          },
+          { role: "user", content: prompt },
         ],
       });
 
@@ -654,15 +708,17 @@ Provide a helpful, concise answer.`;
 
     const session = await this.sessionManager.loadSession(sessionId);
     if (!session) {
-      throw new Error('Session not found');
+      throw new Error("Session not found");
     }
 
     if (session.pendingQuestions.length > 0) {
-      throw new Error(`Cannot finalize: ${session.pendingQuestions.length} questions pending`);
+      throw new Error(
+        `Cannot finalize: ${session.pendingQuestions.length} questions pending`,
+      );
     }
 
     if (!session.currentDraft) {
-      throw new Error('No specification draft available');
+      throw new Error("No specification draft available");
     }
 
     // Generate tasks from spec
@@ -670,11 +726,11 @@ Provide a helpful, concise answer.`;
 
     // Update session
     session.tasks = tasks;
-    session.status = 'complete';
+    session.status = "complete";
     await this.sessionManager.saveSession(session);
 
     // Emit completion event
-    this.emit('specComplete', {
+    this.emit("specComplete", {
       sessionId,
       ideaId: session.ideaId,
       taskCount: tasks.length,
@@ -694,20 +750,27 @@ Provide a helpful, concise answer.`;
 
     for (const feature of spec.features) {
       // Database task if needed
-      if (feature.description.toLowerCase().includes('store') ||
-          feature.description.toLowerCase().includes('data') ||
-          feature.description.toLowerCase().includes('persist')) {
+      if (
+        feature.description.toLowerCase().includes("store") ||
+        feature.description.toLowerCase().includes("data") ||
+        feature.description.toLowerCase().includes("persist")
+      ) {
         tasks.push({
           id: `task-${uuid().slice(0, 8)}`,
           specId: spec.version,
           featureId: feature.id,
           name: `Database: ${feature.name}`,
           description: `Create database schema and migrations for ${feature.name}`,
-          type: 'database',
+          type: "database",
           dependencies: [],
-          estimatedMinutes: this.complexityToMinutes(feature.estimatedComplexity),
+          estimatedMinutes: this.complexityToMinutes(
+            feature.estimatedComplexity,
+          ),
           technicalDetails: `Schema for ${feature.name} feature`,
-          testCriteria: ['Migration runs successfully', 'Tables created correctly'],
+          testCriteria: [
+            "Migration runs successfully",
+            "Tables created correctly",
+          ],
         });
       }
 
@@ -718,8 +781,10 @@ Provide a helpful, concise answer.`;
         featureId: feature.id,
         name: `API: ${feature.name}`,
         description: `Implement API endpoints for ${feature.name}`,
-        type: 'api',
-        dependencies: tasks.filter(t => t.type === 'database' && t.featureId === feature.id).map(t => t.id),
+        type: "api",
+        dependencies: tasks
+          .filter((t) => t.type === "database" && t.featureId === feature.id)
+          .map((t) => t.id),
         estimatedMinutes: this.complexityToMinutes(feature.estimatedComplexity),
         technicalDetails: `REST/GraphQL endpoints for ${feature.name}`,
         testCriteria: feature.acceptanceCriteria,
@@ -732,11 +797,14 @@ Provide a helpful, concise answer.`;
         featureId: feature.id,
         name: `UI: ${feature.name}`,
         description: `Build user interface for ${feature.name}`,
-        type: 'ui',
-        dependencies: tasks.filter(t => t.type === 'api' && t.featureId === feature.id).map(t => t.id),
-        estimatedMinutes: this.complexityToMinutes(feature.estimatedComplexity) * 1.5,
+        type: "ui",
+        dependencies: tasks
+          .filter((t) => t.type === "api" && t.featureId === feature.id)
+          .map((t) => t.id),
+        estimatedMinutes:
+          this.complexityToMinutes(feature.estimatedComplexity) * 1.5,
         technicalDetails: `React components for ${feature.name}`,
-        testCriteria: ['Component renders correctly', 'User interactions work'],
+        testCriteria: ["Component renders correctly", "User interactions work"],
       });
     }
 
@@ -744,14 +812,14 @@ Provide a helpful, concise answer.`;
     tasks.push({
       id: `task-${uuid().slice(0, 8)}`,
       specId: spec.version,
-      featureId: 'all',
-      name: 'Integration Tests',
-      description: 'Write and run integration tests for all features',
-      type: 'test',
-      dependencies: tasks.map(t => t.id),
+      featureId: "all",
+      name: "Integration Tests",
+      description: "Write and run integration tests for all features",
+      type: "test",
+      dependencies: tasks.map((t) => t.id),
       estimatedMinutes: 60,
-      technicalDetails: 'End-to-end tests covering all features',
-      testCriteria: ['All tests pass', 'Coverage above 80%'],
+      technicalDetails: "End-to-end tests covering all features",
+      testCriteria: ["All tests pass", "Coverage above 80%"],
     });
 
     return tasks;
@@ -760,12 +828,16 @@ Provide a helpful, concise answer.`;
   /**
    * Convert complexity to estimated minutes
    */
-  private complexityToMinutes(complexity: 'low' | 'medium' | 'high'): number {
+  private complexityToMinutes(complexity: "low" | "medium" | "high"): number {
     switch (complexity) {
-      case 'low': return 30;
-      case 'medium': return 60;
-      case 'high': return 120;
-      default: return 60;
+      case "low":
+        return 30;
+      case "medium":
+        return 60;
+      case "high":
+        return 120;
+      default:
+        return 60;
     }
   }
 
@@ -789,13 +861,17 @@ Provide a helpful, concise answer.`;
 // Singleton instance
 let agentInstance: SpecSessionAgent | null = null;
 
-export function getSpecSessionAgent(config?: SpecSessionAgentConfig): SpecSessionAgent {
+export function getSpecSessionAgent(
+  config?: SpecSessionAgentConfig,
+): SpecSessionAgent {
   if (!agentInstance) {
     agentInstance = new SpecSessionAgent(config);
   }
   return agentInstance;
 }
 
-export function createSpecSessionAgent(config?: SpecSessionAgentConfig): SpecSessionAgent {
+export function createSpecSessionAgent(
+  config?: SpecSessionAgentConfig,
+): SpecSessionAgent {
   return new SpecSessionAgent(config);
 }

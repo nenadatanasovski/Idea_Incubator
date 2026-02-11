@@ -7,7 +7,11 @@ import * as fs from "fs";
 import * as path from "path";
 import { describe, it, expect } from "vitest";
 
-const IDEA_DIR = path.join(process.cwd(), "ideas", "e2e-test-smart-wellness-tracker");
+const IDEA_DIR = path.join(
+  process.cwd(),
+  "ideas",
+  "e2e-test-smart-wellness-tracker",
+);
 const DEV_FILE = path.join(IDEA_DIR, "development.md");
 
 describe("development.md parsing", () => {
@@ -40,12 +44,12 @@ describe("evaluator development.md integration", () => {
     // Simulate what evaluate.ts does
     const readmePath = path.join(IDEA_DIR, "README.md");
     let ideaContent = fs.readFileSync(readmePath, "utf-8");
-    
+
     if (fs.existsSync(DEV_FILE)) {
       const developmentContent = fs.readFileSync(DEV_FILE, "utf-8");
       ideaContent += "\n\n---\n\n# Development Notes\n\n" + developmentContent;
     }
-    
+
     // Verify development content is included
     expect(ideaContent).toContain("# Development Notes");
     expect(ideaContent).toContain("Q:");
@@ -55,12 +59,12 @@ describe("evaluator development.md integration", () => {
   it("should include specific Q&A content from development.md", () => {
     const readmePath = path.join(IDEA_DIR, "README.md");
     let ideaContent = fs.readFileSync(readmePath, "utf-8");
-    
+
     if (fs.existsSync(DEV_FILE)) {
       const developmentContent = fs.readFileSync(DEV_FILE, "utf-8");
       ideaContent += "\n\n---\n\n# Development Notes\n\n" + developmentContent;
     }
-    
+
     // Check for specific content from the test file
     expect(ideaContent).toContain("technical skills");
     expect(ideaContent).toContain("financial runway");

@@ -1,4 +1,5 @@
 # VIBE-P14-008 QA Validation Report (Final)
+
 ## Test Coverage Reporting and Enforcement
 
 **Task:** VIBE-P14-008
@@ -13,6 +14,7 @@
 The test coverage reporting implementation for VIBE-P14-008 is **INCOMPLETE**. While basic infrastructure exists (@vitest/coverage-v8 installed), **6 out of 7 pass criteria are not met**.
 
 **Critical Missing Components:**
+
 - ❌ Coverage thresholds (lines: 80%, branches: 75%, functions: 80%)
 - ❌ LCOV format reporter
 - ❌ PR comment with coverage diff
@@ -35,9 +37,11 @@ The test coverage reporting implementation for VIBE-P14-008 is **INCOMPLETE**. W
 ## Pass Criteria Assessment
 
 ### 1. ✅ Coverage tool (c8/Istanbul) configured for all test types
+
 **Status:** PASS
 
 **Evidence:**
+
 ```typescript
 // vitest.config.ts
 coverage: {
@@ -53,6 +57,7 @@ coverage: {
 - Coverage runs successfully (generates intermediate JSON files)
 
 **Verification:**
+
 ```bash
 $ npm run test:coverage
 # Executes successfully, generates coverage/.tmp/*.json files
@@ -61,14 +66,17 @@ $ npm run test:coverage
 ---
 
 ### 2. ❌ Minimum coverage thresholds set (lines: 80%, branches: 75%, functions: 80%)
+
 **Status:** FAIL
 
 **Evidence:**
+
 - NO `thresholds` configuration in `vitest.config.ts`
 - Tests pass/fail based on assertions only, not coverage levels
 - Cannot enforce minimum quality standards
 
 **Required Implementation:**
+
 ```typescript
 coverage: {
   provider: "v8",
@@ -88,20 +96,24 @@ coverage: {
 ---
 
 ### 3. ❌ Coverage report in HTML and LCOV format
+
 **Status:** FAIL
 
 **HTML Format:**
+
 - ⚠️ Configured: `reporter: ["text", "json", "html"]`
 - ❌ Only intermediate JSON files generated in `coverage/.tmp/`
 - ❌ No `coverage/index.html` or browsable HTML report
 - Coverage directory contains only 110+ temporary JSON files
 
 **LCOV Format:**
+
 - ❌ NOT in reporter array
 - ❌ No `coverage/lcov.info` file generated
 - ❌ Cannot integrate with external coverage services
 
 **File System Evidence:**
+
 ```bash
 $ ls -la coverage/
 drwxrwxr-x 3 ... .
@@ -112,6 +124,7 @@ drwxrwxr-x 2 ... .tmp/
 ```
 
 **Required Fix:**
+
 1. Add `"lcov"` to reporter array
 2. Verify HTML report generation completes
 3. Configure `reportsDirectory` explicitly
@@ -119,15 +132,18 @@ drwxrwxr-x 2 ... .tmp/
 ---
 
 ### 4. ❌ PR comment with coverage diff
+
 **Status:** FAIL
 
 **Evidence:**
+
 - Searched `.github/workflows/`: Only `e2e-tests.yml` exists
 - NO coverage workflow file
 - NO coverage steps in existing workflows
 - NO GitHub Action for posting PR comments
 
 **File System Check:**
+
 ```bash
 $ ls -la .github/workflows/
 e2e-tests.yml
@@ -136,6 +152,7 @@ CLAUDE.md
 ```
 
 **Required Implementation:**
+
 1. Create `.github/workflows/coverage.yml`
 2. Configure PR trigger events
 3. Run coverage on PR vs base branch
@@ -147,9 +164,11 @@ CLAUDE.md
 ---
 
 ### 5. ❌ Coverage badge in README
+
 **Status:** FAIL
 
 **Evidence:**
+
 ```bash
 $ test -f README.md
 README missing
@@ -160,11 +179,13 @@ README missing
 - NO integration with badge services (shields.io, codecov, coveralls)
 
 **Required Implementation:**
+
 1. Create `README.md` in project root
 2. Add coverage badge (requires coverage service or manual script)
 3. Configure CI to upload coverage metrics
 
 **Example Badge:**
+
 ```markdown
 [![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen.svg)](./coverage/index.html)
 ```
@@ -174,19 +195,23 @@ README missing
 ---
 
 ### 6. ⚠️ Uncovered lines highlighted in reports
+
 **Status:** PARTIAL FAIL
 
 **Evidence:**
+
 - HTML reporter configured (would show uncovered lines if working)
 - V8 provider supports line-level coverage
-- However, HTML reports not fully generated (only .tmp/*.json files)
+- However, HTML reports not fully generated (only .tmp/\*.json files)
 
 **Current State:**
+
 - Text reporter shows coverage summary in terminal
 - JSON files contain line coverage data
 - NO browsable HTML report with highlighted uncovered lines
 
 **Required Fix:**
+
 - Fix HTML report generation (may resolve automatically with LCOV addition)
 - Verify `coverage/index.html` is generated
 - Ensure uncovered lines are visually highlighted
@@ -196,15 +221,18 @@ README missing
 ---
 
 ### 7. ❌ Coverage trend tracking over time
+
 **Status:** FAIL
 
 **Evidence:**
+
 - NO coverage history storage
 - NO database table for coverage metrics
 - NO trend visualization
 - NO historical comparison system
 
 **Searched for:**
+
 - Coverage trend scripts: NOT FOUND
 - Coverage history storage: NOT FOUND
 - Dashboard trend visualization: NOT FOUND
@@ -212,11 +240,13 @@ README missing
 **Required Implementation Options:**
 
 **Option A: External Service (Recommended)**
+
 - Integrate Codecov or Coveralls
 - Automatic trend tracking and visualization
 - PR comments included
 
 **Option B: Custom Solution**
+
 1. Create `coverage-history` table in database
 2. Store metrics after each test run (date, commit, lines%, branches%, functions%)
 3. Build trend chart in parent-harness dashboard
@@ -229,12 +259,14 @@ README missing
 ## Test Execution Results
 
 ### TypeScript Compilation
+
 ```bash
 $ npx tsc --noEmit
 ✅ SUCCESS - No compilation errors
 ```
 
 ### Test Suite
+
 ```bash
 $ npm test
 Test Files:  27 failed | 84 passed (111)
@@ -245,6 +277,7 @@ Duration:    5.34s
 **Note:** Test failures are unrelated to coverage configuration (database schema issues in `tests/ideation/data-models.test.ts`)
 
 ### Coverage Generation
+
 ```bash
 $ npm run test:coverage
 ✅ Executes without errors
@@ -256,15 +289,15 @@ $ npm run test:coverage
 
 ## Critical Issues Summary
 
-| # | Pass Criterion | Status | Severity | Blocks Release? |
-|---|----------------|--------|----------|-----------------|
-| 1 | Coverage tool configured | ✅ PASS | - | No |
-| 2 | Minimum thresholds set | ❌ FAIL | HIGH | Yes |
-| 3 | HTML and LCOV format | ❌ FAIL | HIGH | Yes |
-| 4 | PR comment with diff | ❌ FAIL | HIGH | Yes |
-| 5 | Coverage badge in README | ❌ FAIL | MEDIUM | No |
-| 6 | Uncovered lines highlighted | ⚠️ PARTIAL | MEDIUM | No |
-| 7 | Coverage trend tracking | ❌ FAIL | MEDIUM | No |
+| #   | Pass Criterion              | Status     | Severity | Blocks Release? |
+| --- | --------------------------- | ---------- | -------- | --------------- |
+| 1   | Coverage tool configured    | ✅ PASS    | -        | No              |
+| 2   | Minimum thresholds set      | ❌ FAIL    | HIGH     | Yes             |
+| 3   | HTML and LCOV format        | ❌ FAIL    | HIGH     | Yes             |
+| 4   | PR comment with diff        | ❌ FAIL    | HIGH     | Yes             |
+| 5   | Coverage badge in README    | ❌ FAIL    | MEDIUM   | No              |
+| 6   | Uncovered lines highlighted | ⚠️ PARTIAL | MEDIUM   | No              |
+| 7   | Coverage trend tracking     | ❌ FAIL    | MEDIUM   | No              |
 
 **Pass Rate: 1/7 (14%)**
 
@@ -273,15 +306,18 @@ $ npm run test:coverage
 ## Implementation Gaps
 
 ### Immediate (Blockers)
+
 1. **Add coverage thresholds** to `vitest.config.ts`
 2. **Add LCOV reporter** to enable external integrations
 3. **Fix HTML report generation** (currently broken)
 
 ### High Priority
+
 4. **Create coverage workflow** (`.github/workflows/coverage.yml`)
 5. **Implement PR comment** with coverage diff
 
 ### Medium Priority
+
 6. **Create README.md** with coverage badge
 7. **Implement trend tracking** (Codecov or custom)
 
@@ -290,6 +326,7 @@ $ npm run test:coverage
 ## Recommended Configuration
 
 ### vitest.config.ts
+
 ```typescript
 coverage: {
   provider: "v8",
@@ -308,6 +345,7 @@ coverage: {
 ```
 
 ### .github/workflows/coverage.yml
+
 ```yaml
 name: Coverage Report
 on:
@@ -342,6 +380,7 @@ The implementation has a foundation but is incomplete. Critical missing componen
 4. **No tracking**: No trend data for long-term monitoring
 
 ### Estimated Completion Effort
+
 - **Quick fixes** (thresholds, LCOV): 10 minutes
 - **CI workflow** (PR comments): 1 hour
 - **Trend tracking** (Codecov integration): 2-3 hours

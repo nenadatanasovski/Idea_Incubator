@@ -107,7 +107,7 @@ CREATE TABLE idea_similarities (
   similarity_score REAL NOT NULL,
   similarity_type TEXT NOT NULL, -- 'problem' | 'solution' | 'audience' | 'tech'
   computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  
+
   UNIQUE(idea_a_id, idea_b_id, similarity_type)
 );
 
@@ -158,6 +158,7 @@ GET    /api/messages/:conversationId         // Get conversation
 **User Story:** As an idea owner, I want to invite collaborators so we can develop the idea together.
 
 **Flow:**
+
 1. Owner clicks "Invite Collaborator"
 2. Enter email and select role (collaborator/viewer)
 3. System sends email with secure link
@@ -176,6 +177,7 @@ GET    /api/messages/:conversationId         // Get conversation
 **User Story:** As a user, I want to discover ideas similar to mine so I can find potential collaborators or competitors.
 
 **Algorithm:**
+
 1. Extract key features from each idea:
    - Problem domain (healthcare, fintech, etc.)
    - Target user segments
@@ -185,6 +187,7 @@ GET    /api/messages/:conversationId         // Get conversation
 3. Surface high-similarity pairs to users
 
 **Privacy:**
+
 - Users must opt-in to discovery
 - Can specify what's visible to others
 - Can block specific users/ideas
@@ -194,6 +197,7 @@ GET    /api/messages/:conversationId         // Get conversation
 **User Story:** As a user building an app, I want to find complementary apps so we can integrate and cross-promote.
 
 **Example:**
+
 - User A building: "Habit tracker app"
 - User B building: "Fitness workout app"
 - System detects: Both target "health-conscious professionals"
@@ -204,6 +208,7 @@ GET    /api/messages/:conversationId         // Get conversation
 **User Story:** As a user with a technical idea, I want to get feedback from domain experts.
 
 **Flow:**
+
 1. User requests expert review
 2. System matches with relevant experts (based on skills/experience)
 3. Expert reviews and provides feedback
@@ -220,39 +225,39 @@ GET    /api/messages/:conversationId         // Get conversation
 async function requireIdeaAccess(req, res, next) {
   const { ideaId } = req.params;
   const userId = req.user.id;
-  
+
   const access = await checkIdeaAccess(ideaId, userId);
-  
+
   if (!access.canView) {
-    return res.status(403).json({ error: 'Access denied' });
+    return res.status(403).json({ error: "Access denied" });
   }
-  
+
   req.ideaAccess = access;
   next();
 }
 
 async function checkIdeaAccess(ideaId: string, userId: string) {
   const idea = await db.ideas.findUnique({ where: { id: ideaId } });
-  
+
   // Owner has full access
   if (idea.ownerId === userId) {
-    return { canView: true, canEdit: true, canDelete: true, role: 'owner' };
+    return { canView: true, canEdit: true, canDelete: true, role: "owner" };
   }
-  
+
   // Check collaborator
   const collab = await db.ideaCollaborators.findFirst({
-    where: { ideaId, userId, acceptedAt: { not: null } }
+    where: { ideaId, userId, acceptedAt: { not: null } },
   });
-  
+
   if (collab) {
     return {
       canView: true,
-      canEdit: collab.role === 'collaborator',
+      canEdit: collab.role === "collaborator",
       canDelete: false,
       role: collab.role,
     };
   }
-  
+
   return { canView: false, canEdit: false, canDelete: false, role: null };
 }
 ```
@@ -300,13 +305,13 @@ async function checkIdeaAccess(ideaId: string, userId: string) {
 
 ## Part 6: Metrics to Track (Future)
 
-| Metric | Description | Target |
-|--------|-------------|--------|
-| Collaboration rate | % of ideas with >1 collaborator | >20% |
-| Invite acceptance rate | % of invites accepted | >50% |
-| Discovery engagement | % of users using discovery | >30% |
+| Metric                  | Description                            | Target |
+| ----------------------- | -------------------------------------- | ------ |
+| Collaboration rate      | % of ideas with >1 collaborator        | >20%   |
+| Invite acceptance rate  | % of invites accepted                  | >50%   |
+| Discovery engagement    | % of users using discovery             | >30%   |
 | Cross-idea integrations | # of integrations suggested & accepted | Growth |
-| Expert consultations | # of consultations completed | Growth |
+| Expert consultations    | # of consultations completed           | Growth |
 
 ---
 
@@ -319,15 +324,17 @@ The Network pillar is important but deferred until:
 3. ✅ Basic hosting/deployment works
 
 **When to start Network:**
+
 - After first 10 users complete E2E journey
 - When users request collaboration features
 - When core flow is stable
 
 **Quick win (if needed earlier):**
+
 - Simple view-only sharing via link
 - No accounts, no permissions complexity
 - Can be built in 1-2 days
 
 ---
 
-*This document is a placeholder. Revisit when Network pillar is prioritized.*
+_This document is a placeholder. Revisit when Network pillar is prioritized._

@@ -16,6 +16,7 @@ Implement a sophisticated database schema generation system within the Architect
 ### Problem Statement
 
 **Current State:**
+
 - Architect Agent exists at `agents/architect/architect-agent.ts`
 - Type definitions include `DatabaseSchema` interface in `agents/architect/types.ts`
 - Architecture generation creates minimal placeholder database schemas
@@ -25,6 +26,7 @@ Implement a sophisticated database schema generation system within the Architect
 - Database schema field in ArchitectureDoc is underutilized
 
 **Desired State:**
+
 - `DatabaseSchemaGenerator` class at `agents/architect/database-schema-generator.ts`
 - Generate normalized relational schemas (PostgreSQL, MySQL, SQLite)
 - Generate NoSQL schemas (MongoDB collections with validation)
@@ -56,6 +58,7 @@ The Database Schema Generator is the **"Data Model Architect"** that:
 #### FR-1: DatabaseSchemaGenerator Class
 
 **FR-1.1: Class Structure**
+
 - Create `DatabaseSchemaGenerator` class at `agents/architect/database-schema-generator.ts`
 - Class does NOT extend ObservableAgent (utility class, not autonomous agent)
 - Constructor accepts configuration: `DatabaseSchemaGeneratorConfig`
@@ -63,12 +66,14 @@ The Database Schema Generator is the **"Data Model Architect"** that:
 - Stateless design - all inputs passed as method parameters
 
 **FR-1.2: Core Method - generateSchema()**
+
 ```typescript
 generateSchema(
   entities: EntityDefinition[],
   options: SchemaGenerationOptions
 ): DatabaseSchemaOutput
 ```
+
 - **Input**: Array of `EntityDefinition` objects + generation options
 - **Output**: `DatabaseSchemaOutput` object containing all generated artifacts
 - Validates entity definitions before generation
@@ -77,37 +82,38 @@ generateSchema(
 - Returns comprehensive output with all formats requested
 
 **FR-1.3: Entity Definition Input Interface**
+
 ```typescript
 interface EntityDefinition {
-  name: string;                    // e.g., "User", "Order", "Product"
+  name: string; // e.g., "User", "Order", "Product"
   description: string;
   fields: FieldDefinition[];
-  primaryKey?: string[];           // Defaults to ["id"]
+  primaryKey?: string[]; // Defaults to ["id"]
   indexes?: IndexDefinition[];
-  uniqueConstraints?: string[][];  // Array of field combinations
+  uniqueConstraints?: string[][]; // Array of field combinations
   checkConstraints?: CheckConstraint[];
 }
 
 interface FieldDefinition {
   name: string;
-  type: FieldType;                 // "string" | "number" | "boolean" | "date" | "json" | "text" | "uuid"
+  type: FieldType; // "string" | "number" | "boolean" | "date" | "json" | "text" | "uuid"
   nullable: boolean;
   unique?: boolean;
   default?: string | number | boolean | null;
   description: string;
-  validation?: ValidationRule;     // Optional validation (length, range, pattern)
+  validation?: ValidationRule; // Optional validation (length, range, pattern)
 }
 
 interface IndexDefinition {
   name: string;
   fields: string[];
   unique: boolean;
-  type?: "btree" | "hash" | "gin" | "gist";  // PostgreSQL-specific
+  type?: "btree" | "hash" | "gin" | "gist"; // PostgreSQL-specific
 }
 
 interface CheckConstraint {
   name: string;
-  expression: string;              // SQL expression, e.g., "price > 0"
+  expression: string; // SQL expression, e.g., "price > 0"
 }
 
 interface ValidationRule {
@@ -115,41 +121,43 @@ interface ValidationRule {
   maxLength?: number;
   min?: number;
   max?: number;
-  pattern?: string;                // Regex pattern
-  enum?: string[];                 // Enum values
+  pattern?: string; // Regex pattern
+  enum?: string[]; // Enum values
 }
 ```
 
 **FR-1.4: Schema Generation Options**
+
 ```typescript
 interface SchemaGenerationOptions {
   databaseType: "postgresql" | "mysql" | "sqlite" | "mongodb";
-  includeTimestamps?: boolean;     // Add created_at, updated_at (default: true)
+  includeTimestamps?: boolean; // Add created_at, updated_at (default: true)
   timestampFormat?: "datetime" | "iso8601" | "unix";
-  generateMigration?: boolean;     // Generate SQL migration file (default: true)
-  generatePrisma?: boolean;        // Generate Prisma schema (default: false)
-  generateERD?: boolean;           // Generate Mermaid ERD (default: true)
-  generateSeedTemplate?: boolean;  // Generate seed data template (default: true)
-  tablePrefix?: string;            // Optional prefix for all tables
-  namingConvention?: "snake_case" | "camelCase";  // Default: snake_case
+  generateMigration?: boolean; // Generate SQL migration file (default: true)
+  generatePrisma?: boolean; // Generate Prisma schema (default: false)
+  generateERD?: boolean; // Generate Mermaid ERD (default: true)
+  generateSeedTemplate?: boolean; // Generate seed data template (default: true)
+  tablePrefix?: string; // Optional prefix for all tables
+  namingConvention?: "snake_case" | "camelCase"; // Default: snake_case
 }
 ```
 
 **FR-1.5: Output Interface**
+
 ```typescript
 interface DatabaseSchemaOutput {
   // SQL DDL
-  sqlDDL?: string;                 // Full CREATE TABLE statements
-  sqlMigration?: MigrationFile;    // Numbered migration file
+  sqlDDL?: string; // Full CREATE TABLE statements
+  sqlMigration?: MigrationFile; // Numbered migration file
 
   // Prisma
-  prismaSchema?: string;           // Prisma schema.prisma content
+  prismaSchema?: string; // Prisma schema.prisma content
 
   // NoSQL
   mongoCollections?: MongoCollectionSchema[];
 
   // Diagrams
-  erdDiagram?: string;             // Mermaid.js erDiagram syntax
+  erdDiagram?: string; // Mermaid.js erDiagram syntax
 
   // Seed data
   seedTemplate?: SeedDataTemplate;
@@ -166,10 +174,10 @@ interface DatabaseSchemaOutput {
 }
 
 interface MigrationFile {
-  filename: string;                // e.g., "134_create_user_product_order.sql"
+  filename: string; // e.g., "134_create_user_product_order.sql"
   content: string;
   description: string;
-  entities: string[];              // List of entities in this migration
+  entities: string[]; // List of entities in this migration
 }
 
 interface MongoCollectionSchema {
@@ -177,7 +185,11 @@ interface MongoCollectionSchema {
   validator: {
     $jsonSchema: Record<string, unknown>;
   };
-  indexes: Array<{ key: Record<string, 1 | -1>; unique?: boolean; name: string }>;
+  indexes: Array<{
+    key: Record<string, 1 | -1>;
+    unique?: boolean;
+    name: string;
+  }>;
 }
 
 interface SeedDataTemplate {
@@ -190,25 +202,28 @@ interface SeedDataTemplate {
 #### FR-2: Relationship Detection and Generation
 
 **FR-2.1: Automatic Relationship Detection**
+
 - Detect foreign key relationships from field names (e.g., `user_id` references `users.id`)
 - Pattern matching: `{entity}_id` → foreign key to `{entities}(id)`
 - Support explicit relationship definitions via `RelationshipDefinition` interface
 
 **FR-2.2: Relationship Types**
+
 ```typescript
 interface RelationshipDefinition {
   name: string;
   type: "one-to-one" | "one-to-many" | "many-to-many";
-  from: string;                    // Source entity
-  to: string;                      // Target entity
-  foreignKey?: string;             // Custom foreign key field
-  joinTable?: string;              // For many-to-many
+  from: string; // Source entity
+  to: string; // Target entity
+  foreignKey?: string; // Custom foreign key field
+  joinTable?: string; // For many-to-many
   onDelete?: "CASCADE" | "SET NULL" | "RESTRICT" | "NO ACTION";
   onUpdate?: "CASCADE" | "SET NULL" | "RESTRICT" | "NO ACTION";
 }
 ```
 
 **FR-2.3: Relationship SQL Generation**
+
 - One-to-One: Add UNIQUE constraint to foreign key
 - One-to-Many: Standard foreign key constraint
 - Many-to-Many: Generate junction table with composite primary key
@@ -218,6 +233,7 @@ interface RelationshipDefinition {
 #### FR-3: SQL DDL Generation
 
 **FR-3.1: PostgreSQL Support**
+
 - Generate CREATE TABLE statements with proper data types:
   - `string` → `VARCHAR(255)` or `TEXT` (based on length)
   - `number` → `INTEGER` or `NUMERIC` (based on validation)
@@ -234,6 +250,7 @@ interface RelationshipDefinition {
   - Partial indexes
 
 **FR-3.2: SQLite Support**
+
 - Map types to SQLite equivalents:
   - All numerics → `INTEGER` or `REAL`
   - Booleans → `INTEGER` (0/1)
@@ -244,6 +261,7 @@ interface RelationshipDefinition {
 - Follow existing migration patterns in `database/migrations/`
 
 **FR-3.3: MySQL Support**
+
 - Map to MySQL data types:
   - `string` → `VARCHAR(255)`
   - `number` → `INT` or `DECIMAL`
@@ -255,6 +273,7 @@ interface RelationshipDefinition {
 - Include ENGINE=InnoDB specification
 
 **FR-3.4: SQL Best Practices**
+
 - Always use `IF NOT EXISTS` in CREATE TABLE statements (matches codebase pattern)
 - Add inline comments for complex constraints
 - Order fields: primary key first, foreign keys, data fields, timestamps
@@ -265,6 +284,7 @@ interface RelationshipDefinition {
 #### FR-4: Mermaid ERD Generation
 
 **FR-4.1: ERD Diagram Format**
+
 - Output valid Mermaid.js `erDiagram` syntax
 - Include all entities as nodes
 - Show relationships with proper cardinality
@@ -272,6 +292,7 @@ interface RelationshipDefinition {
 - Add relationship labels with foreign key names
 
 **FR-4.2: ERD Syntax Structure**
+
 ```mermaid
 erDiagram
     USERS ||--o{ ORDERS : places
@@ -305,12 +326,14 @@ erDiagram
 ```
 
 **FR-4.3: Cardinality Notation**
+
 - `||--||` : one-to-one
 - `||--o{` : one-to-many
 - `}o--o{` : many-to-many
 - Include relationship verbs (e.g., "places", "contains", "belongs to")
 
 **FR-4.4: Field Annotations**
+
 - PK: Primary Key
 - FK: Foreign Key
 - UK: Unique Key
@@ -320,12 +343,14 @@ erDiagram
 #### FR-5: Prisma Schema Generation
 
 **FR-5.1: Prisma Schema Format**
+
 - Generate valid `schema.prisma` file
 - Include datasource block (postgresql/mysql/sqlite)
 - Include generator client block
 - Define models matching entities
 
 **FR-5.2: Model Definitions**
+
 ```prisma
 model User {
   id        String   @id @default(uuid())
@@ -353,6 +378,7 @@ model Order {
 ```
 
 **FR-5.3: Prisma Features**
+
 - Map field names to snake_case database columns
 - Add @relation directives for foreign keys
 - Include @default directives for default values
@@ -363,11 +389,13 @@ model Order {
 #### FR-6: MongoDB Schema Generation
 
 **FR-6.1: Collection Schemas**
+
 - Generate MongoDB collection definitions with JSON Schema validation
 - Support document embedding for one-to-many relationships
 - Support references for many-to-many relationships
 
 **FR-6.2: Validation Schema**
+
 ```typescript
 {
   validator: {
@@ -397,6 +425,7 @@ model Order {
 ```
 
 **FR-6.3: Index Definitions**
+
 - Generate index creation commands
 - Support compound indexes
 - Support unique indexes
@@ -405,11 +434,13 @@ model Order {
 #### FR-7: Migration File Generation
 
 **FR-7.1: Migration Numbering**
+
 - Auto-detect next migration number by scanning `database/migrations/`
 - Format: `{number}_create_{entities}.sql` (e.g., `134_create_users_orders.sql`)
 - Include migration header comment with purpose and entities
 
 **FR-7.2: Migration Structure**
+
 ```sql
 -- Migration 134: Create users and orders tables
 -- Purpose: User authentication and order management
@@ -439,6 +470,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 ```
 
 **FR-7.3: Migration Best Practices**
+
 - Match existing codebase patterns (see `database/migrations/`)
 - Use IF NOT EXISTS for idempotency
 - Create indexes in separate statements
@@ -449,6 +481,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 #### FR-8: Seed Data Template Generation
 
 **FR-8.1: SQL Seed Template**
+
 ```sql
 -- Seed data for users table
 INSERT INTO users (id, email, name) VALUES
@@ -462,31 +495,33 @@ INSERT INTO orders (id, user_id, total, status) VALUES
 ```
 
 **FR-8.2: TypeScript Seed Template**
+
 ```typescript
 export const seedUsers = [
   {
-    id: 'user-001',
-    email: 'admin@example.com',
-    name: 'Admin User'
+    id: "user-001",
+    email: "admin@example.com",
+    name: "Admin User",
   },
   {
-    id: 'user-002',
-    email: 'test@example.com',
-    name: 'Test User'
-  }
+    id: "user-002",
+    email: "test@example.com",
+    name: "Test User",
+  },
 ];
 
 export const seedOrders = [
   {
-    id: 'order-001',
-    userId: 'user-001',
+    id: "order-001",
+    userId: "user-001",
     total: 99.99,
-    status: 'completed'
-  }
+    status: "completed",
+  },
 ];
 ```
 
 **FR-8.3: JSON Seed Template (MongoDB)**
+
 ```json
 {
   "users": [
@@ -503,6 +538,7 @@ export const seedOrders = [
 #### FR-9: Validation and Error Handling
 
 **FR-9.1: Input Validation**
+
 - Validate entity names (alphanumeric, no spaces, starts with letter)
 - Validate field names follow naming convention
 - Check for circular foreign key references
@@ -512,11 +548,13 @@ export const seedOrders = [
 - Validate index fields reference existing fields
 
 **FR-9.2: Error Messages**
+
 - Descriptive error messages with entity and field context
 - Suggestions for fixing validation errors
 - Throw typed errors: `SchemaGenerationError`
 
 **FR-9.3: Warnings**
+
 - Warn if no indexes defined for foreign keys
 - Warn if large text fields lack indexes
 - Warn if many-to-many relationships missing junction table
@@ -525,6 +563,7 @@ export const seedOrders = [
 #### FR-10: Integration with Architect Agent
 
 **FR-10.1: Architect Agent Integration**
+
 - Architect Agent calls `DatabaseSchemaGenerator.generateSchema()` during architecture generation
 - Pass entity definitions from requirements analysis
 - Store generated schemas in `ArchitectureDoc.databaseSchema`
@@ -532,6 +571,7 @@ export const seedOrders = [
 - Optionally write migration file to `database/migrations/`
 
 **FR-10.2: Entity Extraction**
+
 - Architect Agent analyzes requirements to extract entities
 - Infer entity fields from requirements text
 - Detect relationships from requirement descriptions
@@ -540,6 +580,7 @@ export const seedOrders = [
 ### Non-Functional Requirements
 
 **NFR-1: Code Quality**
+
 - TypeScript strict mode enabled
 - Comprehensive JSDoc comments
 - Type-safe - no `any` types
@@ -547,22 +588,26 @@ export const seedOrders = [
 - Unit testable - dependency injection for file system operations
 
 **NFR-2: Performance**
+
 - Generate schema for 50 entities in < 1 second
 - Mermaid diagram generation in < 500ms
 - Minimal memory footprint (streaming for large schemas)
 
 **NFR-3: Compatibility**
+
 - Support PostgreSQL 12+, MySQL 8+, SQLite 3+, MongoDB 4+
 - Generate Prisma schema compatible with Prisma 5+
 - Mermaid diagrams render correctly in GitHub, VS Code, documentation sites
 
 **NFR-4: Maintainability**
+
 - Modular design - separate concerns (SQL gen, Prisma gen, ERD gen)
 - Easy to add new database types
 - Template-based generation for extensibility
 - Clear separation of concerns
 
 **NFR-5: Documentation**
+
 - README.md in `agents/architect/` with usage examples
 - JSDoc for all public methods and interfaces
 - Example entity definitions in documentation
@@ -631,10 +676,10 @@ export class DatabaseSchemaGenerator {
 
   constructor(config: DatabaseSchemaGeneratorConfig = {}) {
     this.config = {
-      defaultDatabaseType: config.defaultDatabaseType || 'postgresql',
-      defaultNamingConvention: config.defaultNamingConvention || 'snake_case',
-      migrationDirectory: config.migrationDirectory || 'database/migrations',
-      ...config
+      defaultDatabaseType: config.defaultDatabaseType || "postgresql",
+      defaultNamingConvention: config.defaultNamingConvention || "snake_case",
+      migrationDirectory: config.migrationDirectory || "database/migrations",
+      ...config,
     };
   }
 
@@ -643,7 +688,7 @@ export class DatabaseSchemaGenerator {
    */
   generateSchema(
     entities: EntityDefinition[],
-    options: SchemaGenerationOptions
+    options: SchemaGenerationOptions,
   ): DatabaseSchemaOutput {
     // 1. Validate inputs
     this.validateEntities(entities);
@@ -665,9 +710,10 @@ export class DatabaseSchemaGenerator {
       : undefined;
 
     // 6. Generate MongoDB collections
-    const mongoCollections = options.databaseType === 'mongodb'
-      ? this.generateMongoCollections(entities, options)
-      : undefined;
+    const mongoCollections =
+      options.databaseType === "mongodb"
+        ? this.generateMongoCollections(entities, options)
+        : undefined;
 
     // 7. Generate ERD diagram
     const erdDiagram = options.generateERD
@@ -689,25 +735,53 @@ export class DatabaseSchemaGenerator {
       seedTemplate,
       metadata: {
         entityCount: entities.length,
-        tableCount: entities.length + relationships.filter(r => r.type === 'many-to-many').length,
+        tableCount:
+          entities.length +
+          relationships.filter((r) => r.type === "many-to-many").length,
         relationshipCount: relationships.length,
         indexCount: this.countIndexes(entities, relationships),
         generatedAt: new Date().toISOString(),
-        databaseType: options.databaseType
-      }
+        databaseType: options.databaseType,
+      },
     };
   }
 
   // Private helper methods
-  private validateEntities(entities: EntityDefinition[]): void { }
-  private detectRelationships(entities: EntityDefinition[]): RelationshipDefinition[] { }
-  private generateSQLDDL(entities: EntityDefinition[], relationships: RelationshipDefinition[], options: SchemaGenerationOptions): string { }
-  private generateMigration(entities: EntityDefinition[], ddl: string, options: SchemaGenerationOptions): MigrationFile { }
-  private generatePrismaSchema(entities: EntityDefinition[], relationships: RelationshipDefinition[], options: SchemaGenerationOptions): string { }
-  private generateMongoCollections(entities: EntityDefinition[], options: SchemaGenerationOptions): MongoCollectionSchema[] { }
-  private generateERD(entities: EntityDefinition[], relationships: RelationshipDefinition[]): string { }
-  private generateSeedTemplate(entities: EntityDefinition[], options: SchemaGenerationOptions): SeedDataTemplate { }
-  private countIndexes(entities: EntityDefinition[], relationships: RelationshipDefinition[]): number { }
+  private validateEntities(entities: EntityDefinition[]): void {}
+  private detectRelationships(
+    entities: EntityDefinition[],
+  ): RelationshipDefinition[] {}
+  private generateSQLDDL(
+    entities: EntityDefinition[],
+    relationships: RelationshipDefinition[],
+    options: SchemaGenerationOptions,
+  ): string {}
+  private generateMigration(
+    entities: EntityDefinition[],
+    ddl: string,
+    options: SchemaGenerationOptions,
+  ): MigrationFile {}
+  private generatePrismaSchema(
+    entities: EntityDefinition[],
+    relationships: RelationshipDefinition[],
+    options: SchemaGenerationOptions,
+  ): string {}
+  private generateMongoCollections(
+    entities: EntityDefinition[],
+    options: SchemaGenerationOptions,
+  ): MongoCollectionSchema[] {}
+  private generateERD(
+    entities: EntityDefinition[],
+    relationships: RelationshipDefinition[],
+  ): string {}
+  private generateSeedTemplate(
+    entities: EntityDefinition[],
+    options: SchemaGenerationOptions,
+  ): SeedDataTemplate {}
+  private countIndexes(
+    entities: EntityDefinition[],
+    relationships: RelationshipDefinition[],
+  ): number {}
 }
 ```
 
@@ -729,23 +803,27 @@ agents/architect/
 ### Integration Points
 
 **1. Architect Agent**
+
 - Location: `agents/architect/architect-agent.ts`
 - Integration: Call `DatabaseSchemaGenerator.generateSchema()` in `designArchitecture()` method
 - Pass extracted entities from requirements analysis
 - Store output in `ArchitectureDoc.databaseSchema`
 
 **2. Existing Migration System**
+
 - Location: `database/migrations/`
 - Pattern: Follow existing numbering scheme (001, 002, ..., 133, 134)
 - Format: Match existing SQLite migration format
 - Integration: Auto-detect next number, write migration file
 
 **3. Component Diagram Generator**
+
 - Location: `agents/architect/diagram-generator.ts`
 - Integration: ERD generation uses similar Mermaid approach
 - Coordinate: Include database entities in component diagrams
 
 **4. Architecture Types**
+
 - Location: `agents/architect/types.ts`
 - Integration: Use existing `DatabaseSchema` interface
 - Extend: Add generator-specific types to `database-schema-types.ts`
@@ -757,18 +835,21 @@ agents/architect/
 ### Phase 1: Core Foundation (4-6 hours)
 
 **Step 1.1: Type Definitions**
+
 - Create `database-schema-types.ts` with all interfaces
 - Define `EntityDefinition`, `FieldDefinition`, `RelationshipDefinition`
 - Define `SchemaGenerationOptions`, `DatabaseSchemaOutput`
 - Export all types
 
 **Step 1.2: Main Generator Class**
+
 - Create `database-schema-generator.ts`
 - Implement `DatabaseSchemaGenerator` class with constructor
 - Implement `generateSchema()` method skeleton
 - Set up basic structure (validation → generation → output)
 
 **Step 1.3: Input Validation**
+
 - Create `schema-validator.ts`
 - Implement `validateEntities()` method
 - Validate entity names, field names, types
@@ -778,12 +859,14 @@ agents/architect/
 ### Phase 2: SQL Generation (4-6 hours)
 
 **Step 2.1: SQL Generator Setup**
+
 - Create `sql-generator.ts`
 - Implement type mapping (TypeScript types → SQL types)
 - Support PostgreSQL, MySQL, SQLite
 - Handle nullable, unique, default values
 
 **Step 2.2: DDL Generation**
+
 - Implement `generateSQLDDL()` method
 - Generate CREATE TABLE statements
 - Add primary key constraints
@@ -791,6 +874,7 @@ agents/architect/
 - Add indexes
 
 **Step 2.3: Relationship Handling**
+
 - Create `relationship-detector.ts`
 - Implement `detectRelationships()` method
 - Auto-detect foreign keys from field names
@@ -798,6 +882,7 @@ agents/architect/
 - Generate junction tables for many-to-many
 
 **Step 2.4: Migration File Generation**
+
 - Implement `generateMigration()` method
 - Auto-detect next migration number
 - Format migration file with header comment
@@ -806,6 +891,7 @@ agents/architect/
 ### Phase 3: ERD & Prisma (3-4 hours)
 
 **Step 3.1: ERD Generation**
+
 - Create `erd-generator.ts`
 - Implement `generateERD()` method
 - Output valid Mermaid erDiagram syntax
@@ -814,6 +900,7 @@ agents/architect/
 - Include field annotations (PK, FK, UK)
 
 **Step 3.2: Prisma Schema Generation**
+
 - Create `prisma-generator.ts`
 - Implement `generatePrismaSchema()` method
 - Generate datasource and generator blocks
@@ -824,6 +911,7 @@ agents/architect/
 ### Phase 4: NoSQL & Seed Data (2-3 hours)
 
 **Step 4.1: MongoDB Schema Generation**
+
 - Create `mongo-generator.ts`
 - Implement `generateMongoCollections()` method
 - Generate JSON Schema validators
@@ -831,6 +919,7 @@ agents/architect/
 - Handle document embedding vs references
 
 **Step 4.2: Seed Data Templates**
+
 - Create `seed-generator.ts`
 - Implement `generateSeedTemplate()` method
 - Generate SQL INSERT statements
@@ -840,12 +929,14 @@ agents/architect/
 ### Phase 5: Integration & Testing (1-2 hours)
 
 **Step 5.1: Architect Agent Integration**
+
 - Update `agents/architect/architect-agent.ts`
 - Call `DatabaseSchemaGenerator.generateSchema()` in architecture generation flow
 - Store output in `ArchitectureDoc.databaseSchema`
 - Export ERD diagram as separate artifact
 
 **Step 5.2: Unit Tests**
+
 - Create `tests/unit/agents/database-schema-generator.test.ts`
 - Test entity validation
 - Test relationship detection
@@ -855,6 +946,7 @@ agents/architect/
 - Test seed template generation
 
 **Step 5.3: Integration Tests**
+
 - Test full Architect Agent flow with database schema generation
 - Verify migration file creation
 - Validate ERD diagram syntax
@@ -942,7 +1034,7 @@ agents/architect/
     - Detect potential performance issues
 
 13. **PC-13: Unit Test Coverage**
-    - >80% code coverage
+    - > 80% code coverage
     - Tests for each database type
     - Tests for edge cases
 
@@ -951,17 +1043,20 @@ agents/architect/
 ## Dependencies
 
 ### Required (Must exist before implementation)
+
 - ✅ Architect Agent base (`agents/architect/architect-agent.ts`) - EXISTS
 - ✅ Architect types (`agents/architect/types.ts`) - EXISTS
 - ✅ Migration directory (`database/migrations/`) - EXISTS
 - ✅ TypeScript compiler - EXISTS
 
 ### Optional (Can be integrated later)
+
 - Prisma CLI (for schema validation)
 - MongoDB client (for schema testing)
 - Mermaid CLI (for ERD validation)
 
 ### Blocked By
+
 - None (can be implemented independently)
 
 ---
@@ -973,6 +1068,7 @@ agents/architect/
 **Test File**: `tests/unit/agents/database-schema-generator.test.ts`
 
 **Test Cases**:
+
 1. Entity validation
    - Valid entity definitions pass
    - Invalid names throw errors
@@ -1006,6 +1102,7 @@ agents/architect/
 **Test File**: `tests/integration/architect-agent-database.test.ts`
 
 **Test Cases**:
+
 1. Full architecture generation with database schema
 2. Migration file creation in correct directory
 3. ERD diagram saved to architecture artifacts
@@ -1028,43 +1125,88 @@ agents/architect/
 ```typescript
 const entities: EntityDefinition[] = [
   {
-    name: 'User',
-    description: 'Application users',
+    name: "User",
+    description: "Application users",
     fields: [
-      { name: 'id', type: 'uuid', nullable: false, description: 'Unique identifier' },
-      { name: 'email', type: 'string', nullable: false, unique: true, description: 'Email address', validation: { pattern: '^[^@]+@[^@]+\\.[^@]+$' } },
-      { name: 'name', type: 'string', nullable: false, description: 'Full name' },
-      { name: 'age', type: 'number', nullable: true, description: 'User age', validation: { min: 0, max: 150 } }
+      {
+        name: "id",
+        type: "uuid",
+        nullable: false,
+        description: "Unique identifier",
+      },
+      {
+        name: "email",
+        type: "string",
+        nullable: false,
+        unique: true,
+        description: "Email address",
+        validation: { pattern: "^[^@]+@[^@]+\\.[^@]+$" },
+      },
+      {
+        name: "name",
+        type: "string",
+        nullable: false,
+        description: "Full name",
+      },
+      {
+        name: "age",
+        type: "number",
+        nullable: true,
+        description: "User age",
+        validation: { min: 0, max: 150 },
+      },
     ],
-    primaryKey: ['id']
+    primaryKey: ["id"],
   },
   {
-    name: 'Order',
-    description: 'Customer orders',
+    name: "Order",
+    description: "Customer orders",
     fields: [
-      { name: 'id', type: 'uuid', nullable: false, description: 'Unique identifier' },
-      { name: 'user_id', type: 'uuid', nullable: false, description: 'User who placed order' },
-      { name: 'total', type: 'number', nullable: false, description: 'Order total', validation: { min: 0 } },
-      { name: 'status', type: 'string', nullable: false, description: 'Order status', validation: { enum: ['pending', 'completed', 'cancelled'] } }
+      {
+        name: "id",
+        type: "uuid",
+        nullable: false,
+        description: "Unique identifier",
+      },
+      {
+        name: "user_id",
+        type: "uuid",
+        nullable: false,
+        description: "User who placed order",
+      },
+      {
+        name: "total",
+        type: "number",
+        nullable: false,
+        description: "Order total",
+        validation: { min: 0 },
+      },
+      {
+        name: "status",
+        type: "string",
+        nullable: false,
+        description: "Order status",
+        validation: { enum: ["pending", "completed", "cancelled"] },
+      },
     ],
-    primaryKey: ['id'],
+    primaryKey: ["id"],
     indexes: [
-      { name: 'idx_orders_user', fields: ['user_id'], unique: false },
-      { name: 'idx_orders_status', fields: ['status'], unique: false }
+      { name: "idx_orders_user", fields: ["user_id"], unique: false },
+      { name: "idx_orders_status", fields: ["status"], unique: false },
     ],
     checkConstraints: [
-      { name: 'chk_total_positive', expression: 'total >= 0' }
-    ]
-  }
+      { name: "chk_total_positive", expression: "total >= 0" },
+    ],
+  },
 ];
 
 const generator = new DatabaseSchemaGenerator();
 const output = generator.generateSchema(entities, {
-  databaseType: 'sqlite',
+  databaseType: "sqlite",
   includeTimestamps: true,
   generateMigration: true,
   generateERD: true,
-  generateSeedTemplate: true
+  generateSeedTemplate: true,
 });
 
 console.log(output.erdDiagram);
@@ -1163,6 +1305,7 @@ model Order {
 ## Success Metrics
 
 ### Implementation Success
+
 - ✅ All 10 "Must Pass" and "Should Pass" criteria verified
 - ✅ TypeScript compilation clean with no errors
 - ✅ DatabaseSchemaGenerator can be instantiated
@@ -1171,6 +1314,7 @@ model Order {
 - ✅ Valid Prisma schema passes validation
 
 ### Usage Success (Post-Implementation)
+
 - Architect Agent successfully generates database schemas
 - Generated schemas follow best practices
 - Migration files integrate seamlessly into existing migration system
@@ -1182,16 +1326,19 @@ model Order {
 ## References
 
 ### Related Tasks
+
 - VIBE-P10-001: Architect Agent Base (parent task)
 - VIBE-P10-002: Architecture Template System
 - VIBE-P10-004: Component Diagram Generator (similar Mermaid generation)
 
 ### Similar Patterns in Codebase
+
 - Migration files (`database/migrations/`) - SQL DDL patterns
 - Diagram generator (`agents/architect/diagram-generator.ts`) - Mermaid generation
 - Type definitions (`agents/architect/types.ts`) - Architecture type patterns
 
 ### External References
+
 - Mermaid.js ERD documentation: https://mermaid.js.org/syntax/entityRelationshipDiagram.html
 - Prisma Schema reference: https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference
 - PostgreSQL documentation: https://www.postgresql.org/docs/current/ddl.html
@@ -1202,12 +1349,14 @@ model Order {
 ## Future Enhancements
 
 ### Phase 2 Additions
+
 - **Index Optimization** - Analyze query patterns and suggest optimal indexes
 - **Schema Versioning** - Track schema evolution over time
 - **Data Type Inference** - Use LLM to infer field types from descriptions
 - **Relationship Extraction** - Use LLM to extract relationships from natural language
 
 ### Advanced Features
+
 - **Schema Diff** - Compare schemas and generate ALTER TABLE migrations
 - **Reverse Engineering** - Extract entity definitions from existing databases
 - **Schema Visualization** - Interactive ERD diagrams with zoom/pan

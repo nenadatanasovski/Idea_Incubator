@@ -1,32 +1,33 @@
 /**
  * Telegram Message History Database
- * 
+ *
  * Tracks all messages sent to/from Telegram bots for
  * visibility in the dashboard and correlation with tasks.
  */
 
-import { query, getOne, run } from './index.js';
-import { v4 as uuidv4 } from 'uuid';
+import { query, getOne, run } from "./index.js";
+import { v4 as uuidv4 } from "uuid";
 
 export interface TelegramMessage {
   id: string;
-  bot_type: string;           // 'build', 'qa', 'planning', etc.
-  direction: 'outgoing' | 'incoming';
+  bot_type: string; // 'build', 'qa', 'planning', etc.
+  direction: "outgoing" | "incoming";
   chat_id: string;
-  message_type: string;       // 'task_assigned', 'task_completed', etc.
+  message_type: string; // 'task_assigned', 'task_completed', etc.
   message_text: string;
   task_id: string | null;
   task_display_id: string | null;
   agent_id: string | null;
   session_id: string | null;
-  telegram_message_id: number | null;  // Telegram's message ID if available
+  telegram_message_id: number | null; // Telegram's message ID if available
   sent_at: string;
   created_at: string;
 }
 
 // Ensure telegram_messages table exists
 function ensureTelegramTable(): void {
-  run(`
+  run(
+    `
     CREATE TABLE IF NOT EXISTS telegram_messages (
       id TEXT PRIMARY KEY,
       bot_type TEXT NOT NULL,
@@ -42,12 +43,26 @@ function ensureTelegramTable(): void {
       sent_at TEXT NOT NULL,
       created_at TEXT DEFAULT (datetime('now'))
     )
-  `, []);
+  `,
+    [],
+  );
 
-  run(`CREATE INDEX IF NOT EXISTS idx_telegram_bot ON telegram_messages(bot_type)`, []);
-  run(`CREATE INDEX IF NOT EXISTS idx_telegram_task ON telegram_messages(task_id)`, []);
-  run(`CREATE INDEX IF NOT EXISTS idx_telegram_agent ON telegram_messages(agent_id)`, []);
-  run(`CREATE INDEX IF NOT EXISTS idx_telegram_sent ON telegram_messages(sent_at)`, []);
+  run(
+    `CREATE INDEX IF NOT EXISTS idx_telegram_bot ON telegram_messages(bot_type)`,
+    [],
+  );
+  run(
+    `CREATE INDEX IF NOT EXISTS idx_telegram_task ON telegram_messages(task_id)`,
+    [],
+  );
+  run(
+    `CREATE INDEX IF NOT EXISTS idx_telegram_agent ON telegram_messages(agent_id)`,
+    [],
+  );
+  run(
+    `CREATE INDEX IF NOT EXISTS idx_telegram_sent ON telegram_messages(sent_at)`,
+    [],
+  );
 }
 
 ensureTelegramTable();
@@ -65,36 +80,39 @@ export function logTelegramMessage(input: {
   agentId?: string;
   sessionId?: string;
   telegramMessageId?: number;
-  direction?: 'outgoing' | 'incoming';
+  direction?: "outgoing" | "incoming";
 }): TelegramMessage {
   const id = uuidv4();
   const sentAt = new Date().toISOString();
 
-  run(`
+  run(
+    `
     INSERT INTO telegram_messages (
       id, bot_type, direction, chat_id, message_type, message_text,
       task_id, task_display_id, agent_id, session_id, telegram_message_id, sent_at
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `, [
-    id,
-    input.botType,
-    input.direction || 'outgoing',
-    input.chatId,
-    input.messageType,
-    input.messageText,
-    input.taskId || null,
-    input.taskDisplayId || null,
-    input.agentId || null,
-    input.sessionId || null,
-    input.telegramMessageId || null,
-    sentAt,
-  ]);
+  `,
+    [
+      id,
+      input.botType,
+      input.direction || "outgoing",
+      input.chatId,
+      input.messageType,
+      input.messageText,
+      input.taskId || null,
+      input.taskDisplayId || null,
+      input.agentId || null,
+      input.sessionId || null,
+      input.telegramMessageId || null,
+      sentAt,
+    ],
+  );
 
   return {
     id,
     bot_type: input.botType,
-    direction: input.direction || 'outgoing',
+    direction: input.direction || "outgoing",
     chat_id: input.chatId,
     message_type: input.messageType,
     message_text: input.messageText,
@@ -115,43 +133,43 @@ export function getTelegramMessages(filters?: {
   botType?: string;
   taskId?: string;
   agentId?: string;
-  direction?: 'outgoing' | 'incoming';
+  direction?: "outgoing" | "incoming";
   since?: string;
   limit?: number;
   offset?: number;
 }): TelegramMessage[] {
-  let sql = 'SELECT * FROM telegram_messages WHERE 1=1';
+  let sql = "SELECT * FROM telegram_messages WHERE 1=1";
   const params: unknown[] = [];
 
   if (filters?.botType) {
-    sql += ' AND bot_type = ?';
+    sql += " AND bot_type = ?";
     params.push(filters.botType);
   }
   if (filters?.taskId) {
-    sql += ' AND task_id = ?';
+    sql += " AND task_id = ?";
     params.push(filters.taskId);
   }
   if (filters?.agentId) {
-    sql += ' AND agent_id = ?';
+    sql += " AND agent_id = ?";
     params.push(filters.agentId);
   }
   if (filters?.direction) {
-    sql += ' AND direction = ?';
+    sql += " AND direction = ?";
     params.push(filters.direction);
   }
   if (filters?.since) {
-    sql += ' AND sent_at >= ?';
+    sql += " AND sent_at >= ?";
     params.push(filters.since);
   }
 
-  sql += ' ORDER BY sent_at DESC';
+  sql += " ORDER BY sent_at DESC";
 
   if (filters?.limit) {
-    sql += ' LIMIT ?';
+    sql += " LIMIT ?";
     params.push(filters.limit);
   }
   if (filters?.offset) {
-    sql += ' OFFSET ?';
+    sql += " OFFSET ?";
     params.push(filters.offset);
   }
 
@@ -161,11 +179,13 @@ export function getTelegramMessages(filters?: {
 /**
  * Get messages grouped by bot type (for channel view)
  */
-export function getMessagesByChannel(limit: number = 50): Record<string, TelegramMessage[]> {
+export function getMessagesByChannel(
+  limit: number = 50,
+): Record<string, TelegramMessage[]> {
   const messages = getTelegramMessages({ limit: limit * 10 }); // Get more to distribute
-  
+
   const grouped: Record<string, TelegramMessage[]> = {};
-  
+
   for (const msg of messages) {
     if (!grouped[msg.bot_type]) {
       grouped[msg.bot_type] = [];
@@ -174,7 +194,7 @@ export function getMessagesByChannel(limit: number = 50): Record<string, Telegra
       grouped[msg.bot_type].push(msg);
     }
   }
-  
+
   return grouped;
 }
 
@@ -187,28 +207,31 @@ export function getTelegramStats(): {
   byType: Record<string, number>;
   last24h: number;
 } {
-  const total = getOne<{ count: number }>('SELECT COUNT(*) as count FROM telegram_messages')?.count || 0;
-  
+  const total =
+    getOne<{ count: number }>("SELECT COUNT(*) as count FROM telegram_messages")
+      ?.count || 0;
+
   const byBotRows = query<{ bot_type: string; count: number }>(
-    'SELECT bot_type, COUNT(*) as count FROM telegram_messages GROUP BY bot_type'
+    "SELECT bot_type, COUNT(*) as count FROM telegram_messages GROUP BY bot_type",
   );
   const byBot: Record<string, number> = {};
   for (const row of byBotRows) {
     byBot[row.bot_type] = row.count;
   }
-  
+
   const byTypeRows = query<{ message_type: string; count: number }>(
-    'SELECT message_type, COUNT(*) as count FROM telegram_messages GROUP BY message_type'
+    "SELECT message_type, COUNT(*) as count FROM telegram_messages GROUP BY message_type",
   );
   const byType: Record<string, number> = {};
   for (const row of byTypeRows) {
     byType[row.message_type] = row.count;
   }
-  
-  const last24h = getOne<{ count: number }>(
-    "SELECT COUNT(*) as count FROM telegram_messages WHERE sent_at > datetime('now', '-1 day')"
-  )?.count || 0;
-  
+
+  const last24h =
+    getOne<{ count: number }>(
+      "SELECT COUNT(*) as count FROM telegram_messages WHERE sent_at > datetime('now', '-1 day')",
+    )?.count || 0;
+
   return { total, byBot, byType, last24h };
 }
 
@@ -217,8 +240,8 @@ export function getTelegramStats(): {
  */
 export function getMessagesForTask(taskId: string): TelegramMessage[] {
   return query<TelegramMessage>(
-    'SELECT * FROM telegram_messages WHERE task_id = ? OR task_display_id = ? ORDER BY sent_at ASC',
-    [taskId, taskId]
+    "SELECT * FROM telegram_messages WHERE task_id = ? OR task_display_id = ? ORDER BY sent_at ASC",
+    [taskId, taskId],
   );
 }
 

@@ -313,7 +313,10 @@ router.get(
     > = {};
     for (const change of changes) {
       if (!byCriterion[change.criterion]) {
-        byCriterion[change.criterion] = { total_adjustment: 0, change_count: 0 };
+        byCriterion[change.criterion] = {
+          total_adjustment: 0,
+          change_count: 0,
+        };
       }
       byCriterion[change.criterion].total_adjustment += change.adjustment;
       byCriterion[change.criterion].change_count += 1;

@@ -13,6 +13,7 @@ The technical specification for TASK-025 (Remove unused imports across test suit
 **Primary Specification**: `docs/specs/FIX-TASK-025-8V9Y.md`
 
 This specification includes all required elements:
+
 - ✅ Overview with problem statement
 - ✅ Functional and non-functional requirements
 - ✅ Technical design with implementation strategy
@@ -26,6 +27,7 @@ This specification includes all required elements:
 ## Current State Verification
 
 ### TS6133 Warnings in Test Files
+
 ```bash
 $ npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "tests/" | grep -E "\.(test|spec)\.ts" | wc -l
 47
@@ -34,6 +36,7 @@ $ npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "tests/" | grep 
 **Status**: 47 warnings confirmed (matches specification)
 
 ### Warning List Generated
+
 ```bash
 $ ls -lh docs/specs/FIX-TASK-025-8V9Y-warnings.txt
 -rw-r--r-- 1 ned-atanasovski 3.7K Feb  8 15:48 docs/specs/FIX-TASK-025-8V9Y-warnings.txt
@@ -42,6 +45,7 @@ $ ls -lh docs/specs/FIX-TASK-025-8V9Y-warnings.txt
 **Status**: Complete list of all 47 warnings saved to appendix file
 
 ### Test Baseline
+
 ```bash
 $ npm test -- --run
 Test Files  21 failed | 85 passed (106)
@@ -57,6 +61,7 @@ Tests       30 failed | 1589 passed | 4 skipped (1777)
 The existing specification `FIX-TASK-025-8V9Y.md` is **production-ready** and includes:
 
 ### Strengths
+
 1. **Comprehensive analysis** - Detailed breakdown of all 47 warnings by directory
 2. **Batch implementation plan** - 7 phases with specific test commands
 3. **Clear pass criteria** - 3 testable criteria with exact commands
@@ -68,18 +73,21 @@ The existing specification `FIX-TASK-025-8V9Y.md` is **production-ready** and in
 ### Pass Criteria (Testable)
 
 **PC1: All tests pass**
+
 ```bash
 npm test -- --pool=forks --poolOptions.forks.maxForks=1
 # Expected: Same test count as baseline
 ```
 
 **PC2: Build succeeds**
+
 ```bash
 npm run build
 # Expected: Exit code 0
 ```
 
 **PC3: Zero test file warnings**
+
 ```bash
 npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "tests/" | grep -E "\.(test|spec)\.ts" | wc -l
 # Expected: 0 (down from 47)
@@ -124,6 +132,7 @@ Three specifications exist for TASK-025:
 ## Specification Agent Notes
 
 As the Spec Agent, I verified that:
+
 - The existing specification is complete and meets all requirements
 - The warning count (47) matches the specification
 - The warning list has been generated and saved

@@ -20,6 +20,7 @@ The implementation in PHASE1-TASK-04 integrated these context sources. This task
 ### Problem Statement
 
 Without comprehensive tests:
+
 - No verification that context flows through the evaluation pipeline
 - No assurance that category-specific formatting works correctly
 - No validation of graceful fallback when context is missing
@@ -27,6 +28,7 @@ Without comprehensive tests:
 - Difficulty debugging context-related issues in production
 
 With comprehensive tests:
+
 - Confidence that all evaluators receive appropriate context
 - Early detection of context flow regressions
 - Documentation of expected behavior through test cases
@@ -42,6 +44,7 @@ With comprehensive tests:
 #### 1. Context Loading Tests
 
 **Unit Tests:**
+
 - ✅ Test `getStructuredContext()` returns Q&A answers organized by category
 - ✅ Test `getEvaluationProfileContext()` returns profile with 5 dimensions
 - ✅ Test `conductPreEvaluationResearch()` returns market and tech research
@@ -51,6 +54,7 @@ With comprehensive tests:
 #### 2. Context Formatting Tests
 
 **Unit Tests:**
+
 - ✅ Test `formatProfileForCategory()` for each category (feasibility, market, risk, fit)
 - ✅ Test `formatStructuredDataForPrompt()` includes only category-relevant Q&A
 - ✅ Test `formatResearchForCategory()` for market and solution categories
@@ -62,6 +66,7 @@ With comprehensive tests:
 #### 3. Context Integration Tests
 
 **Integration Tests:**
+
 - Test evaluator receives all 3 context sources when available
 - Test evaluator receives partial context (e.g., Q&A only, no profile)
 - Test evaluator receives no context (minimal idea with README only)
@@ -71,6 +76,7 @@ With comprehensive tests:
 #### 4. Category-Specific Context Tests
 
 **Integration Tests:**
+
 - Test Feasibility evaluator receives profile skills + time + Q&A
 - Test Market evaluator receives profile network + research + Q&A
 - Test Risk evaluator receives profile runway + tolerance + Q&A
@@ -81,6 +87,7 @@ With comprehensive tests:
 #### 5. Evidence-Based Reasoning Tests
 
 **Integration Tests:**
+
 - Test evaluation reasoning cites Q&A answers
 - Test evaluation reasoning references profile data
 - Test evaluation reasoning mentions research findings
@@ -90,6 +97,7 @@ With comprehensive tests:
 #### 6. End-to-End Evaluation Tests
 
 **E2E Tests:**
+
 - Test complete evaluation flow with all context sources
 - Test evaluation with development.md but no profile
 - Test evaluation with profile but no development.md
@@ -191,9 +199,15 @@ describe("getStructuredContext", () => {
       `INSERT INTO idea_answers (idea_id, question_id, answer_text)
        VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?)`,
       [
-        testIdeaId, "P1_PROBLEM_STATEMENT", "Problem",
-        testIdeaId, "S1_PROPOSED_SOLUTION", "Solution",
-        testIdeaId, "F1_MVP_SCOPE", "MVP scope",
+        testIdeaId,
+        "P1_PROBLEM_STATEMENT",
+        "Problem",
+        testIdeaId,
+        "S1_PROPOSED_SOLUTION",
+        "Solution",
+        testIdeaId,
+        "F1_MVP_SCOPE",
+        "MVP scope",
       ],
     );
 
@@ -219,6 +233,7 @@ describe("getStructuredContext", () => {
 ```
 
 **Pass Criteria:**
+
 - ✅ All tests pass
 - ✅ Returns null when no answers exist
 - ✅ Correctly organizes answers by category
@@ -371,6 +386,7 @@ describe("formatResearchForCategory", () => {
 ```
 
 **Pass Criteria:**
+
 - ✅ All tests pass
 - ✅ Market category receives full market intelligence
 - ✅ Solution category receives tech feasibility only
@@ -519,11 +535,13 @@ describe("Category-Specific Context Integration", () => {
 ```
 
 **Note:** These integration tests need to be enhanced with prompt capture mechanism to verify that the correct context is included in the evaluator prompts. This may require:
+
 - Adding a test mode to evaluators that returns the assembled prompt
 - Mocking the LLM API calls to capture request payloads
 - Using a spy/stub pattern to intercept prompt assembly
 
 **Pass Criteria:**
+
 - ✅ All tests pass
 - ✅ Each evaluator receives appropriate context for its category
 - ✅ Evaluators do not receive irrelevant context
@@ -604,16 +622,19 @@ describe("Evidence-Based Reasoning Validation", () => {
 ```
 
 **Note:** These tests are challenging because they require running full evaluations with LLM calls, which are:
+
 - Expensive (API costs)
 - Slow (10-30s per evaluation)
 - Non-deterministic (LLM responses vary)
 
 **Recommended Approach:**
+
 1. **Option A (Snapshot Testing):** Run evaluations once, capture responses, use as fixtures
 2. **Option B (Mock LLM):** Mock Claude API to return consistent test responses
 3. **Option C (E2E Only):** Only test full flow in E2E tests with real LLM calls (limited runs)
 
 **Pass Criteria:**
+
 - ✅ Tests demonstrate that complete context improves evaluation quality
 - ✅ Tests show confidence scores correlate with context availability
 - ✅ Tests verify reasoning cites specific evidence from context sources
@@ -709,12 +730,14 @@ describe.skip("E2E: Complete Evaluation Context Flow", () => {
 ```
 
 **Note:** These E2E tests are expensive and slow. Recommended to:
+
 - Mark as `.skip` by default
 - Run manually during validation or pre-release
 - Use CI/CD flag to run only on certain branches
 - Consider using cheaper models (Haiku) for E2E tests
 
 **Pass Criteria:**
+
 - ✅ Full evaluation completes with all context sources
 - ✅ Evaluation handles missing context gracefully
 - ✅ High confidence achieved with complete context
@@ -878,6 +901,7 @@ describe.skip("E2E: Complete Evaluation Context Flow", () => {
 **Time Estimate:** 2-3 days
 
 **Challenges:**
+
 - Need to capture evaluator prompts for verification
 - May require adding test mode to evaluators
 - Consider mocking LLM API calls for speed/cost
@@ -894,6 +918,7 @@ describe.skip("E2E: Complete Evaluation Context Flow", () => {
 **Time Estimate:** 1 day
 
 **Notes:**
+
 - These tests are expensive ($1-2 per run)
 - Run only during major validations
 - Consider using Haiku for cost savings
@@ -926,9 +951,11 @@ export function createMockProfile(): ProfileContext {
   return {
     goalsContext: "Goals: $100k ARR in 2 years",
     passionContext: "Passion: Health tech from personal experience",
-    skillsContext: "Skills: React, Python, ML. Experience: 5 years. Gaps: Marketing",
+    skillsContext:
+      "Skills: React, Python, ML. Experience: 5 years. Gaps: Marketing",
     networkContext: "Network: 500+ LinkedIn, Tech startup ecosystem",
-    lifeStageContext: "Status: Employed. Hours: 20/week. Runway: 12 months. Tolerance: Medium",
+    lifeStageContext:
+      "Status: Employed. Hours: 20/week. Runway: 12 months. Tolerance: Medium",
   };
 }
 
@@ -1011,10 +1038,12 @@ export async function createTestIdea(options: {
   const title = options.title || "Test Idea";
   const readme = options.readme || "# Test Idea\n\nTest content.";
 
-  await run(
-    `INSERT INTO ideas (id, slug, title, readme) VALUES (?, ?, ?, ?)`,
-    [id, slug, title, readme],
-  );
+  await run(`INSERT INTO ideas (id, slug, title, readme) VALUES (?, ?, ?, ?)`, [
+    id,
+    slug,
+    title,
+    readme,
+  ]);
 
   return id;
 }
@@ -1048,6 +1077,7 @@ export async function cleanupTestIdea(ideaId: string): Promise<void> {
 **Challenge:** Integration tests need to verify that the correct context is included in evaluator prompts, but prompts are not currently exposed for testing.
 
 **Solution Options:**
+
 - **Option A:** Add test mode to evaluators that returns assembled prompts without making LLM calls
 - **Option B:** Mock LLM API to capture request payloads
 - **Option C:** Use spy/stub pattern to intercept prompt assembly
@@ -1060,6 +1090,7 @@ export async function cleanupTestIdea(ideaId: string): Promise<void> {
 **Challenge:** Full evaluations with LLM calls cost $1-2 each and take 30-60 seconds.
 
 **Mitigation:**
+
 - Mark E2E tests as `.skip` by default
 - Run only during major validations
 - Use CI/CD flag to control when they run
@@ -1071,6 +1102,7 @@ export async function cleanupTestIdea(ideaId: string): Promise<void> {
 **Challenge:** LLM responses vary, making it hard to test that reasoning cites specific evidence.
 
 **Solution Options:**
+
 - **Option A:** Snapshot testing - run once, save responses, compare future runs
 - **Option B:** Pattern matching - check for keywords/phrases rather than exact matches
 - **Option C:** Mock LLM - return consistent test responses
@@ -1083,6 +1115,7 @@ export async function cleanupTestIdea(ideaId: string): Promise<void> {
 **Challenge:** Some paths are difficult to test (e.g., database failures, network timeouts).
 
 **Acceptable Coverage Targets:**
+
 - Unit tests: 90%+ (strict)
 - Integration tests: 80%+ (moderate)
 - E2E tests: Focus on critical paths (not coverage metric)
@@ -1120,16 +1153,19 @@ When adding a 4th context source (e.g., competitor analysis):
 ### Debugging Test Failures
 
 **Unit test failures:**
+
 - Check mock data matches expected schema
 - Verify database state in beforeEach/afterEach
 - Check for typos in field names
 
 **Integration test failures:**
+
 - Verify all context sources are being loaded
 - Check that context is passed through call chain
 - Enable verbose logging to see prompts
 
 **E2E test failures:**
+
 - Check that test ideas exist in database
 - Verify LLM API credentials are valid
 - Check for rate limiting issues
@@ -1146,12 +1182,14 @@ This specification defines a comprehensive test suite to validate that evaluator
 - **E2E tests** for full evaluation quality validation (slow, expensive, critical paths only)
 
 **Implementation Status:**
+
 - ✅ Profile context tests already exist (1/5)
 - 📝 Need to create 4 additional test files
 - ⚠️ Integration tests require prompt capture mechanism
 - 💰 E2E tests should be run sparingly due to cost
 
 **Next Steps:**
+
 1. Create unit tests for structured context and research context
 2. Design prompt capture mechanism for integration tests
 3. Create integration tests for category-specific context
@@ -1159,6 +1197,7 @@ This specification defines a comprehensive test suite to validate that evaluator
 5. Validate with QA agent
 
 **Quality Impact:**
+
 - High confidence in context integration correctness
 - Early detection of regressions
 - Documentation of expected behavior

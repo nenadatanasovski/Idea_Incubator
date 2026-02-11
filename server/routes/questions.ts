@@ -13,9 +13,7 @@
 import { Router, Request, Response } from "express";
 import { query, run, getOne } from "../../database/db.js";
 import { emitTaskExecutorEvent } from "../websocket.js";
-import {
-  validateAnswerRequest,
-} from "../../utils/url-signer.js";
+import { validateAnswerRequest } from "../../utils/url-signer.js";
 import { eventService } from "../services/event-service.js";
 
 // Default timeout for questions without explicit expiry (24 hours)

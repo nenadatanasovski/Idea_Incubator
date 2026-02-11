@@ -1,6 +1,6 @@
 /**
  * Build API Routes (Idea-centric)
- * 
+ *
  * REST API for managing build executions tied to ideas.
  * Works with the pipeline orchestrator and build bridge.
  */
@@ -20,10 +20,10 @@ router.get(
   "/:ideaId/status",
   asyncHandler(async (req: Request, res: Response) => {
     const { ideaId } = req.params;
-    
+
     const bridge = getBuildBridge();
     const session = bridge.getSessionForIdea(ideaId);
-    
+
     if (!session) {
       return res.json({
         status: "not_started",
@@ -31,7 +31,7 @@ router.get(
         session: null,
       });
     }
-    
+
     return res.json({
       sessionId: session.sessionId,
       ideaId: session.ideaId,
@@ -47,7 +47,7 @@ router.get(
       startedAt: session.startedAt.toISOString(),
       completedAt: session.completedAt?.toISOString() || null,
     });
-  })
+  }),
 );
 
 /**
@@ -58,13 +58,13 @@ router.post(
   "/:ideaId/start",
   asyncHandler(async (req: Request, res: Response) => {
     const { ideaId } = req.params;
-    
+
     // Check if idea exists
     const idea = await getOne<{ id: string; title: string }>(
       "SELECT id, title FROM ideas WHERE id = ? OR slug = ?",
-      [ideaId, ideaId]
+      [ideaId, ideaId],
     );
-    
+
     if (!idea) {
       return res.status(404).json({
         success: false,
@@ -72,12 +72,15 @@ router.post(
         code: "IDEA_NOT_FOUND",
       });
     }
-    
+
     const bridge = getBuildBridge();
-    
+
     // Check for existing active session
     const existingSession = bridge.getSessionForIdea(idea.id);
-    if (existingSession && ["pending", "running"].includes(existingSession.status)) {
+    if (
+      existingSession &&
+      ["pending", "running"].includes(existingSession.status)
+    ) {
       return res.status(409).json({
         success: false,
         error: "Build already in progress",
@@ -86,10 +89,10 @@ router.post(
         status: existingSession.status,
       });
     }
-    
+
     try {
       const session = await bridge.startBuild(idea.id);
-      
+
       return res.status(201).json({
         success: true,
         sessionId: session.sessionId,
@@ -103,7 +106,7 @@ router.post(
         code: "BUILD_START_FAILED",
       });
     }
-  })
+  }),
 );
 
 /**
@@ -114,10 +117,10 @@ router.post(
   "/:sessionId/pause",
   asyncHandler(async (req: Request, res: Response) => {
     const { sessionId } = req.params;
-    
+
     const bridge = getBuildBridge();
     const session = bridge.getSession(sessionId);
-    
+
     if (!session) {
       return res.status(404).json({
         success: false,
@@ -125,7 +128,7 @@ router.post(
         code: "SESSION_NOT_FOUND",
       });
     }
-    
+
     if (session.status !== "running") {
       return res.status(400).json({
         success: false,
@@ -134,17 +137,17 @@ router.post(
         currentStatus: session.status,
       });
     }
-    
+
     // Note: Full pause implementation would require stopping the agent mid-loop
     // For now, we mark the session and the agent will check on next task
     (session as any)._pauseRequested = true;
-    
+
     return res.json({
       success: true,
       message: "Pause requested - will pause after current task completes",
       sessionId,
     });
-  })
+  }),
 );
 
 /**
@@ -155,10 +158,10 @@ router.post(
   "/:sessionId/resume",
   asyncHandler(async (req: Request, res: Response) => {
     const { sessionId } = req.params;
-    
+
     const bridge = getBuildBridge();
     const session = bridge.getSession(sessionId);
-    
+
     if (!session) {
       return res.status(404).json({
         success: false,
@@ -166,7 +169,7 @@ router.post(
         code: "SESSION_NOT_FOUND",
       });
     }
-    
+
     if (!["paused", "human_needed", "failed"].includes(session.status)) {
       return res.status(400).json({
         success: false,
@@ -175,10 +178,10 @@ router.post(
         currentStatus: session.status,
       });
     }
-    
+
     try {
       await bridge.resumeBuild(sessionId);
-      
+
       return res.json({
         success: true,
         message: "Build resumed",
@@ -188,11 +191,12 @@ router.post(
     } catch (error) {
       return res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : "Failed to resume build",
+        error:
+          error instanceof Error ? error.message : "Failed to resume build",
         code: "RESUME_FAILED",
       });
     }
-  })
+  }),
 );
 
 /**
@@ -204,10 +208,10 @@ router.post(
   asyncHandler(async (req: Request, res: Response) => {
     const { sessionId } = req.params;
     const { resolution } = req.body;
-    
+
     const bridge = getBuildBridge();
     const session = bridge.getSession(sessionId);
-    
+
     if (!session) {
       return res.status(404).json({
         success: false,
@@ -215,7 +219,7 @@ router.post(
         code: "SESSION_NOT_FOUND",
       });
     }
-    
+
     if (session.status !== "human_needed" && session.status !== "failed") {
       return res.status(400).json({
         success: false,
@@ -224,20 +228,24 @@ router.post(
         currentStatus: session.status,
       });
     }
-    
+
     // Record SIA intervention if provided
     if (resolution && session.currentTask) {
-      await bridge.recordSiaIntervention(sessionId, session.currentTask, resolution);
+      await bridge.recordSiaIntervention(
+        sessionId,
+        session.currentTask,
+        resolution,
+      );
     }
-    
+
     // Mark task as skipped and continue
     try {
       // Reset the failure count and status to allow resume
       session.tasksFailed = 0;
       session.status = "running";
-      
+
       await bridge.resumeBuild(sessionId);
-      
+
       return res.json({
         success: true,
         message: "Task skipped - build continuing",
@@ -251,7 +259,7 @@ router.post(
         code: "SKIP_FAILED",
       });
     }
-  })
+  }),
 );
 
 /**
@@ -263,7 +271,7 @@ router.post(
   asyncHandler(async (req: Request, res: Response) => {
     const { sessionId } = req.params;
     const { resolution } = req.body;
-    
+
     if (!resolution) {
       return res.status(400).json({
         success: false,
@@ -271,10 +279,10 @@ router.post(
         code: "RESOLUTION_REQUIRED",
       });
     }
-    
+
     const bridge = getBuildBridge();
     const session = bridge.getSession(sessionId);
-    
+
     if (!session) {
       return res.status(404).json({
         success: false,
@@ -282,7 +290,7 @@ router.post(
         code: "SESSION_NOT_FOUND",
       });
     }
-    
+
     if (session.status !== "human_needed" && session.status !== "failed") {
       return res.status(400).json({
         success: false,
@@ -291,20 +299,24 @@ router.post(
         currentStatus: session.status,
       });
     }
-    
+
     // Record the SIA intervention
     if (session.currentTask) {
-      await bridge.recordSiaIntervention(sessionId, session.currentTask, resolution);
+      await bridge.recordSiaIntervention(
+        sessionId,
+        session.currentTask,
+        resolution,
+      );
     }
-    
+
     // Mark current task as complete (resolved by human) and continue
     session.tasksComplete++;
     session.tasksFailed = 0;
     session.status = "running";
-    
+
     try {
       await bridge.resumeBuild(sessionId);
-      
+
       return res.json({
         success: true,
         message: "Task resolved - build continuing",
@@ -314,11 +326,12 @@ router.post(
     } catch (error) {
       return res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : "Failed after resolution",
+        error:
+          error instanceof Error ? error.message : "Failed after resolution",
         code: "RESOLVE_CONTINUE_FAILED",
       });
     }
-  })
+  }),
 );
 
 /**
@@ -329,17 +342,17 @@ router.get(
   "/:ideaId/history",
   asyncHandler(async (req: Request, res: Response) => {
     const { ideaId } = req.params;
-    
+
     const bridge = getBuildBridge();
     const allSessions = bridge.listSessions();
-    
+
     const ideaSessions = allSessions
-      .filter(s => s.ideaId === ideaId)
+      .filter((s) => s.ideaId === ideaId)
       .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
-    
+
     return res.json({
       ideaId,
-      sessions: ideaSessions.map(s => ({
+      sessions: ideaSessions.map((s) => ({
         sessionId: s.sessionId,
         status: s.status,
         tasksTotal: s.tasksTotal,
@@ -352,7 +365,7 @@ router.get(
       })),
       count: ideaSessions.length,
     });
-  })
+  }),
 );
 
 /**
@@ -364,9 +377,9 @@ router.get(
   asyncHandler(async (_req: Request, res: Response) => {
     const bridge = getBuildBridge();
     const sessions = bridge.listSessions();
-    
+
     return res.json({
-      sessions: sessions.map(s => ({
+      sessions: sessions.map((s) => ({
         sessionId: s.sessionId,
         ideaId: s.ideaId,
         status: s.status,
@@ -380,7 +393,7 @@ router.get(
       })),
       count: sessions.length,
     });
-  })
+  }),
 );
 
 export default router;

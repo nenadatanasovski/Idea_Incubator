@@ -42,7 +42,8 @@ describe("ArchitectAgent", () => {
     it("should respond to basic architecture request", async () => {
       const input: ArchitectInput = {
         projectName: "Test Project",
-        requirements: "Build a simple web application with frontend and backend",
+        requirements:
+          "Build a simple web application with frontend and backend",
         constraints: ["Use TypeScript", "Deploy to cloud"],
       };
 
@@ -71,28 +72,40 @@ describe("ArchitectAgent", () => {
     it("should identify components from requirements", async () => {
       const input: ArchitectInput = {
         projectName: "Full Stack App",
-        requirements: "Build a web app with React frontend, Node.js backend API, and PostgreSQL database",
+        requirements:
+          "Build a web app with React frontend, Node.js backend API, and PostgreSQL database",
       };
 
       const output = await agent.generateArchitecture(input);
 
       // Should identify frontend, backend, and database components
-      const componentNames = output.architecture.components.map(c => c.name.toLowerCase());
-      expect(componentNames.some(name => name.includes("frontend"))).toBe(true);
-      expect(componentNames.some(name => name.includes("backend"))).toBe(true);
-      expect(componentNames.some(name => name.includes("database"))).toBe(true);
+      const componentNames = output.architecture.components.map((c) =>
+        c.name.toLowerCase(),
+      );
+      expect(componentNames.some((name) => name.includes("frontend"))).toBe(
+        true,
+      );
+      expect(componentNames.some((name) => name.includes("backend"))).toBe(
+        true,
+      );
+      expect(componentNames.some((name) => name.includes("database"))).toBe(
+        true,
+      );
     });
 
     it("should identify quality attributes from requirements", async () => {
       const input: ArchitectInput = {
         projectName: "Secure App",
-        requirements: "Build a secure application with high performance requirements",
+        requirements:
+          "Build a secure application with high performance requirements",
       };
 
       const output = await agent.generateArchitecture(input);
 
       // Should identify security and performance as quality attributes
-      const qaCategories = output.architecture.qualityAttributes.map(qa => qa.category);
+      const qaCategories = output.architecture.qualityAttributes.map(
+        (qa) => qa.category,
+      );
       expect(qaCategories).toContain("security");
       expect(qaCategories).toContain("performance");
     });
@@ -107,7 +120,9 @@ describe("ArchitectAgent", () => {
 
       expect(output.recommendations).toBeDefined();
       expect(output.recommendations.length).toBeGreaterThan(0);
-      expect(output.recommendations.some(r => r.toLowerCase().includes("mvp"))).toBe(true);
+      expect(
+        output.recommendations.some((r) => r.toLowerCase().includes("mvp")),
+      ).toBe(true);
     });
 
     it("should generate next steps", async () => {
@@ -135,7 +150,7 @@ describe("ArchitectAgent", () => {
 
       // Frontend component should use React
       const frontendComponent = output.architecture.components.find(
-        c => c.type === "frontend"
+        (c) => c.type === "frontend",
       );
       expect(frontendComponent).toBeDefined();
       expect(frontendComponent?.technology.toLowerCase()).toContain("react");

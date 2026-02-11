@@ -8,7 +8,7 @@ export interface ArchitectTaskPayload {
   requirements: string;
   constraints: string[];
   existingArchitecture?: string;
-  outputFormat: 'full' | 'incremental';
+  outputFormat: "full" | "incremental";
 }
 
 export interface ArchitectOutput {
@@ -22,7 +22,7 @@ export interface ArchitectOutput {
 
 export interface Component {
   name: string;
-  type: 'frontend' | 'backend' | 'database' | 'infrastructure';
+  type: "frontend" | "backend" | "database" | "infrastructure";
   description: string;
   dependencies: string[];
 }
@@ -36,7 +36,7 @@ export interface TechStack {
 
 export interface APIContract {
   endpoint: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   request?: Schema;
   response?: Schema;
 }

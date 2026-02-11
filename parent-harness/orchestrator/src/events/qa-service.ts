@@ -1,20 +1,20 @@
 /**
  * Event-Driven QA Service
- * 
+ *
  * Instead of polling every N ticks, QA now:
  * 1. Subscribes to 'task:ready_for_qa' events
  * 2. Queues tasks for verification
  * 3. Processes queue with concurrency control
  * 4. Emits 'task:qa_passed' or 'task:qa_failed'
- * 
+ *
  * This is Phase 3 of the event-driven architecture.
  */
 
-import { bus } from './bus.js';
-import { transitionTask } from './task-state-machine.js';
-import * as qa from '../qa/index.js';
-import * as agents from '../db/agents.js';
-import type { Task } from '../db/tasks.js';
+import { bus } from "./bus.js";
+import { transitionTask } from "./task-state-machine.js";
+import * as qa from "../qa/index.js";
+import * as agents from "../db/agents.js";
+import type { Task } from "../db/tasks.js";
 
 interface QueuedTask {
   task: Task;
@@ -38,25 +38,27 @@ class QAService {
    */
   private setupEventListeners(): void {
     // When a task is ready for QA, add it to the queue
-    bus.on('task:ready_for_qa', ({ task }) => {
-      console.log(`✅ QA Service: Task ${task.display_id} ready for verification`);
+    bus.on("task:ready_for_qa", ({ task }) => {
+      console.log(
+        `✅ QA Service: Task ${task.display_id} ready for verification`,
+      );
       this.enqueue(task);
     });
 
     // Listen for system events that might affect processing
-    bus.on('system:shutdown', () => {
+    bus.on("system:shutdown", () => {
       this.enabled = false;
-      console.log('✅ QA Service: Shutting down');
+      console.log("✅ QA Service: Shutting down");
     });
 
     // React to CPU high events (backpressure)
-    bus.on('system:cpu_high', () => {
-      console.log('✅ QA Service: Pausing due to high CPU');
+    bus.on("system:cpu_high", () => {
+      console.log("✅ QA Service: Pausing due to high CPU");
       this.enabled = false;
     });
 
-    bus.on('system:cpu_normal', () => {
-      console.log('✅ QA Service: Resuming after CPU normalized');
+    bus.on("system:cpu_normal", () => {
+      console.log("✅ QA Service: Resuming after CPU normalized");
       this.enabled = true;
       this.processQueue();
     });
@@ -67,7 +69,7 @@ class QAService {
    */
   enqueue(task: Task): void {
     // Check if already in queue
-    if (this.queue.some(q => q.task.id === task.id)) {
+    if (this.queue.some((q) => q.task.id === task.id)) {
       console.log(`✅ QA Service: Task ${task.display_id} already in queue`);
       return;
     }
@@ -78,7 +80,9 @@ class QAService {
       attempts: 0,
     });
 
-    console.log(`✅ QA Service: Queued ${task.display_id} (queue size: ${this.queue.length})`);
+    console.log(
+      `✅ QA Service: Queued ${task.display_id} (queue size: ${this.queue.length})`,
+    );
 
     // Start processing if not already
     if (!this.processing) {
@@ -96,24 +100,31 @@ class QAService {
 
     this.processing = true;
 
-    while (this.queue.length > 0 && this.enabled && this.activeCount < this.maxConcurrent) {
+    while (
+      this.queue.length > 0 &&
+      this.enabled &&
+      this.activeCount < this.maxConcurrent
+    ) {
       const queued = this.queue.shift();
       if (!queued) break;
 
       this.activeCount++;
-      
+
       try {
         await this.verifyTask(queued);
       } catch (err) {
-        console.error(`✅ QA Service: Error verifying ${queued.task.display_id}:`, err);
-        
+        console.error(
+          `✅ QA Service: Error verifying ${queued.task.display_id}:`,
+          err,
+        );
+
         // Re-queue with incremented attempts if under limit
         if (queued.attempts < 3) {
           queued.attempts++;
           this.queue.push(queued);
         }
       }
-      
+
       this.activeCount--;
     }
 
@@ -128,10 +139,10 @@ class QAService {
     console.log(`✅ QA Service: Verifying ${task.display_id}...`);
 
     // Update QA agent status
-    const qaAgent = agents.getAgent('qa_agent');
+    const qaAgent = agents.getAgent("qa_agent");
     if (qaAgent) {
-      agents.updateAgentStatus('qa_agent', 'working', task.id, null);
-      bus.emit('agent:working', { agent: qaAgent, taskId: task.id });
+      agents.updateAgentStatus("qa_agent", "working", task.id, null);
+      bus.emit("agent:working", { agent: qaAgent, taskId: task.id });
     }
 
     try {
@@ -140,21 +151,23 @@ class QAService {
 
       if (result.passed) {
         // Transition to completed
-        transitionTask(task.id, 'completed', {});
+        transitionTask(task.id, "completed", {});
         console.log(`✅ QA Service: ${task.display_id} PASSED`);
       } else {
         // Transition to failed with QA failures
-        transitionTask(task.id, 'failed', {
+        transitionTask(task.id, "failed", {
           error: result.summary,
-          failures: result.checks.filter(c => !c.passed).map(c => c.name),
+          failures: result.checks.filter((c) => !c.passed).map((c) => c.name),
         });
-        console.log(`✅ QA Service: ${task.display_id} FAILED - ${result.summary}`);
+        console.log(
+          `✅ QA Service: ${task.display_id} FAILED - ${result.summary}`,
+        );
       }
     } finally {
       // Reset QA agent to idle
       if (qaAgent) {
-        agents.updateAgentStatus('qa_agent', 'idle', null, null);
-        bus.emit('agent:idle', { agent: agents.getAgent('qa_agent')! });
+        agents.updateAgentStatus("qa_agent", "idle", null, null);
+        bus.emit("agent:idle", { agent: agents.getAgent("qa_agent")! });
       }
     }
   }
@@ -162,7 +175,12 @@ class QAService {
   /**
    * Get queue status
    */
-  getStatus(): { queueSize: number; processing: boolean; enabled: boolean; activeCount: number } {
+  getStatus(): {
+    queueSize: number;
+    processing: boolean;
+    enabled: boolean;
+    activeCount: number;
+  } {
     return {
       queueSize: this.queue.length,
       processing: this.processing,

@@ -10,7 +10,7 @@ let serverProcess: ChildProcess | null = null;
 
 export async function setup() {
   console.log("\n🚀 Starting server for integration tests...");
-  
+
   // Start the server
   serverProcess = spawn("npx", ["tsx", "server/index.ts"], {
     cwd: process.cwd(),
@@ -26,10 +26,12 @@ export async function setup() {
   const maxWait = 30000; // 30 seconds
   const pollInterval = 500;
   let waited = 0;
-  
+
   while (waited < maxWait) {
     try {
-      const response = await fetch("http://localhost:3001/api/pipeline/task-lists");
+      const response = await fetch(
+        "http://localhost:3001/api/pipeline/task-lists",
+      );
       if (response.ok || response.status === 401) {
         console.log("✅ Server is ready");
         return;
@@ -37,7 +39,7 @@ export async function setup() {
     } catch {
       // Server not ready yet
     }
-    
+
     await setTimeout(pollInterval);
     waited += pollInterval;
   }

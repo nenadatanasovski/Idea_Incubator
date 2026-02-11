@@ -28,6 +28,7 @@ The core WebSocket infrastructure is production-ready. Test failures in the suit
 **File:** `parent-harness/orchestrator/src/websocket.ts`
 
 **Implemented Features:**
+
 - ✅ WebSocket server initialization on `/ws` path
 - ✅ Connection/disconnection handling with logging
 - ✅ Ping/pong support for latency measurement
@@ -36,6 +37,7 @@ The core WebSocket infrastructure is production-ready. Test failures in the suit
 - ✅ Error handling for malformed messages
 
 **Event Types Implemented:**
+
 ```typescript
 // Agent events
 - agent:status (agent status changes)
@@ -68,6 +70,7 @@ The core WebSocket infrastructure is production-ready. Test failures in the suit
 **WebSocket Usage in Orchestrator:**
 
 **File:** `parent-harness/orchestrator/src/spawner/index.ts`
+
 - ✅ `ws.sessionStarted()` when agent spawned (line 596)
 - ✅ `ws.agentStatusChanged()` on agent updates (lines 597, 791)
 - ✅ `ws.taskCompleted()` on successful task completion (line 734)
@@ -82,6 +85,7 @@ All backend modules import `ws` from `websocket.ts` and call broadcast functions
 **Hook:** `parent-harness/dashboard/src/hooks/useWebSocket.ts`
 
 **Features:**
+
 - ✅ WebSocket connection to `ws://localhost:3333/ws`
 - ✅ Auto-reconnect on disconnect (3-second delay)
 - ✅ Message subscription system with cleanup
@@ -92,24 +96,26 @@ All backend modules import `ws` from `websocket.ts` and call broadcast functions
 **Dashboard Usage:** `parent-harness/dashboard/src/pages/Dashboard.tsx`
 
 **Real-time Updates:**
+
 ```typescript
 useEffect(() => {
   const unsubscribe = subscribe((message) => {
-    if (message.type.startsWith('agent:')) {
-      refetchAgents()  // Refresh agent data
+    if (message.type.startsWith("agent:")) {
+      refetchAgents(); // Refresh agent data
     }
-    if (message.type.startsWith('task:')) {
-      refetchTasks()   // Refresh task data
+    if (message.type.startsWith("task:")) {
+      refetchTasks(); // Refresh task data
     }
-    if (message.type === 'event') {
-      setWsEvents(prev => [event, ...prev].slice(0, 50))  // Add to event stream
+    if (message.type === "event") {
+      setWsEvents((prev) => [event, ...prev].slice(0, 50)); // Add to event stream
     }
-  })
-  return unsubscribe
-}, [subscribe, refetchAgents, refetchTasks])
+  });
+  return unsubscribe;
+}, [subscribe, refetchAgents, refetchTasks]);
 ```
 
 **Components Using WebSocket:**
+
 - ✅ Dashboard.tsx - Main dashboard page
 - ✅ Tasks.tsx - Task management page
 - ✅ Sessions.tsx - Session monitoring page
@@ -123,6 +129,7 @@ useEffect(() => {
 **Unit Tests:** `tests/unit/server/websocket.test.ts` (332 lines)
 
 **Test Coverage:**
+
 - ✅ Connection acceptance with parameters
 - ✅ Connection rejection without required parameters
 - ✅ Welcome message on connection
@@ -135,6 +142,7 @@ useEffect(() => {
 - ✅ Support for all event types
 
 **E2E Test:** `tests/e2e/test-spec-009-websocket.sh`
+
 - Tests WebSocket spec event handling
 - Validates frontend hooks (useSpec, useReadiness)
 - Checks TypeScript compilation
@@ -195,12 +203,14 @@ Based on PHASE3-TASK-05 specification (which depends on PHASE3-TASK-04):
 ## Test Results
 
 ### ✅ TypeScript Compilation
+
 ```
 npx tsc --noEmit
 ✅ PASS - No compilation errors
 ```
 
 ### ⚠️ Test Suite (Partial Pass)
+
 ```
 npm test
 ⚠️ 15 tests failing (out of 1,777 total)
@@ -208,11 +218,13 @@ npm test
 ```
 
 **Failed Tests (Unrelated to WebSocket):**
+
 1. **api-counter.test.ts (9 failures)** - Missing `api_calls` table
 2. **task-queue-persistence.test.ts (5 failures)** - Missing `task_queue` table
 3. **context-loader.test.ts (1 failure)** - Missing `ideation_sessions` table
 
 **Analysis:**
+
 - All WebSocket-related tests passing ✅
 - Failures are database schema issues in other features
 - WebSocket functionality NOT impacted
@@ -220,6 +232,7 @@ npm test
 ### ✅ WebSocket-Specific Tests
 
 **File:** `tests/unit/server/websocket.test.ts`
+
 - ✅ All connection management tests passing
 - ✅ All room management tests passing
 - ✅ All event broadcasting tests passing
@@ -230,16 +243,19 @@ npm test
 ## Performance Validation
 
 ### Connection Performance ✅
+
 - WebSocket server starts in <100ms
 - Client connections established in <50ms
 - Auto-reconnect triggers within 3 seconds
 
 ### Message Latency ✅
+
 - Broadcast latency: <10ms for local connections
 - Event processing: Non-blocking (async handlers)
 - Dashboard updates: <100ms from event emission
 
 ### Scalability ✅
+
 - Supports multiple simultaneous connections
 - Room-based broadcasting prevents unnecessary traffic
 - Message handlers cleaned up properly (no memory leaks)
@@ -249,11 +265,13 @@ npm test
 ## Security & Reliability
 
 ### Security ✅
+
 - WebSocket server runs on localhost by default
 - No authentication required (internal orchestrator use)
 - Message validation prevents malformed payloads
 
 ### Reliability ✅
+
 - Auto-reconnect on disconnect
 - Error handling for parse failures
 - Graceful degradation (dashboard works without WebSocket)
@@ -264,12 +282,14 @@ npm test
 ## Gaps & Future Enhancements
 
 ### Current Limitations
+
 1. **No Query Parameter Routing** - PHASE2-TASK-05 spec mentions `?monitor=agents` but not implemented
 2. **No Health Status Fields** - Agent `health_status` (healthy/stale/stuck/crashed) not in events yet
 3. **No Progress Percentage** - Task `progress_percent` not included in task:updated events
 4. **No Error Details** - Task error events lack full error context (stack, suggestions)
 
 ### Recommended Next Steps (PHASE3-TASK-05)
+
 1. Extend Agent type with `health_status`, `running_instances`, `current_iteration`
 2. Extend Task type with `progress_percent`, `error_details`, `token_usage`
 3. Add `session:heartbeat` event with progress updates
@@ -286,6 +306,7 @@ npm test
 PHASE3-TASK-04 (WebSocket event broadcasting for dashboard updates) is **COMPLETE and PRODUCTION-READY**.
 
 **Evidence:**
+
 1. ✅ WebSocket server fully implemented and tested
 2. ✅ 15+ event types broadcasting from backend
 3. ✅ Dashboard actively using WebSocket for real-time updates
@@ -296,6 +317,7 @@ PHASE3-TASK-04 (WebSocket event broadcasting for dashboard updates) is **COMPLET
 **Blocking Issues:** None
 
 **Non-Blocking Issues:**
+
 - 15 test failures in unrelated features (database schema)
 - Recommended to fix before deploying, but doesn't block WebSocket functionality
 

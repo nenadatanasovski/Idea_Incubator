@@ -1,24 +1,24 @@
 /**
  * Scanners - Lightweight periodic checks that emit events
- * 
+ *
  * Instead of one big tick loop that does everything,
  * we have individual scanners that:
  * 1. Run on their own schedule
  * 2. Are lightweight (just check conditions)
  * 3. Emit events when they find something
- * 
+ *
  * Services react to these events - scanners don't do heavy work.
- * 
+ *
  * This is Phase 6 of the event-driven architecture.
  */
 
-import { bus } from './bus.js';
-import * as tasks from '../db/tasks.js';
-import * as agents from '../db/agents.js';
-import * as sessions from '../db/sessions.js';
-import * as config from '../config/index.js';
-import * as spawner from '../spawner/index.js';
-import { isRunnableProductionTask } from '../orchestrator/task-gating.js';
+import { bus } from "./bus.js";
+import * as tasks from "../db/tasks.js";
+import * as agents from "../db/agents.js";
+import * as sessions from "../db/sessions.js";
+import * as config from "../config/index.js";
+import * as spawner from "../spawner/index.js";
+import { isRunnableProductionTask } from "../orchestrator/task-gating.js";
 
 interface ScannerConfig {
   enabled: boolean;
@@ -40,8 +40,8 @@ class PendingTaskScanner {
 
   start(): void {
     if (this.interval) return;
-    console.log('🔍 Pending Task Scanner: Starting');
-    
+    console.log("🔍 Pending Task Scanner: Starting");
+
     this.scan();
     this.interval = setInterval(() => this.scan(), this.config.intervalMs);
   }
@@ -58,24 +58,28 @@ class PendingTaskScanner {
     this.config.lastRun = new Date();
 
     // Find pending tasks that aren't being processed
-    const pendingTasks = tasks.getPendingTasks().filter(isRunnableProductionTask);
+    const pendingTasks = tasks
+      .getPendingTasks()
+      .filter(isRunnableProductionTask);
     const idleAgents = agents.getIdleAgents();
 
     // Only emit if we have both work and workers
     if (pendingTasks.length > 0 && idleAgents.length > 0) {
       const now = Date.now();
-      
+
       // Emit event for each pending task, with debounce (30s between emissions for same task)
-      for (const task of pendingTasks.slice(0, 5)) { // Max 5 at a time
+      for (const task of pendingTasks.slice(0, 5)) {
+        // Max 5 at a time
         const lastEmit = this.lastEmitTime.get(task.id) || 0;
-        if (now - lastEmit > 30000) { // 30 second debounce
+        if (now - lastEmit > 30000) {
+          // 30 second debounce
           this.lastEmitTime.set(task.id, now);
-          bus.emit('task:pending', { task });
+          bus.emit("task:pending", { task });
         }
       }
-      
+
       // Clean up old entries (tasks no longer pending)
-      const pendingIds = new Set(pendingTasks.map(t => t.id));
+      const pendingIds = new Set(pendingTasks.map((t) => t.id));
       for (const [taskId] of this.lastEmitTime) {
         if (!pendingIds.has(taskId)) {
           this.lastEmitTime.delete(taskId);
@@ -106,8 +110,8 @@ class StuckAgentScanner {
 
   start(): void {
     if (this.interval) return;
-    console.log('🔍 Stuck Agent Scanner: Starting');
-    
+    console.log("🔍 Stuck Agent Scanner: Starting");
+
     this.scan();
     this.interval = setInterval(() => this.scan(), this.config.intervalMs);
   }
@@ -133,10 +137,12 @@ class StuckAgentScanner {
       const timeSinceHeartbeat = now - lastHeartbeat;
 
       if (timeSinceHeartbeat > this.stuckThresholdMs) {
-        console.log(`🔍 Stuck Agent Scanner: ${agent.name} is stuck (${Math.round(timeSinceHeartbeat / 60000)}min)`);
-        bus.emit('agent:stuck', { 
-          agent, 
-          reason: `No heartbeat for ${Math.round(timeSinceHeartbeat / 60000)} minutes` 
+        console.log(
+          `🔍 Stuck Agent Scanner: ${agent.name} is stuck (${Math.round(timeSinceHeartbeat / 60000)}min)`,
+        );
+        bus.emit("agent:stuck", {
+          agent,
+          reason: `No heartbeat for ${Math.round(timeSinceHeartbeat / 60000)} minutes`,
         });
       }
     }
@@ -164,8 +170,8 @@ class PlanningScanner {
 
   start(): void {
     if (this.interval) return;
-    console.log('🔍 Planning Scanner: Starting');
-    
+    console.log("🔍 Planning Scanner: Starting");
+
     this.scan();
     this.interval = setInterval(() => this.scan(), this.config.intervalMs);
   }
@@ -193,8 +199,8 @@ class PlanningScanner {
     }
 
     if (now - this.lastPlanningRun.getTime() >= intervalMs) {
-      console.log('🔍 Planning Scanner: Planning cycle due');
-      bus.emit('schedule:planning_due', {});
+      console.log("🔍 Planning Scanner: Planning cycle due");
+      bus.emit("schedule:planning_due", {});
       this.lastPlanningRun = new Date();
     }
   }
@@ -224,8 +230,8 @@ class CleanupScanner {
 
   start(): void {
     if (this.interval) return;
-    console.log('🔍 Cleanup Scanner: Starting');
-    
+    console.log("🔍 Cleanup Scanner: Starting");
+
     // Run cleanup on startup
     setTimeout(() => this.scan(), 30000);
     this.interval = setInterval(() => this.scan(), this.config.intervalMs);
@@ -245,8 +251,8 @@ class CleanupScanner {
     const cfg = config.getConfig();
     if (!cfg.cleanup.auto_cleanup) return;
 
-    console.log('🔍 Cleanup Scanner: Cleanup due');
-    bus.emit('schedule:cleanup_due', {});
+    console.log("🔍 Cleanup Scanner: Cleanup due");
+    bus.emit("schedule:cleanup_due", {});
   }
 
   getConfig(): ScannerConfig {
@@ -271,8 +277,8 @@ class QAVerificationScanner {
 
   start(): void {
     if (this.interval) return;
-    console.log('🔍 QA Verification Scanner: Starting');
-    
+    console.log("🔍 QA Verification Scanner: Starting");
+
     // First scan after 2 minutes
     setTimeout(() => this.scan(), 2 * 60 * 1000);
     this.interval = setInterval(() => this.scan(), this.config.intervalMs);
@@ -288,23 +294,28 @@ class QAVerificationScanner {
   private scan(): void {
     if (!this.config.enabled) return;
     if (this.processing) {
-      console.log('🔍 QA Scanner: Already processing, skipping');
+      console.log("🔍 QA Scanner: Already processing, skipping");
       return;
     }
     this.config.lastRun = new Date();
 
     // Find tasks in pending_verification status
-    const pendingVerification = tasks.getTasks({ status: 'pending_verification' });
-    
+    const pendingVerification = tasks.getTasks({
+      status: "pending_verification",
+    });
+
     if (pendingVerification.length === 0) {
       return; // Nothing to verify
     }
 
-    console.log(`🔍 QA Scanner: Found ${pendingVerification.length} tasks to verify`);
-    
+    console.log(
+      `🔍 QA Scanner: Found ${pendingVerification.length} tasks to verify`,
+    );
+
     // Emit events for QA service to pick up
-    for (const task of pendingVerification.slice(0, 3)) { // Max 3 at a time
-      bus.emit('task:ready_for_qa', { task });
+    for (const task of pendingVerification.slice(0, 3)) {
+      // Max 3 at a time
+      bus.emit("task:ready_for_qa", { task });
     }
   }
 
@@ -330,8 +341,8 @@ class SelfImprovementScanner {
 
   start(): void {
     if (this.interval) return;
-    console.log('🔍 Self-Improvement Scanner (SIA): Starting');
-    
+    console.log("🔍 Self-Improvement Scanner (SIA): Starting");
+
     // First investigation after 3 minutes
     setTimeout(() => this.scan(), 3 * 60 * 1000);
     this.interval = setInterval(() => this.scan(), this.config.intervalMs);
@@ -347,16 +358,16 @@ class SelfImprovementScanner {
   private async scan(): Promise<void> {
     if (!this.config.enabled) return;
     if (this.investigating) {
-      console.log('🧠 SIA: Already investigating, skipping');
+      console.log("🧠 SIA: Already investigating, skipping");
       return;
     }
     this.config.lastRun = new Date();
 
     // Find the most important failed task to investigate
-    const failedTasks = tasks.getTasks({ status: 'failed' });
+    const failedTasks = tasks.getTasks({ status: "failed" });
     const worthInvestigating = failedTasks
-      .filter(t => (t.retry_count || 0) >= 2 && (t.retry_count || 0) < 5) // Failed 2-4 times
-      .filter(t => !(t.category === 'test' && !t.description)) // Skip empty test fixture tasks
+      .filter((t) => (t.retry_count || 0) >= 2 && (t.retry_count || 0) < 5) // Failed 2-4 times
+      .filter((t) => !(t.category === "test" && !t.description)) // Skip empty test fixture tasks
       .sort((a, b) => {
         // Prioritize by priority then retry count
         const priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3, P4: 4 };
@@ -365,12 +376,12 @@ class SelfImprovementScanner {
         if (aPri !== bPri) return aPri - bPri;
         return (b.retry_count || 0) - (a.retry_count || 0);
       });
-    
+
     if (worthInvestigating.length === 0) {
       // No tasks worth investigating - maybe try one that failed once
       const singleFailures = failedTasks
-        .filter(t => (t.retry_count || 0) === 1)
-        .filter(t => !(t.category === 'test' && !t.description));
+        .filter((t) => (t.retry_count || 0) === 1)
+        .filter((t) => !(t.category === "test" && !t.description));
       if (singleFailures.length > 0) {
         await this.investigateTask(singleFailures[0]);
       }
@@ -381,16 +392,20 @@ class SelfImprovementScanner {
     await this.investigateTask(worthInvestigating[0]);
   }
 
-  private async investigateTask(task: ReturnType<typeof tasks.getTask>): Promise<void> {
+  private async investigateTask(
+    task: ReturnType<typeof tasks.getTask>,
+  ): Promise<void> {
     if (!task) return;
-    
+
     this.investigating = true;
-    console.log(`🧠 SIA: Investigating failed task ${task.display_id}: ${task.title}`);
+    console.log(
+      `🧠 SIA: Investigating failed task ${task.display_id}: ${task.title}`,
+    );
 
     // Get SIA agent
-    const siaAgent = agents.getAgent('sia_agent');
+    const siaAgent = agents.getAgent("sia_agent");
     if (!siaAgent) {
-      console.log('🧠 SIA: No SIA agent found, using build_agent');
+      console.log("🧠 SIA: No SIA agent found, using build_agent");
     }
 
     // Build investigation prompt
@@ -398,17 +413,17 @@ class SelfImprovementScanner {
 
     try {
       // Update SIA agent status
-      const agentId = siaAgent?.id || 'build_agent';
+      const agentId = siaAgent?.id || "build_agent";
       agents.updateHeartbeat(agentId);
-      agents.updateAgentStatus(agentId, 'working', task.id, null);
+      agents.updateAgentStatus(agentId, "working", task.id, null);
 
       // Spawn investigation session
       console.log(`🧠 SIA: Spawning investigation for ${task.display_id}`);
-      
+
       const result = await spawner.spawnAgentSession({
         taskId: task.id,
         agentId: agentId,
-        model: 'opus', // Use Opus for investigation
+        model: "opus", // Use Opus for investigation
         timeout: 600, // 10 minute timeout
         customPrompt: investigationPrompt,
       });
@@ -419,29 +434,34 @@ class SelfImprovementScanner {
       } else {
         console.log(`🧠 SIA: Investigation failed - ${result.error}`);
         // Reset task to pending for another attempt
-        tasks.updateTask(task.id, { status: 'pending', assigned_agent_id: null });
+        tasks.updateTask(task.id, {
+          status: "pending",
+          assigned_agent_id: null,
+        });
       }
     } catch (err) {
-      console.error('🧠 SIA: Investigation error:', err);
+      console.error("🧠 SIA: Investigation error:", err);
     } finally {
       this.investigating = false;
       // Reset agent to idle
-      const agentId = siaAgent?.id || 'build_agent';
-      agents.updateAgentStatus(agentId, 'idle', null, null);
+      const agentId = siaAgent?.id || "build_agent";
+      agents.updateAgentStatus(agentId, "idle", null, null);
     }
   }
 
-  private buildInvestigationPrompt(task: ReturnType<typeof tasks.getTask>): string {
-    if (!task) return '';
-    
+  private buildInvestigationPrompt(
+    task: ReturnType<typeof tasks.getTask>,
+  ): string {
+    if (!task) return "";
+
     return `You are SIA (Strategic Improvement Agent) investigating a repeatedly failing task.
 
 ## FAILED TASK
 - ID: ${task.display_id}
 - Title: ${task.title}
-- Description: ${task.description || 'No description'}
+- Description: ${task.description || "No description"}
 - Retry Count: ${task.retry_count || 0}
-- Category: ${task.category || 'unknown'}
+- Category: ${task.category || "unknown"}
 
 ## YOUR MISSION
 1. INVESTIGATE: Read the relevant source files to understand what this task requires
@@ -488,8 +508,8 @@ class StateReconciliationScanner {
 
   start(): void {
     if (this.interval) return;
-    console.log('🔍 State Reconciliation Scanner: Starting');
-    
+    console.log("🔍 State Reconciliation Scanner: Starting");
+
     // First scan after 1 minute
     setTimeout(() => this.scan(), 60000);
     this.interval = setInterval(() => this.scan(), this.config.intervalMs);
@@ -511,16 +531,20 @@ class StateReconciliationScanner {
     // Fix 1: Agents marked "working" with stale heartbeats (>20 min) but no task
     const workingAgents = agents.getWorkingAgents();
     const now = Date.now();
-    
+
     for (const agent of workingAgents) {
-      const lastHb = agent.last_heartbeat ? new Date(agent.last_heartbeat).getTime() : 0;
+      const lastHb = agent.last_heartbeat
+        ? new Date(agent.last_heartbeat).getTime()
+        : 0;
       const staleMs = now - lastHb;
-      
+
       // If heartbeat is stale (>20 min) and no current task, reset to idle
       if (staleMs > 20 * 60 * 1000) {
         if (!agent.current_task_id) {
-          console.log(`🔄 Reconciliation: Reset ${agent.name} (stale heartbeat, no task)`);
-          agents.updateAgentStatus(agent.id, 'idle', null, null);
+          console.log(
+            `🔄 Reconciliation: Reset ${agent.name} (stale heartbeat, no task)`,
+          );
+          agents.updateAgentStatus(agent.id, "idle", null, null);
           agents.updateHeartbeat(agent.id);
           fixes++;
         }
@@ -528,22 +552,32 @@ class StateReconciliationScanner {
     }
 
     // Fix 2: Tasks "in_progress" but assigned agent is idle
-    const inProgressTasks = tasks.getTasks({ status: 'in_progress' });
-    
+    const inProgressTasks = tasks.getTasks({ status: "in_progress" });
+
     for (const task of inProgressTasks) {
       if (!task.assigned_agent_id) {
         // No agent assigned - reset to pending
-        console.log(`🔄 Reconciliation: Reset ${task.display_id} (in_progress but no agent)`);
-        tasks.updateTask(task.id, { status: 'pending', assigned_agent_id: null });
+        console.log(
+          `🔄 Reconciliation: Reset ${task.display_id} (in_progress but no agent)`,
+        );
+        tasks.updateTask(task.id, {
+          status: "pending",
+          assigned_agent_id: null,
+        });
         fixes++;
         continue;
       }
-      
+
       const agent = agents.getAgent(task.assigned_agent_id);
-      if (!agent || agent.status === 'idle') {
+      if (!agent || agent.status === "idle") {
         // Agent is idle but task thinks it's being worked on
-        console.log(`🔄 Reconciliation: Reset ${task.display_id} (agent ${agent?.name || 'unknown'} is idle)`);
-        tasks.updateTask(task.id, { status: 'pending', assigned_agent_id: null });
+        console.log(
+          `🔄 Reconciliation: Reset ${task.display_id} (agent ${agent?.name || "unknown"} is idle)`,
+        );
+        tasks.updateTask(task.id, {
+          status: "pending",
+          assigned_agent_id: null,
+        });
         fixes++;
       }
     }
@@ -552,9 +586,11 @@ class StateReconciliationScanner {
     for (const agent of workingAgents) {
       if (agent.current_task_id) {
         const task = tasks.getTask(agent.current_task_id);
-        if (!task || task.status !== 'in_progress') {
-          console.log(`🔄 Reconciliation: Reset ${agent.name} (task ${agent.current_task_id} not in_progress)`);
-          agents.updateAgentStatus(agent.id, 'idle', null, null);
+        if (!task || task.status !== "in_progress") {
+          console.log(
+            `🔄 Reconciliation: Reset ${agent.name} (task ${agent.current_task_id} not in_progress)`,
+          );
+          agents.updateAgentStatus(agent.id, "idle", null, null);
           agents.updateHeartbeat(agent.id);
           fixes++;
         }
@@ -563,7 +599,7 @@ class StateReconciliationScanner {
 
     // Fix 4: Close orphan running sessions after repeated mismatch checks.
     const runningSessions = sessions.getRunningSessions();
-    const runningSessionIds = new Set(runningSessions.map(s => s.id));
+    const runningSessionIds = new Set(runningSessions.map((s) => s.id));
     for (const [sessionId] of this.sessionMismatchCounts) {
       if (!runningSessionIds.has(sessionId)) {
         this.sessionMismatchCounts.delete(sessionId);
@@ -573,10 +609,10 @@ class StateReconciliationScanner {
     for (const session of runningSessions) {
       const task = session.task_id ? tasks.getTask(session.task_id) : null;
       const agent = agents.getAgent(session.agent_id);
-      const taskAligned = !!task && task.status === 'in_progress';
+      const taskAligned = !!task && task.status === "in_progress";
       const agentAligned =
         !!agent &&
-        agent.status === 'working' &&
+        agent.status === "working" &&
         agent.current_session_id === session.id &&
         agent.current_task_id === session.task_id;
 
@@ -593,9 +629,9 @@ class StateReconciliationScanner {
 
       sessions.updateSessionStatus(
         session.id,
-        'terminated',
+        "terminated",
         undefined,
-        `State reconciliation closed orphan running session (taskAligned=${taskAligned}, agentAligned=${agentAligned})`
+        `State reconciliation closed orphan running session (taskAligned=${taskAligned}, agentAligned=${agentAligned})`,
       );
       this.sessionMismatchCounts.delete(session.id);
       fixes++;
@@ -603,9 +639,9 @@ class StateReconciliationScanner {
 
     if (fixes > 0) {
       console.log(`🔄 State Reconciliation: Fixed ${fixes} inconsistencies`);
-      bus.emit('system:error', { 
-        source: 'state_reconciliation', 
-        error: new Error(`Fixed ${fixes} state inconsistencies`) 
+      bus.emit("system:error", {
+        source: "state_reconciliation",
+        error: new Error(`Fixed ${fixes} state inconsistencies`),
       });
     }
   }
@@ -640,7 +676,7 @@ export function startAllScanners(): void {
   qaVerificationScanner.start();
   selfImprovementScanner.start();
   stateReconciliationScanner.start();
-  console.log('🔍 All scanners started');
+  console.log("🔍 All scanners started");
 }
 
 /**
@@ -654,7 +690,7 @@ export function stopAllScanners(): void {
   qaVerificationScanner.stop();
   selfImprovementScanner.stop();
   stateReconciliationScanner.stop();
-  console.log('🔍 All scanners stopped');
+  console.log("🔍 All scanners stopped");
 }
 
 /**

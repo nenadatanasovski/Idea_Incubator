@@ -11,6 +11,7 @@ This specification documents the investigation into unused import cleanup for te
 ## Background
 
 The task description indicated that test files contained unused imports including:
+
 - RedTeamPersona types
 - `vi` and `beforeEach` from vitest
 - Logger utilities
@@ -28,7 +29,7 @@ The project's `tsconfig.json` currently has unused variable checking **disabled*
 {
   "compilerOptions": {
     "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    "noUnusedParameters": false
     // ... other options
   }
 }
@@ -39,6 +40,7 @@ This configuration choice appears intentional to reduce compilation noise during
 ### TS6133 Warning Analysis
 
 **Test Directories Status:**
+
 ```bash
 # With noUnusedLocals enabled
 npx tsc --noEmit --noUnusedLocals 2>&1 | grep "TS6133" | grep -E "(tests/unit|tests/task-agent)" | wc -l
@@ -46,6 +48,7 @@ npx tsc --noEmit --noUnusedLocals 2>&1 | grep "TS6133" | grep -E "(tests/unit|te
 ```
 
 **Codebase-wide Status:**
+
 ```bash
 # Total TS6133 warnings across entire codebase
 npx tsc --noEmit --noUnusedLocals 2>&1 | grep "TS6133" | wc -l
@@ -59,11 +62,13 @@ npx tsc --noEmit --noUnusedLocals 2>&1 | grep "TS6133" | wc -l
 Sample verification of mentioned test files:
 
 **1. `tests/unit/agents/redteam-extended.test.ts`**
+
 - All imports used: `describe`, `it`, `expect`, `beforeEach`
 - All RedTeamPersona types used: `CORE_PERSONAS`, `EXTENDED_PERSONAS`, `ALL_PERSONAS`, etc.
 - No unused imports detected
 
 **2. `tests/unit/logger.test.ts`**
+
 - All vitest utilities used: `describe`, `it`, `expect`, `vi`, `beforeEach`, `afterEach`
 - All logger utilities used: `setLogLevel`, `logDebug`, `logInfo`, `logWarning`, `logError`
 - `vi` used for `vi.spyOn()` to mock console methods
@@ -71,6 +76,7 @@ Sample verification of mentioned test files:
 - No unused imports detected
 
 **3. `tests/unit/observability/unified-event-emitter.test.ts`**
+
 - All event emitter contexts used: `EventContext`, `EventPayload`
 - All imports properly utilized in test cases
 - No unused imports detected
@@ -98,17 +104,20 @@ The test files show clean import usage because:
 ### Import Categories in Test Files
 
 **Essential Test Framework Imports:**
+
 ```typescript
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 ```
 
 **Type Imports (Used for Type Safety):**
+
 ```typescript
 import type { EventContext, EventPayload } from "../../../types/events.js";
 import { CORE_PERSONAS, EXTENDED_PERSONAS } from "../../../agents/redteam.js";
 ```
 
 **Module Under Test:**
+
 ```typescript
 import { functionToTest } from "../../../path/to/module.js";
 ```
@@ -157,6 +166,7 @@ npm test -- tests/unit/ tests/task-agent/ --run
 If TS6133 warnings appear in test files in the future, the cleanup approach would be:
 
 1. **Identify unused imports**:
+
    ```bash
    npx tsc --noEmit --noUnusedLocals 2>&1 | grep "TS6133" | grep "tests/"
    ```
@@ -204,16 +214,19 @@ npm test -- tests/unit/ tests/task-agent/ --run
 ## Dependencies
 
 ### Project Dependencies
+
 - TypeScript compiler (tsc)
 - Vitest testing framework
 - Node.js test environment
 
 ### Related Files
+
 - `tsconfig.json` - TypeScript configuration
 - `tests/unit/**/*.test.ts` - Unit test files (26 files)
 - `tests/task-agent/**/*.test.ts` - Task agent test files (14 files)
 
 ### Related Tasks
+
 - May relate to broader code quality initiatives
 - Could inform future linting rule configurations
 
@@ -222,6 +235,7 @@ npm test -- tests/unit/ tests/task-agent/ --run
 ### No Work Required
 
 This task represents a case where the described issue has already been resolved, either through:
+
 - Previous cleanup efforts
 - Careful test authoring practices
 - Active code maintenance
@@ -229,6 +243,7 @@ This task represents a case where the described issue has already been resolved,
 ### Historical Context
 
 Based on observation records in the system context, there have been multiple verification attempts for this task:
+
 - Multiple observations confirmed zero TS6133 warnings
 - Test files have been verified to use all imports properly
 - The task description may have been based on outdated information
@@ -245,6 +260,7 @@ Based on observation records in the system context, there have been multiple ver
 **Task Status: ALREADY COMPLETE**
 
 The test directories `tests/unit/` and `tests/task-agent/` contain zero TS6133 unused import warnings when checked with `--noUnusedLocals` enabled. All imports in test files are properly utilized for:
+
 - Test structure and assertions (vitest utilities)
 - Type safety (TypeScript type imports)
 - Test setup and mocking (beforeEach, afterEach, vi)

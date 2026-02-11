@@ -14,6 +14,7 @@ The Task Tracking Dashboard provides comprehensive visualization of task executi
 ### Purpose
 
 Enable users to:
+
 - Monitor task execution across waves and lanes
 - Track progress of parallel task execution
 - Identify bottlenecks and blocked tasks
@@ -32,17 +33,20 @@ This implementation is part of the Parent Harness orchestration system, which co
 ### Functional Requirements
 
 #### FR-1: Dual View Modes
+
 - **Board View**: Traditional task card grid with search/filter capabilities
 - **Waves View**: Wave progress bar + lane grid visualization
 - **Tab Navigation**: Toggle between views without losing state
 
 #### FR-2: Wave Visualization
+
 - **Wave Progress Bar**: Horizontal timeline showing all waves with completion percentages
 - **Active Wave Highlighting**: Visual indicator of currently executing wave
 - **Wave Selection**: Click wave segments to filter lane view
 - **Progress Metrics**: Display tasks total, completed, running, blocked per wave
 
 #### FR-3: Lane Grid Visualization
+
 - **Matrix Layout**: Lanes (rows) × Waves (columns)
 - **Category Icons**: Visual indicators for lane type (database, types, API, UI, tests, infrastructure)
 - **Task Cells**: Individual task representation at lane/wave intersections
@@ -50,18 +54,21 @@ This implementation is part of the Parent Harness orchestration system, which co
 - **Empty State Handling**: Show empty cells for unassigned lane/wave intersections
 
 #### FR-4: Search and Filtering
+
 - **Text Search**: Filter by title, display_id, or assigned agent
 - **Status Filter**: Dropdown for all/pending/in_progress/completed/failed/blocked
 - **Priority Filter**: Dropdown for all/P0/P1/P2/P3/P4
 - **Live Filtering**: Update results as filters change
 
 #### FR-5: Real-time Updates
+
 - **WebSocket Integration**: Subscribe to `task:*`, `agent:*`, `session:*` events
 - **Auto-refresh**: Refetch task data when relevant events occur
 - **Connection Indicator**: Show live/disconnected status
 - **Optimistic Updates**: Immediate UI feedback for user actions
 
 #### FR-6: Task Details
+
 - **Detail Modal**: Full task information overlay
 - **Dependency Graph**: Show tasks that block/are blocked by this task
 - **State History**: Audit trail of status transitions
@@ -70,16 +77,19 @@ This implementation is part of the Parent Harness orchestration system, which co
 ### Non-Functional Requirements
 
 #### NFR-1: Performance
+
 - **Rendering**: Handle 100+ tasks without lag
 - **Filtering**: <100ms filter/search operations
 - **WebSocket Latency**: <500ms event-to-UI update
 
 #### NFR-2: Usability
+
 - **Responsive Design**: Support 1280px-2560px screen widths
 - **Color Accessibility**: WCAG 2.1 AA contrast ratios
 - **Keyboard Navigation**: Tab through filters and task cards
 
 #### NFR-3: Maintainability
+
 - **Type Safety**: Full TypeScript coverage
 - **Component Reusability**: Isolated, composable components
 - **Configuration Objects**: Externalized color schemes and mappings
@@ -143,6 +153,7 @@ This implementation is part of the Parent Harness orchestration system, which co
 #### 1. Pages
 
 **Tasks.tsx** (`parent-harness/dashboard/src/pages/Tasks.tsx`)
+
 - Main orchestration component
 - Manages view state (board vs. waves)
 - Handles search/filter logic
@@ -152,6 +163,7 @@ This implementation is part of the Parent Harness orchestration system, which co
 - **Dependencies**: useTasks, useWebSocket, generateWavesFromTasks, generateLanesFromTasks
 
 **Waves.tsx** (`parent-harness/dashboard/src/pages/Waves.tsx`)
+
 - Dedicated waves view page (alternative to Tasks page waves tab)
 - Wave run tracking with progress bars
 - Task listing by wave number
@@ -161,6 +173,7 @@ This implementation is part of the Parent Harness orchestration system, which co
 #### 2. Components
 
 **WaveProgressBar.tsx** (`parent-harness/dashboard/src/components/WaveProgressBar.tsx`)
+
 - Horizontal timeline of wave execution
 - Segments colored by wave status (pending/active/complete)
 - Shows completion percentage per wave
@@ -171,6 +184,7 @@ This implementation is part of the Parent Harness orchestration system, which co
   - `compact?: boolean` - Compact variant for sidebar
 
 **LaneGrid.tsx** (`parent-harness/dashboard/src/components/LaneGrid.tsx`)
+
 - Matrix grid: lanes (rows) × waves (columns)
 - Lane category icons and hover states
 - Wave column headers with task counts
@@ -181,6 +195,7 @@ This implementation is part of the Parent Harness orchestration system, which co
   - `onTaskClick?: (task: LaneTask) => void` - Cell click handler
 
 **WaveCell.tsx** (`parent-harness/dashboard/src/components/WaveCell.tsx`)
+
 - Individual task cell at lane/wave intersection
 - Status icon and color coding
 - Agent assignment display
@@ -190,6 +205,7 @@ This implementation is part of the Parent Harness orchestration system, which co
   - `onClick?: () => void` - Click handler
 
 **TaskCard.tsx** (`parent-harness/dashboard/src/components/TaskCard.tsx`)
+
 - Task card for board view grid
 - Priority badge (P0-P4)
 - Status badge
@@ -205,6 +221,7 @@ This implementation is part of the Parent Harness orchestration system, which co
   - `onClick?: () => void`
 
 **TaskDetailModal.tsx** (`parent-harness/dashboard/src/components/TaskDetailModal.tsx`)
+
 - Full task information overlay
 - Dependency visualization
 - State history timeline
@@ -218,9 +235,11 @@ This implementation is part of the Parent Harness orchestration system, which co
 **task-pipeline.ts** (`parent-harness/dashboard/src/utils/task-pipeline.ts`)
 
 **Functions**:
+
 ```typescript
 generateWavesFromTasks(tasks: Task[]): Wave[]
 ```
+
 - Maps tasks to wave metadata
 - Priority → Wave mapping: P0→1, P1→2, P2→3, P3→4, P4→5
 - Calculates completion, running, blocked counts
@@ -229,12 +248,14 @@ generateWavesFromTasks(tasks: Task[]): Wave[]
 ```typescript
 generateLanesFromTasks(tasks: Task[]): Lane[]
 ```
+
 - Maps tasks to lane metadata
 - Category → Lane mapping: feature→api, bug→types, test→tests, etc.
 - Groups tasks by category
 - Calculates lane-level statistics
 
 **Mappings**:
+
 ```typescript
 PRIORITY_TO_WAVE: { P0: 1, P1: 2, P2: 3, P3: 4, P4: 5 }
 CATEGORY_TO_LANE: { feature: 'api', bug: 'types', test: 'tests', ... }
@@ -245,51 +266,71 @@ CATEGORY_TO_LANE: { feature: 'api', bug: 'types', test: 'tests', ... }
 **pipeline.ts** (`parent-harness/dashboard/src/types/pipeline.ts`)
 
 **Core Types**:
+
 ```typescript
-type WaveStatus = 'pending' | 'active' | 'complete'
-type TaskStatus = 'pending' | 'running' | 'complete' | 'failed' | 'blocked' | 'skipped'
-type LaneCategory = 'database' | 'types' | 'api' | 'ui' | 'tests' | 'infrastructure'
+type WaveStatus = "pending" | "active" | "complete";
+type TaskStatus =
+  | "pending"
+  | "running"
+  | "complete"
+  | "failed"
+  | "blocked"
+  | "skipped";
+type LaneCategory =
+  | "database"
+  | "types"
+  | "api"
+  | "ui"
+  | "tests"
+  | "infrastructure";
 
 interface Wave {
-  id: string
-  waveNumber: number
-  status: WaveStatus
-  tasksTotal: number
-  tasksCompleted: number
-  tasksRunning: number
-  tasksBlocked: number
-  actualParallelism: number
+  id: string;
+  waveNumber: number;
+  status: WaveStatus;
+  tasksTotal: number;
+  tasksCompleted: number;
+  tasksRunning: number;
+  tasksBlocked: number;
+  actualParallelism: number;
 }
 
 interface LaneTask {
-  taskId: string
-  displayId: string
-  title: string
-  waveNumber: number
-  status: TaskStatus
-  durationMs?: number
-  agentId?: string
-  agentName?: string
-  blockReason?: string
-  blockingTaskId?: string
+  taskId: string;
+  displayId: string;
+  title: string;
+  waveNumber: number;
+  status: TaskStatus;
+  durationMs?: number;
+  agentId?: string;
+  agentName?: string;
+  blockReason?: string;
+  blockingTaskId?: string;
 }
 
 interface Lane {
-  id: string
-  name: string
-  category: LaneCategory
-  status: 'pending' | 'active' | 'complete' | 'blocked'
-  tasksTotal: number
-  tasksCompleted: number
-  tasks: LaneTask[]
+  id: string;
+  name: string;
+  category: LaneCategory;
+  status: "pending" | "active" | "complete" | "blocked";
+  tasksTotal: number;
+  tasksCompleted: number;
+  tasks: LaneTask[];
 }
 ```
 
 **Configuration Objects**:
+
 ```typescript
-WAVE_STATUS_CONFIG: Record<WaveStatus, { bg: string, text: string, border: string }>
-TASK_STATUS_CONFIG: Record<TaskStatus, { icon: string, color: string, label: string }>
-LANE_CATEGORY_CONFIG: Record<LaneCategory, { icon: string, color: string }>
+WAVE_STATUS_CONFIG: Record<
+  WaveStatus,
+  { bg: string; text: string; border: string }
+>;
+TASK_STATUS_CONFIG: Record<
+  TaskStatus,
+  { icon: string; color: string; label: string }
+>;
+LANE_CATEGORY_CONFIG: Record<LaneCategory, { icon: string; color: string }>;
 ```
 
 #### 5. API Integration
@@ -297,6 +338,7 @@ LANE_CATEGORY_CONFIG: Record<LaneCategory, { icon: string, color: string }>
 **Endpoints** (`parent-harness/orchestrator/src/api/tasks.ts`)
 
 **Task CRUD**:
+
 - `GET /api/tasks?status=...&priority=...&assignedAgentId=...&taskListId=...` - List tasks with filters
 - `GET /api/tasks/pending` - Get tasks ready for assignment
 - `GET /api/tasks/:id` - Get single task (by ID or display_id)
@@ -305,6 +347,7 @@ LANE_CATEGORY_CONFIG: Record<LaneCategory, { icon: string, color: string }>
 - `DELETE /api/tasks/:id` - Delete task
 
 **State Management**:
+
 - `POST /api/tasks/:id/assign` - Assign to agent
 - `POST /api/tasks/:id/complete` - Mark complete
 - `POST /api/tasks/:id/fail` - Mark failed
@@ -313,10 +356,12 @@ LANE_CATEGORY_CONFIG: Record<LaneCategory, { icon: string, color: string }>
 - `POST /api/tasks/:id/cancel` - Cancel in-progress task
 
 **Observability**:
+
 - `GET /api/tasks/:id/history` - State transition history
 - `GET /api/tasks/:id/executions` - Execution attempts
 
 **Waves** (`parent-harness/orchestrator/src/api/waves.ts`):
+
 - `GET /api/waves` - Get all wave runs
 - `POST /api/waves/plan/:taskListId` - Plan waves for task list
 - `POST /api/waves/:runId/start` - Start wave run
@@ -326,6 +371,7 @@ LANE_CATEGORY_CONFIG: Record<LaneCategory, { icon: string, color: string }>
 #### 6. Database Schema
 
 **tasks table**:
+
 ```sql
 CREATE TABLE tasks (
     id TEXT PRIMARY KEY,
@@ -350,6 +396,7 @@ CREATE TABLE tasks (
 ```
 
 **Wave tracking tables**:
+
 - `waves` - Wave metadata (run_id, wave_number, status, task_ids)
 - `wave_runs` - Wave run lifecycle (status: planning/running/completed/failed/cancelled)
 - `execution_waves` - Execution-specific wave data
@@ -357,6 +404,7 @@ CREATE TABLE tasks (
 - `lane_tasks` - Task-to-lane mappings
 
 **Support tables**:
+
 - `task_state_history` - Audit trail of status transitions
 - `task_executions` - Execution attempts with metrics
 - `task_relationships` - Dependencies between tasks
@@ -367,6 +415,7 @@ CREATE TABLE tasks (
 **Server**: `ws://localhost:3333/ws`
 
 **Event Types**:
+
 - `task:created` - New task added
 - `task:updated` - Task status/assignment changed
 - `task:completed` - Task finished successfully
@@ -376,17 +425,18 @@ CREATE TABLE tasks (
 - `session:*` - Session lifecycle events
 
 **Client Integration** (`useWebSocket` hook):
+
 ```typescript
-const { connected, subscribe } = useWebSocket()
+const { connected, subscribe } = useWebSocket();
 
 useEffect(() => {
   const unsubscribe = subscribe((message) => {
-    if (message.type.startsWith('task:')) {
-      refetch() // Reload task data
+    if (message.type.startsWith("task:")) {
+      refetch(); // Reload task data
     }
-  })
-  return unsubscribe
-}, [subscribe, refetch])
+  });
+  return unsubscribe;
+}, [subscribe, refetch]);
 ```
 
 ### Data Flow
@@ -580,12 +630,14 @@ npm start                        # Starts both backend and frontend
 ### Configuration
 
 **Frontend** (`parent-harness/dashboard/.env`):
+
 ```
 VITE_API_URL=http://localhost:3333
 VITE_WS_URL=ws://localhost:3333/ws
 ```
 
 **Backend** (`parent-harness/orchestrator/.env`):
+
 ```
 PORT=3333
 DATABASE_PATH=./data/harness.db
@@ -625,36 +677,44 @@ DATABASE_PATH=./data/harness.db
 
 ```typescript
 WAVE_STATUS_CONFIG = {
-  pending: { bg: 'bg-gray-700', text: 'text-gray-300', border: 'border-gray-600' },
-  active:  { bg: 'bg-blue-600', text: 'text-white', border: 'border-blue-500' },
-  complete: { bg: 'bg-green-600', text: 'text-white', border: 'border-green-500' },
-}
+  pending: {
+    bg: "bg-gray-700",
+    text: "text-gray-300",
+    border: "border-gray-600",
+  },
+  active: { bg: "bg-blue-600", text: "text-white", border: "border-blue-500" },
+  complete: {
+    bg: "bg-green-600",
+    text: "text-white",
+    border: "border-green-500",
+  },
+};
 ```
 
 ### Task Status Colors
 
 ```typescript
 TASK_STATUS_CONFIG = {
-  pending:  { icon: '○', color: 'text-gray-400', label: 'Pending' },
-  running:  { icon: '⊙', color: 'text-blue-400', label: 'Running' },
-  complete: { icon: '✓', color: 'text-green-400', label: 'Complete' },
-  failed:   { icon: '✗', color: 'text-red-400', label: 'Failed' },
-  blocked:  { icon: '⊘', color: 'text-yellow-400', label: 'Blocked' },
-  skipped:  { icon: '⊖', color: 'text-gray-500', label: 'Skipped' },
-}
+  pending: { icon: "○", color: "text-gray-400", label: "Pending" },
+  running: { icon: "⊙", color: "text-blue-400", label: "Running" },
+  complete: { icon: "✓", color: "text-green-400", label: "Complete" },
+  failed: { icon: "✗", color: "text-red-400", label: "Failed" },
+  blocked: { icon: "⊘", color: "text-yellow-400", label: "Blocked" },
+  skipped: { icon: "⊖", color: "text-gray-500", label: "Skipped" },
+};
 ```
 
 ### Lane Category Colors
 
 ```typescript
 LANE_CATEGORY_CONFIG = {
-  database: { icon: '🗄️', color: 'text-purple-400' },
-  types:    { icon: '📘', color: 'text-blue-400' },
-  api:      { icon: '🔌', color: 'text-green-400' },
-  ui:       { icon: '🎨', color: 'text-pink-400' },
-  tests:    { icon: '🧪', color: 'text-yellow-400' },
-  infrastructure: { icon: '⚙️', color: 'text-gray-400' },
-}
+  database: { icon: "🗄️", color: "text-purple-400" },
+  types: { icon: "📘", color: "text-blue-400" },
+  api: { icon: "🔌", color: "text-green-400" },
+  ui: { icon: "🎨", color: "text-pink-400" },
+  tests: { icon: "🧪", color: "text-yellow-400" },
+  infrastructure: { icon: "⚙️", color: "text-gray-400" },
+};
 ```
 
 ---
@@ -664,12 +724,14 @@ LANE_CATEGORY_CONFIG = {
 ### GET /api/tasks (Filtered)
 
 **Request**:
+
 ```http
 GET /api/tasks?status=in_progress&priority=P0 HTTP/1.1
 Host: localhost:3333
 ```
 
 **Response**:
+
 ```json
 {
   "tasks": [
@@ -697,12 +759,14 @@ Host: localhost:3333
 ### GET /api/tasks/:id (Detail)
 
 **Request**:
+
 ```http
 GET /api/tasks/task-001 HTTP/1.1
 Host: localhost:3333
 ```
 
 **Response**:
+
 ```json
 {
   "task": {
@@ -711,15 +775,37 @@ Host: localhost:3333
     "title": "Implement user authentication",
     "dependencies": {
       "dependsOn": [
-        { "id": "task-000", "display_id": "TASK-000", "title": "Setup database", "status": "completed" }
+        {
+          "id": "task-000",
+          "display_id": "TASK-000",
+          "title": "Setup database",
+          "status": "completed"
+        }
       ],
       "blocks": [
-        { "id": "task-002", "display_id": "TASK-002", "title": "Add user profile", "status": "pending" }
+        {
+          "id": "task-002",
+          "display_id": "TASK-002",
+          "title": "Add user profile",
+          "status": "pending"
+        }
       ]
     },
     "stateHistory": [
-      { "id": "sh-001", "fromStatus": null, "toStatus": "pending", "changedBy": "user", "changedAt": "2026-02-08T10:00:00Z" },
-      { "id": "sh-002", "fromStatus": "pending", "toStatus": "in_progress", "changedBy": "orchestrator", "changedAt": "2026-02-08T11:00:00Z" }
+      {
+        "id": "sh-001",
+        "fromStatus": null,
+        "toStatus": "pending",
+        "changedBy": "user",
+        "changedAt": "2026-02-08T10:00:00Z"
+      },
+      {
+        "id": "sh-002",
+        "fromStatus": "pending",
+        "toStatus": "in_progress",
+        "changedBy": "orchestrator",
+        "changedAt": "2026-02-08T11:00:00Z"
+      }
     ],
     "testResults": []
   }

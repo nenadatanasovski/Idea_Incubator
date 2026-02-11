@@ -262,17 +262,14 @@ async function runTests(): Promise<TestResult> {
     );
     await saveDb();
 
-    await fetch(
-      `${API_BASE}/session/${sessionId4}/name-idea`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: "Artifact Test Idea",
-          ideaType: "business",
-        }),
-      },
-    );
+    await fetch(`${API_BASE}/session/${sessionId4}/name-idea`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Artifact Test Idea",
+        ideaType: "business",
+      }),
+    });
 
     const artifactRow = await getOne<{ idea_slug: string }>(
       "SELECT idea_slug FROM ideation_artifacts WHERE id = ?",

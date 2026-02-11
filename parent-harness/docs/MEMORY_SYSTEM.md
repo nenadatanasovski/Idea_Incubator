@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS agent_memory (
 ```
 
 **Existing API functions:**
+
 - `remember(agentId, type, key, value, options?)` - Store a memory
 - `recall(agentId, type, key)` - Retrieve specific memory (auto-increments access_count)
 - `recallAll(agentId, type?)` - Get all memories, sorted by importance + access count
@@ -57,6 +58,7 @@ CREATE TABLE IF NOT EXISTS agent_memory (
 **Location:** `parent-harness/orchestrator/src/self-improvement/index.ts`
 
 The retry system creates a `task_retry_attempts` table and provides:
+
 - Retry counting (max 5 retries per task)
 - Error analysis with pattern matching (TypeScript, test, build, timeout errors)
 - Fix approach generation based on error type + previous attempts
@@ -66,16 +68,16 @@ The retry system creates a `task_retry_attempts` table and provides:
 
 ### What Phase 0 Lacks (Addressed in This Plan)
 
-| Capability | Phase 0 | This Plan |
-|------------|---------|-----------|
-| Memory types | 5 basic types | Extended with `decision`, `failure`, `success`, `pattern` |
-| Task signature matching | None | Hash-based similar task matching |
-| Cross-agent learning | Per-agent only | `technique_effectiveness` table |
-| Relevance decay | None (only TTL) | Continuous decay with access boost |
-| Memory consolidation | None | Pattern extraction from clusters |
-| SIA integration | None | Full integration with `sia_task_memory` |
-| Success rate tracking | None | Per-memory effectiveness metrics |
-| Memory access logging | None | `memory_access_log` audit trail |
+| Capability              | Phase 0         | This Plan                                                 |
+| ----------------------- | --------------- | --------------------------------------------------------- |
+| Memory types            | 5 basic types   | Extended with `decision`, `failure`, `success`, `pattern` |
+| Task signature matching | None            | Hash-based similar task matching                          |
+| Cross-agent learning    | Per-agent only  | `technique_effectiveness` table                           |
+| Relevance decay         | None (only TTL) | Continuous decay with access boost                        |
+| Memory consolidation    | None            | Pattern extraction from clusters                          |
+| SIA integration         | None            | Full integration with `sia_task_memory`                   |
+| Success rate tracking   | None            | Per-memory effectiveness metrics                          |
+| Memory access logging   | None            | `memory_access_log` audit trail                           |
 
 ---
 
@@ -84,6 +86,7 @@ The retry system creates a `task_retry_attempts` table and provides:
 **Decision:** Create parent-harness-specific memory tables rather than reusing Vibe tables directly.
 
 **Rationale:**
+
 1. **Isolation** - Harness operates independently from Vibe platform; harness DB is `parent-harness/data/harness.db`, Vibe DB is `database/ideas.db`
 2. **Schema control** - Harness needs different memory granularity (agent-focused vs idea/session-focused)
 3. **Simplicity** - Avoid complex cross-database queries between SQLite files
@@ -290,6 +293,7 @@ CREATE INDEX idx_memory_access_timestamp ON memory_access_log(timestamp);
 The parent-harness already has these SIA-related tables from Vibe:
 
 #### sia_task_memory
+
 ```sql
 -- From database/migrations/132_sia_intervention_tables.sql
 CREATE TABLE sia_task_memory (
@@ -305,6 +309,7 @@ CREATE TABLE sia_task_memory (
 **Usage:** Track per-task SIA intervention history to avoid repeating failed techniques.
 
 #### sia_attempts
+
 ```sql
 CREATE TABLE sia_attempts (
     id TEXT PRIMARY KEY,
@@ -322,6 +327,7 @@ CREATE TABLE sia_attempts (
 **Usage:** Log every SIA intervention attempt for effectiveness analysis.
 
 #### Views for Metrics
+
 ```sql
 -- Already exists in 132_sia_intervention_tables.sql
 CREATE VIEW v_sia_metrics AS
@@ -335,6 +341,7 @@ GROUP BY technique;
 ```
 
 **Integration strategy:**
+
 - Use `sia_task_memory` and `sia_attempts` for SIA-specific interventions
 - Use `agent_memories` for broader agent learning (not just SIA)
 - Use `technique_effectiveness` for cross-agent pattern learning
@@ -346,12 +353,14 @@ GROUP BY technique;
 ### 1. Memory Creation
 
 **When:**
+
 - Task completes successfully → Create 'success' memory
 - Task fails after retries → Create 'failure' memory
 - Agent makes architectural decision → Create 'decision' memory
 - SIA intervenes → Create entry in sia_attempts + update sia_task_memory
 
 **How:**
+
 ```typescript
 async function createMemory(params: {
   agentId: string;
@@ -363,20 +372,28 @@ async function createMemory(params: {
   sessionId?: string;
   taskId?: string;
 }): Promise<string> {
-  const memoryId = generateId('mem');
+  const memoryId = generateId("mem");
 
-  await db.run(`
+  await db.run(
+    `
     INSERT INTO agent_memories (
       id, agent_id, memory_type, content,
       task_signature, error_pattern, context_tags,
       session_id, task_id
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `, [
-    memoryId, params.agentId, params.memoryType, params.content,
-    params.taskSignature, params.errorPattern,
-    JSON.stringify(params.contextTags || []),
-    params.sessionId, params.taskId
-  ]);
+  `,
+    [
+      memoryId,
+      params.agentId,
+      params.memoryType,
+      params.content,
+      params.taskSignature,
+      params.errorPattern,
+      JSON.stringify(params.contextTags || []),
+      params.sessionId,
+      params.taskId,
+    ],
+  );
 
   return memoryId;
 }
@@ -387,11 +404,13 @@ async function createMemory(params: {
 ### 2. Memory Retrieval
 
 **When:**
+
 - Agent starts new task → Query relevant memories
 - Agent encounters error → Query failure memories matching error pattern
 - SIA analyzes failure → Query sia_task_memory and sia_attempts
 
 **How:**
+
 ```typescript
 async function queryMemories(params: {
   agentId: string;
@@ -411,7 +430,7 @@ async function queryMemories(params: {
 
   // 2. Filter by memory type
   if (params.memoryTypes?.length) {
-    query += ` AND memory_type IN (${params.memoryTypes.map(() => '?').join(',')})`;
+    query += ` AND memory_type IN (${params.memoryTypes.map(() => "?").join(",")})`;
     queryParams.push(...params.memoryTypes);
   }
 
@@ -447,28 +466,34 @@ async function queryMemories(params: {
 ### 3. Memory Application
 
 **When:**
+
 - Agent retrieves memories → Inject into system prompt or task context
 - Memory suggests alternative approach → Agent uses it
 
 **How:**
+
 ```typescript
 async function applyMemory(
   memoryId: string,
   agentId: string,
   sessionId: string,
   wasHelpful: boolean,
-  outcome: string
+  outcome: string,
 ): Promise<void> {
   // Log the application
-  await db.run(`
+  await db.run(
+    `
     INSERT INTO memory_access_log (
       memory_id, agent_id, session_id,
       access_type, was_helpful, outcome
     ) VALUES (?, ?, ?, 'applied', ?, ?)
-  `, [memoryId, agentId, sessionId, wasHelpful ? 1 : 0, outcome]);
+  `,
+    [memoryId, agentId, sessionId, wasHelpful ? 1 : 0, outcome],
+  );
 
   // Update memory statistics
-  await db.run(`
+  await db.run(
+    `
     UPDATE agent_memories
     SET
       times_applied = times_applied + 1,
@@ -476,7 +501,9 @@ async function applyMemory(
       success_rate = CAST(times_successful AS REAL) / times_applied,
       last_accessed = datetime('now')
     WHERE id = ?
-  `, [wasHelpful ? 1 : 0, memoryId]);
+  `,
+    [wasHelpful ? 1 : 0, memoryId],
+  );
 }
 ```
 
@@ -487,20 +514,24 @@ async function applyMemory(
 **Purpose:** Old, less-used memories become less relevant over time
 
 **Implementation:**
+
 ```typescript
 async function decayMemories(): Promise<void> {
   // Run periodically (e.g., daily cron job)
 
-  const DECAY_FACTOR = 0.99;  // 1% decay per day
+  const DECAY_FACTOR = 0.99; // 1% decay per day
   const MIN_RELEVANCE = 0.1;
 
-  await db.run(`
+  await db.run(
+    `
     UPDATE agent_memories
     SET
       relevance_score = MAX(?, relevance_score * ?),
       updated_at = datetime('now')
     WHERE relevance_score > ?
-  `, [MIN_RELEVANCE, DECAY_FACTOR, MIN_RELEVANCE]);
+  `,
+    [MIN_RELEVANCE, DECAY_FACTOR, MIN_RELEVANCE],
+  );
 
   // Archive very old, unused memories
   await db.run(`
@@ -514,18 +545,25 @@ async function decayMemories(): Promise<void> {
 ```
 
 **Boost on access:**
-```typescript
-async function updateMemoryAccess(memoryId: string, agentId: string): Promise<void> {
-  const BOOST_FACTOR = 1.05;  // 5% boost on access
 
-  await db.run(`
+```typescript
+async function updateMemoryAccess(
+  memoryId: string,
+  agentId: string,
+): Promise<void> {
+  const BOOST_FACTOR = 1.05; // 5% boost on access
+
+  await db.run(
+    `
     UPDATE agent_memories
     SET
       access_count = access_count + 1,
       relevance_score = MIN(1.0, relevance_score * ?),
       last_accessed = datetime('now')
     WHERE id = ?
-  `, [BOOST_FACTOR, memoryId]);
+  `,
+    [BOOST_FACTOR, memoryId],
+  );
 }
 ```
 
@@ -555,29 +593,35 @@ async function consolidateMemories(): Promise<void> {
 
   // 2. For each cluster, create consolidated memory
   for (const cluster of memories) {
-    const ids = cluster.memory_ids.split(',');
-    const details = await db.all(`
+    const ids = cluster.memory_ids.split(",");
+    const details = await db.all(
+      `
       SELECT content, times_applied, times_successful
       FROM agent_memories
-      WHERE id IN (${ids.map(() => '?').join(',')})
-    `, ids);
+      WHERE id IN (${ids.map(() => "?").join(",")})
+    `,
+      ids,
+    );
 
     // 3. Create pattern memory
     const pattern = analyzePattern(details);
     await createMemory({
       agentId: cluster.agent_id,
-      memoryType: 'pattern',
+      memoryType: "pattern",
       content: pattern.description,
       taskSignature: cluster.task_signature,
-      contextTags: pattern.tags
+      contextTags: pattern.tags,
     });
 
     // 4. Reduce relevance of individual memories (but don't delete)
-    await db.run(`
+    await db.run(
+      `
       UPDATE agent_memories
       SET relevance_score = relevance_score * 0.5
-      WHERE id IN (${ids.map(() => '?').join(',')})
-    `, ids);
+      WHERE id IN (${ids.map(() => "?").join(",")})
+    `,
+      ids,
+    );
   }
 }
 ```
@@ -591,10 +635,7 @@ async function consolidateMemories(): Promise<void> {
 **Inject relevant memories into agent system prompts:**
 
 ```typescript
-async function buildAgentPrompt(
-  agentId: string,
-  task: Task
-): Promise<string> {
+async function buildAgentPrompt(agentId: string, task: Task): Promise<string> {
   const basePrompt = getBasePromptForAgent(agentId);
 
   // Query relevant memories
@@ -602,8 +643,8 @@ async function buildAgentPrompt(
     agentId,
     taskSignature: computeTaskSignature(task),
     contextTags: task.category ? [task.category] : [],
-    memoryTypes: ['success', 'failure', 'preference', 'pattern'],
-    limit: 5
+    memoryTypes: ["success", "failure", "preference", "pattern"],
+    limit: 5,
   });
 
   if (memories.length === 0) {
@@ -617,10 +658,14 @@ async function buildAgentPrompt(
 
 Based on similar past tasks, keep these lessons in mind:
 
-${memories.map((m, i) => `
+${memories
+  .map(
+    (m, i) => `
 ${i + 1}. **${m.memory_type.toUpperCase()}** (success rate: ${(m.success_rate * 100).toFixed(0)}%)
    ${m.content}
-`).join('\n')}
+`,
+  )
+  .join("\n")}
 
 ---
 `;
@@ -639,27 +684,34 @@ ${i + 1}. **${m.memory_type.toUpperCase()}** (success rate: ${(m.success_rate * 
 async function selectSIATechnique(
   task: Task,
   error: string,
-  attempts: number
+  attempts: number,
 ): Promise<string> {
   // 1. Check sia_task_memory for this specific task
-  const taskMemory = await db.get(`
+  const taskMemory = await db.get(
+    `
     SELECT techniques_tried, successful_technique
     FROM sia_task_memory
     WHERE task_id = ?
-  `, task.id);
+  `,
+    task.id,
+  );
 
-  const triedTechniques = taskMemory ?
-    JSON.parse(taskMemory.techniques_tried) : [];
+  const triedTechniques = taskMemory
+    ? JSON.parse(taskMemory.techniques_tried)
+    : [];
 
   // 2. Query technique_effectiveness for error pattern
   const errorSignature = computeErrorSignature(error);
-  const effectiveTechniques = await db.all(`
+  const effectiveTechniques = await db.all(
+    `
     SELECT technique, success_rate
     FROM technique_effectiveness
     WHERE error_pattern LIKE ?
     ORDER BY success_rate DESC
     LIMIT 3
-  `, `%${errorSignature}%`);
+  `,
+    `%${errorSignature}%`,
+  );
 
   // 3. Select best untried technique
   for (const tech of effectiveTechniques) {
@@ -670,10 +722,10 @@ async function selectSIATechnique(
 
   // 4. Fallback to default technique ladder
   const defaultLadder = [
-    'prompt_restructure',
-    'decomposition',
-    'fresh_start',
-    'escalate'
+    "prompt_restructure",
+    "decomposition",
+    "fresh_start",
+    "escalate",
   ];
 
   for (const tech of defaultLadder) {
@@ -682,7 +734,7 @@ async function selectSIATechnique(
     }
   }
 
-  return 'escalate';  // All techniques tried
+  return "escalate"; // All techniques tried
 }
 ```
 
@@ -696,11 +748,11 @@ async function selectSIATechnique(
 async function onTaskComplete(
   task: Task,
   session: AgentSession,
-  result: 'success' | 'failure'
+  result: "success" | "failure",
 ): Promise<void> {
   const agent = await getAgent(session.agent_id);
 
-  if (result === 'success') {
+  if (result === "success") {
     // Extract success patterns
     const iterationLogs = await getIterationLogs(session.id);
     const patterns = analyzeSuccessPatterns(iterationLogs);
@@ -708,43 +760,45 @@ async function onTaskComplete(
     for (const pattern of patterns) {
       await createMemory({
         agentId: agent.id,
-        memoryType: 'success',
+        memoryType: "success",
         content: pattern.description,
         taskSignature: computeTaskSignature(task),
         contextTags: extractTags(task),
         sessionId: session.id,
-        taskId: task.id
+        taskId: task.id,
       });
     }
-
   } else {
     // Extract failure patterns
     const lastError = await getLastError(session.id);
 
     await createMemory({
       agentId: agent.id,
-      memoryType: 'failure',
+      memoryType: "failure",
       content: `Task failed: ${task.title}. Error: ${lastError}`,
       taskSignature: computeTaskSignature(task),
       errorPattern: computeErrorSignature(lastError),
       contextTags: extractTags(task),
       sessionId: session.id,
-      taskId: task.id
+      taskId: task.id,
     });
   }
 
   // Update technique effectiveness if SIA was involved
-  const siaAttempts = await db.all(`
+  const siaAttempts = await db.all(
+    `
     SELECT technique, result_type
     FROM sia_attempts
     WHERE task_id = ?
-  `, task.id);
+  `,
+    task.id,
+  );
 
   for (const attempt of siaAttempts) {
     await updateTechniqueEffectiveness(
       attempt.technique,
       computeErrorSignature(lastError),
-      attempt.result_type === 'fixed'
+      attempt.result_type === "fixed",
     );
   }
 }
@@ -759,22 +813,18 @@ async function onTaskComplete(
 ```typescript
 function computeTaskSignature(task: Task): string {
   // Create a signature for matching similar tasks
-  const components = [
-    task.category,
-    task.owner,
-    task.effort
-  ];
+  const components = [task.category, task.owner, task.effort];
 
   // Extract key terms from title
   const titleTerms = task.title
     .toLowerCase()
     .split(/\s+/)
-    .filter(term => term.length > 3)
+    .filter((term) => term.length > 3)
     .slice(0, 3)
     .sort()
-    .join('_');
+    .join("_");
 
-  return `${components.join('_')}_${titleTerms}`;
+  return `${components.join("_")}_${titleTerms}`;
 }
 ```
 
@@ -784,11 +834,11 @@ function computeTaskSignature(task: Task): string {
 function computeErrorSignature(error: string): string {
   // Normalize error for pattern matching
   return error
-    .replace(/line \d+/gi, 'line N')          // Line numbers
-    .replace(/\d+/g, 'N')                      // All numbers
-    .replace(/['"`]/g, '')                     // Quotes
-    .replace(/\s+/g, ' ')                      // Whitespace
-    .substring(0, 200);                        // Limit length
+    .replace(/line \d+/gi, "line N") // Line numbers
+    .replace(/\d+/g, "N") // All numbers
+    .replace(/['"`]/g, "") // Quotes
+    .replace(/\s+/g, " ") // Whitespace
+    .substring(0, 200); // Limit length
 }
 ```
 
@@ -805,10 +855,23 @@ function extractTags(task: Task): string[] {
   const text = `${task.title} ${task.description}`.toLowerCase();
 
   const techKeywords = [
-    'typescript', 'javascript', 'react', 'node',
-    'database', 'sql', 'api', 'frontend', 'backend',
-    'test', 'e2e', 'unit', 'integration',
-    'migration', 'refactor', 'feature', 'bug'
+    "typescript",
+    "javascript",
+    "react",
+    "node",
+    "database",
+    "sql",
+    "api",
+    "frontend",
+    "backend",
+    "test",
+    "e2e",
+    "unit",
+    "integration",
+    "migration",
+    "refactor",
+    "feature",
+    "bug",
   ];
 
   for (const keyword of techKeywords) {
@@ -926,6 +989,7 @@ ORDER BY date DESC;
 5. **SIA intervention success** - Higher fix rate when using memory
 
 **Target metrics (3 months post-deployment):**
+
 - 30% reduction in repeated failures
 - 70%+ memory application helpfulness rate
 - 85%+ SIA intervention success rate (up from baseline)
@@ -942,33 +1006,36 @@ Use embeddings for better memory matching:
 ```typescript
 interface MemoryEmbedding {
   memory_id: string;
-  embedding: Float32Array;  // 1536-dim vector
-  model: string;            // 'text-embedding-ada-002'
+  embedding: Float32Array; // 1536-dim vector
+  model: string; // 'text-embedding-ada-002'
 }
 
 async function semanticMemorySearch(
   query: string,
   agentId: string,
-  limit: number = 5
+  limit: number = 5,
 ): Promise<AgentMemory[]> {
   // 1. Generate embedding for query
   const queryEmbedding = await generateEmbedding(query);
 
   // 2. Compute cosine similarity with all memories
-  const memories = await db.all(`
+  const memories = await db.all(
+    `
     SELECT * FROM agent_memories WHERE agent_id = ?
-  `, agentId);
+  `,
+    agentId,
+  );
 
-  const scored = memories.map(m => ({
+  const scored = memories.map((m) => ({
     memory: m,
-    similarity: cosineSimilarity(queryEmbedding, m.embedding)
+    similarity: cosineSimilarity(queryEmbedding, m.embedding),
   }));
 
   // 3. Return top matches
   return scored
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, limit)
-    .map(s => s.memory);
+    .map((s) => s.memory);
 }
 ```
 
@@ -1003,15 +1070,15 @@ async function exportMemoriesToSharedPool(): Promise<void> {
 // Import memories from other harnesses
 async function importMemoriesFromSharedPool(): Promise<void> {
   const sharedMemories = await sharedMemoryAPI.query({
-    agentTypes: ['build', 'spec', 'qa'],
-    minUpvotes: 3
+    agentTypes: ["build", "spec", "qa"],
+    minUpvotes: 3,
   });
 
   for (const shared of sharedMemories) {
     await createMemory({
       ...shared.memory,
       content: `[SHARED] ${shared.memory.content}`,
-      relevance_score: 0.6  // Start lower for imported memories
+      relevance_score: 0.6, // Start lower for imported memories
     });
   }
 }
@@ -1024,16 +1091,17 @@ Generate human-readable explanations of why certain memories are retrieved:
 ```typescript
 async function explainMemorySelection(
   memories: AgentMemory[],
-  task: Task
+  task: Task,
 ): Promise<string> {
-  const explanations = memories.map(m =>
-    `- Retrieved "${m.content.substring(0, 50)}..." because:
-       • ${m.success_rate > 0.8 ? 'High success rate' : 'Relevant experience'}
+  const explanations = memories.map(
+    (m) =>
+      `- Retrieved "${m.content.substring(0, 50)}..." because:
+       • ${m.success_rate > 0.8 ? "High success rate" : "Relevant experience"}
        • Applied ${m.times_applied} times before
-       • Matches task signature: ${m.task_signature}`
+       • Matches task signature: ${m.task_signature}`,
   );
 
-  return `Retrieved ${memories.length} relevant memories:\n${explanations.join('\n')}`;
+  return `Retrieved ${memories.length} relevant memories:\n${explanations.join("\n")}`;
 }
 ```
 
@@ -1054,14 +1122,14 @@ async function explainMemorySelection(
 
 ### What Vibe Has That We're Adapting
 
-| Vibe Feature | Harness Equivalent | Notes |
-|--------------|-------------------|-------|
-| `sia_task_memory` | Same table | Reuse as-is for SIA interventions |
-| `sia_attempts` | Same table | Reuse as-is for tracking |
-| `memory_blocks` | `agent_memories` | Simplified, harness-specific |
-| `memory_links` | Not needed yet | Too complex for Phase 1 |
-| `knowledge_entries` | `agent_memories` | Merged concept |
-| `v_sia_metrics` | Same view | Reuse as-is |
+| Vibe Feature        | Harness Equivalent | Notes                             |
+| ------------------- | ------------------ | --------------------------------- |
+| `sia_task_memory`   | Same table         | Reuse as-is for SIA interventions |
+| `sia_attempts`      | Same table         | Reuse as-is for tracking          |
+| `memory_blocks`     | `agent_memories`   | Simplified, harness-specific      |
+| `memory_links`      | Not needed yet     | Too complex for Phase 1           |
+| `knowledge_entries` | `agent_memories`   | Merged concept                    |
+| `v_sia_metrics`     | Same view          | Reuse as-is                       |
 
 ### What We're Adding
 

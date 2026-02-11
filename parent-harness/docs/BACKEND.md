@@ -3,6 +3,7 @@
 Orchestrator and API server for Parent Harness.
 
 ## Tech Stack
+
 - Node.js + TypeScript
 - Express (REST API)
 - WebSocket (ws library)
@@ -16,12 +17,14 @@ Orchestrator and API server for Parent Harness.
 Runs every 60 seconds (configurable).
 
 **Each tick:**
+
 1. Check agent heartbeats
 2. Assign ready tasks to idle agents
 3. Update wave progress
 4. Emit events to dashboard
 
 **Every 15 minutes (QA cycle):**
+
 1. Check all active iterations
 2. Analyze CLI output for stuck agents
 3. Validate completed iterations
@@ -130,6 +133,7 @@ GET /events
 Path: `ws://localhost:3333/ws`
 
 **Server → Client:**
+
 ```typescript
 // Agent status change
 { type: 'agent:status', agentId: string, status: string, taskId?: string }
@@ -151,6 +155,7 @@ Path: `ws://localhost:3333/ws`
 ```
 
 **Client → Server:**
+
 ```typescript
 // Subscribe to specific channels
 { type: 'subscribe', channels: ['agents', 'tasks', 'iterations', 'events'] }
@@ -168,11 +173,13 @@ Path: `ws://localhost:3333/ws`
 ### 4. Telegram Integration
 
 **Bot Setup:**
+
 - Create bot via @BotFather
 - Get token, add to `.env`
 - Create channels, add bot as admin
 
 **Message Functions:**
+
 ```typescript
 sendToChannel(channel: string, message: string): Promise<void>
 sendCritical(message: string): Promise<void>  // Always to @vibe-critical
@@ -180,6 +187,7 @@ sendAgentUpdate(agentId: string, message: string): Promise<void>
 ```
 
 **Message Formatting:**
+
 ```
 🔧 Build Agent starting TASK-042
 📝 File modified: system-prompt.ts (+26 lines)
@@ -262,6 +270,7 @@ getAgentOutput(sessionId: string): Promise<string>
 ### Stuck Detection
 
 An agent is stuck if:
+
 - No new tool calls in last 5 minutes
 - Same error repeated 3+ times
 - No output at all for 10 minutes

@@ -3,7 +3,7 @@
  * Main component for the build phase content area
  */
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Play,
   Pause,
@@ -15,11 +15,11 @@ import {
   XCircle,
   GitCommit,
   FileCode,
-} from 'lucide-react';
-import clsx from 'clsx';
-import { useBuildSession } from '../../hooks/useBuildSession';
-import { TaskListPanel } from './TaskListPanel';
-import { LiveEventsPanel } from './LiveEventsPanel';
+} from "lucide-react";
+import clsx from "clsx";
+import { useBuildSession } from "../../hooks/useBuildSession";
+import { TaskListPanel } from "./TaskListPanel";
+import { LiveEventsPanel } from "./LiveEventsPanel";
 
 interface BuildProgressViewProps {
   ideaId: string;
@@ -46,7 +46,7 @@ export function BuildProgressView({ ideaId }: BuildProgressViewProps) {
   } = useBuildSession({ ideaId });
 
   const [showResolveDialog, setShowResolveDialog] = useState(false);
-  const [resolution, setResolution] = useState('');
+  const [resolution, setResolution] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Handle resolve submit
@@ -56,7 +56,7 @@ export function BuildProgressView({ ideaId }: BuildProgressViewProps) {
     const success = await resolve(resolution.trim());
     if (success) {
       setShowResolveDialog(false);
-      setResolution('');
+      setResolution("");
     }
     setIsSubmitting(false);
   };
@@ -69,7 +69,8 @@ export function BuildProgressView({ ideaId }: BuildProgressViewProps) {
           <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="font-medium text-gray-900 mb-2">Ready to Build</h3>
           <p className="text-gray-600 text-sm mb-4">
-            Start the automated build process to generate code based on the specification.
+            Start the automated build process to generate code based on the
+            specification.
           </p>
           <button
             onClick={startBuild}
@@ -132,10 +133,7 @@ export function BuildProgressView({ ideaId }: BuildProgressViewProps) {
       <div className="p-4 border-b bg-white shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <StatusBadge
-              status={session.status}
-              isConnected={isConnected}
-            />
+            <StatusBadge status={session.status} isConnected={isConnected} />
             <span className="text-sm text-gray-500">
               {session.progress.completed} / {session.progress.total} tasks
             </span>
@@ -173,8 +171,8 @@ export function BuildProgressView({ ideaId }: BuildProgressViewProps) {
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
             className={clsx(
-              'h-2 rounded-full transition-all duration-300',
-              isComplete ? 'bg-green-500' : 'bg-primary-600'
+              "h-2 rounded-full transition-all duration-300",
+              isComplete ? "bg-green-500" : "bg-primary-600",
             )}
             style={{ width: `${progressPercent}%` }}
           />
@@ -205,7 +203,9 @@ export function BuildProgressView({ ideaId }: BuildProgressViewProps) {
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
             <div className="flex-1">
-              <h3 className="font-medium text-amber-800">Human intervention needed</h3>
+              <h3 className="font-medium text-amber-800">
+                Human intervention needed
+              </h3>
               <p className="text-sm text-amber-700 mt-1">
                 The build agent couldn't complete "{currentTask?.name}".
                 {session.lastError && (
@@ -273,10 +273,12 @@ export function BuildProgressView({ ideaId }: BuildProgressViewProps) {
       {showResolveDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-            <h3 className="font-medium text-gray-900 mb-2">Mark Task as Resolved</h3>
+            <h3 className="font-medium text-gray-900 mb-2">
+              Mark Task as Resolved
+            </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Describe what you did to fix "{currentTask?.name}". This will be recorded
-              in the git commit.
+              Describe what you did to fix "{currentTask?.name}". This will be
+              recorded in the git commit.
             </p>
             <textarea
               value={resolution}
@@ -327,11 +329,19 @@ function StatusBadge({
   isConnected: boolean;
 }) {
   const config: Record<string, { label: string; color: string; bg: string }> = {
-    active: { label: 'Building', color: 'text-blue-700', bg: 'bg-blue-100' },
-    paused: { label: 'Paused', color: 'text-amber-700', bg: 'bg-amber-100' },
-    complete: { label: 'Complete', color: 'text-green-700', bg: 'bg-green-100' },
-    failed: { label: 'Failed', color: 'text-red-700', bg: 'bg-red-100' },
-    human_needed: { label: 'Needs Help', color: 'text-amber-700', bg: 'bg-amber-100' },
+    active: { label: "Building", color: "text-blue-700", bg: "bg-blue-100" },
+    paused: { label: "Paused", color: "text-amber-700", bg: "bg-amber-100" },
+    complete: {
+      label: "Complete",
+      color: "text-green-700",
+      bg: "bg-green-100",
+    },
+    failed: { label: "Failed", color: "text-red-700", bg: "bg-red-100" },
+    human_needed: {
+      label: "Needs Help",
+      color: "text-amber-700",
+      bg: "bg-amber-100",
+    },
   };
 
   const statusConfig = config[status] || config.active;
@@ -340,20 +350,20 @@ function StatusBadge({
     <div className="flex items-center gap-2">
       <span
         className={clsx(
-          'px-2.5 py-1 rounded-full text-xs font-medium',
+          "px-2.5 py-1 rounded-full text-xs font-medium",
           statusConfig.bg,
-          statusConfig.color
+          statusConfig.color,
         )}
       >
         {statusConfig.label}
       </span>
-      {status === 'active' && (
+      {status === "active" && (
         <span
           className={clsx(
-            'w-2 h-2 rounded-full',
-            isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
+            "w-2 h-2 rounded-full",
+            isConnected ? "bg-green-500 animate-pulse" : "bg-gray-400",
           )}
-          title={isConnected ? 'Connected' : 'Disconnected'}
+          title={isConnected ? "Connected" : "Disconnected"}
         />
       )}
     </div>

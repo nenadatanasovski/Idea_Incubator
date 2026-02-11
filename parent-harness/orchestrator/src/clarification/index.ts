@@ -1,29 +1,33 @@
 /**
  * Clarification Agent
- * 
+ *
  * Handles strategic plan approval and task clarifications.
  * Implements sync loop with human via Telegram.
  */
 
-import { query, run, getOne } from '../db/index.js';
-import * as tasks from '../db/tasks.js';
-import { notifyAdmin, sendToBot } from '../telegram/index.js';
-import { v4 as uuidv4 } from 'uuid';
+import { query, run, getOne } from "../db/index.js";
+import * as tasks from "../db/tasks.js";
+import { notifyAdmin, sendToBot } from "../telegram/index.js";
+import { v4 as uuidv4 } from "uuid";
 
 // Store pending plan approvals (in-memory resolvers for async flow)
-const pendingApprovals = new Map<string, {
-  planId: string;
-  plan: any;
-  taskListId: string;
-  resolve: (approved: boolean, feedback?: string) => void;
-}>();
+const pendingApprovals = new Map<
+  string,
+  {
+    planId: string;
+    plan: any;
+    taskListId: string;
+    resolve: (approved: boolean, feedback?: string) => void;
+  }
+>();
 
 // Approval timeout (30 minutes)
 const APPROVAL_TIMEOUT_MS = 30 * 60 * 1000;
 
 // Ensure plan_approvals table exists for persistence
 function ensurePlanApprovalsTable(): void {
-  run(`
+  run(
+    `
     CREATE TABLE IF NOT EXISTS plan_approvals (
       id TEXT PRIMARY KEY,
       plan_data TEXT NOT NULL,
@@ -34,8 +38,13 @@ function ensurePlanApprovalsTable(): void {
       updated_at TEXT DEFAULT (datetime('now')),
       expires_at TEXT
     )
-  `, []);
-  run(`CREATE INDEX IF NOT EXISTS idx_plan_approvals_status ON plan_approvals(status)`, []);
+  `,
+    [],
+  );
+  run(
+    `CREATE INDEX IF NOT EXISTS idx_plan_approvals_status ON plan_approvals(status)`,
+    [],
+  );
 }
 
 ensurePlanApprovalsTable();
@@ -46,7 +55,7 @@ export interface ClarificationRequest {
   question: string;
   context: string | null;
   options: string | null; // JSON array of suggested options
-  status: 'pending' | 'answered' | 'expired' | 'skipped';
+  status: "pending" | "answered" | "expired" | "skipped";
   answer: string | null;
   answered_by: string | null;
   created_at: string;
@@ -56,7 +65,8 @@ export interface ClarificationRequest {
 
 // Ensure clarification table exists
 function ensureClarificationTable(): void {
-  run(`
+  run(
+    `
     CREATE TABLE IF NOT EXISTS clarification_requests (
       id TEXT PRIMARY KEY,
       task_id TEXT NOT NULL,
@@ -70,10 +80,18 @@ function ensureClarificationTable(): void {
       answered_at TEXT,
       expires_at TEXT
     )
-  `, []);
+  `,
+    [],
+  );
 
-  run(`CREATE INDEX IF NOT EXISTS idx_clarification_task ON clarification_requests(task_id)`, []);
-  run(`CREATE INDEX IF NOT EXISTS idx_clarification_status ON clarification_requests(status)`, []);
+  run(
+    `CREATE INDEX IF NOT EXISTS idx_clarification_task ON clarification_requests(task_id)`,
+    [],
+  );
+  run(
+    `CREATE INDEX IF NOT EXISTS idx_clarification_status ON clarification_requests(status)`,
+    [],
+  );
 }
 
 ensureClarificationTable();
@@ -88,42 +106,52 @@ export async function requestClarification(
     context?: string;
     suggestedOptions?: string[];
     expiresInHours?: number;
-  }
+  },
 ): Promise<ClarificationRequest> {
   const id = uuidv4();
   const expiresAt = options?.expiresInHours
-    ? new Date(Date.now() + options.expiresInHours * 60 * 60 * 1000).toISOString()
+    ? new Date(
+        Date.now() + options.expiresInHours * 60 * 60 * 1000,
+      ).toISOString()
     : null;
 
-  run(`
+  run(
+    `
     INSERT INTO clarification_requests (id, task_id, question, context, options, expires_at)
     VALUES (?, ?, ?, ?, ?, ?)
-  `, [
-    id,
-    taskId,
-    question,
-    options?.context ?? null,
-    options?.suggestedOptions ? JSON.stringify(options.suggestedOptions) : null,
-    expiresAt,
-  ]);
+  `,
+    [
+      id,
+      taskId,
+      question,
+      options?.context ?? null,
+      options?.suggestedOptions
+        ? JSON.stringify(options.suggestedOptions)
+        : null,
+      expiresAt,
+    ],
+  );
 
   // Block the task until clarification is received
-  tasks.updateTask(taskId, { status: 'blocked' });
+  tasks.updateTask(taskId, { status: "blocked" });
 
   // Notify via Clarification bot
   const task = tasks.getTask(taskId);
   if (task) {
-    await sendToBot('clarification',
+    await sendToBot(
+      "clarification",
       `❓ <b>Clarification Needed</b>\n\n` +
-      `Task: <code>${task.display_id}</code>\n` +
-      `Question: ${question}` +
-      (options?.suggestedOptions 
-        ? `\n\nOptions:\n${options.suggestedOptions.map((o, i) => `${i + 1}. ${o}`).join('\n')}`
-        : '')
+        `Task: <code>${task.display_id}</code>\n` +
+        `Question: ${question}` +
+        (options?.suggestedOptions
+          ? `\n\nOptions:\n${options.suggestedOptions.map((o, i) => `${i + 1}. ${o}`).join("\n")}`
+          : ""),
     );
   }
 
-  console.log(`❓ Clarification requested for ${task?.display_id}: ${question}`);
+  console.log(
+    `❓ Clarification requested for ${task?.display_id}: ${question}`,
+  );
 
   return getClarificationRequest(id)!;
 }
@@ -134,21 +162,24 @@ export async function requestClarification(
 export async function answerClarification(
   requestId: string,
   answer: string,
-  answeredBy?: string
+  answeredBy?: string,
 ): Promise<ClarificationRequest | undefined> {
   const request = getClarificationRequest(requestId);
-  if (!request || request.status !== 'pending') {
+  if (!request || request.status !== "pending") {
     return undefined;
   }
 
-  run(`
+  run(
+    `
     UPDATE clarification_requests 
     SET status = 'answered', answer = ?, answered_by = ?, answered_at = datetime('now')
     WHERE id = ?
-  `, [answer, answeredBy ?? 'human', requestId]);
+  `,
+    [answer, answeredBy ?? "human", requestId],
+  );
 
   // Unblock the task
-  tasks.updateTask(request.task_id, { status: 'pending' });
+  tasks.updateTask(request.task_id, { status: "pending" });
 
   console.log(`✅ Clarification answered for request ${requestId}: ${answer}`);
 
@@ -160,21 +191,24 @@ export async function answerClarification(
  */
 export async function skipClarification(
   requestId: string,
-  reason?: string
+  reason?: string,
 ): Promise<ClarificationRequest | undefined> {
   const request = getClarificationRequest(requestId);
-  if (!request || request.status !== 'pending') {
+  if (!request || request.status !== "pending") {
     return undefined;
   }
 
-  run(`
+  run(
+    `
     UPDATE clarification_requests 
     SET status = 'skipped', answer = ?, answered_at = datetime('now')
     WHERE id = ?
-  `, [reason ?? 'Skipped - using default', requestId]);
+  `,
+    [reason ?? "Skipped - using default", requestId],
+  );
 
   // Unblock the task
-  tasks.updateTask(request.task_id, { status: 'pending' });
+  tasks.updateTask(request.task_id, { status: "pending" });
 
   return getClarificationRequest(requestId);
 }
@@ -182,10 +216,12 @@ export async function skipClarification(
 /**
  * Get a clarification request
  */
-export function getClarificationRequest(id: string): ClarificationRequest | undefined {
+export function getClarificationRequest(
+  id: string,
+): ClarificationRequest | undefined {
   return getOne<ClarificationRequest>(
-    'SELECT * FROM clarification_requests WHERE id = ?',
-    [id]
+    "SELECT * FROM clarification_requests WHERE id = ?",
+    [id],
   );
 }
 
@@ -194,7 +230,7 @@ export function getClarificationRequest(id: string): ClarificationRequest | unde
  */
 export function getPendingClarifications(): ClarificationRequest[] {
   return query<ClarificationRequest>(
-    "SELECT * FROM clarification_requests WHERE status = 'pending' ORDER BY created_at ASC"
+    "SELECT * FROM clarification_requests WHERE status = 'pending' ORDER BY created_at ASC",
   );
 }
 
@@ -203,8 +239,8 @@ export function getPendingClarifications(): ClarificationRequest[] {
  */
 export function getTaskClarifications(taskId: string): ClarificationRequest[] {
   return query<ClarificationRequest>(
-    'SELECT * FROM clarification_requests WHERE task_id = ? ORDER BY created_at DESC',
-    [taskId]
+    "SELECT * FROM clarification_requests WHERE task_id = ? ORDER BY created_at DESC",
+    [taskId],
   );
 }
 
@@ -233,7 +269,7 @@ export function expireOldClarifications(): number {
 export function hasPendingClarification(taskId: string): boolean {
   const pending = getOne<{ count: number }>(
     "SELECT COUNT(*) as count FROM clarification_requests WHERE task_id = ? AND status = 'pending'",
-    [taskId]
+    [taskId],
   );
   return (pending?.count ?? 0) > 0;
 }
@@ -256,29 +292,27 @@ export async function requestPlanApproval(
       deliverables: string[];
     }>;
   },
-  taskListId: string
+  taskListId: string,
 ): Promise<{ approved: boolean; feedback?: string }> {
   // Escape special chars
-  const esc = (s: string) => s
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>');
-  
+  const esc = (s: string) =>
+    s.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">");
+
   // Format FULL plan - sendToBot will auto-chunk if needed
   let message = `🧠 STRATEGIC PLAN REVIEW\n`;
   message += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-  
+
   message += `📋 VISION\n${esc(plan.visionSummary)}\n\n`;
-  
+
   message += `📊 CURRENT STATE\n${esc(plan.currentState)}\n\n`;
-  
+
   if (plan.approach) {
     message += `🎯 APPROACH\n${esc(plan.approach)}\n\n`;
   }
-  
+
   message += `📌 PHASES (${plan.phases.length})\n`;
   message += `━━━━━━━━━━━━━━━━━━━━━━\n`;
-  
+
   for (let i = 0; i < plan.phases.length; i++) {
     const phase = plan.phases[i];
     message += `\n${i + 1}. ${esc(phase.name)} [${phase.priority}]\n`;
@@ -292,20 +326,22 @@ export async function requestPlanApproval(
       }
     }
   }
-  
+
   message += `\n━━━━━━━━━━━━━━━━━━━━━━\n`;
   message += `Reply with:\n`;
   message += `✅ /approve - Accept plan and start execution\n`;
   message += `📝 /feedback <text> - Request changes\n`;
   message += `❌ /reject - Cancel planning\n`;
   message += `\nPlan ID: ${planId}`;
-  
-  console.log(`📨 Sending strategic plan (${message.length} chars) to clarification bot...`);
+
+  console.log(
+    `📨 Sending strategic plan (${message.length} chars) to clarification bot...`,
+  );
 
   // Send to clarification bot
-  const sent = await sendToBot('clarification', message);
+  const sent = await sendToBot("clarification", message);
   if (!sent) {
-    console.warn('⚠️ Failed to send to clarification bot, trying admin...');
+    console.warn("⚠️ Failed to send to clarification bot, trying admin...");
     await notifyAdmin(message);
   }
 
@@ -313,18 +349,27 @@ export async function requestPlanApproval(
 
   // Persist to database for restart recovery
   const expiresAt = new Date(Date.now() + APPROVAL_TIMEOUT_MS).toISOString();
-  run(`
+  run(
+    `
     INSERT OR REPLACE INTO plan_approvals (id, plan_data, task_list_id, status, expires_at)
     VALUES (?, ?, ?, 'pending', ?)
-  `, [planId, JSON.stringify(plan), taskListId, expiresAt]);
+  `,
+    [planId, JSON.stringify(plan), taskListId, expiresAt],
+  );
 
   // Wait for response with timeout
   return new Promise((resolve) => {
     const timeoutId = setTimeout(() => {
       pendingApprovals.delete(planId);
-      run(`UPDATE plan_approvals SET status = 'expired', updated_at = datetime('now') WHERE id = ?`, [planId]);
+      run(
+        `UPDATE plan_approvals SET status = 'expired', updated_at = datetime('now') WHERE id = ?`,
+        [planId],
+      );
       console.log(`⏰ Plan approval timed out: ${planId}`);
-      resolve({ approved: false, feedback: 'Approval timed out after 30 minutes' });
+      resolve({
+        approved: false,
+        feedback: "Approval timed out after 30 minutes",
+      });
     }, APPROVAL_TIMEOUT_MS);
 
     pendingApprovals.set(planId, {
@@ -335,8 +380,10 @@ export async function requestPlanApproval(
         clearTimeout(timeoutId);
         pendingApprovals.delete(planId);
         // Update DB status
-        run(`UPDATE plan_approvals SET status = ?, feedback = ?, updated_at = datetime('now') WHERE id = ?`, 
-          [approved ? 'approved' : 'rejected', feedback || null, planId]);
+        run(
+          `UPDATE plan_approvals SET status = ?, feedback = ?, updated_at = datetime('now') WHERE id = ?`,
+          [approved ? "approved" : "rejected", feedback || null, planId],
+        );
         resolve({ approved, feedback });
       },
     });
@@ -349,7 +396,7 @@ export async function requestPlanApproval(
 export function handleApprovalResponse(
   command: string,
   args: string,
-  chatId: string
+  chatId: string,
 ): { handled: boolean; message?: string } {
   // Check for pending approvals
   if (pendingApprovals.size === 0) {
@@ -359,30 +406,30 @@ export function handleApprovalResponse(
   // Get most recent pending approval
   const [planId, pending] = [...pendingApprovals.entries()][0];
 
-  if (command === '/approve') {
+  if (command === "/approve") {
     console.log(`✅ Plan approved: ${planId}`);
     pending.resolve(true);
-    return { 
-      handled: true, 
-      message: `✅ Plan approved! Starting task decomposition...` 
+    return {
+      handled: true,
+      message: `✅ Plan approved! Starting task decomposition...`,
     };
   }
 
-  if (command === '/feedback') {
+  if (command === "/feedback") {
     console.log(`📝 Plan feedback received: ${planId}`);
-    pending.resolve(false, args || 'Feedback requested');
-    return { 
-      handled: true, 
-      message: `📝 Feedback received. Revising plan...` 
+    pending.resolve(false, args || "Feedback requested");
+    return {
+      handled: true,
+      message: `📝 Feedback received. Revising plan...`,
     };
   }
 
-  if (command === '/reject') {
+  if (command === "/reject") {
     console.log(`❌ Plan rejected: ${planId}`);
-    pending.resolve(false, 'Plan rejected');
-    return { 
-      handled: true, 
-      message: `❌ Plan rejected. Planning cancelled.` 
+    pending.resolve(false, "Plan rejected");
+    return {
+      handled: true,
+      message: `❌ Plan rejected. Planning cancelled.`,
     };
   }
 
@@ -396,7 +443,7 @@ export function hasPendingApproval(): boolean {
   if (pendingApprovals.size > 0) return true;
   // Also check DB for pending approvals not yet expired
   const dbPending = getOne<{ count: number }>(
-    "SELECT COUNT(*) as count FROM plan_approvals WHERE status = 'pending' AND expires_at > datetime('now')"
+    "SELECT COUNT(*) as count FROM plan_approvals WHERE status = 'pending' AND expires_at > datetime('now')",
   );
   return (dbPending?.count ?? 0) > 0;
 }
@@ -404,21 +451,33 @@ export function hasPendingApproval(): boolean {
 /**
  * Get pending approval details (in-memory first, then DB)
  */
-export function getPendingApproval(): { planId: string; plan: any; taskListId: string } | null {
+export function getPendingApproval(): {
+  planId: string;
+  plan: any;
+  taskListId: string;
+} | null {
   // Check in-memory first
   if (pendingApprovals.size > 0) {
     const [, pending] = [...pendingApprovals.entries()][0];
-    return { planId: pending.planId, plan: pending.plan, taskListId: pending.taskListId };
+    return {
+      planId: pending.planId,
+      plan: pending.plan,
+      taskListId: pending.taskListId,
+    };
   }
   // Check DB for pending approvals
-  const dbPending = getOne<{ id: string; plan_data: string; task_list_id: string }>(
-    "SELECT id, plan_data, task_list_id FROM plan_approvals WHERE status = 'pending' AND expires_at > datetime('now') ORDER BY created_at DESC LIMIT 1"
+  const dbPending = getOne<{
+    id: string;
+    plan_data: string;
+    task_list_id: string;
+  }>(
+    "SELECT id, plan_data, task_list_id FROM plan_approvals WHERE status = 'pending' AND expires_at > datetime('now') ORDER BY created_at DESC LIMIT 1",
   );
   if (dbPending) {
-    return { 
-      planId: dbPending.id, 
+    return {
+      planId: dbPending.id,
       plan: JSON.parse(dbPending.plan_data),
-      taskListId: dbPending.task_list_id
+      taskListId: dbPending.task_list_id,
     };
   }
   return null;
@@ -427,35 +486,47 @@ export function getPendingApproval(): { planId: string; plan: any; taskListId: s
 /**
  * Approve a pending plan directly (for API calls after restart)
  */
-export function approvePendingPlan(planId?: string): { approved: boolean; plan?: any; taskListId?: string } {
+export function approvePendingPlan(planId?: string): {
+  approved: boolean;
+  plan?: any;
+  taskListId?: string;
+} {
   // If in-memory resolver exists, use it
   if (pendingApprovals.size > 0) {
     const [id, pending] = [...pendingApprovals.entries()][0];
     console.log(`✅ Plan approved (in-memory): ${id}`);
     pending.resolve(true);
-    return { approved: true, plan: pending.plan, taskListId: pending.taskListId };
-  }
-  
-  // Otherwise, check DB and mark as approved
-  const targetId = planId;
-  const dbPending = targetId 
-    ? getOne<{ id: string; plan_data: string; task_list_id: string }>(
-        "SELECT id, plan_data, task_list_id FROM plan_approvals WHERE id = ? AND status = 'pending'", [targetId]
-      )
-    : getOne<{ id: string; plan_data: string; task_list_id: string }>(
-        "SELECT id, plan_data, task_list_id FROM plan_approvals WHERE status = 'pending' AND expires_at > datetime('now') ORDER BY created_at DESC LIMIT 1"
-      );
-  
-  if (dbPending) {
-    run(`UPDATE plan_approvals SET status = 'approved', updated_at = datetime('now') WHERE id = ?`, [dbPending.id]);
-    console.log(`✅ Plan approved (from DB): ${dbPending.id}`);
-    return { 
-      approved: true, 
-      plan: JSON.parse(dbPending.plan_data),
-      taskListId: dbPending.task_list_id
+    return {
+      approved: true,
+      plan: pending.plan,
+      taskListId: pending.taskListId,
     };
   }
-  
+
+  // Otherwise, check DB and mark as approved
+  const targetId = planId;
+  const dbPending = targetId
+    ? getOne<{ id: string; plan_data: string; task_list_id: string }>(
+        "SELECT id, plan_data, task_list_id FROM plan_approvals WHERE id = ? AND status = 'pending'",
+        [targetId],
+      )
+    : getOne<{ id: string; plan_data: string; task_list_id: string }>(
+        "SELECT id, plan_data, task_list_id FROM plan_approvals WHERE status = 'pending' AND expires_at > datetime('now') ORDER BY created_at DESC LIMIT 1",
+      );
+
+  if (dbPending) {
+    run(
+      `UPDATE plan_approvals SET status = 'approved', updated_at = datetime('now') WHERE id = ?`,
+      [dbPending.id],
+    );
+    console.log(`✅ Plan approved (from DB): ${dbPending.id}`);
+    return {
+      approved: true,
+      plan: JSON.parse(dbPending.plan_data),
+      taskListId: dbPending.task_list_id,
+    };
+  }
+
   return { approved: false };
 }
 

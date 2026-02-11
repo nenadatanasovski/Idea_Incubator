@@ -1,10 +1,22 @@
 // server/pipeline/types.ts
 // Type definitions for pipeline module
 
-import { IdeaPhase, IdeaState, IdeationProgress, SpecProgress, BuildProgress } from './orchestrator';
+import {
+  IdeaPhase,
+  IdeaState,
+  IdeationProgress,
+  SpecProgress,
+  BuildProgress,
+} from "./orchestrator";
 
 // Re-export types from orchestrator
-export type { IdeaPhase, IdeaState, IdeationProgress, SpecProgress, BuildProgress };
+export type {
+  IdeaPhase,
+  IdeaState,
+  IdeationProgress,
+  SpecProgress,
+  BuildProgress,
+};
 
 // API Response types
 export interface PipelineStatusResponse {
@@ -27,7 +39,11 @@ export interface TransitionResponse {
 
 // WebSocket event types
 export interface PipelineWebSocketEvent {
-  type: 'transition' | 'progress' | 'transitionAvailable' | 'humanReviewRequired';
+  type:
+    | "transition"
+    | "progress"
+    | "transitionAvailable"
+    | "humanReviewRequired";
   ideaId: string;
   data: any;
 }
@@ -56,7 +72,7 @@ export interface TaskDefinition {
   featureId: string;
   name: string;
   description: string;
-  type: 'setup' | 'database' | 'api' | 'ui' | 'integration' | 'test';
+  type: "setup" | "database" | "api" | "ui" | "integration" | "test";
   dependencies: string[];
   estimatedMinutes: number;
   technicalDetails: string;

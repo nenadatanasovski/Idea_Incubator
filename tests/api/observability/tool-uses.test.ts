@@ -227,10 +227,39 @@ describe("GET /api/observability/executions/:id/tool-summary", () => {
   it("returns aggregated tool statistics", async () => {
     // Use mockToolUses which also sets up getToolSummary
     mockToolUses(execId, [
-      { id: "t-1", tool: "Read", toolCategory: "file_operation", inputSummary: "Read file", resultStatus: "success", durationMs: 100 },
-      { id: "t-2", tool: "Read", toolCategory: "file_operation", inputSummary: "Read file", resultStatus: "success", durationMs: 100 },
-      { id: "t-3", tool: "Write", toolCategory: "file_operation", inputSummary: "Write file", resultStatus: "success", durationMs: 200 },
-      { id: "t-4", tool: "Write", toolCategory: "file_operation", inputSummary: "Write file", resultStatus: "error", isError: true, durationMs: 50 },
+      {
+        id: "t-1",
+        tool: "Read",
+        toolCategory: "file_operation",
+        inputSummary: "Read file",
+        resultStatus: "success",
+        durationMs: 100,
+      },
+      {
+        id: "t-2",
+        tool: "Read",
+        toolCategory: "file_operation",
+        inputSummary: "Read file",
+        resultStatus: "success",
+        durationMs: 100,
+      },
+      {
+        id: "t-3",
+        tool: "Write",
+        toolCategory: "file_operation",
+        inputSummary: "Write file",
+        resultStatus: "success",
+        durationMs: 200,
+      },
+      {
+        id: "t-4",
+        tool: "Write",
+        toolCategory: "file_operation",
+        inputSummary: "Write file",
+        resultStatus: "error",
+        isError: true,
+        durationMs: 50,
+      },
     ]);
 
     // Additional mock for getMocks compatibility (ignore this)
@@ -277,8 +306,26 @@ describe("GET /api/observability/executions/:id/tool-summary", () => {
   it("byTool breakdown includes counts", async () => {
     // Use mockToolUses to set up both getToolUses and getToolSummary
     mockToolUses(execId, [
-      ...Array(10).fill(null).map((_, i) => ({ id: `r-${i}`, tool: "Read", toolCategory: "file_operation", inputSummary: "Read", resultStatus: "success", durationMs: 100 })),
-      ...Array(5).fill(null).map((_, i) => ({ id: `w-${i}`, tool: "Write", toolCategory: "file_operation", inputSummary: "Write", resultStatus: "success", durationMs: 100 })),
+      ...Array(10)
+        .fill(null)
+        .map((_, i) => ({
+          id: `r-${i}`,
+          tool: "Read",
+          toolCategory: "file_operation",
+          inputSummary: "Read",
+          resultStatus: "success",
+          durationMs: 100,
+        })),
+      ...Array(5)
+        .fill(null)
+        .map((_, i) => ({
+          id: `w-${i}`,
+          tool: "Write",
+          toolCategory: "file_operation",
+          inputSummary: "Write",
+          resultStatus: "success",
+          durationMs: 100,
+        })),
     ]);
 
     const res = await request(app).get(
@@ -294,8 +341,27 @@ describe("GET /api/observability/executions/:id/tool-summary", () => {
   it("includes error rate calculation", async () => {
     // Use mockToolUses with some errors
     mockToolUses(execId, [
-      ...Array(8).fill(null).map((_, i) => ({ id: `s-${i}`, tool: "Read", toolCategory: "file_operation", inputSummary: "Read", resultStatus: "success", durationMs: 100 })),
-      ...Array(2).fill(null).map((_, i) => ({ id: `e-${i}`, tool: "Read", toolCategory: "file_operation", inputSummary: "Read", resultStatus: "error", isError: true, durationMs: 50 })),
+      ...Array(8)
+        .fill(null)
+        .map((_, i) => ({
+          id: `s-${i}`,
+          tool: "Read",
+          toolCategory: "file_operation",
+          inputSummary: "Read",
+          resultStatus: "success",
+          durationMs: 100,
+        })),
+      ...Array(2)
+        .fill(null)
+        .map((_, i) => ({
+          id: `e-${i}`,
+          tool: "Read",
+          toolCategory: "file_operation",
+          inputSummary: "Read",
+          resultStatus: "error",
+          isError: true,
+          durationMs: 50,
+        })),
     ]);
 
     const res = await request(app).get(

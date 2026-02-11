@@ -35,7 +35,13 @@ export interface ArchitectureDoc {
 export interface ComponentSpec {
   id: string;
   name: string;
-  type: 'frontend' | 'backend' | 'database' | 'service' | 'library' | 'infrastructure';
+  type:
+    | "frontend"
+    | "backend"
+    | "database"
+    | "service"
+    | "library"
+    | "infrastructure";
   description: string;
   responsibilities: string[];
   dependencies: string[];
@@ -51,8 +57,8 @@ export interface ComponentSpec {
  */
 export interface ComponentInterface {
   name: string;
-  type: 'rest' | 'graphql' | 'grpc' | 'websocket' | 'event' | 'function';
-  direction: 'inbound' | 'outbound';
+  type: "rest" | "graphql" | "grpc" | "websocket" | "event" | "function";
+  direction: "inbound" | "outbound";
   description: string;
   contract?: string;
 }
@@ -89,7 +95,7 @@ export interface TechChoice {
 export interface APIContract {
   id: string;
   name: string;
-  type: 'rest' | 'graphql' | 'grpc' | 'websocket';
+  type: "rest" | "graphql" | "grpc" | "websocket";
   baseUrl?: string;
   version: string;
   endpoints?: RESTEndpoint[];
@@ -105,7 +111,7 @@ export interface APIContract {
  */
 export interface RESTEndpoint {
   path: string;
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   description: string;
   parameters?: Parameter[];
   requestBody?: SchemaRef;
@@ -158,7 +164,7 @@ export interface ResponseSpec {
  * Authentication specification
  */
 export interface AuthenticationSpec {
-  type: 'jwt' | 'oauth2' | 'apikey' | 'basic' | 'custom';
+  type: "jwt" | "oauth2" | "apikey" | "basic" | "custom";
   description: string;
   flow?: string;
   tokenLocation?: string;
@@ -170,14 +176,14 @@ export interface AuthenticationSpec {
 export interface RateLimitSpec {
   maxRequests: number;
   windowMs: number;
-  strategy: 'fixed' | 'sliding' | 'token-bucket';
+  strategy: "fixed" | "sliding" | "token-bucket";
 }
 
 /**
  * Database schema - defines data model
  */
 export interface DatabaseSchema {
-  type: 'sql' | 'nosql' | 'graph' | 'timeseries' | 'hybrid';
+  type: "sql" | "nosql" | "graph" | "timeseries" | "hybrid";
   tables?: TableSchema[];
   collections?: CollectionSchema[];
   relationships?: Relationship[];
@@ -223,7 +229,7 @@ export interface CollectionSchema {
  */
 export interface Relationship {
   name: string;
-  type: 'one-to-one' | 'one-to-many' | 'many-to-many';
+  type: "one-to-one" | "one-to-many" | "many-to-many";
   from: string;
   to: string;
   foreignKey?: string;
@@ -238,14 +244,14 @@ export interface IndexSpec {
   table: string;
   columns: string[];
   unique: boolean;
-  type?: 'btree' | 'hash' | 'gin' | 'gist';
+  type?: "btree" | "hash" | "gin" | "gist";
 }
 
 /**
  * Migration strategy
  */
 export interface MigrationStrategy {
-  approach: 'schema-first' | 'code-first' | 'migrations';
+  approach: "schema-first" | "code-first" | "migrations";
   tool?: string;
   versionControl: boolean;
 }
@@ -254,7 +260,7 @@ export interface MigrationStrategy {
  * Deployment architecture
  */
 export interface DeploymentArchitecture {
-  strategy: 'monolith' | 'microservices' | 'serverless' | 'hybrid';
+  strategy: "monolith" | "microservices" | "serverless" | "hybrid";
   environments: Environment[];
   scaling: ScalingStrategy;
   monitoring: MonitoringStrategy;
@@ -274,7 +280,7 @@ export interface Environment {
  * Scaling strategy
  */
 export interface ScalingStrategy {
-  type: 'horizontal' | 'vertical' | 'hybrid';
+  type: "horizontal" | "vertical" | "hybrid";
   triggers: string[];
   limits: Record<string, number>;
 }
@@ -321,7 +327,7 @@ export interface AlertingConfig {
 export interface AlertRule {
   name: string;
   condition: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: "low" | "medium" | "high" | "critical";
   notification: string[];
 }
 
@@ -330,10 +336,16 @@ export interface AlertRule {
  */
 export interface QualityAttribute {
   name: string;
-  category: 'performance' | 'security' | 'reliability' | 'maintainability' | 'scalability' | 'usability';
+  category:
+    | "performance"
+    | "security"
+    | "reliability"
+    | "maintainability"
+    | "scalability"
+    | "usability";
   requirement: string;
   measurement: string;
-  priority: 'must-have' | 'should-have' | 'nice-to-have';
+  priority: "must-have" | "should-have" | "nice-to-have";
 }
 
 /**
@@ -341,10 +353,15 @@ export interface QualityAttribute {
  */
 export interface ArchitectureRisk {
   id: string;
-  category: 'technical' | 'security' | 'performance' | 'operational' | 'business';
+  category:
+    | "technical"
+    | "security"
+    | "performance"
+    | "operational"
+    | "business";
   description: string;
-  impact: 'low' | 'medium' | 'high' | 'critical';
-  probability: 'low' | 'medium' | 'high';
+  impact: "low" | "medium" | "high" | "critical";
+  probability: "low" | "medium" | "high";
   mitigation: string;
   owner?: string;
 }

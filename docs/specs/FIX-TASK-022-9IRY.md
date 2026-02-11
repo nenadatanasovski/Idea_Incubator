@@ -17,6 +17,7 @@ This specification documents the investigation and verification of FIX-TASK-022-
 ## Problem Statement (Original)
 
 The original issue reported:
+
 - In `tests/task-agent/task-version-service.test.ts`, lines 205-206 attempted to access `diff.changes` properties
 - The diff property was typed as `{ from: unknown; to: unknown; }` (an object)
 - Tests expected it to be an array with `field`, `from`, and `to` properties
@@ -25,6 +26,7 @@ The original issue reported:
 ## Root Cause Analysis
 
 The root cause was a type mismatch in `types/task-version.ts`:
+
 ```typescript
 // BEFORE (incorrect)
 export interface VersionDiff {
@@ -35,6 +37,7 @@ export interface VersionDiff {
 ```
 
 The `changes` property was typed as a `Record` (object), but:
+
 1. The implementation in `task-version-service.ts` was building an array
 2. The tests were consuming it as an array with `.some()` method calls
 
@@ -97,18 +100,23 @@ expect(diff.changes.some((c) => c.field === "priority")).toBe(true);
 All pass criteria are met:
 
 ### ✅ Pass Criterion 1: All tests pass
+
 ```bash
 npm test -- tests/task-agent/task-version-service.test.ts
 ```
+
 **Result**: ✅ All 11 tests pass (296ms)
 
 ### ✅ Pass Criterion 2: Build succeeds
+
 ```bash
 npm run build
 ```
+
 **Result**: ✅ TypeScript compilation successful with no errors
 
 ### ✅ Pass Criterion 3: TypeScript compiles
+
 **Result**: ✅ No TypeScript errors in any related files
 
 ## Testing Evidence
@@ -123,6 +131,7 @@ npm run build
 ```
 
 All 11 tests in the task-version-service test suite pass:
+
 - createVersion: initial version, increment version numbers, capture task snapshot
 - getVersions: return all versions for a task
 - getVersion: return specific version, return null for non-existent version
@@ -151,6 +160,7 @@ ecfaf59 fix: Exclude integration and e2e tests from default test run
 ```
 
 The commit history shows:
+
 - `6ce2bc1` - Original fix for TASK-014 (same issue as TASK-022)
 - `5d87a4f` - Previous verification that TASK-022 was already completed
 
@@ -165,12 +175,14 @@ All three task identifiers refer to the same underlying issue.
 ## Conclusion
 
 **TASK-022 was already completed in commit 6ce2bc1 on 2026-02-07 as part of TASK-014**. The fix correctly:
+
 1. Changed `VersionDiff.changes` type from `Record<string, { from: unknown; to: unknown }>` to `Array<{ field: string; from: unknown; to: unknown }>`
 2. Updated service implementation to build an array instead of an object
 3. Modified test assertions to use array methods (`.some()`) instead of object property access
 4. Updated all consumers across the codebase
 
 All three pass criteria are verified as passing:
+
 - ✅ All tests pass (11/11 in task-version-service.test.ts)
 - ✅ Build succeeds (TypeScript compilation clean)
 - ✅ TypeScript compiles (no TS2349 or other errors)

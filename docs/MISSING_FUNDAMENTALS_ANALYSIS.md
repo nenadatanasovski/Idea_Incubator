@@ -18,17 +18,17 @@ The Idea Incubator is an impressive **AI-powered evaluation system** with sophis
 
 ### Critical Missing Fundamentals (Priority Order)
 
-| Priority    | Gap                             | Impact                                                      | Status |
-| ----------- | ------------------------------- | ----------------------------------------------------------- | ------ |
+| Priority    | Gap                             | Impact                                                      | Status       |
+| ----------- | ------------------------------- | ----------------------------------------------------------- | ------------ |
 | 🔴 Critical | Evidence & Validation Tracking  | Scores remain theoretical without reality feedback          | ✅ ADDRESSED |
 | 🔴 Critical | Assumption Management           | No systematic way to identify and test critical assumptions | ✅ ADDRESSED |
 | 🔴 Critical | Learning & Iteration Loop       | No mechanism to evolve ideas through insights               | ✅ ADDRESSED |
-| 🟠 High     | Unit Economics & Business Model | No viability math beyond qualitative scores                 | 🔲 NEEDED |
-| 🟠 High     | First Customer & ICP Definition | No path from idea to actual customer                        | 🔲 NEEDED |
+| 🟠 High     | Unit Economics & Business Model | No viability math beyond qualitative scores                 | 🔲 NEEDED    |
+| 🟠 High     | First Customer & ICP Definition | No path from idea to actual customer                        | 🔲 NEEDED    |
 | 🟠 High     | Decision & Progress Tracking    | No accountability or momentum measurement                   | ✅ ADDRESSED |
-| 🟡 Medium   | Portfolio & Resource Allocation | Can't optimize across multiple ideas                        | 🔲 NEEDED |
-| 🟡 Medium   | Exit Criteria & Pivot Logic     | No principled framework for when to quit                    | 🔲 NEEDED |
-| 🟡 Medium   | External Event Monitoring       | Ideas exist in vacuum without market context                | 🔲 NEEDED |
+| 🟡 Medium   | Portfolio & Resource Allocation | Can't optimize across multiple ideas                        | 🔲 NEEDED    |
+| 🟡 Medium   | Exit Criteria & Pivot Logic     | No principled framework for when to quit                    | 🔲 NEEDED    |
+| 🟡 Medium   | External Event Monitoring       | Ideas exist in vacuum without market context                | 🔲 NEEDED    |
 
 **Status Key:** ✅ ADDRESSED = Architecture provides solution | 🔲 NEEDED = Still requires implementation
 
@@ -85,6 +85,7 @@ The current system excels at **Step 0** (initial evaluation) but lacks infrastru
 ### 🔴 Gap 1: Evidence & Validation Tracking
 
 > **✅ STATUS: ADDRESSED** by unified architecture
+>
 > - `evidence` block type captures validation data linked to assumptions
 > - ARCH-011 (Evidence-Grounded Scoring) ensures scores reflect reality
 > - Sub-gaps still needed: Customer Discovery Tracking (interview logs, surveys), Signal Tracking dashboard
@@ -136,6 +137,7 @@ Without evidence tracking, evaluations remain **intellectual exercises**. An ide
 ### 🔴 Gap 2: Assumption Management
 
 > **✅ STATUS: ADDRESSED** by unified architecture
+>
 > - `assumption` block type with validation status tracking (untested → validated/invalidated)
 > - `question` block type for unknowns requiring investigation
 > - Assumptions link to evidence blocks when validated
@@ -194,6 +196,7 @@ Many ideas fail because founders test the wrong assumptions (the ones they're co
 ### 🔴 Gap 3: Learning & Iteration Loop
 
 > **✅ STATUS: ADDRESSED** by unified architecture
+>
 > - ARCH-013 (Proactive Loop) provides continuous monitoring and reassessment
 > - ARCH-012 (SIA - Structured Insight Accumulator) captures and synthesizes learnings
 > - Insight blocks link to idea evolution
@@ -255,6 +258,7 @@ Without iteration tracking, you can't tell if you're making progress. You might 
 ### 🟠 Gap 4: Unit Economics & Business Model
 
 > **🔲 STATUS: STILL NEEDED**
+>
 > - Architecture provides foundation (blocks can store this data)
 > - Requires: Unit Economics Calculator, Business Model Canvas templates, viability analysis tools
 
@@ -322,6 +326,7 @@ Many passionate founders pursue ideas that are structurally unprofitable. Early 
 ### 🟠 Gap 5: First Customer & ICP Definition
 
 > **🔲 STATUS: STILL NEEDED**
+>
 > - Architecture can store customer data via blocks
 > - Requires: ICP Definition Framework, Customer Journey templates, segment prioritization tools
 
@@ -390,6 +395,7 @@ You can't validate an idea without talking to customers. You can't talk to custo
 ### 🟠 Gap 6: Decision & Progress Tracking
 
 > **✅ STATUS: ADDRESSED** by unified architecture
+>
 > - `decision` block type logs decisions with rationale and outcomes
 > - `task` block type with status tracking (pending → done/blocked)
 > - Block relationships create accountability chains
@@ -462,6 +468,7 @@ Without progress tracking, you can work for months without real advancement. Mil
 ### 🟡 Gap 7: Portfolio & Resource Allocation
 
 > **🔲 STATUS: STILL NEEDED**
+>
 > - Ideas exist as separate block trees; cross-idea comparison not yet implemented
 > - Requires: Portfolio dashboard, resource allocation views, opportunity cost analysis
 
@@ -489,6 +496,7 @@ Most founders/creators have multiple ideas. Choosing which to pursue is as impor
 ### 🟡 Gap 8: Exit Criteria & Pivot Logic
 
 > **🔲 STATUS: STILL NEEDED**
+>
 > - Decision blocks can record pivot/kill decisions
 > - Requires: Pre-defined kill criteria framework, pivot trigger templates, sunk cost analysis tools
 
@@ -516,6 +524,7 @@ Knowing when to stop is as important as knowing when to start. Most ideas should
 ### 🟡 Gap 9: External Event Monitoring
 
 > **🔲 STATUS: STILL NEEDED**
+>
 > - Proactive Loop (ARCH-013) could integrate external monitoring
 > - Requires: Market news integration, competitor tracking, regulatory alerts
 
@@ -712,19 +721,21 @@ The path forward is clear: build the infrastructure that connects ideas to reali
 
 The unified architecture (see [`00-ARCHITECTURE-OVERVIEW.md`](./source-truth/00-ARCHITECTURE-OVERVIEW.md)) addresses the most critical gaps:
 
-| Category | Gaps Addressed | Gaps Remaining |
-|----------|----------------|----------------|
-| 🔴 Critical | 3/3 (100%) | — |
-| 🟠 High | 1/3 (33%) | Unit Economics, ICP Definition |
-| 🟡 Medium | 0/3 (0%) | Portfolio, Exit Criteria, External Monitoring |
+| Category    | Gaps Addressed | Gaps Remaining                                |
+| ----------- | -------------- | --------------------------------------------- |
+| 🔴 Critical | 3/3 (100%)     | —                                             |
+| 🟠 High     | 1/3 (33%)      | Unit Economics, ICP Definition                |
+| 🟡 Medium   | 0/3 (0%)       | Portfolio, Exit Criteria, External Monitoring |
 
 **Key architecture components addressing gaps:**
+
 - **Block Types:** `evidence`, `assumption`, `question`, `decision`, `task`
 - **ARCH-011:** Evidence-Grounded Scoring
 - **ARCH-012:** Structured Insight Accumulator (SIA)
 - **ARCH-013:** Proactive Loop for continuous reassessment
 
 **Remaining implementation priorities:**
+
 1. Unit Economics Calculator & Business Model Canvas
 2. ICP Definition Framework
 3. Customer Discovery Tracking (interview logs, surveys)

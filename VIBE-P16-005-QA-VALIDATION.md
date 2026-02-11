@@ -30,6 +30,7 @@ The task VIBE-P16-005 requires implementing a comprehensive user-facing analytic
 ### Result: ✅ PASS (after fixes)
 
 **Initial Issues:**
+
 - `tests/ideation/session-manager.test.ts`: Missing `saveDb` imports (3 locations) - **FIXED**
 - `tests/spec-agent/acceptance.test.ts`: Extra closing bracket on line 51 - **FIXED**
 
@@ -45,6 +46,7 @@ The task VIBE-P16-005 requires implementing a comprehensive user-facing analytic
 **Command:** `npm test`
 
 **Analytics-Related Tests Found:**
+
 - `tests/api/observability/analytics.test.ts` - 17 tests (16 pass, 1 skipped)
 
 **Issue:** These tests validate **system observability analytics** (tool usage, assertions, durations, errors for monitoring agent activity), NOT **user-facing analytics** (page views, feature adoption, user sessions, etc.) required by the specification.
@@ -55,22 +57,23 @@ The task VIBE-P16-005 requires implementing a comprehensive user-facing analytic
 
 ### Functional Requirements (0/10 PASS)
 
-| # | Criterion | Status | Evidence |
-|---|-----------|--------|----------|
-| 1 | Event tracking SDK integrated for: page views, feature usage, button clicks, errors | ❌ FAIL | SDK not implemented. No file at `parent-harness/dashboard/src/analytics/index.ts` |
-| 2 | User session tracking with anonymized user IDs | ❌ FAIL | No session tracking implementation found |
-| 3 | Feature adoption metrics: first use, frequency, retention by feature | ❌ FAIL | No feature adoption tracking found |
-| 4 | Error tracking captures: error type, stack trace, user context, frequency | ❌ FAIL | No user error tracking (system errors only) |
-| 5 | Performance metrics: page load time, API response times, client-side errors | ❌ FAIL | No client performance tracking found |
-| 6 | Analytics dashboard shows: DAU/WAU/MAU, top features, error hotspots | ❌ FAIL | No analytics dashboard page exists |
-| 7 | Bug reports auto-enriched with: user session data, recent actions, error logs | ❌ FAIL | No enrichment service found |
-| 8 | Data retention policy: raw events 30 days, aggregates 1 year | ❌ FAIL | No cleanup job or retention policy |
-| 9 | Privacy-compliant: no PII in analytics, user opt-out supported | ❌ FAIL | No privacy controls implemented |
-| 10 | Export API for analytics data in CSV/JSON format | ❌ FAIL | No export API found |
+| #   | Criterion                                                                           | Status  | Evidence                                                                          |
+| --- | ----------------------------------------------------------------------------------- | ------- | --------------------------------------------------------------------------------- |
+| 1   | Event tracking SDK integrated for: page views, feature usage, button clicks, errors | ❌ FAIL | SDK not implemented. No file at `parent-harness/dashboard/src/analytics/index.ts` |
+| 2   | User session tracking with anonymized user IDs                                      | ❌ FAIL | No session tracking implementation found                                          |
+| 3   | Feature adoption metrics: first use, frequency, retention by feature                | ❌ FAIL | No feature adoption tracking found                                                |
+| 4   | Error tracking captures: error type, stack trace, user context, frequency           | ❌ FAIL | No user error tracking (system errors only)                                       |
+| 5   | Performance metrics: page load time, API response times, client-side errors         | ❌ FAIL | No client performance tracking found                                              |
+| 6   | Analytics dashboard shows: DAU/WAU/MAU, top features, error hotspots                | ❌ FAIL | No analytics dashboard page exists                                                |
+| 7   | Bug reports auto-enriched with: user session data, recent actions, error logs       | ❌ FAIL | No enrichment service found                                                       |
+| 8   | Data retention policy: raw events 30 days, aggregates 1 year                        | ❌ FAIL | No cleanup job or retention policy                                                |
+| 9   | Privacy-compliant: no PII in analytics, user opt-out supported                      | ❌ FAIL | No privacy controls implemented                                                   |
+| 10  | Export API for analytics data in CSV/JSON format                                    | ❌ FAIL | No export API found                                                               |
 
 ### Database Schema Validation
 
 **Required Tables:** (per specification)
+
 1. `analytics_events` - NOT FOUND
 2. `analytics_errors` - NOT FOUND
 3. `analytics_aggregates` - NOT FOUND
@@ -78,6 +81,7 @@ The task VIBE-P16-005 requires implementing a comprehensive user-facing analytic
 5. `user_sessions` - NOT FOUND
 
 **Search Results:**
+
 ```bash
 $ grep -r "analytics_events\|analytics_errors\|feature_adoption\|user_sessions" database/migrations/
 # No results found
@@ -155,6 +159,7 @@ From `docs/specs/VIBE-P16-005-analytics-integration.md`:
 
 > **Status:** Ready for implementation by Build Agent
 > **Next Steps:**
+>
 > 1. Implement database migrations
 > 2. Build frontend SDK
 > 3. Build backend service
@@ -169,14 +174,14 @@ The codebase has **system observability analytics** (monitoring agent tool usage
 
 **Comparison:**
 
-| Feature | System Observability (EXISTS) | User Analytics (REQUIRED) |
-|---------|-------------------------------|---------------------------|
-| Purpose | Monitor agent performance | Track user behavior |
-| Events | Tool uses, task executions | Page views, button clicks |
-| Users | Agents (Planning, Build, QA) | Human users |
-| Metrics | Tool usage, assertion pass rate | DAU/WAU/MAU, feature adoption |
-| Tables | task_list_*, tool_uses, assertions | analytics_events, user_sessions |
-| Endpoints | /api/observability/analytics/* | /api/analytics/* |
+| Feature   | System Observability (EXISTS)       | User Analytics (REQUIRED)       |
+| --------- | ----------------------------------- | ------------------------------- |
+| Purpose   | Monitor agent performance           | Track user behavior             |
+| Events    | Tool uses, task executions          | Page views, button clicks       |
+| Users     | Agents (Planning, Build, QA)        | Human users                     |
+| Metrics   | Tool usage, assertion pass rate     | DAU/WAU/MAU, feature adoption   |
+| Tables    | task*list*\*, tool_uses, assertions | analytics_events, user_sessions |
+| Endpoints | /api/observability/analytics/\*     | /api/analytics/\*               |
 
 ---
 
@@ -285,6 +290,7 @@ $ grep -r "analytics_events" database/migrations/
 **Validated By:** QA Agent (Autonomous)
 **Validation Date:** 2026-02-09
 **Validation Method:**
+
 1. ✅ Ran `npx tsc --noEmit` - compilation successful
 2. ✅ Ran `npm test` - tests pass (but wrong scope)
 3. ✅ Checked database migrations - analytics tables missing

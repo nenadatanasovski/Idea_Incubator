@@ -551,7 +551,8 @@ export class TaskExecutor extends EventEmitter {
 
     // Start progress reporting interval
     const progressInterval = setInterval(() => {
-      const elapsedMs = Date.now() - new Date(execution.startedAt || Date.now()).getTime();
+      const elapsedMs =
+        Date.now() - new Date(execution.startedAt || Date.now()).getTime();
       emitTaskExecutorEvent("task:progress", {
         taskId: task.id,
         executionId,

@@ -127,10 +127,10 @@ const ABSTRACTION_LABELS: Record<AbstractionLevel, string> = {
 };
 
 // Block type shapes/icons (using different sizes for now, could be shapes)
-const BLOCK_TYPE_STYLES: Partial<Record<
-  BlockType,
-  { size: number; opacity: number; border?: string }
->> & Record<string, { size: number; opacity: number; border?: string }> = {
+const BLOCK_TYPE_STYLES: Partial<
+  Record<BlockType, { size: number; opacity: number; border?: string }>
+> &
+  Record<string, { size: number; opacity: number; border?: string }> = {
   insight: { size: 8, opacity: 1 },
   decision: { size: 10, opacity: 1, border: "2px solid white" },
   fact: { size: 6, opacity: 0.9 },
@@ -1458,8 +1458,8 @@ export default function ClusterDemoPage() {
     return visibleNodes.map((node) => {
       const regularNode = node;
       const nodeIsIdeaNode = isIdeaNode(regularNode);
-      const blockStyle =
-        BLOCK_TYPE_STYLES[regularNode.blockType] ?? BLOCK_TYPE_STYLES.content ?? { size: 6, opacity: 0.7 };
+      const blockStyle = BLOCK_TYPE_STYLES[regularNode.blockType] ??
+        BLOCK_TYPE_STYLES.content ?? { size: 6, opacity: 0.7 };
 
       // Determine cluster attribute based on effective strategy
       let cluster: string | undefined;

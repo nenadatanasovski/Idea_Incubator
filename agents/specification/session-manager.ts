@@ -1,31 +1,31 @@
 /**
  * Spec Session Manager
- * 
+ *
  * Manages persistent spec sessions in the database.
  * Provides CRUD operations for spec_sessions table.
  */
 
-import { v4 as uuid } from 'uuid';
+import { v4 as uuid } from "uuid";
 
 export interface SpecSession {
   id: string;
   ideaId: string;
-  status: 'active' | 'pending_input' | 'complete' | 'failed';
-  
+  status: "active" | "pending_input" | "complete" | "failed";
+
   // Specification content
   currentDraft: Specification | null;
   draftVersion: number;
-  
+
   // Questions and refinement
   pendingQuestions: SpecQuestion[];
   answeredQuestions: SpecAnswer[];
-  
+
   // Generated output
   tasks: TaskDefinition[];
-  
+
   // Handoff data
   handoffData: IdeationToSpecHandoff | null;
-  
+
   // Metadata
   createdAt: Date;
   updatedAt: Date;
@@ -33,7 +33,7 @@ export interface SpecSession {
 
 export interface Specification {
   version: string;
-  
+
   // Overview
   overview: {
     name: string;
@@ -41,19 +41,19 @@ export interface Specification {
     problemStatement: string;
     targetUsers: string[];
   };
-  
+
   // Features
   features: Feature[];
-  
+
   // Technical
   dataModel?: DataModel;
   apiEndpoints?: APIEndpoint[];
   uiComponents?: UIComponent[];
-  
+
   // Non-functional
   constraints: Constraint[];
   assumptions: string[];
-  
+
   // Metadata
   generatedFrom?: string;
   confidence: number;
@@ -63,18 +63,18 @@ export interface Feature {
   id: string;
   name: string;
   description: string;
-  priority: 'must-have' | 'should-have' | 'nice-to-have';
+  priority: "must-have" | "should-have" | "nice-to-have";
   acceptanceCriteria: string[];
   technicalNotes?: string;
-  estimatedComplexity: 'low' | 'medium' | 'high';
+  estimatedComplexity: "low" | "medium" | "high";
 }
 
 export interface SpecQuestion {
   id: string;
   question: string;
   context?: string;
-  category: 'feature' | 'technical' | 'scope' | 'clarification';
-  priority: 'blocking' | 'important' | 'optional';
+  category: "feature" | "technical" | "scope" | "clarification";
+  priority: "blocking" | "important" | "optional";
   createdAt: Date;
 }
 
@@ -87,14 +87,14 @@ export interface TaskDefinition {
   id: string;
   specId: string;
   featureId: string;
-  
+
   name: string;
   description: string;
-  type: 'setup' | 'database' | 'api' | 'ui' | 'integration' | 'test';
-  
+  type: "setup" | "database" | "api" | "ui" | "integration" | "test";
+
   dependencies: string[];
   estimatedMinutes: number;
-  
+
   technicalDetails: string;
   testCriteria: string[];
 }
@@ -126,7 +126,7 @@ export interface UIComponent {
 }
 
 export interface Constraint {
-  type: 'technical' | 'business' | 'legal';
+  type: "technical" | "business" | "legal";
   description: string;
 }
 
@@ -147,24 +147,33 @@ interface SpecSessionRow {
 
 // Database interface
 interface Database {
-  run(sql: string, params?: (string | number | null | boolean)[]): Promise<void>;
-  query<T>(sql: string, params?: (string | number | null | boolean)[]): Promise<T[]>;
-  getOne<T>(sql: string, params?: (string | number | null | boolean)[]): Promise<T | null>;
+  run(
+    sql: string,
+    params?: (string | number | null | boolean)[],
+  ): Promise<void>;
+  query<T>(
+    sql: string,
+    params?: (string | number | null | boolean)[],
+  ): Promise<T[]>;
+  getOne<T>(
+    sql: string,
+    params?: (string | number | null | boolean)[],
+  ): Promise<T | null>;
 }
 
 export class SpecSessionManager {
   constructor(private db: Database) {}
-  
+
   /**
    * Create a new spec session
    */
   async createSession(
-    ideaId: string, 
-    handoffData?: IdeationToSpecHandoff
+    ideaId: string,
+    handoffData?: IdeationToSpecHandoff,
   ): Promise<SpecSession> {
     const id = `spec-${uuid()}`;
     const now = new Date().toISOString();
-    
+
     await this.db.run(
       `INSERT INTO spec_sessions (
         id, idea_id, status, current_draft, draft_version, 
@@ -174,7 +183,7 @@ export class SpecSessionManager {
       [
         id,
         ideaId,
-        'active',
+        "active",
         null,
         0,
         JSON.stringify([]),
@@ -182,14 +191,14 @@ export class SpecSessionManager {
         JSON.stringify([]),
         handoffData ? JSON.stringify(handoffData) : null,
         now,
-        now
-      ]
+        now,
+      ],
     );
-    
+
     return {
       id,
       ideaId,
-      status: 'active',
+      status: "active",
       currentDraft: null,
       draftVersion: 0,
       pendingQuestions: [],
@@ -200,39 +209,39 @@ export class SpecSessionManager {
       updatedAt: new Date(now),
     };
   }
-  
+
   /**
    * Load a session by ID
    */
   async loadSession(sessionId: string): Promise<SpecSession | null> {
     const row = await this.db.getOne<SpecSessionRow>(
       `SELECT * FROM spec_sessions WHERE id = ?`,
-      [sessionId]
+      [sessionId],
     );
-    
+
     if (!row) return null;
-    
+
     return this.rowToSession(row);
   }
-  
+
   /**
    * Load session by idea ID (most recent)
    */
   async loadByIdeaId(ideaId: string): Promise<SpecSession | null> {
     const row = await this.db.getOne<SpecSessionRow>(
       `SELECT * FROM spec_sessions WHERE idea_id = ? ORDER BY created_at DESC LIMIT 1`,
-      [ideaId]
+      [ideaId],
     );
-    
+
     return row ? this.rowToSession(row) : null;
   }
-  
+
   /**
    * Save session state
    */
   async saveSession(session: SpecSession): Promise<void> {
     const now = new Date().toISOString();
-    
+
     await this.db.run(
       `UPDATE spec_sessions SET
         status = ?,
@@ -253,48 +262,45 @@ export class SpecSessionManager {
         JSON.stringify(session.tasks),
         session.handoffData ? JSON.stringify(session.handoffData) : null,
         now,
-        session.id
-      ]
+        session.id,
+      ],
     );
   }
-  
+
   /**
    * Update session status
    */
   async updateStatus(
-    sessionId: string, 
-    status: SpecSession['status']
+    sessionId: string,
+    status: SpecSession["status"],
   ): Promise<void> {
     const now = new Date().toISOString();
-    
+
     await this.db.run(
       `UPDATE spec_sessions SET status = ?, updated_at = ? WHERE id = ?`,
-      [status, now, sessionId]
+      [status, now, sessionId],
     );
   }
-  
+
   /**
    * Delete a session
    */
   async deleteSession(sessionId: string): Promise<void> {
-    await this.db.run(
-      `DELETE FROM spec_sessions WHERE id = ?`,
-      [sessionId]
-    );
+    await this.db.run(`DELETE FROM spec_sessions WHERE id = ?`, [sessionId]);
   }
-  
+
   /**
    * List all sessions for an idea
    */
   async listSessionsForIdea(ideaId: string): Promise<SpecSession[]> {
     const rows = await this.db.query<SpecSessionRow>(
       `SELECT * FROM spec_sessions WHERE idea_id = ? ORDER BY created_at DESC`,
-      [ideaId]
+      [ideaId],
     );
-    
-    return rows.map(row => this.rowToSession(row));
+
+    return rows.map((row) => this.rowToSession(row));
   }
-  
+
   /**
    * Convert database row to session object
    */
@@ -302,11 +308,15 @@ export class SpecSessionManager {
     return {
       id: row.id,
       ideaId: row.idea_id,
-      status: row.status as SpecSession['status'],
+      status: row.status as SpecSession["status"],
       currentDraft: row.current_draft ? JSON.parse(row.current_draft) : null,
       draftVersion: row.draft_version,
-      pendingQuestions: row.pending_questions ? JSON.parse(row.pending_questions) : [],
-      answeredQuestions: row.answered_questions ? JSON.parse(row.answered_questions) : [],
+      pendingQuestions: row.pending_questions
+        ? JSON.parse(row.pending_questions)
+        : [],
+      answeredQuestions: row.answered_questions
+        ? JSON.parse(row.answered_questions)
+        : [],
       tasks: row.tasks ? JSON.parse(row.tasks) : [],
       handoffData: row.handoff_data ? JSON.parse(row.handoff_data) : null,
       createdAt: new Date(row.created_at),
@@ -320,7 +330,7 @@ let sessionManagerInstance: SpecSessionManager | null = null;
 
 export async function getSessionManager(): Promise<SpecSessionManager> {
   if (!sessionManagerInstance) {
-    const { run, query, getOne } = await import('../../database/db.js');
+    const { run, query, getOne } = await import("../../database/db.js");
     sessionManagerInstance = new SpecSessionManager({ run, query, getOne });
   }
   return sessionManagerInstance;

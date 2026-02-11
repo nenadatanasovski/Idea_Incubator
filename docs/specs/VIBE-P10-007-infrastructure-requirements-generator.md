@@ -16,6 +16,7 @@ Build a comprehensive Infrastructure Requirements Generator that transforms arch
 ### Problem Statement
 
 **Current State:**
+
 - Architect Agent exists and can generate architecture documents (`agents/architect/architect-agent.ts`)
 - Architecture types defined but no infrastructure generation capability
 - Docker/docker-compose examples exist in `parent-harness/` but not automated
@@ -25,6 +26,7 @@ Build a comprehensive Infrastructure Requirements Generator that transforms arch
 - Manual infrastructure setup required for each project
 
 **Desired State:**
+
 - `InfrastructureGenerator` class at `agents/architect/infrastructure-generator.ts`
 - Generate valid `docker-compose.yml` for local development
 - Generate GitHub Actions workflow YAML for CI/CD
@@ -54,12 +56,14 @@ The Infrastructure Requirements Generator is the **"Infrastructure Automation En
 #### FR-1: InfrastructureGenerator Class
 
 **FR-1.1: Class Structure**
+
 - Create `InfrastructureGenerator` class at `agents/architect/infrastructure-generator.ts`
 - Class should NOT extend ObservableAgent (it's a utility, not an agent)
 - Export factory function `createInfrastructureGenerator()`
 - Stateless design - all methods are pure functions of inputs
 
 **FR-1.2: Core Method**
+
 - `generate(architecture: ArchitectureDoc, options?: InfrastructureOptions): InfrastructureOutput`
   - Main entry point that orchestrates all generation
   - Takes architecture document as input
@@ -67,6 +71,7 @@ The Infrastructure Requirements Generator is the **"Infrastructure Automation En
   - Options include: target platform, environments, cost tier
 
 **FR-1.3: Supporting Methods**
+
 - `generateDockerCompose(architecture: ArchitectureDoc, env: Environment): string`
   - Generate docker-compose.yml for specified environment
   - Include all services from architecture components
@@ -105,11 +110,12 @@ The Infrastructure Requirements Generator is the **"Infrastructure Automation En
 #### FR-2: Type Definitions
 
 **FR-2.1: Input Types**
+
 ```typescript
 interface InfrastructureOptions {
-  targetPlatform?: 'aws' | 'vercel' | 'railway' | 'docker' | 'all';
-  environments?: Array<'dev' | 'staging' | 'prod'>;
-  costTier?: 'minimal' | 'standard' | 'premium';
+  targetPlatform?: "aws" | "vercel" | "railway" | "docker" | "all";
+  environments?: Array<"dev" | "staging" | "prod">;
+  costTier?: "minimal" | "standard" | "premium";
   includeMonitoring?: boolean;
   includeLogging?: boolean;
   includeCaching?: boolean;
@@ -124,19 +130,20 @@ interface LoadProfile {
 }
 
 interface Environment {
-  name: 'dev' | 'staging' | 'prod';
+  name: "dev" | "staging" | "prod";
   replicas: number;
   resources: ResourceLimits;
 }
 
 interface ResourceLimits {
-  cpu: string;  // e.g., "1000m" (1 CPU)
-  memory: string;  // e.g., "2Gi"
-  storage: string;  // e.g., "10Gi"
+  cpu: string; // e.g., "1000m" (1 CPU)
+  memory: string; // e.g., "2Gi"
+  storage: string; // e.g., "10Gi"
 }
 ```
 
 **FR-2.2: Output Types**
+
 ```typescript
 interface InfrastructureOutput {
   dockerCompose: {
@@ -144,7 +151,7 @@ interface InfrastructureOutput {
     staging: string;
     prod: string;
   };
-  dockerfiles: Record<string, string>;  // componentId -> Dockerfile
+  dockerfiles: Record<string, string>; // componentId -> Dockerfile
   githubActions: string;
   terraform?: TerraformConfig;
   pulumi?: PulumiConfig;
@@ -158,16 +165,16 @@ interface InfrastructureOutput {
 }
 
 interface TerraformConfig {
-  main: string;  // main.tf
-  variables: string;  // variables.tf
-  outputs: string;  // outputs.tf
-  provider: string;  // provider.tf
+  main: string; // main.tf
+  variables: string; // variables.tf
+  outputs: string; // outputs.tf
+  provider: string; // provider.tf
 }
 
 interface PulumiConfig {
-  index: string;  // index.ts
-  config: string;  // Pulumi.yaml
-  stackConfigs: Record<string, string>;  // Pulumi.dev.yaml, etc.
+  index: string; // index.ts
+  config: string; // Pulumi.yaml
+  stackConfigs: Record<string, string>; // Pulumi.dev.yaml, etc.
 }
 
 interface EnvironmentConfig {
@@ -190,15 +197,15 @@ interface ServiceConfig {
 }
 
 interface DatabaseConfig {
-  type: 'postgresql' | 'mysql' | 'mongodb' | 'redis';
+  type: "postgresql" | "mysql" | "mongodb" | "redis";
   version: string;
-  size: string;  // e.g., "db.t3.micro"
+  size: string; // e.g., "db.t3.micro"
   storage: string;
-  backupRetention: number;  // days
+  backupRetention: number; // days
 }
 
 interface CachingConfig {
-  provider: 'redis' | 'memcached';
+  provider: "redis" | "memcached";
   size: string;
   evictionPolicy: string;
 }
@@ -213,13 +220,13 @@ interface MonitoringConfig {
 interface ScalingConfig {
   minReplicas: number;
   maxReplicas: number;
-  targetCPU: number;  // percentage
-  targetMemory: number;  // percentage
+  targetCPU: number; // percentage
+  targetMemory: number; // percentage
 }
 
 interface HealthCheckConfig {
   path: string;
-  interval: string;  // e.g., "30s"
+  interval: string; // e.g., "30s"
   timeout: string;
   retries: number;
 }
@@ -251,6 +258,7 @@ interface CostBreakdownItem {
 #### FR-3: Docker Compose Generation
 
 **FR-3.1: Local Development docker-compose.yml**
+
 - Generate multi-service compose file with:
   - All backend services from architecture.components
   - Database services (PostgreSQL, MongoDB, Redis as needed)
@@ -261,6 +269,7 @@ interface CostBreakdownItem {
   - Health checks for all services
 
 **FR-3.2: Production docker-compose.yml**
+
 - Similar structure but optimized for production:
   - No volume mounts (use built images)
   - Resource limits defined
@@ -269,6 +278,7 @@ interface CostBreakdownItem {
   - Logging drivers configured
 
 **FR-3.3: Service Discovery**
+
 - Services can reference each other by service name
 - Example: backend connects to `postgresql://db:5432/myapp`
 - Environment variables for inter-service communication
@@ -276,6 +286,7 @@ interface CostBreakdownItem {
 #### FR-4: Dockerfile Generation
 
 **FR-4.1: Node.js/TypeScript Dockerfile**
+
 ```dockerfile
 # Multi-stage build
 FROM node:20-alpine AS builder
@@ -296,6 +307,7 @@ CMD ["node", "dist/index.js"]
 ```
 
 **FR-4.2: Python Dockerfile**
+
 ```dockerfile
 FROM python:3.11-slim
 WORKDIR /app
@@ -307,6 +319,7 @@ CMD ["python", "main.py"]
 ```
 
 **FR-4.3: Static Site Dockerfile (nginx)**
+
 ```dockerfile
 FROM node:20-alpine AS builder
 WORKDIR /app
@@ -325,6 +338,7 @@ CMD ["nginx", "-g", "daemon off;"]
 #### FR-5: GitHub Actions Workflow Generation
 
 **FR-5.1: CI/CD Pipeline Structure**
+
 ```yaml
 name: CI/CD Pipeline
 
@@ -370,6 +384,7 @@ jobs:
 ```
 
 **FR-5.2: Matrix Builds**
+
 - Support testing across multiple Node.js versions
 - Parallel execution for faster feedback
 - Conditional deployment based on branch
@@ -377,6 +392,7 @@ jobs:
 #### FR-6: Terraform Configuration Generation
 
 **FR-6.1: AWS Provider**
+
 - ECS Fargate for containerized services
 - RDS for relational databases
 - ElastiCache for caching
@@ -386,6 +402,7 @@ jobs:
 - CloudFront CDN (optional)
 
 **FR-6.2: Vercel Provider**
+
 - Vercel project configuration
 - Serverless functions
 - Environment variables
@@ -393,12 +410,14 @@ jobs:
 - Analytics integration
 
 **FR-6.3: Railway Provider**
+
 - Railway service definitions
 - Database add-ons
 - Environment variables
 - Auto-scaling configuration
 
 **FR-6.4: Terraform Structure**
+
 ```hcl
 # main.tf
 provider "aws" {
@@ -429,6 +448,7 @@ output "load_balancer_dns" {
 #### FR-7: Environment-Specific Configuration
 
 **FR-7.1: Development Environment**
+
 - Single replica per service
 - Minimal resource limits (512MB RAM, 0.5 CPU)
 - Hot-reload enabled
@@ -437,6 +457,7 @@ output "load_balancer_dns" {
 - Local database (not managed)
 
 **FR-7.2: Staging Environment**
+
 - 2 replicas per service
 - Medium resource limits (1GB RAM, 1 CPU)
 - Production-like setup
@@ -445,6 +466,7 @@ output "load_balancer_dns" {
 - Autoscaling 2-4 replicas
 
 **FR-7.3: Production Environment**
+
 - 3+ replicas per service
 - Production resource limits (2GB+ RAM, 2+ CPU)
 - Managed database (appropriate instance size)
@@ -455,29 +477,34 @@ output "load_balancer_dns" {
 #### FR-8: Cost Estimation
 
 **FR-8.1: Compute Costs**
+
 - Calculate based on instance type and hours
 - Example: 3 × t3.medium × 730 hours = $90/month
 - Include container/serverless costs
 
 **FR-8.2: Database Costs**
+
 - RDS/managed database pricing
 - Storage costs (per GB)
 - Backup storage costs
 - Example: db.t3.small + 20GB = $25/month
 
 **FR-8.3: Network/Bandwidth Costs**
+
 - Data transfer out pricing
 - CDN costs
 - Load balancer costs
 - Example: 100GB transfer = $9/month
 
 **FR-8.4: Additional Services**
+
 - Monitoring (CloudWatch, Datadog)
 - Logging (CloudWatch Logs, Papertrail)
 - Caching (ElastiCache, Redis)
 - Object storage (S3)
 
 **FR-8.5: Cost Recommendations**
+
 - Suggest reserved instances for stable workloads
 - Identify over-provisioned resources
 - Suggest cheaper alternatives
@@ -486,27 +513,32 @@ output "load_balancer_dns" {
 ### Non-Functional Requirements
 
 **NFR-1: Type Safety**
+
 - All types strictly typed with TypeScript
 - No `any` types in public interfaces
 - Proper error types with descriptive messages
 
 **NFR-2: Template Quality**
+
 - Generated configs must be valid and deployable
 - Follow platform best practices
 - Include comments explaining key decisions
 - Production-ready by default
 
 **NFR-3: Extensibility**
+
 - Easy to add new cloud providers
 - Template system for customization
 - Plugin architecture for cost providers
 
 **NFR-4: Documentation**
+
 - JSDoc comments on all public methods
 - Generated configs include explanatory comments
 - Setup instructions provided in output
 
 **NFR-5: Validation**
+
 - Validate architecture document before generation
 - Check for required fields
 - Warn about missing recommended configurations
@@ -589,10 +621,7 @@ agents/architect/
 **File: agents/architect/infrastructure-generator.ts**
 
 ```typescript
-import type {
-  ArchitectureDoc,
-  ComponentSpec,
-} from './types.js';
+import type { ArchitectureDoc, ComponentSpec } from "./types.js";
 import type {
   InfrastructureOptions,
   InfrastructureOutput,
@@ -602,9 +631,9 @@ import type {
   EnvironmentConfig,
   TerraformConfig,
   PulumiConfig,
-} from './infrastructure-types.js';
-import { estimateCost } from './cost-estimator.js';
-import * as templates from './templates/index.js';
+} from "./infrastructure-types.js";
+import { estimateCost } from "./cost-estimator.js";
+import * as templates from "./templates/index.js";
 
 /**
  * Infrastructure Requirements Generator
@@ -618,21 +647,33 @@ export class InfrastructureGenerator {
    */
   generate(
     architecture: ArchitectureDoc,
-    options: InfrastructureOptions = {}
+    options: InfrastructureOptions = {},
   ): InfrastructureOutput {
     const opts = this.normalizeOptions(options);
 
     // Generate docker-compose for each environment
     const dockerCompose = {
-      dev: this.generateDockerCompose(architecture, { name: 'dev', replicas: 1, resources: { cpu: '500m', memory: '512Mi', storage: '1Gi' } }),
-      staging: this.generateDockerCompose(architecture, { name: 'staging', replicas: 2, resources: { cpu: '1000m', memory: '1Gi', storage: '5Gi' } }),
-      prod: this.generateDockerCompose(architecture, { name: 'prod', replicas: 3, resources: { cpu: '2000m', memory: '2Gi', storage: '10Gi' } }),
+      dev: this.generateDockerCompose(architecture, {
+        name: "dev",
+        replicas: 1,
+        resources: { cpu: "500m", memory: "512Mi", storage: "1Gi" },
+      }),
+      staging: this.generateDockerCompose(architecture, {
+        name: "staging",
+        replicas: 2,
+        resources: { cpu: "1000m", memory: "1Gi", storage: "5Gi" },
+      }),
+      prod: this.generateDockerCompose(architecture, {
+        name: "prod",
+        replicas: 3,
+        resources: { cpu: "2000m", memory: "2Gi", storage: "10Gi" },
+      }),
     };
 
     // Generate Dockerfiles for each component
     const dockerfiles: Record<string, string> = {};
     for (const component of architecture.components) {
-      if (component.type !== 'database') {
+      if (component.type !== "database") {
         dockerfiles[component.id] = this.generateDockerfile(component);
       }
     }
@@ -644,16 +685,16 @@ export class InfrastructureGenerator {
     let terraform: TerraformConfig | undefined;
     let pulumi: PulumiConfig | undefined;
 
-    if (opts.targetPlatform === 'aws' || opts.targetPlatform === 'all') {
-      terraform = this.generateTerraformConfig(architecture, 'aws');
-      pulumi = this.generatePulumiConfig(architecture, 'aws');
+    if (opts.targetPlatform === "aws" || opts.targetPlatform === "all") {
+      terraform = this.generateTerraformConfig(architecture, "aws");
+      pulumi = this.generatePulumiConfig(architecture, "aws");
     }
 
     // Generate environment configs
     const environmentConfigs = {
-      dev: this.generateEnvironmentConfig(architecture, 'dev'),
-      staging: this.generateEnvironmentConfig(architecture, 'staging'),
-      prod: this.generateEnvironmentConfig(architecture, 'prod'),
+      dev: this.generateEnvironmentConfig(architecture, "dev"),
+      staging: this.generateEnvironmentConfig(architecture, "staging"),
+      prod: this.generateEnvironmentConfig(architecture, "prod"),
     };
 
     // Estimate costs
@@ -667,7 +708,10 @@ export class InfrastructureGenerator {
     const costEstimate = this.estimateMonthlyCost(architecture, defaultLoad);
 
     // Generate setup instructions
-    const setupInstructions = this.generateSetupInstructions(architecture, opts);
+    const setupInstructions = this.generateSetupInstructions(
+      architecture,
+      opts,
+    );
 
     return {
       dockerCompose,
@@ -684,16 +728,23 @@ export class InfrastructureGenerator {
   /**
    * Generate docker-compose.yml for specified environment
    */
-  generateDockerCompose(architecture: ArchitectureDoc, env: Environment): string {
-    const isDev = env.name === 'dev';
+  generateDockerCompose(
+    architecture: ArchitectureDoc,
+    env: Environment,
+  ): string {
+    const isDev = env.name === "dev";
     const services: string[] = [];
 
     // Generate service definitions
     for (const component of architecture.components) {
-      if (component.type === 'backend' || component.type === 'frontend') {
-        const service = templates.generateDockerComposeService(component, env, isDev);
+      if (component.type === "backend" || component.type === "frontend") {
+        const service = templates.generateDockerComposeService(
+          component,
+          env,
+          isDev,
+        );
         services.push(service);
-      } else if (component.type === 'database') {
+      } else if (component.type === "database") {
         const dbService = templates.generateDatabaseService(component, env);
         services.push(dbService);
       }
@@ -710,11 +761,15 @@ export class InfrastructureGenerator {
     // Determine technology/runtime
     const tech = component.technology.toLowerCase();
 
-    if (tech.includes('node') || tech.includes('typescript')) {
+    if (tech.includes("node") || tech.includes("typescript")) {
       return templates.nodeDockerfile(component);
-    } else if (tech.includes('python')) {
+    } else if (tech.includes("python")) {
       return templates.pythonDockerfile(component);
-    } else if (tech.includes('react') || tech.includes('vue') || tech.includes('static')) {
+    } else if (
+      tech.includes("react") ||
+      tech.includes("vue") ||
+      tech.includes("static")
+    ) {
       return templates.staticDockerfile(component);
     }
 
@@ -732,10 +787,13 @@ export class InfrastructureGenerator {
   /**
    * Generate Terraform configuration
    */
-  generateTerraformConfig(architecture: ArchitectureDoc, provider: 'aws' | 'vercel' | 'railway'): TerraformConfig {
-    if (provider === 'aws') {
+  generateTerraformConfig(
+    architecture: ArchitectureDoc,
+    provider: "aws" | "vercel" | "railway",
+  ): TerraformConfig {
+    if (provider === "aws") {
       return templates.awsTerraform(architecture);
-    } else if (provider === 'vercel') {
+    } else if (provider === "vercel") {
       return templates.vercelTerraform(architecture);
     } else {
       return templates.railwayTerraform(architecture);
@@ -745,22 +803,28 @@ export class InfrastructureGenerator {
   /**
    * Generate Pulumi configuration
    */
-  generatePulumiConfig(architecture: ArchitectureDoc, provider: 'aws' | 'vercel' | 'railway'): PulumiConfig {
+  generatePulumiConfig(
+    architecture: ArchitectureDoc,
+    provider: "aws" | "vercel" | "railway",
+  ): PulumiConfig {
     return templates.awsPulumi(architecture);
   }
 
   /**
    * Generate environment-specific configuration
    */
-  generateEnvironmentConfig(architecture: ArchitectureDoc, env: 'dev' | 'staging' | 'prod'): EnvironmentConfig {
+  generateEnvironmentConfig(
+    architecture: ArchitectureDoc,
+    env: "dev" | "staging" | "prod",
+  ): EnvironmentConfig {
     // Environment-specific parameters
     const envParams = this.getEnvironmentParameters(env);
 
     return {
       name: env,
       services: architecture.components
-        .filter(c => c.type !== 'database')
-        .map(c => templates.generateServiceConfig(c, envParams)),
+        .filter((c) => c.type !== "database")
+        .map((c) => templates.generateServiceConfig(c, envParams)),
       database: templates.generateDatabaseConfig(architecture, envParams),
       scaling: envParams.scaling,
       monitoring: envParams.monitoring,
@@ -770,28 +834,36 @@ export class InfrastructureGenerator {
   /**
    * Estimate monthly infrastructure cost
    */
-  estimateMonthlyCost(architecture: ArchitectureDoc, load: LoadProfile): CostEstimate {
+  estimateMonthlyCost(
+    architecture: ArchitectureDoc,
+    load: LoadProfile,
+  ): CostEstimate {
     return estimateCost(architecture, load);
   }
 
   // Helper methods
-  private normalizeOptions(options: InfrastructureOptions): Required<InfrastructureOptions> {
+  private normalizeOptions(
+    options: InfrastructureOptions,
+  ): Required<InfrastructureOptions> {
     return {
-      targetPlatform: options.targetPlatform || 'docker',
-      environments: options.environments || ['dev', 'staging', 'prod'],
-      costTier: options.costTier || 'standard',
+      targetPlatform: options.targetPlatform || "docker",
+      environments: options.environments || ["dev", "staging", "prod"],
+      costTier: options.costTier || "standard",
       includeMonitoring: options.includeMonitoring ?? true,
       includeLogging: options.includeLogging ?? true,
       includeCaching: options.includeCaching ?? false,
     };
   }
 
-  private getEnvironmentParameters(env: 'dev' | 'staging' | 'prod') {
+  private getEnvironmentParameters(env: "dev" | "staging" | "prod") {
     // Return environment-specific defaults
     // ... implementation
   }
 
-  private generateSetupInstructions(architecture: ArchitectureDoc, options: InfrastructureOptions): string {
+  private generateSetupInstructions(
+    architecture: ArchitectureDoc,
+    options: InfrastructureOptions,
+  ): string {
     // Generate markdown instructions
     // ... implementation
   }
@@ -899,15 +971,18 @@ export function createInfrastructureGenerator(): InfrastructureGenerator {
 ## Dependencies
 
 ### Required (Must exist before implementation)
+
 - ✅ Architect Agent (`agents/architect/architect-agent.ts`) - EXISTS
 - ✅ Architecture types (`agents/architect/types.ts`) - EXISTS
 - ✅ TypeScript compiler - EXISTS
 
 ### Optional (Can be integrated later)
+
 - Template System (VIBE-P10-002) - Can use for customization
 - Cost database with current pricing - Can hardcode initial estimates
 
 ### Blocked By
+
 - None (can be implemented independently)
 
 ---
@@ -915,15 +990,18 @@ export function createInfrastructureGenerator(): InfrastructureGenerator {
 ## Implementation Steps
 
 ### Step 1: Create Type Definitions
+
 1. Create `infrastructure-types.ts` with all interfaces
 2. Verify TypeScript compilation
 
 ### Step 2: Create Template Functions
+
 1. Create `templates/docker/` with Dockerfile templates
 2. Create `templates/docker-compose/` with compose templates
 3. Create `templates/github-actions/` with workflow template
 
 ### Step 3: Implement Core Generator Class
+
 1. Create `infrastructure-generator.ts` with main class
 2. Implement `generate()` method
 3. Implement `generateDockerCompose()`
@@ -932,23 +1010,27 @@ export function createInfrastructureGenerator(): InfrastructureGenerator {
 6. Implement `generateEnvironmentConfig()`
 
 ### Step 4: Implement Cost Estimator
+
 1. Create `cost-estimator.ts`
 2. Implement `estimateCost()` function
 3. Add cost breakdown logic
 4. Add cost recommendations
 
 ### Step 5: IaC Templates (Optional for MVP)
+
 1. Implement `generateTerraformConfig()` for AWS
 2. Implement `generatePulumiConfig()` for AWS
 3. Add Vercel/Railway support
 
 ### Step 6: Testing
+
 1. Unit tests for each generation method
 2. Integration test with sample architecture
 3. Validate generated YAML/HCL syntax
 4. Verify cost calculations
 
 ### Step 7: Documentation
+
 1. Add JSDoc comments
 2. Create usage examples
 3. Document cost assumptions
@@ -958,6 +1040,7 @@ export function createInfrastructureGenerator(): InfrastructureGenerator {
 ## Success Metrics
 
 ### Implementation Success
+
 - ✅ All 8 "Must Pass" criteria verified
 - ✅ TypeScript compilation clean
 - ✅ Generated docker-compose.yml is valid YAML
@@ -966,6 +1049,7 @@ export function createInfrastructureGenerator(): InfrastructureGenerator {
 - ✅ Can generate infrastructure for sample architecture
 
 ### Quality Metrics
+
 - Generated configs are production-ready
 - Cost estimates within 20% of actual costs
 - Setup instructions are actionable
@@ -976,6 +1060,7 @@ export function createInfrastructureGenerator(): InfrastructureGenerator {
 ## References
 
 ### Related Specifications
+
 - **VIBE-P10-001**: Architect Agent Base Implementation
 - **VIBE-P10-002**: Architecture Template System
 - **Existing code**: `parent-harness/docker-compose.yml` (reference implementation)
@@ -983,6 +1068,7 @@ export function createInfrastructureGenerator(): InfrastructureGenerator {
 - **Existing code**: `parent-harness/orchestrator/Dockerfile` (Dockerfile reference)
 
 ### External References
+
 - Docker Compose documentation: https://docs.docker.com/compose/
 - GitHub Actions documentation: https://docs.github.com/actions
 - Terraform AWS provider: https://registry.terraform.io/providers/hashicorp/aws

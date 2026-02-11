@@ -14,6 +14,7 @@ The PHASE6-TASK-04 deliverable for an "Idea workspace (README/development editor
 ### Status: ✅ **85% COMPLETE** (3/4 major features)
 
 **Implemented Features:**
+
 - ✅ **Q&A Interface** - Fully functional via DevelopmentWizard component
 - ✅ **Linked Profiles** - Profile linking/unlinking with selector modal
 - ✅ **Workspace Layout** - Comprehensive idea detail page with multiple tabs
@@ -28,6 +29,7 @@ The PHASE6-TASK-04 deliverable for an "Idea workspace (README/development editor
 **Location**: `frontend/src/pages/IdeaDetail.tsx` (818 lines)
 
 **Features Implemented:**
+
 - Multi-tab interface (Overview, Develop, Lifecycle, Scorecard, Evaluation, Red Team, Synthesis)
 - Comprehensive idea metadata display (type, status, lifecycle stage, tags)
 - Real-time evaluation readiness indicator
@@ -37,6 +39,7 @@ The PHASE6-TASK-04 deliverable for an "Idea workspace (README/development editor
 - Action buttons (Edit, Delete, Evaluate, Stage transitions)
 
 **Tabs Breakdown:**
+
 1. **Overview Tab**
    - Evaluation readiness meter (visual progress bar)
    - README content display (markdown rendering via ReactMarkdown)
@@ -69,6 +72,7 @@ The PHASE6-TASK-04 deliverable for an "Idea workspace (README/development editor
    - Strengths, weaknesses, recommendations
 
 **Profile Integration:** ✅
+
 - ProfileStatusCard component displays linked profile
 - One-click profile linking/unlinking
 - ProfileSelector modal for choosing profiles
@@ -81,6 +85,7 @@ The PHASE6-TASK-04 deliverable for an "Idea workspace (README/development editor
 **Location**: `frontend/src/components/DevelopmentWizard.tsx` (763 lines)
 
 **Features:**
+
 - **Modal-based Q&A workflow** - Opens over idea detail page
 - **Two-tab interface**:
   - **Session Tab**: Guided step-by-step questioning (5-10 questions per session)
@@ -95,6 +100,7 @@ The PHASE6-TASK-04 deliverable for an "Idea workspace (README/development editor
 - **Question card component** - Rich text input with validation
 
 **Data Flow:**
+
 ```
 DevelopmentWizard (modal)
     ↓ POST /api/ideas/:slug/develop (start session)
@@ -106,6 +112,7 @@ DevelopmentWizard (modal)
 ```
 
 **Integration Points:**
+
 - ✅ Invoked from IdeaDetail page ("Develop" button)
 - ✅ Answers stored in `question_answers` table
 - ✅ Synced to `development.md` markdown file via sync script
@@ -114,6 +121,7 @@ DevelopmentWizard (modal)
 - ✅ Blocking gaps identified (categories below threshold)
 
 **Testing:**
+
 - ✅ Unit tests: `tests/unit/development.test.ts` (7 tests)
 - ✅ Sync tests: `tests/sync-development.test.ts` (5 tests)
 - ✅ All 1773 tests passing
@@ -125,6 +133,7 @@ DevelopmentWizard (modal)
 **Location**: `frontend/src/components/ProfileSelector.tsx` (169 lines)
 
 **Features:**
+
 - **Profile selection modal** - Overlay dialog with profile list
 - **Search functionality** - Filter profiles by name
 - **Profile cards** - Display name, role, goals
@@ -133,6 +142,7 @@ DevelopmentWizard (modal)
 - **Create profile link** - Navigate to profile creation if none exist
 
 **Data Flow:**
+
 ```
 IdeaDetail → ProfileStatusCard
     ↓ Click "Link Profile"
@@ -144,18 +154,21 @@ IdeaDetail → ProfileStatusCard
 ```
 
 **Backend Integration:**
+
 - ✅ API endpoint: `PUT /api/ideas/:slug/profile`
 - ✅ Database table: `idea_profiles` (linking table)
 - ✅ Profile data: `user_profiles` table (skills, goals, constraints)
 - ✅ Context extraction: Category-relevant excerpts sent to evaluators
 
 **Profile Context Usage:**
+
 - **Feasibility**: Skills, experience, available time
 - **Market**: Industry knowledge, network access
 - **Risk**: Risk tolerance, commitment level
 - **Fit**: Personal goals, values alignment
 
 **Testing:**
+
 - ✅ Profile tests: `tests/profile.test.ts` (9 tests passing)
 - ✅ Profile context verified in evaluation flow
 
@@ -164,12 +177,14 @@ IdeaDetail → ProfileStatusCard
 ### 1.4 README/Development Editor ❌ **MISSING (Inline)**
 
 **Current Implementation:**
+
 - ✅ Content editing exists in `IdeaForm.tsx` (textarea with markdown)
 - ✅ Accessible via "Edit" button → navigates to `/ideas/:slug/edit`
 - ❌ **No inline editing** within IdeaDetail workspace
 - ❌ **No separate development.md editor** (only Q&A interface updates it)
 
 **What Exists:**
+
 ```typescript
 // IdeaForm.tsx lines 223-239
 <textarea
@@ -184,6 +199,7 @@ IdeaDetail → ProfileStatusCard
 ```
 
 **What's Missing:**
+
 1. **Inline README editor** in Overview tab (currently read-only ReactMarkdown)
 2. **Development notes editor** for manual development.md editing
 3. **Toggle between view/edit modes** in the workspace
@@ -191,6 +207,7 @@ IdeaDetail → ProfileStatusCard
 5. **Auto-save** functionality for workspace editing
 
 **Current Workflow:**
+
 1. User views idea in IdeaDetail page (workspace)
 2. Clicks "Edit" button (top-right)
 3. Navigates to separate EditIdea page
@@ -198,6 +215,7 @@ IdeaDetail → ProfileStatusCard
 5. Saves and returns to IdeaDetail page
 
 **Desired Workflow:**
+
 1. User views idea in IdeaDetail page (workspace)
 2. Clicks "Edit" icon on Overview tab
 3. Content becomes editable inline (no navigation)
@@ -208,6 +226,7 @@ IdeaDetail → ProfileStatusCard
 ## 2. Build & Test Verification
 
 ### 2.1 TypeScript Compilation ✅
+
 ```bash
 $ npm run build
 > idea-incubator@0.1.0 build
@@ -216,6 +235,7 @@ $ npm run build
 ```
 
 ### 2.2 Test Suite ✅
+
 ```bash
 $ npm test
 Test Files  106 passed (106)
@@ -224,6 +244,7 @@ Test Files  106 passed (106)
 ```
 
 **Relevant Test Files:**
+
 - ✅ `tests/unit/development.test.ts` - Q&A interface logic
 - ✅ `tests/sync-development.test.ts` - Markdown sync
 - ✅ `tests/profile.test.ts` - Profile linking
@@ -232,6 +253,7 @@ Test Files  106 passed (106)
 ### 2.3 API Endpoints ✅
 
 **Q&A Endpoints:**
+
 - `POST /api/ideas/:slug/develop` - Start development session
 - `POST /api/ideas/:slug/answers` - Save answer
 - `GET /api/ideas/:slug/readiness` - Get readiness score
@@ -239,12 +261,14 @@ Test Files  106 passed (106)
 - `DELETE /api/ideas/:slug/answers/:id` - Delete answer
 
 **Profile Endpoints:**
+
 - `PUT /api/ideas/:slug/profile` - Link profile
 - `DELETE /api/ideas/:slug/profile` - Unlink profile
 - `GET /api/profiles` - List user profiles
 - `GET /api/profiles/:id` - Get profile details
 
 **Idea Endpoints:**
+
 - `GET /api/ideas/:slug` - Get idea details
 - `PUT /api/ideas/:slug` - Update idea (includes content)
 - `PATCH /api/ideas/:slug/stage` - Update lifecycle stage
@@ -253,22 +277,23 @@ Test Files  106 passed (106)
 
 ## 3. Feature Completeness Matrix
 
-| Feature | Status | Implementation | Notes |
-|---------|--------|----------------|-------|
-| **Workspace Layout** | ✅ Complete | IdeaDetail.tsx | 7-tab interface with comprehensive features |
-| **Q&A Interface** | ✅ Complete | DevelopmentWizard.tsx | Modal-based guided questioning system |
-| **Profile Linking** | ✅ Complete | ProfileSelector.tsx | One-click link/unlink with search |
-| **Profile Display** | ✅ Complete | ProfileStatusCard.tsx | Shows linked profile in workspace |
-| **Answer History** | ✅ Complete | AnswerHistory.tsx | Display all Q&A responses in Develop tab |
-| **Readiness Tracking** | ✅ Complete | ReadinessMeter.tsx | Real-time progress indicator |
-| **Content Viewing** | ✅ Complete | ReactMarkdown in Overview tab | Read-only markdown rendering |
-| **Content Editing** | ⚠️ Partial | IdeaForm.tsx (separate page) | No inline editing in workspace |
-| **Development Notes** | ⚠️ Indirect | Q&A answers only | No manual development.md editor |
-| **Auto-save** | ❌ Missing | N/A | Must click Save on edit page |
-| **Edit/View Toggle** | ❌ Missing | N/A | Requires navigation to edit page |
-| **Markdown Preview** | ⚠️ Partial | Separate preview on edit page | No side-by-side in workspace |
+| Feature                | Status      | Implementation                | Notes                                       |
+| ---------------------- | ----------- | ----------------------------- | ------------------------------------------- |
+| **Workspace Layout**   | ✅ Complete | IdeaDetail.tsx                | 7-tab interface with comprehensive features |
+| **Q&A Interface**      | ✅ Complete | DevelopmentWizard.tsx         | Modal-based guided questioning system       |
+| **Profile Linking**    | ✅ Complete | ProfileSelector.tsx           | One-click link/unlink with search           |
+| **Profile Display**    | ✅ Complete | ProfileStatusCard.tsx         | Shows linked profile in workspace           |
+| **Answer History**     | ✅ Complete | AnswerHistory.tsx             | Display all Q&A responses in Develop tab    |
+| **Readiness Tracking** | ✅ Complete | ReadinessMeter.tsx            | Real-time progress indicator                |
+| **Content Viewing**    | ✅ Complete | ReactMarkdown in Overview tab | Read-only markdown rendering                |
+| **Content Editing**    | ⚠️ Partial  | IdeaForm.tsx (separate page)  | No inline editing in workspace              |
+| **Development Notes**  | ⚠️ Indirect | Q&A answers only              | No manual development.md editor             |
+| **Auto-save**          | ❌ Missing  | N/A                           | Must click Save on edit page                |
+| **Edit/View Toggle**   | ❌ Missing  | N/A                           | Requires navigation to edit page            |
+| **Markdown Preview**   | ⚠️ Partial  | Separate preview on edit page | No side-by-side in workspace                |
 
 **Overall Completeness: 85%**
+
 - Core workspace: 100% ✅
 - Q&A interface: 100% ✅
 - Profile linking: 100% ✅
@@ -281,6 +306,7 @@ Test Files  106 passed (106)
 ### 4.1 Missing: Inline README/Development Editor
 
 **Impact**: Medium
+
 - Users can still edit via separate page
 - Workflow requires navigation (2 clicks instead of 1)
 - Breaks workspace continuity
@@ -288,6 +314,7 @@ Test Files  106 passed (106)
 **Implementation Effort**: Small-Medium (1-2 days)
 
 **Required Changes:**
+
 1. Add edit mode state to IdeaDetail Overview tab
 2. Create inline ContentEditor component (textarea with preview)
 3. Add edit/save/cancel buttons to Overview tab header
@@ -295,11 +322,13 @@ Test Files  106 passed (106)
 5. Optional: Side-by-side markdown preview
 
 **Files to Modify:**
+
 - `frontend/src/pages/IdeaDetail.tsx` (add edit mode to Overview)
 - Create `frontend/src/components/ContentEditor.tsx` (new component)
 - `frontend/src/api/client.ts` (ensure updateIdea handles partial updates)
 
 **Example Implementation:**
+
 ```typescript
 // IdeaDetail.tsx - Overview tab with inline editing
 {activeTab === "overview" && (
@@ -335,6 +364,7 @@ Test Files  106 passed (106)
 ### 4.2 Missing: Development Notes Manual Editor
 
 **Impact**: Low
+
 - Q&A interface updates development.md automatically
 - Advanced users might want direct markdown editing
 - Current workaround: Edit via CLI or text editor
@@ -342,6 +372,7 @@ Test Files  106 passed (106)
 **Implementation Effort**: Small (1 day)
 
 **Required Changes:**
+
 1. Add "Development Notes" section to Develop tab
 2. Display development.md content (if exists)
 3. Add inline editor similar to README editor
@@ -354,6 +385,7 @@ Test Files  106 passed (106)
 ### 5.1 Immediate Actions (Required for 100% completion)
 
 **Option A: Implement Inline Editing (Recommended)**
+
 - Add edit mode toggle to Overview tab
 - Create ContentEditor component with markdown preview
 - Implement auto-save or save confirmation
@@ -361,6 +393,7 @@ Test Files  106 passed (106)
 - **Value**: High (improves UX, completes workspace vision)
 
 **Option B: Accept Current Implementation (Pragmatic)**
+
 - Document that editing requires navigation to `/ideas/:slug/edit`
 - Mark task as complete with note about separate edit page
 - **Effort**: 0 days
@@ -394,26 +427,31 @@ Test Files  106 passed (106)
 ## 6. Pass Criteria Evaluation
 
 ### Original Task Requirements:
+
 **"Idea workspace (README/development editor, linked profiles, Q&A interface)"**
 
 **Interpreted Requirements:**
 
 ✅ **Requirement 1**: Comprehensive workspace interface for idea management
-   - **Status**: COMPLETE
-   - **Evidence**: IdeaDetail.tsx provides 7-tab workspace with all metadata, evaluation, and lifecycle features
+
+- **Status**: COMPLETE
+- **Evidence**: IdeaDetail.tsx provides 7-tab workspace with all metadata, evaluation, and lifecycle features
 
 ✅ **Requirement 2**: Q&A interface for development questions
-   - **Status**: COMPLETE
-   - **Evidence**: DevelopmentWizard.tsx modal with session-based and browse-all modes, 1773 tests passing
+
+- **Status**: COMPLETE
+- **Evidence**: DevelopmentWizard.tsx modal with session-based and browse-all modes, 1773 tests passing
 
 ✅ **Requirement 3**: Profile linking capability
-   - **Status**: COMPLETE
-   - **Evidence**: ProfileSelector.tsx, ProfileStatusCard.tsx, API endpoints functional, profile context in evaluations
+
+- **Status**: COMPLETE
+- **Evidence**: ProfileSelector.tsx, ProfileStatusCard.tsx, API endpoints functional, profile context in evaluations
 
 ⚠️ **Requirement 4**: README/development editor
-   - **Status**: PARTIAL
-   - **Evidence**: Editing exists via IdeaForm.tsx on separate page, lacks inline editing in workspace
-   - **Gap**: No inline edit mode in workspace Overview tab
+
+- **Status**: PARTIAL
+- **Evidence**: Editing exists via IdeaForm.tsx on separate page, lacks inline editing in workspace
+- **Gap**: No inline edit mode in workspace Overview tab
 
 ---
 
@@ -422,6 +460,7 @@ Test Files  106 passed (106)
 ### 7.1 Screenshots (Conceptual - Actual UI Exists)
 
 **IdeaDetail Workspace:**
+
 - ✅ Header with idea title, type badge, status, score
 - ✅ Profile status card with link/unlink buttons
 - ✅ Lifecycle timeline visualization
@@ -431,6 +470,7 @@ Test Files  106 passed (106)
 - ✅ Action buttons (Edit, Delete, Evaluate)
 
 **DevelopmentWizard Modal:**
+
 - ✅ Session tab with current question card
 - ✅ All Questions tab with category grouping
 - ✅ Progress tracking (15/50 answered)
@@ -438,6 +478,7 @@ Test Files  106 passed (106)
 - ✅ Navigation controls (Next, Previous)
 
 **ProfileSelector Modal:**
+
 - ✅ Search bar for filtering profiles
 - ✅ Profile list with name, role, goals
 - ✅ Current selection indicator
@@ -446,6 +487,7 @@ Test Files  106 passed (106)
 ### 7.2 Code Artifacts
 
 **Key Implementation Files:**
+
 ```
 frontend/src/
 ├── pages/
@@ -467,6 +509,7 @@ frontend/src/
 ### 7.3 Database Schema
 
 **Tables Supporting Workspace:**
+
 - `ideas` - Core idea data (title, summary, content, type, stage)
 - `question_answers` - User answers to development questions
 - `questions` - Question library (50+ questions)
@@ -484,6 +527,7 @@ frontend/src/
 The PHASE6-TASK-04 "Idea workspace" is **85% complete and fully functional** with the following status:
 
 **Strengths:**
+
 1. ✅ **Comprehensive workspace UI** - 7-tab interface with all idea management features
 2. ✅ **Fully functional Q&A interface** - Guided questioning with persistence and readiness tracking
 3. ✅ **Complete profile linking** - One-click link/unlink with profile context in evaluations
@@ -492,6 +536,7 @@ The PHASE6-TASK-04 "Idea workspace" is **85% complete and fully functional** wit
 6. ✅ **Well-architected** - Clean component separation, proper state management
 
 **Limitations:**
+
 1. ⚠️ **No inline README editing** - Must navigate to separate edit page
 2. ⚠️ **No development.md manual editor** - Only editable via Q&A interface or CLI
 3. ⚠️ **No auto-save** - Must click Save button on edit page
@@ -501,6 +546,7 @@ The PHASE6-TASK-04 "Idea workspace" is **85% complete and fully functional** wit
 **APPROVE for Phase 6 completion with documentation of edit workflow**
 
 The workspace is fully functional and provides all required capabilities:
+
 - ✅ Users can view ideas in comprehensive workspace
 - ✅ Users can answer Q&A questions via DevelopmentWizard
 - ✅ Users can link/unlink profiles via ProfileSelector
@@ -521,11 +567,13 @@ The missing inline editing is a **UX enhancement**, not a **functional blocker**
 ### Manual Testing Checklist
 
 **Workspace Navigation:**
+
 - [ ] Navigate to `/ideas/:slug`
 - [ ] Verify 7 tabs render (Overview, Develop, Lifecycle, Scorecard, Evaluation, Red Team, Synthesis)
 - [ ] Click each tab and verify content loads
 
 **Q&A Interface:**
+
 - [ ] Click "Develop" button on Develop tab
 - [ ] Verify DevelopmentWizard modal opens
 - [ ] Answer question in Session tab
@@ -535,6 +583,7 @@ The missing inline editing is a **UX enhancement**, not a **functional blocker**
 - [ ] Verify readiness score updates
 
 **Profile Linking:**
+
 - [ ] Click "Link Profile" button
 - [ ] Verify ProfileSelector modal opens
 - [ ] Search for profile by name
@@ -543,6 +592,7 @@ The missing inline editing is a **UX enhancement**, not a **functional blocker**
 - [ ] Click "Unlink" and verify profile removed
 
 **Content Editing:**
+
 - [ ] Click "Edit" button (top-right)
 - [ ] Verify navigation to `/ideas/:slug/edit`
 - [ ] Edit content in textarea

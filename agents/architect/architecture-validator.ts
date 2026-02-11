@@ -5,10 +5,7 @@
  * Detects issues in API design, database design, security, and component structure.
  */
 
-import {
-  ArchitectureDoc,
-  RESTEndpoint,
-} from "./types.js";
+import { ArchitectureDoc, RESTEndpoint } from "./types.js";
 
 /**
  * Severity levels for validation issues
@@ -64,9 +61,9 @@ export class ArchitectureValidator {
     issues.push(...this.validateCachingStrategy(architecture));
 
     // Count by severity
-    const errorCount = issues.filter(i => i.severity === "error").length;
-    const warningCount = issues.filter(i => i.severity === "warning").length;
-    const infoCount = issues.filter(i => i.severity === "info").length;
+    const errorCount = issues.filter((i) => i.severity === "error").length;
+    const warningCount = issues.filter((i) => i.severity === "warning").length;
+    const infoCount = issues.filter((i) => i.severity === "info").length;
 
     const report: ValidationReport = {
       projectName: architecture.projectName,
@@ -86,7 +83,9 @@ export class ArchitectureValidator {
   /**
    * Validate component structure for god components and clarity
    */
-  private validateComponentStructure(architecture: ArchitectureDoc): ValidationIssue[] {
+  private validateComponentStructure(
+    architecture: ArchitectureDoc,
+  ): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
 
     for (const component of architecture.components) {
@@ -134,7 +133,9 @@ export class ArchitectureValidator {
   /**
    * Validate for circular dependencies between components
    */
-  private validateCircularDependencies(architecture: ArchitectureDoc): ValidationIssue[] {
+  private validateCircularDependencies(
+    architecture: ArchitectureDoc,
+  ): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
     const adjacencyMap = new Map<string, Set<string>>();
 
@@ -223,7 +224,9 @@ export class ArchitectureValidator {
 
       if (api.endpoints) {
         // Validate REST endpoints
-        issues.push(...this.validateRESTEndpoints(api.id, api.name, api.endpoints));
+        issues.push(
+          ...this.validateRESTEndpoints(api.id, api.name, api.endpoints),
+        );
       }
     }
 
@@ -233,7 +236,11 @@ export class ArchitectureValidator {
   /**
    * Validate REST endpoint design
    */
-  private validateRESTEndpoints(apiId: string, apiName: string, endpoints: RESTEndpoint[]): ValidationIssue[] {
+  private validateRESTEndpoints(
+    apiId: string,
+    apiName: string,
+    endpoints: RESTEndpoint[],
+  ): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
     const usedPaths = new Set<string>();
 
@@ -256,9 +263,15 @@ export class ArchitectureValidator {
       }
 
       // Check for missing pagination on list endpoints
-      if (endpoint.method === "GET" && endpoint.path.includes("list") || endpoint.path.endsWith("s")) {
+      if (
+        (endpoint.method === "GET" && endpoint.path.includes("list")) ||
+        endpoint.path.endsWith("s")
+      ) {
         const hasPaginationParam = endpoint.parameters?.some(
-          p => p.name.toLowerCase().includes("limit") || p.name.toLowerCase().includes("offset") || p.name.toLowerCase().includes("page")
+          (p) =>
+            p.name.toLowerCase().includes("limit") ||
+            p.name.toLowerCase().includes("offset") ||
+            p.name.toLowerCase().includes("page"),
         );
         if (!hasPaginationParam) {
           issues.push({
@@ -305,7 +318,9 @@ export class ArchitectureValidator {
   /**
    * Validate database design for performance and integrity
    */
-  private validateDatabaseDesign(architecture: ArchitectureDoc): ValidationIssue[] {
+  private validateDatabaseDesign(
+    architecture: ArchitectureDoc,
+  ): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
     const schema = architecture.databaseSchema;
 
@@ -328,15 +343,21 @@ export class ArchitectureValidator {
       }
 
       // Check for missing indexes on foreign keys
-      const hasForeignKeys = table.columns.some(c => c.name.endsWith("_id") || c.name.includes("id_"));
+      const hasForeignKeys = table.columns.some(
+        (c) => c.name.endsWith("_id") || c.name.includes("id_"),
+      );
       if (hasForeignKeys) {
-        const indexedColumns = new Set((schema.indexes || [])
-          .filter(idx => idx.table === table.name)
-          .flatMap(idx => idx.columns)
+        const indexedColumns = new Set(
+          (schema.indexes || [])
+            .filter((idx) => idx.table === table.name)
+            .flatMap((idx) => idx.columns),
         );
 
         for (const column of table.columns) {
-          if ((column.name.endsWith("_id") || column.name.includes("id_")) && !indexedColumns.has(column.name)) {
+          if (
+            (column.name.endsWith("_id") || column.name.includes("id_")) &&
+            !indexedColumns.has(column.name)
+          ) {
             issues.push({
               id: `missing-index-${table.name}-${column.name}`,
               type: "missing-index",
@@ -351,7 +372,9 @@ export class ArchitectureValidator {
       }
 
       // Check for soft delete strategy
-      const hasSoftDeleteColumn = table.columns.some(c => c.name === "deleted_at" || c.name === "is_deleted");
+      const hasSoftDeleteColumn = table.columns.some(
+        (c) => c.name === "deleted_at" || c.name === "is_deleted",
+      );
       if (!hasSoftDeleteColumn && table.columns.length > 2) {
         issues.push({
           id: `no-soft-delete-${table.name}`,
@@ -365,7 +388,9 @@ export class ArchitectureValidator {
       }
 
       // Check for audit columns
-      const hasAuditColumns = table.columns.some(c => c.name === "created_at" || c.name === "updated_at");
+      const hasAuditColumns = table.columns.some(
+        (c) => c.name === "created_at" || c.name === "updated_at",
+      );
       if (!hasAuditColumns) {
         issues.push({
           id: `missing-audit-columns-${table.name}`,
@@ -384,31 +409,39 @@ export class ArchitectureValidator {
   /**
    * Validate security concerns
    */
-  private validateSecurityConcerns(architecture: ArchitectureDoc): ValidationIssue[] {
+  private validateSecurityConcerns(
+    architecture: ArchitectureDoc,
+  ): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
 
     // Check for authentication across components
-    const hasAuthentication = architecture.apiContracts.some(api => api.authentication);
+    const hasAuthentication = architecture.apiContracts.some(
+      (api) => api.authentication,
+    );
     if (!hasAuthentication && architecture.apiContracts.length > 0) {
       issues.push({
         id: "no-auth-strategy",
         type: "missing-authentication-strategy",
         severity: "error",
         description: "No authentication strategy defined for any API",
-        remediation: "Define a centralized authentication mechanism (JWT, OAuth2, etc.) and apply it consistently across all APIs",
+        remediation:
+          "Define a centralized authentication mechanism (JWT, OAuth2, etc.) and apply it consistently across all APIs",
         references: ["OWASP Top 10", "API Security"],
       });
     }
 
     // Check quality attributes for security
-    const hasSecurityQA = architecture.qualityAttributes.some(qa => qa.category === "security");
+    const hasSecurityQA = architecture.qualityAttributes.some(
+      (qa) => qa.category === "security",
+    );
     if (!hasSecurityQA) {
       issues.push({
         id: "missing-security-qa",
         type: "missing-security-requirements",
         severity: "warning",
         description: "No explicit security quality attributes defined",
-        remediation: "Add security quality attributes such as encryption, access control, and audit logging requirements",
+        remediation:
+          "Add security quality attributes such as encryption, access control, and audit logging requirements",
         references: ["Security Architecture"],
       });
     }
@@ -428,8 +461,10 @@ export class ArchitectureValidator {
           id: "exposed-secrets",
           type: "exposed-credentials",
           severity: "error",
-          description: "Architecture documentation may contain exposed secrets or sensitive credentials",
-          remediation: "Remove all hardcoded secrets. Use environment variables or secret management systems (AWS Secrets Manager, HashiCorp Vault)",
+          description:
+            "Architecture documentation may contain exposed secrets or sensitive credentials",
+          remediation:
+            "Remove all hardcoded secrets. Use environment variables or secret management systems (AWS Secrets Manager, HashiCorp Vault)",
           references: ["OWASP Secrets Management"],
         });
         break;
@@ -442,18 +477,23 @@ export class ArchitectureValidator {
   /**
    * Validate caching strategy
    */
-  private validateCachingStrategy(architecture: ArchitectureDoc): ValidationIssue[] {
+  private validateCachingStrategy(
+    architecture: ArchitectureDoc,
+  ): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
 
     // Check if any components mention caching
-    const mentionsCaching = architecture.components.some(c =>
-      c.designPatterns.some(p => p.toLowerCase().includes("cache")) ||
-      c.description.toLowerCase().includes("cache")
+    const mentionsCaching = architecture.components.some(
+      (c) =>
+        c.designPatterns.some((p) => p.toLowerCase().includes("cache")) ||
+        c.description.toLowerCase().includes("cache"),
     );
 
     // Check quality attributes for performance/caching
     const hasPerformanceQA = architecture.qualityAttributes.some(
-      qa => qa.category === "performance" || qa.name.toLowerCase().includes("cache")
+      (qa) =>
+        qa.category === "performance" ||
+        qa.name.toLowerCase().includes("cache"),
     );
 
     if (!mentionsCaching && !hasPerformanceQA) {
@@ -462,7 +502,8 @@ export class ArchitectureValidator {
         type: "missing-caching-strategy",
         severity: "warning",
         description: "No caching strategy identified in the architecture",
-        remediation: "Define a caching strategy (application-level, CDN, or database query caching) to improve performance",
+        remediation:
+          "Define a caching strategy (application-level, CDN, or database query caching) to improve performance",
         references: ["Caching Strategies", "Performance Optimization"],
       });
     }
@@ -473,7 +514,11 @@ export class ArchitectureValidator {
   /**
    * Generate a summary of validation results
    */
-  private generateSummary(errorCount: number, warningCount: number, infoCount: number): string {
+  private generateSummary(
+    errorCount: number,
+    warningCount: number,
+    infoCount: number,
+  ): string {
     const parts: string[] = [];
 
     if (errorCount === 0 && warningCount === 0 && infoCount === 0) {

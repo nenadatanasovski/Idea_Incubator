@@ -7,6 +7,7 @@
 According to PHASES.md Task 2.6 (Create Test System Tables Seed), the test_suites table was created with 16 rows (one per phase), but test_cases, test_steps, and test_assertions for Phase 1 tasks were missing. This blocks proper test tracking and validation queries for the phased implementation approach.
 
 This specification documents the completion of Phase 1 test system seed data, which enables:
+
 - Automated validation of Phase 1 task completion
 - Test-driven development workflow
 - Proper pass criteria verification through database queries
@@ -17,12 +18,14 @@ This specification documents the completion of Phase 1 test system seed data, wh
 ### Functional Requirements
 
 **FR-1: Test Suite Creation**
+
 - Create test_suite record for Phase 1 (phase_1_frontend_shell)
 - Suite type: verification
 - Suite source: phases
 - Suite enabled: true
 
 **FR-2: Test Case Creation**
+
 - Create 8 test_cases for Phase 1 tasks:
   1. phase_1_task_1_vite_setup - Vite + React + TypeScript Setup
   2. phase_1_task_2_tailwind - Tailwind CSS Configuration
@@ -36,6 +39,7 @@ This specification documents the completion of Phase 1 test system seed data, wh
 - Priority levels: P0-P2 based on task criticality
 
 **FR-3: Test Step Creation**
+
 - Each test_case must have at least 1 test_step defined
 - Steps must include:
   - Verification commands (file existence, package.json content, build success)
@@ -44,6 +48,7 @@ This specification documents the completion of Phase 1 test system seed data, wh
 - Steps ordered by sequence number
 
 **FR-4: Test Assertion Creation**
+
 - Key pass criteria from PHASES.md must be defined as assertions
 - Assertion types: exists, contains, equals, matches, truthy
 - Each assertion must specify:
@@ -52,6 +57,7 @@ This specification documents the completion of Phase 1 test system seed data, wh
   - Error message for failure
 
 **FR-5: Validation Query Support**
+
 - Support validation queries like:
   ```sql
   SELECT * FROM test_case_results
@@ -69,14 +75,17 @@ This specification documents the completion of Phase 1 test system seed data, wh
 ### Non-Functional Requirements
 
 **NFR-1: Idempotency**
+
 - Seed script must use `ON CONFLICT DO UPDATE` for safe re-runs
 - No duplicate records on multiple executions
 
 **NFR-2: Database Integrity**
+
 - All foreign key constraints must be satisfied
 - Referential integrity maintained across suite → case → step → assertion chain
 
 **NFR-3: Alignment with PHASES.md**
+
 - Test definitions must match pass criteria in PHASES.md exactly
 - Task IDs must follow naming convention: `phase_{N}_task_{M}_{slug}`
 
@@ -134,12 +143,13 @@ CREATE TABLE test_assertions (
 **File**: `parent-harness/orchestrator/src/db/seed-phase1-tests.ts`
 
 **Structure**:
+
 ```typescript
 interface SeedTestCase {
-  id: string;              // phase_1_task_N_slug
-  name: string;            // Human-readable name
-  description: string;     // From PHASES.md
-  priority: 'P0' | 'P1' | 'P2';
+  id: string; // phase_1_task_N_slug
+  name: string; // Human-readable name
+  description: string; // From PHASES.md
+  priority: "P0" | "P1" | "P2";
   steps: SeedTestStep[];
 }
 
@@ -152,7 +162,7 @@ interface SeedTestStep {
 }
 
 interface SeedAssertion {
-  type: 'exists' | 'contains' | 'equals';
+  type: "exists" | "contains" | "equals";
   target: string;
   expectedValue?: string;
   errorMessage: string;
@@ -160,6 +170,7 @@ interface SeedAssertion {
 ```
 
 **Process**:
+
 1. Create test suite record (or update if exists)
 2. For each Phase 1 task (1.1 through 1.8):
    - Create test_case record with task-specific ID
@@ -174,6 +185,7 @@ interface SeedAssertion {
 Each task's pass criteria from PHASES.md maps to test steps/assertions:
 
 **Example: Task 1.1 (Vite Setup)**
+
 ```yaml
 Pass Criteria from PHASES.md:
   - dashboard/ folder exists
@@ -201,26 +213,34 @@ Maps to Steps:
 ## Pass Criteria
 
 ### PC-1: Test Suite Exists ✅
+
 **Criteria**: 1 test_suite record for phase_1_frontend_shell exists
 **Validation**:
+
 ```sql
 SELECT COUNT(*) FROM test_suites WHERE id = 'phase_1_frontend_shell';
 -- Must return: 1
 ```
+
 **Status**: ✅ PASSED
 
 ### PC-2: Eight Test Cases Created ✅
+
 **Criteria**: 8 test_cases created for phase_1 tasks (phase_1_task_1_vite_setup through phase_1_task_8_notifications)
 **Validation**:
+
 ```sql
 SELECT COUNT(*) FROM test_cases WHERE suite_id = 'phase_1_frontend_shell';
 -- Must return: 8
 ```
+
 **Status**: ✅ PASSED
 
 ### PC-3: Each Test Case Has Steps ✅
+
 **Criteria**: Each test_case has at least 1 test_step defined
 **Validation**:
+
 ```sql
 SELECT tc.id, COUNT(ts.id) as step_count
 FROM test_cases tc
@@ -230,11 +250,14 @@ GROUP BY tc.id
 HAVING step_count = 0;
 -- Must return: 0 rows (no test cases without steps)
 ```
+
 **Status**: ✅ PASSED (all 8 test cases have 2-4 steps each, total 21 steps)
 
 ### PC-4: Key Assertions Defined ✅
+
 **Criteria**: Critical pass criteria defined as assertions
 **Validation**:
+
 ```sql
 SELECT COUNT(*) FROM test_assertions
 WHERE step_id IN (
@@ -245,22 +268,28 @@ WHERE step_id IN (
 );
 -- Must return: > 0 (at least some assertions exist)
 ```
+
 **Status**: ✅ PASSED (28 assertions created)
 
 ### PC-5: Validation Query Works ✅
+
 **Criteria**: Validation query returns expected structure
 **Validation**:
+
 ```sql
 -- This query should not error (structure exists)
 SELECT * FROM test_case_results
 WHERE case_id = 'phase_1_task_1_vite_setup' AND status = 'passed'
 LIMIT 1;
 ```
+
 **Status**: ✅ PASSED (query executes successfully, returns 0 rows until tests run)
 
 ### PC-6: Phase 1 Task Tracking ✅
+
 **Criteria**: Phase 1 task completion can be properly tracked
 **Validation**:
+
 ```sql
 -- All 8 Phase 1 test cases are queryable
 SELECT id, name FROM test_cases
@@ -268,16 +297,19 @@ WHERE suite_id = 'phase_1_frontend_shell'
 ORDER BY id;
 -- Must return: 8 rows with correct IDs
 ```
+
 **Status**: ✅ PASSED
 
 ## Dependencies
 
 ### Input Dependencies
+
 - ✅ `parent-harness/docs/PHASES.md` - Source of truth for task definitions and pass criteria
 - ✅ `parent-harness/database/schema.sql` - Test system table definitions
 - ✅ `parent-harness/orchestrator/src/db/index.ts` - Database connection utilities
 
 ### Output Dependencies (Consumed By)
+
 - QA Agent - Uses test_case_results to validate task completion
 - Orchestrator - Checks validation queries before proceeding to next task
 - Test Runner - Executes test steps and records results
@@ -286,9 +318,11 @@ ORDER BY id;
 ## Implementation Details
 
 ### Seed Script Location
+
 `parent-harness/orchestrator/src/db/seed-phase1-tests.ts`
 
 ### Execution Method
+
 ```bash
 # From project root
 cd parent-harness/orchestrator
@@ -299,11 +333,14 @@ npm run seed-phase1-tests
 ```
 
 ### Database Path
+
 The script uses the database connection from `src/db/index.ts`, which points to:
 `parent-harness/data/harness.db`
 
 ### Idempotency Strategy
+
 All INSERT statements use `ON CONFLICT(id) DO UPDATE SET` to allow safe re-runs:
+
 ```sql
 INSERT INTO test_cases (id, suite_id, name, description, priority, enabled)
 VALUES (?, ?, ?, ?, ?, ?)
@@ -317,29 +354,30 @@ ON CONFLICT(id) DO UPDATE SET
 
 ### Created Records
 
-| Entity | Count | Details |
-|--------|-------|---------|
-| test_suites | 1 | phase_1_frontend_shell |
-| test_cases | 8 | phase_1_task_1 through phase_1_task_8 |
-| test_steps | 21 | 2-4 steps per test case |
-| test_assertions | 28 | Verification points for pass criteria |
+| Entity          | Count | Details                               |
+| --------------- | ----- | ------------------------------------- |
+| test_suites     | 1     | phase_1_frontend_shell                |
+| test_cases      | 8     | phase_1_task_1 through phase_1_task_8 |
+| test_steps      | 21    | 2-4 steps per test case               |
+| test_assertions | 28    | Verification points for pass criteria |
 
 ### Test Case Breakdown
 
-| ID | Name | Steps | Priority |
-|----|------|-------|----------|
-| phase_1_task_1_vite_setup | Vite + React + TypeScript Setup | 3 | P0 |
-| phase_1_task_2_tailwind | Tailwind CSS Configuration | 4 | P0 |
-| phase_1_task_3_layout | Three-Column Layout | 2 | P0 |
-| phase_1_task_4_agent_card | AgentStatusCard Component | 2 | P1 |
-| phase_1_task_5_event_stream | EventStream Component | 2 | P1 |
-| phase_1_task_6_task_card | TaskCard Component | 2 | P1 |
-| phase_1_task_7_routing | Basic Routing | 4 | P0 |
-| phase_1_task_8_notifications | Notification Center | 2 | P2 |
+| ID                           | Name                            | Steps | Priority |
+| ---------------------------- | ------------------------------- | ----- | -------- |
+| phase_1_task_1_vite_setup    | Vite + React + TypeScript Setup | 3     | P0       |
+| phase_1_task_2_tailwind      | Tailwind CSS Configuration      | 4     | P0       |
+| phase_1_task_3_layout        | Three-Column Layout             | 2     | P0       |
+| phase_1_task_4_agent_card    | AgentStatusCard Component       | 2     | P1       |
+| phase_1_task_5_event_stream  | EventStream Component           | 2     | P1       |
+| phase_1_task_6_task_card     | TaskCard Component              | 2     | P1       |
+| phase_1_task_7_routing       | Basic Routing                   | 4     | P0       |
+| phase_1_task_8_notifications | Notification Center             | 2     | P2       |
 
 ## Verification Results
 
 ### Execution Output
+
 ```
 🧪 Seeding Phase 1 test data...
   📂 Created suite: phase_1_frontend_shell
@@ -402,20 +440,25 @@ WHERE step_id IN (
 ## Notes
 
 ### Why Phase 1 Only?
+
 Task 2.6 focuses on Phase 1 seed data because:
+
 1. Phase 1 is the foundation for all subsequent work
 2. Test system must be validated before proceeding
 3. Phase 2+ test data can be seeded as those phases are implemented
 4. Demonstrates the pattern for future phase seeding
 
 ### Test Execution vs. Test Definition
+
 This task creates test **definitions** (metadata about what to test). Actual test **execution** (running commands, recording results) is handled by:
+
 - Test Runner service (Phase 3+)
 - QA Agent validation loops (Phase 11)
 - Build Agent pass criteria verification
 
 ### Future Enhancements
-- Create test_runs and test_*_results records when tests actually execute
+
+- Create test*runs and test*\*\_results records when tests actually execute
 - Add test_fix_attempts tracking for failing tests
 - Link tasks to test_cases via task_test_links table
 - Create verification scripts for automated phase gate validation
@@ -425,6 +468,7 @@ This task creates test **definitions** (metadata about what to test). Actual tes
 ✅ **TASK-024 COMPLETE**
 
 All pass criteria met:
+
 1. ✅ 8 test_cases created for phase_1 tasks
 2. ✅ Each test_case has at least 1 test_step defined (21 total)
 3. ✅ Key assertions defined for critical pass criteria (28 total)

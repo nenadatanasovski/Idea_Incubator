@@ -49,24 +49,24 @@ Extend `scripts/sync.ts` to automatically parse Q&A pairs from `development.md` 
 
 ### Functional Requirements (All ✅ Complete)
 
-| ID | Requirement | Status | Implementation |
-|----|-------------|--------|----------------|
-| FR-1 | Parse Q&A pairs from development.md | ✅ | `questions/parser.ts:27-83` |
-| FR-2 | Support multiple Q&A format patterns | ✅ | 5 regex patterns in parseQAFromMarkdown() |
-| FR-3 | Classify questions to YAML IDs | ✅ | `questions/classifier.ts:546-558` |
-| FR-4 | Save answers to idea_answers table | ✅ | `questions/readiness.ts:109-166` |
-| FR-5 | Include development.md in content hash | ✅ | `scripts/sync.ts:45` |
-| FR-6 | Report sync statistics | ✅ | `scripts/sync.ts:380-386` |
-| FR-7 | Skip LLM fallback during sync | ✅ | `scripts/sync.ts:89` - `useLLMFallback=false` |
+| ID   | Requirement                            | Status | Implementation                                |
+| ---- | -------------------------------------- | ------ | --------------------------------------------- |
+| FR-1 | Parse Q&A pairs from development.md    | ✅     | `questions/parser.ts:27-83`                   |
+| FR-2 | Support multiple Q&A format patterns   | ✅     | 5 regex patterns in parseQAFromMarkdown()     |
+| FR-3 | Classify questions to YAML IDs         | ✅     | `questions/classifier.ts:546-558`             |
+| FR-4 | Save answers to idea_answers table     | ✅     | `questions/readiness.ts:109-166`              |
+| FR-5 | Include development.md in content hash | ✅     | `scripts/sync.ts:45`                          |
+| FR-6 | Report sync statistics                 | ✅     | `scripts/sync.ts:380-386`                     |
+| FR-7 | Skip LLM fallback during sync          | ✅     | `scripts/sync.ts:89` - `useLLMFallback=false` |
 
 ### Non-Functional Requirements (All ✅ Complete)
 
-| ID | Requirement | Status | Implementation |
-|----|-------------|--------|----------------|
-| NFR-1 | Idempotent sync operation | ✅ | UNIQUE constraint on (idea_id, question_id) |
-| NFR-2 | Graceful error handling | ✅ | try/catch with continue on failures |
-| NFR-3 | Handle malformed markdown | ✅ | Length validation, deduplication |
-| NFR-4 | Performance < 2s for 50 Q&A | ✅ | Measured ~1.5s in practice |
+| ID    | Requirement                 | Status | Implementation                              |
+| ----- | --------------------------- | ------ | ------------------------------------------- |
+| NFR-1 | Idempotent sync operation   | ✅     | UNIQUE constraint on (idea_id, question_id) |
+| NFR-2 | Graceful error handling     | ✅     | try/catch with continue on failures         |
+| NFR-3 | Handle malformed markdown   | ✅     | Length validation, deduplication            |
+| NFR-4 | Performance < 2s for 50 Q&A | ✅     | Measured ~1.5s in practice                  |
 
 ## Technical Design
 
@@ -98,29 +98,37 @@ scripts/sync.ts
 **File:** `questions/parser.ts:27-83`
 
 **Supported Patterns:**
+
 ```markdown
 # Pattern 1: **Q:** / **A:**
+
 **Q:** What is your target market?
 **A:** Tech professionals aged 25-45
 
 # Pattern 2: Heading-based
+
 ### What is your competitive moat?
+
 We use proprietary algorithms...
 
 # Pattern 3: Simple Q: / A:
+
 Q: How much time can you dedicate?
 A: 60+ hours per week
 
 # Pattern 4: Numbered
+
 1. What validation have you done?
-I have conducted 47 interviews...
+   I have conducted 47 interviews...
 
 # Pattern 5: Bold question
+
 **What is your timeline to MVP?**
 8 months to functional prototype
 ```
 
 **Logic:**
+
 - Extract using 5 regex patterns (lines 31-46)
 - Validate min length (10 chars for Q and A)
 - Deduplicate by normalized question text
@@ -131,6 +139,7 @@ I have conducted 47 interviews...
 **File:** `questions/classifier.ts:546-558`
 
 **Logic:**
+
 ```typescript
 export function classifyQuestionToId(question: string): string | null {
   const normalizedQuestion = question.toLowerCase().trim();
@@ -138,15 +147,16 @@ export function classifyQuestionToId(question: string): string | null {
   // Test against 80+ patterns organized by category
   for (const pattern of QUESTION_PATTERNS) {
     if (pattern.regex.test(normalizedQuestion)) {
-      return pattern.id;  // e.g., 'M1_TAM', 'FT5_TIMING'
+      return pattern.id; // e.g., 'M1_TAM', 'FT5_TIMING'
     }
   }
 
-  return null;  // No match found
+  return null; // No match found
 }
 ```
 
 **Example Mappings:**
+
 - "What is your target market?" → `M1_TAM`
 - "How much time can you dedicate?" → `FT5_TIMING`
 - "What validation have you done?" → `P4_EVIDENCE`
@@ -156,31 +166,37 @@ export function classifyQuestionToId(question: string): string | null {
 **File:** `questions/readiness.ts:109-166`
 
 **Logic:**
+
 ```typescript
 export async function saveAnswer(
   ideaId: string,
   questionId: string,
   answer: string,
-  source: 'user' | 'ai_extracted' | 'ai_inferred' = 'user',
-  confidence: number = 1.0
+  source: "user" | "ai_extracted" | "ai_inferred" = "user",
+  confidence: number = 1.0,
 ): Promise<Answer> {
   // Check if answer exists
   const existing = await query<Answer>(
-    'SELECT * FROM idea_answers WHERE idea_id = ? AND question_id = ?',
-    [ideaId, questionId]
+    "SELECT * FROM idea_answers WHERE idea_id = ? AND question_id = ?",
+    [ideaId, questionId],
   );
 
   if (existing.length > 0) {
     // Update existing
-    await update('idea_answers', {
-      answer,
-      answer_source: source,
-      confidence,
-      updated_at: new Date().toISOString()
-    }, 'id = ?', [existing[0].id]);
+    await update(
+      "idea_answers",
+      {
+        answer,
+        answer_source: source,
+        confidence,
+        updated_at: new Date().toISOString(),
+      },
+      "id = ?",
+      [existing[0].id],
+    );
   } else {
     // Insert new
-    await insert('idea_answers', {
+    await insert("idea_answers", {
       id: uuidv4(),
       idea_id: ideaId,
       question_id: questionId,
@@ -188,7 +204,7 @@ export async function saveAnswer(
       answer_source: source,
       confidence,
       answered_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     });
   }
 
@@ -204,10 +220,11 @@ export async function saveAnswer(
 **File:** `scripts/sync.ts:70-113`
 
 **Logic:**
+
 ```typescript
 async function syncDevelopmentAnswers(
   ideaId: string,
-  folderPath: string
+  folderPath: string,
 ): Promise<DevSyncResult> {
   const devPath = path.join(folderPath, "development.md");
 
@@ -252,6 +269,7 @@ async function syncDevelopmentAnswers(
 ```
 
 **Integration Points:**
+
 - Called on idea creation: `scripts/sync.ts:186`
 - Called on idea update: `scripts/sync.ts:218`
 - Results reported: `scripts/sync.ts:380-386`
@@ -287,6 +305,7 @@ User runs: npm run sync
 ### ✅ PC-1: TypeScript Compiles Without Errors
 
 **Verification:**
+
 ```bash
 npx tsc --noEmit
 ```
@@ -298,6 +317,7 @@ npx tsc --noEmit
 ### ❌ PC-2: All Tests Pass
 
 **Verification:**
+
 ```bash
 npm test
 ```
@@ -307,6 +327,7 @@ npm test
 **Analysis:** Test failures are **NOT related to sync command functionality**. All failures are due to missing database columns in other subsystems:
 
 **Failed Test Categories:**
+
 1. **TaskTestService** (24 failures) - Missing `metadata` column in tasks table
 2. **TaskImpactService** (7 failures) - Missing `strategy` column
 3. **TaskExecutionService** (5 failures) - Missing `assigned_agent_id` column
@@ -318,6 +339,7 @@ npm test
 ### ✅ PC-3: Build Succeeds
 
 **Verification:**
+
 ```bash
 npm run build
 ```
@@ -343,6 +365,7 @@ All required components exist and are integrated:
 The test suite has **database schema inconsistencies** affecting the Parent Harness task management system:
 
 **Missing Columns:**
+
 - `tasks.metadata` (TEXT)
 - `tasks.strategy` (TEXT)
 - `tasks.assigned_agent_id` (TEXT)
@@ -351,6 +374,7 @@ The test suite has **database schema inconsistencies** affecting the Parent Harn
 - Various other columns in task-related tables
 
 **Impact:**
+
 - 56 test failures across 19 test files
 - All failures are in `tests/task-agent/*` and `tests/api/*`
 - **Zero failures** in sync-related functionality
@@ -374,27 +398,28 @@ The test suite has **database schema inconsistencies** affecting the Parent Harn
 
 ### Existing Dependencies (All ✅ Satisfied)
 
-| Dependency | Location | Status |
-|------------|----------|--------|
-| parseDevlopmentMd | `questions/parser.ts` | ✅ Implemented |
-| parseQAFromMarkdown | `questions/parser.ts:27-83` | ✅ Implemented |
+| Dependency           | Location                          | Status         |
+| -------------------- | --------------------------------- | -------------- |
+| parseDevlopmentMd    | `questions/parser.ts`             | ✅ Implemented |
+| parseQAFromMarkdown  | `questions/parser.ts:27-83`       | ✅ Implemented |
 | classifyQuestionToId | `questions/classifier.ts:546-558` | ✅ Implemented |
-| saveAnswer | `questions/readiness.ts:109-166` | ✅ Implemented |
-| Database functions | `database/db.ts` | ✅ Working |
-| Logger | `utils/logger.ts` | ✅ Working |
+| saveAnswer           | `questions/readiness.ts:109-166`  | ✅ Implemented |
+| Database functions   | `database/db.ts`                  | ✅ Working     |
+| Logger               | `utils/logger.ts`                 | ✅ Working     |
 
 ### External Dependencies
 
-| Package | Version | Purpose | Status |
-|---------|---------|---------|--------|
-| glob | ^10.x | Find idea files | ✅ Installed |
-| uuid | ^9.x | Generate IDs | ✅ Installed |
+| Package | Version | Purpose         | Status       |
+| ------- | ------- | --------------- | ------------ |
+| glob    | ^10.x   | Find idea files | ✅ Installed |
+| uuid    | ^9.x    | Generate IDs    | ✅ Installed |
 
 ## Error Handling
 
 The implementation includes comprehensive error handling:
 
 ### Pattern 1: Missing File
+
 ```typescript
 if (!fs.existsSync(devPath)) {
   return { synced: 0, failed: 0, skipped: 0 };
@@ -402,6 +427,7 @@ if (!fs.existsSync(devPath)) {
 ```
 
 ### Pattern 2: Empty/Template File
+
 ```typescript
 if (content.length < 100) {
   return { synced: 0, failed: 0, skipped: 1 };
@@ -409,16 +435,18 @@ if (content.length < 100) {
 ```
 
 ### Pattern 3: Classification Failure
+
 ```typescript
 const questionId = classifyQuestionToId(question);
 if (!questionId) {
   logDebug(`Could not classify: "${question.slice(0, 40)}..."`);
   failed++;
-  continue;  // Don't block other questions
+  continue; // Don't block other questions
 }
 ```
 
 ### Pattern 4: Save Failure
+
 ```typescript
 try {
   await saveAnswer(ideaId, questionId, answer, "user", confidence);
@@ -461,6 +489,7 @@ describe("syncDevelopmentAnswers() integration", () => {
 ## Manual Verification Steps
 
 ### Step 1: Test Sync Command
+
 ```bash
 # Create test idea
 mkdir -p ideas/test-sync
@@ -491,6 +520,7 @@ npm run sync
 ```
 
 ### Step 2: Verify Database
+
 ```bash
 sqlite3 data/db.sqlite <<SQL
 SELECT
@@ -508,6 +538,7 @@ SQL
 ```
 
 ### Step 3: Test Hash Detection
+
 ```bash
 # Modify development.md
 echo "**Q:** How much time can you dedicate?" >> ideas/test-sync/development.md
@@ -527,6 +558,7 @@ npm run sync
 ### Decision: NO CODE CHANGES REQUIRED
 
 **Rationale:**
+
 1. All required functionality is **fully implemented**
 2. TypeScript compilation **passes**
 3. Build process **succeeds**
@@ -556,14 +588,14 @@ The failing tests need to be addressed separately:
 
 ### Code Locations
 
-| Component | File | Lines | Description |
-|-----------|------|-------|-------------|
-| Content hashing | `scripts/sync.ts` | 42-64 | Includes development.md in hash |
-| Q&A sync orchestration | `scripts/sync.ts` | 70-113 | Main sync function |
-| Pattern-based parsing | `questions/parser.ts` | 27-83 | Extract Q&A from markdown |
-| LLM fallback (optional) | `questions/parser.ts` | 93-148 | AI extraction when patterns fail |
-| Question classification | `questions/classifier.ts` | 19-558 | Map questions to YAML IDs |
-| Answer persistence | `questions/readiness.ts` | 109-166 | Save to database |
+| Component               | File                      | Lines   | Description                      |
+| ----------------------- | ------------------------- | ------- | -------------------------------- |
+| Content hashing         | `scripts/sync.ts`         | 42-64   | Includes development.md in hash  |
+| Q&A sync orchestration  | `scripts/sync.ts`         | 70-113  | Main sync function               |
+| Pattern-based parsing   | `questions/parser.ts`     | 27-83   | Extract Q&A from markdown        |
+| LLM fallback (optional) | `questions/parser.ts`     | 93-148  | AI extraction when patterns fail |
+| Question classification | `questions/classifier.ts` | 19-558  | Map questions to YAML IDs        |
+| Answer persistence      | `questions/readiness.ts`  | 109-166 | Save to database                 |
 
 ### Related Documentation
 
@@ -585,6 +617,7 @@ The failing tests need to be addressed separately:
 **Summary:** All functionality for parsing Q&A from development.md and syncing to the database is fully implemented and working. The QA verification failure is due to unrelated database schema issues in the Parent Harness subsystem, not the sync command functionality.
 
 **Verification:**
+
 - ✅ TypeScript compiles without errors
 - ✅ Build succeeds
 - ✅ All required code exists and is integrated

@@ -14,6 +14,7 @@
 **Goal:** Verify that all context sources (Q&A answers, user profiles, web research) flow correctly through the evaluation pipeline to all specialized evaluators, ensuring complete context delivery for informed decision-making.
 
 **Context:** Phase 1 has implemented three critical fixes:
+
 1. **TASK-01**: Markdown→Database sync for development.md Q&A answers
 2. **TASK-02**: Category-relevant profile excerpts for all evaluators
 3. **TASK-03**: Pre-evaluation web research phase for Market/Solution verification
@@ -56,21 +57,27 @@ Each evaluator (`agents/specialized-evaluators.ts`) receives and formats context
 // Line 325-369: runSpecializedEvaluator function signature includes:
 async function runSpecializedEvaluator(
   category: Category,
-  ideaContent: string,              // ✅ Includes development.md
+  ideaContent: string, // ✅ Includes development.md
   costTracker: CostTracker,
   broadcaster?: Broadcaster,
   _roundNumber?: number,
-  profileContext?: ProfileContext,   // ✅ Passed
+  profileContext?: ProfileContext, // ✅ Passed
   structuredContext?: StructuredEvaluationContext, // ✅ Passed
-  research?: ResearchResult,         // ✅ Passed
-  strategicContext?: StrategicPositioningContext  // ✅ Passed
-)
+  research?: ResearchResult, // ✅ Passed
+  strategicContext?: StrategicPositioningContext, // ✅ Passed
+);
 
 // Context Formatting (lines 350-369):
 const profileSection = formatProfileForCategory(profileContext, category);
-const structuredSection = formatStructuredDataForPrompt(structuredContext, category);
+const structuredSection = formatStructuredDataForPrompt(
+  structuredContext,
+  category,
+);
 const researchSection = formatResearchForCategory(research, category);
-const strategicSection = formatStrategicContextForPrompt(strategicContext, category);
+const strategicSection = formatStrategicContextForPrompt(
+  strategicContext,
+  category,
+);
 
 // Prompt Assembly (lines 396-411):
 userContent = `
@@ -82,30 +89,30 @@ ${ideaContent}            // README.md + development.md
 ${profileSection}          // User profile excerpt
 ## Criteria to Evaluate
 ${criteriaPrompt}
-`
+`;
 ```
 
 ### Context Filtering by Category
 
 Each formatter applies category-specific filtering:
 
-| Context Type | Formatter | Categories Served | Implementation |
-|--------------|-----------|-------------------|----------------|
-| **Profile** | `formatProfileForCategory` | Feasibility, Market, Risk, Fit | `utils/profile-context.ts:28-95` |
-| **Q&A Answers** | `formatStructuredDataForPrompt` | All 6 categories | `agents/evaluator.ts:265-460` |
-| **Web Research** | `formatResearchForCategory` | Market, Solution | `agents/research.ts:483-600` |
-| **Strategic** | `formatStrategicContextForPrompt` | Solution, Market, Risk, Feasibility | `agents/specialized-evaluators.ts:262-320` |
+| Context Type     | Formatter                         | Categories Served                   | Implementation                             |
+| ---------------- | --------------------------------- | ----------------------------------- | ------------------------------------------ |
+| **Profile**      | `formatProfileForCategory`        | Feasibility, Market, Risk, Fit      | `utils/profile-context.ts:28-95`           |
+| **Q&A Answers**  | `formatStructuredDataForPrompt`   | All 6 categories                    | `agents/evaluator.ts:265-460`              |
+| **Web Research** | `formatResearchForCategory`       | Market, Solution                    | `agents/research.ts:483-600`               |
+| **Strategic**    | `formatStrategicContextForPrompt` | Solution, Market, Risk, Feasibility | `agents/specialized-evaluators.ts:262-320` |
 
 ### Context Coverage by Evaluator
 
-| Evaluator | Profile Context | Q&A Answers | Web Research | Strategic Context |
-|-----------|----------------|-------------|--------------|-------------------|
-| **Problem** | ❌ (not relevant) | ✅ Problem answers | ❌ (not relevant) | ❌ (not relevant) |
-| **Solution** | ❌ (not relevant) | ✅ Solution answers | ✅ Tech feasibility, competitors | ✅ Strategic approach |
-| **Feasibility** | ✅ Skills, time, gaps | ✅ Feasibility answers | ❌ (not relevant) | ✅ Resource allocation |
-| **Fit** | ✅ Full profile (5 sections) | ✅ Fit answers | ❌ (not relevant) | ❌ (not relevant) |
-| **Market** | ✅ Network, connections | ✅ Market answers | ✅ Market size, trends, competitors | ✅ Timing, differentiation |
-| **Risk** | ✅ Runway, tolerance | ✅ Risk answers | ❌ (not relevant) | ✅ Risk responses |
+| Evaluator       | Profile Context              | Q&A Answers            | Web Research                        | Strategic Context          |
+| --------------- | ---------------------------- | ---------------------- | ----------------------------------- | -------------------------- |
+| **Problem**     | ❌ (not relevant)            | ✅ Problem answers     | ❌ (not relevant)                   | ❌ (not relevant)          |
+| **Solution**    | ❌ (not relevant)            | ✅ Solution answers    | ✅ Tech feasibility, competitors    | ✅ Strategic approach      |
+| **Feasibility** | ✅ Skills, time, gaps        | ✅ Feasibility answers | ❌ (not relevant)                   | ✅ Resource allocation     |
+| **Fit**         | ✅ Full profile (5 sections) | ✅ Fit answers         | ❌ (not relevant)                   | ❌ (not relevant)          |
+| **Market**      | ✅ Network, connections      | ✅ Market answers      | ✅ Market size, trends, competitors | ✅ Timing, differentiation |
+| **Risk**        | ✅ Runway, tolerance         | ✅ Risk answers        | ❌ (not relevant)                   | ✅ Risk responses          |
 
 ---
 
@@ -114,24 +121,28 @@ Each formatter applies category-specific filtering:
 ### Functional Requirements
 
 **FR-1: Q&A Context Delivery**
+
 - Q&A answers from `development.md` MUST be loaded into database via sync process
 - Structured context MUST be fetched from database and passed to evaluators
 - Category-specific Q&A sections MUST appear in evaluator prompts
 - Evaluators MUST reference Q&A data in their reasoning when available
 
 **FR-2: Profile Context Delivery**
+
 - User profile MUST be fetched if linked to idea
 - Profile excerpts MUST be filtered per category (Feasibility, Market, Risk, Fit)
 - Full profile MUST be provided to Fit evaluator
 - Evaluators MUST adjust confidence based on profile availability
 
 **FR-3: Web Research Context Delivery**
+
 - Research phase MUST run before evaluation (unless web search unavailable)
 - Research results MUST be formatted for Market and Solution categories
 - Geographic analysis MUST be included when creator location is available
 - Evaluators MUST cite research sources in their assessments
 
 **FR-4: Strategic Context Delivery**
+
 - Strategic positioning MUST be loaded from database if Position phase was completed
 - Strategic context MUST be provided to Solution, Market, Risk, and Feasibility evaluators
 - Evaluators MUST consider strategic decisions when scoring criteria
@@ -139,16 +150,19 @@ Each formatter applies category-specific filtering:
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Context collection MUST complete within 30 seconds
 - Research phase MUST respect budget constraints
 - Database queries MUST use batch loading (no N+1 queries)
 
 **NFR-2: Reliability**
+
 - Missing context MUST NOT cause evaluation failure
 - Graceful degradation: evaluators continue with reduced confidence if context is partial
 - Error handling for failed research or profile lookups
 
 **NFR-3: Observability**
+
 - Log context loading success/failure for each source
 - Track which evaluators received which context types
 - Record confidence adjustments due to missing context
@@ -171,6 +185,7 @@ This is a **verification task** - no code changes required. Validate existing im
 #### Test 1: Q&A Context Flow
 
 **Setup:**
+
 ```bash
 # Create test idea with development.md
 cd ideas/test-qa-flow
@@ -197,6 +212,7 @@ npm run evaluate test-qa-flow -- --verbose
 ```
 
 **Expected Result:**
+
 - Sync log shows: "Loaded development.md - Q&A context included in evaluation"
 - Problem evaluator receives: "**Core Problem:** Users waste 3+ hours per week..."
 - Solution evaluator receives: "**Solution Description:** Automated data pipeline..."
@@ -213,6 +229,7 @@ npm run evaluate test-qa-flow -- --verbose
 #### Test 2: Profile Context Flow
 
 **Setup:**
+
 ```bash
 # Create test profile
 npm run profile create test-user
@@ -226,6 +243,7 @@ npm run evaluate test-qa-flow -- --verbose
 ```
 
 **Expected Result:**
+
 - Evaluation log shows: "Found user profile - Personal Fit criteria will be evaluated with full context"
 - Feasibility evaluator receives: "## Creator Capabilities (for Feasibility Assessment)"
 - Market evaluator receives: "## Creator Network (for Market Assessment)"
@@ -246,6 +264,7 @@ npm run evaluate test-qa-flow -- --verbose
 #### Test 3: Web Research Flow
 
 **Setup:**
+
 ```bash
 # Create test idea with verifiable claims
 cd ideas/test-research-flow
@@ -269,6 +288,7 @@ npm run evaluate test-research-flow -- --verbose
 ```
 
 **Expected Result:**
+
 - Log shows: "--- Starting Research Phase ---"
 - Log shows: "Extracted claims: domain=\"code review\", 3 competitors, tech: OpenAI GPT-4 API, AST parsing"
 - Log shows: "Research found X additional competitors"
@@ -289,6 +309,7 @@ npm run evaluate test-research-flow -- --verbose
 #### Test 4: Complete Context Integration
 
 **Setup:**
+
 ```bash
 # Use idea with ALL context sources
 npm run evaluate fully-developed-idea -- --verbose
@@ -296,6 +317,7 @@ npm run evaluate fully-developed-idea -- --verbose
 ```
 
 **Expected Result:**
+
 - All 4 context sources load successfully
 - Each evaluator receives category-appropriate context
 - Evaluation scores are confident (avg confidence > 0.7)
@@ -313,6 +335,7 @@ npm run evaluate fully-developed-idea -- --verbose
 #### Test 5: Graceful Degradation
 
 **Setup:**
+
 ```bash
 # Evaluate idea with minimal context
 cd ideas/minimal-idea
@@ -325,6 +348,7 @@ npm run evaluate minimal-idea -- --verbose
 ```
 
 **Expected Result:**
+
 - Evaluation proceeds despite missing Q&A, profile, and limited research
 - Logs show: "No structured answers available", "No user profile linked"
 - Evaluators note missing information in gaps
@@ -375,35 +399,41 @@ ORDER BY created_at DESC LIMIT 1;
 ### Critical Success Factors
 
 **✅ PASS-1: Q&A Data Flow**
+
 - Q&A answers from development.md are synced to database
 - Structured context is fetched and passed to evaluators
 - Evaluators receive category-specific Q&A sections
 - Reasoning cites Q&A content when available
 
 **✅ PASS-2: Profile Context Flow**
+
 - User profiles are fetched when linked to ideas
 - Profile excerpts are filtered per category
 - Fit evaluator receives full profile (5 sections)
 - Other evaluators receive category-relevant excerpts only
 
 **✅ PASS-3: Web Research Flow**
+
 - Research phase executes before evaluation
 - Market evaluator receives market size, competitors, trends
 - Solution evaluator receives tech feasibility findings
 - Research sources (URLs) are attributed in context
 
 **✅ PASS-4: Strategic Context Flow**
+
 - Strategic positioning is loaded from database
 - Solution/Market/Risk/Feasibility evaluators receive strategic context
 - Evaluators consider strategic decisions in scoring
 
 **✅ PASS-5: Complete Integration**
+
 - All 5 validation tests pass
 - Evaluation logs confirm context delivery for all sources
 - Evaluators reference multiple context types in reasoning
 - Confidence scores reflect data completeness
 
 **✅ PASS-6: Graceful Degradation**
+
 - Evaluations complete even with missing context
 - Evaluators note missing information in gaps
 - Confidence scores adjust downward appropriately
@@ -421,12 +451,14 @@ ORDER BY created_at DESC LIMIT 1;
 ## Validation Execution Plan
 
 ### Phase 1: Code Review (30 min)
+
 1. Trace context flow from evaluate.ts → specialized-evaluators.ts
 2. Verify all formatters are called correctly
 3. Check prompt assembly includes all context sections
 4. Review error handling for missing context
 
 ### Phase 2: Test Execution (60 min)
+
 1. Run Test 1: Q&A Context Flow
 2. Run Test 2: Profile Context Flow
 3. Run Test 3: Web Research Flow
@@ -434,18 +466,21 @@ ORDER BY created_at DESC LIMIT 1;
 5. Run Test 5: Graceful Degradation
 
 ### Phase 3: Log Analysis (30 min)
+
 1. Parse evaluation logs for context delivery confirmations
 2. Extract evaluator prompts to verify context presence
 3. Review reasoning to confirm context citations
 4. Check confidence scores vs. data completeness correlation
 
 ### Phase 4: Database Inspection (15 min)
+
 1. Run verification queries to confirm data persistence
 2. Check Q&A answers are stored correctly
 3. Verify profile links are active
 4. Confirm research results are saved
 
 ### Phase 5: Report Generation (15 min)
+
 1. Document test results (pass/fail for each criterion)
 2. Identify any gaps or issues found
 3. Provide recommendations for improvements
@@ -456,11 +491,13 @@ ORDER BY created_at DESC LIMIT 1;
 ## Dependencies
 
 ### Prerequisites
+
 - ✅ PHASE1-TASK-01: Q&A sync from development.md → database
 - ✅ PHASE1-TASK-02: Profile context formatting for all categories
 - ✅ PHASE1-TASK-03: Pre-evaluation web research phase
 
 ### Database Schema
+
 - `question_answers` table (for Q&A storage)
 - `profiles` table (for user profiles)
 - `idea_profiles` table (for profile linking)
@@ -468,6 +505,7 @@ ORDER BY created_at DESC LIMIT 1;
 - `positioning_decisions` table (for strategic context)
 
 ### External Services
+
 - Anthropic Claude API (for evaluations)
 - Web search API (for research phase)
 
@@ -476,16 +514,19 @@ ORDER BY created_at DESC LIMIT 1;
 ## Success Metrics
 
 ### Before Validation
+
 - **Context Delivery**: Unknown - no explicit validation
 - **Evaluator Quality**: Suspected 2.3/10 (Phase 1 goal was 8/10)
 - **Confidence**: Low - evaluators lacked data
 
 ### After Validation (Expected)
+
 - **Context Delivery**: 100% - all sources reach appropriate evaluators
 - **Evaluator Quality**: 8/10 - evidence-based assessments with citations
 - **Confidence**: High - 0.7-0.9 confidence for ideas with complete context
 
 ### Long-term Impact
+
 - **User Trust**: Higher confidence in evaluation results
 - **Idea Quality**: Better insights lead to better decisions
 - **System Reliability**: Validation confirms Phase 1 goals achieved
@@ -501,12 +542,14 @@ ORDER BY created_at DESC LIMIT 1;
 ## Future Enhancements
 
 ### Post-Phase 1 Improvements
+
 1. **Context Dashboard**: UI showing which context sources are available per idea
 2. **Coverage Metrics**: Real-time tracking of Q&A completeness by category
 3. **Research Quality Scoring**: Rate research findings by source credibility
 4. **Context Recommendations**: Suggest specific Q&A questions to improve coverage
 
 ### Phase 2+ Features
+
 1. **Adaptive Questioning**: Generate follow-up questions based on evaluation gaps
 2. **Multi-source Research**: Combine web search with academic papers, patents
 3. **Profile Evolution**: Track how profile data improves evaluation accuracy over time
@@ -517,11 +560,13 @@ ORDER BY created_at DESC LIMIT 1;
 ## References
 
 ### Related Specifications
+
 - `docs/specs/PHASE1-TASK-01-markdown-qa-sync.md` - Q&A sync specification
 - `docs/specs/PHASE1-TASK-02-profile-context.md` - Profile context specification (if exists)
 - `docs/specs/PHASE1-TASK-03-web-research-phase.md` - Web research specification
 
 ### Implementation Files
+
 - `scripts/evaluate.ts` - Main evaluation orchestration
 - `agents/specialized-evaluators.ts` - Specialized evaluator logic
 - `utils/profile-context.ts` - Profile formatting
@@ -529,6 +574,7 @@ ORDER BY created_at DESC LIMIT 1;
 - `agents/evaluator.ts` - Structured data formatting
 
 ### Test Files
+
 - `tests/ideation/web-search.test.ts` - Web search tests
 - `tests/puppeteer/test-fixes.ts` - Context delivery tests
 - `tests/e2e/ralph_loop.py` - End-to-end evaluation flow

@@ -4,7 +4,13 @@
 // =============================================================================
 
 import { useState } from "react";
-import { FileText, FileCode, ChevronRight, ChevronDown, Loader2 } from "lucide-react";
+import {
+  FileText,
+  FileCode,
+  ChevronRight,
+  ChevronDown,
+  Loader2,
+} from "lucide-react";
 import type { Artifact } from "../types/ideation";
 
 interface SimpleArtifactListProps {
@@ -12,7 +18,10 @@ interface SimpleArtifactListProps {
   isLoading?: boolean;
 }
 
-export function SimpleArtifactList({ artifacts, isLoading }: SimpleArtifactListProps) {
+export function SimpleArtifactList({
+  artifacts,
+  isLoading,
+}: SimpleArtifactListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   if (isLoading) {
@@ -28,7 +37,9 @@ export function SimpleArtifactList({ artifacts, isLoading }: SimpleArtifactListP
       <div className="flex flex-col items-center justify-center h-32 text-gray-500">
         <FileText className="w-8 h-8 mb-2" />
         <p>No artifacts yet</p>
-        <p className="text-sm text-gray-400">Documents will appear here as the idea develops</p>
+        <p className="text-sm text-gray-400">
+          Documents will appear here as the idea develops
+        </p>
       </div>
     );
   }
@@ -63,23 +74,21 @@ export function SimpleArtifactList({ artifacts, isLoading }: SimpleArtifactListP
             <span className="font-medium text-gray-900 flex-1 truncate">
               {artifact.title}
             </span>
-            <span className="text-xs text-gray-400">
-              {artifact.type}
-            </span>
+            <span className="text-xs text-gray-400">{artifact.type}</span>
           </button>
-          
+
           {expandedId === artifact.id && (
             <div className="mt-2 ml-6 p-3 bg-gray-50 rounded-lg text-sm">
               {artifact.type === "code" ? (
                 <pre className="whitespace-pre-wrap font-mono text-xs overflow-x-auto">
-                  {typeof artifact.content === "string" 
-                    ? artifact.content 
+                  {typeof artifact.content === "string"
+                    ? artifact.content
                     : JSON.stringify(artifact.content, null, 2)}
                 </pre>
               ) : (
                 <div className="prose prose-sm max-w-none">
-                  {typeof artifact.content === "string" 
-                    ? artifact.content 
+                  {typeof artifact.content === "string"
+                    ? artifact.content
                     : JSON.stringify(artifact.content, null, 2)}
                 </div>
               )}

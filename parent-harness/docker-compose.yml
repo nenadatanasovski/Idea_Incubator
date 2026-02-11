@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   orchestrator:
@@ -7,10 +7,10 @@ services:
       dockerfile: orchestrator/Dockerfile
     container_name: harness-orchestrator
     ports:
-      - "3333:3333"  # API server
+      - "3333:3333" # API server
     volumes:
       - ./data:/app/data
-      - ../:/workspace:rw  # Vibe platform source
+      - ../:/workspace:rw # Vibe platform source
     environment:
       - VIBE_WORKSPACE=/workspace
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
@@ -28,7 +28,7 @@ services:
       dockerfile: dashboard/Dockerfile
     container_name: harness-dashboard
     ports:
-      - "3334:3333"  # Dashboard UI (host:3334 -> container:3333)
+      - "3334:3333" # Dashboard UI (host:3334 -> container:3333)
     volumes:
       - ./data:/app/data
     environment:

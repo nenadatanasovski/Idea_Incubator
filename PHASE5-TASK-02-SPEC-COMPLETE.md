@@ -17,6 +17,7 @@ Comprehensive technical specification created for PHASE5-TASK-02: Evidence Colle
 **Sections:** 13 major sections with complete technical details
 
 **Core Components:**
+
 1. ✅ **Overview** - Current state (70% implemented), missing components (30%), and business value
 2. ✅ **Requirements** - 4 functional requirements (FR-1 through FR-4) with detailed sub-requirements
 3. ✅ **Technical Design** - Complete implementation details for:
@@ -38,6 +39,7 @@ Comprehensive technical specification created for PHASE5-TASK-02: Evidence Colle
 ## Key Features Specified
 
 ### Database Schema
+
 - **evaluations table**: Add `evidence_cited` and `gaps_identified` JSON columns
 - **research_sessions table**: New table storing complete pre-evaluation research with:
   - Market size verification and sources
@@ -48,14 +50,17 @@ Comprehensive technical specification created for PHASE5-TASK-02: Evidence Colle
   - Search metadata
 
 ### API Endpoints
+
 - `GET /api/ideas/:slug/evaluations/:sessionId/evidence` - Returns all evidence cited and gaps identified
 - `GET /api/ideas/:slug/research/:sessionId` - Returns complete research session with all external data
 
 ### Frontend Components
+
 - **EvidenceTab**: New tab in EvaluationDashboard showing evidence by category
 - **ResearchModal**: Modal dialog displaying all research sources with clickable links
 
 ### Persistence Logic
+
 - Modified `scripts/evaluate.ts` to save evidence fields when persisting evaluations
 - New `saveResearchSession()` function to persist pre-evaluation research
 
@@ -63,39 +68,43 @@ Comprehensive technical specification created for PHASE5-TASK-02: Evidence Colle
 
 ## Pass Criteria Summary
 
-| ID | Criterion | Status | Validation Method |
-|----|-----------|--------|-------------------|
-| PC-1 | TypeScript Compilation | ✅ Ready | `npx tsc --noEmit` |
-| PC-2 | Database Schema | Spec Ready | Migration files + schema validation |
-| PC-3 | Evidence Persistence | Spec Ready | Run evaluation + query database |
-| PC-4 | Evidence Retrieval API | Spec Ready | API endpoint tests with curl |
-| PC-5 | Frontend Display | Spec Ready | Manual testing in browser |
-| PC-6 | Test Coverage | Spec Ready | `npm test` (95%+ passing) |
-| PC-7 | Data Integrity | Spec Ready | Migration + data validation queries |
+| ID   | Criterion              | Status     | Validation Method                   |
+| ---- | ---------------------- | ---------- | ----------------------------------- |
+| PC-1 | TypeScript Compilation | ✅ Ready   | `npx tsc --noEmit`                  |
+| PC-2 | Database Schema        | Spec Ready | Migration files + schema validation |
+| PC-3 | Evidence Persistence   | Spec Ready | Run evaluation + query database     |
+| PC-4 | Evidence Retrieval API | Spec Ready | API endpoint tests with curl        |
+| PC-5 | Frontend Display       | Spec Ready | Manual testing in browser           |
+| PC-6 | Test Coverage          | Spec Ready | `npm test` (95%+ passing)           |
+| PC-7 | Data Integrity         | Spec Ready | Migration + data validation queries |
 
 ---
 
 ## Implementation Roadmap
 
 ### Phase 1: Database Foundation (Est. 1 hour)
+
 1. Create migration `XXX_evaluation_evidence.sql` (evidence columns)
 2. Create migration `XXX_research_sessions.sql` (research table)
 3. Apply migrations and verify schema
 4. Test backwards compatibility
 
 ### Phase 2: Persistence Logic (Est. 2 hours)
+
 1. Modify `scripts/evaluate.ts` evaluation save logic
 2. Add `saveResearchSession()` function
 3. Integrate research save into evaluation flow
 4. Test evidence persistence with real evaluation
 
 ### Phase 3: API Endpoints (Est. 2 hours)
+
 1. Create `server/routes/evidence.ts`
 2. Create `server/routes/research.ts`
 3. Register routes in `server/api.ts`
 4. Test endpoints with curl/Postman
 
 ### Phase 4: Frontend Components (Est. 3 hours)
+
 1. Create `EvidenceTab.tsx` component
 2. Create `ResearchModal.tsx` component
 3. Integrate into `EvaluationDashboard.tsx`
@@ -103,6 +112,7 @@ Comprehensive technical specification created for PHASE5-TASK-02: Evidence Colle
 5. Test in browser
 
 ### Phase 5: Testing (Est. 1 hour)
+
 1. Write unit tests (`tests/evidence/persistence.test.ts`)
 2. Write API tests (`tests/api/evidence.test.ts`)
 3. Write E2E tests (`tests/e2e/evidence-flow.test.ts`)
@@ -115,8 +125,10 @@ Comprehensive technical specification created for PHASE5-TASK-02: Evidence Colle
 ## Technical Decisions
 
 ### JSON vs. Separate Tables
+
 **Decision:** Store evidence arrays as JSON TEXT in SQLite
 **Rationale:**
+
 - Evidence arrays typically <10 items (small payload)
 - SQLite handles JSON efficiently for small arrays
 - Simpler schema (no junction tables)
@@ -124,16 +136,20 @@ Comprehensive technical specification created for PHASE5-TASK-02: Evidence Colle
 - Future: Can migrate to JSONB if needed
 
 ### Research Table Structure
+
 **Decision:** Flat structure with JSON columns vs. fully normalized
 **Rationale:**
+
 - Research data naturally hierarchical (geographic analysis)
 - Flat structure with JSON balances queryability and simplicity
 - Can query by `evaluation_session_id` or `idea_id` (indexed)
 - Full research payload <5KB, acceptable for single-row queries
 
 ### API Endpoint Design
+
 **Decision:** Two endpoints (evidence + research) vs. single combined endpoint
 **Rationale:**
+
 - Evidence needed frequently (lightweight, fast)
 - Research needed occasionally (heavier payload)
 - Separation allows targeted caching strategies

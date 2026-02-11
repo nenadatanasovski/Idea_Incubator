@@ -424,8 +424,7 @@ export default function FileImpactEditor({
       {/* Footer */}
       <div className="flex items-center justify-between text-xs text-gray-500">
         <span>
-          {impacts.filter((i) => i.source === "user").length} user
-          overrides
+          {impacts.filter((i) => i.source === "user").length} user overrides
         </span>
         <button
           onClick={fetchImpacts}

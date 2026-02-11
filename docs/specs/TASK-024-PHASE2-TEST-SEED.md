@@ -12,6 +12,7 @@
 According to PHASES.md, Task 2.6 (Create Test System Tables Seed) is partially complete. The task requires creating test system seed data for Phase 1 tasks to enable proper test tracking and validation. Current analysis reveals that **Phase 1 test data already exists** with 8 test cases, 21 test steps, and 28 test assertions in the database at `parent-harness/data/harness.db`.
 
 **Current State:**
+
 - ✅ 1 test suite created (`phase_1_frontend_shell`)
 - ✅ 8 test cases created for Phase 1 tasks
 - ✅ 21 test steps defined across all cases
@@ -31,6 +32,7 @@ This specification addresses TASK-024, which aims to complete Phase 2 Task 2.6 b
 ### 1.2 Background
 
 The Parent Harness test system uses four main tables:
+
 - `test_suites` - Top-level test groupings (e.g., phase_1_frontend_shell)
 - `test_cases` - Individual test cases (e.g., phase_1_task_1_vite_setup)
 - `test_steps` - Executable steps within each test case
@@ -43,6 +45,7 @@ PHASES.md specifies that each phase task must have corresponding test records to
 **Database Location:** `/parent-harness/data/harness.db`
 
 **Verified Contents:**
+
 ```sql
 -- Test Suites
 SELECT COUNT(*) FROM test_suites WHERE source = 'phases';
@@ -65,6 +68,7 @@ SELECT COUNT(*) FROM test_assertions WHERE step_id IN
 ```
 
 **Existing Test Cases:**
+
 1. `phase_1_task_1_vite_setup` - Vite + React + TypeScript Setup (3 steps)
 2. `phase_1_task_2_tailwind` - Tailwind CSS Configuration (4 steps)
 3. `phase_1_task_3_layout` - Three-Column Layout (2 steps)
@@ -80,13 +84,13 @@ SELECT COUNT(*) FROM test_assertions WHERE step_id IN
 
 ### 2.1 Pass Criteria from Task Description
 
-| # | Criterion | Current State | Status |
-|---|-----------|---------------|--------|
-| 1 | 8 test_cases created for phase_1 tasks | 8 cases exist | ✅ PASS |
-| 2 | Each test_case has at least 1 test_step | All cases have 2-4 steps | ✅ PASS |
-| 3 | Key assertions defined for critical pass criteria | 28 assertions exist | ✅ PASS |
-| 4 | Validation query returns expected results | Query verified working | ✅ PASS |
-| 5 | Phase 1 task completion can be properly tracked | Schema supports tracking | ✅ PASS |
+| #   | Criterion                                         | Current State            | Status  |
+| --- | ------------------------------------------------- | ------------------------ | ------- |
+| 1   | 8 test_cases created for phase_1 tasks            | 8 cases exist            | ✅ PASS |
+| 2   | Each test_case has at least 1 test_step           | All cases have 2-4 steps | ✅ PASS |
+| 3   | Key assertions defined for critical pass criteria | 28 assertions exist      | ✅ PASS |
+| 4   | Validation query returns expected results         | Query verified working   | ✅ PASS |
+| 5   | Phase 1 task completion can be properly tracked   | Schema supports tracking | ✅ PASS |
 
 **All pass criteria are already satisfied.**
 
@@ -95,12 +99,14 @@ SELECT COUNT(*) FROM test_assertions WHERE step_id IN
 According to PHASES.md Task 2.6:
 
 **Build Steps:**
+
 - [x] 2.6.1: Create test_suites for each phase (16 suites) ✅ **1 suite exists**
 - [x] 2.6.2: Create test_cases for Phase 1 tasks (8 cases) ✅ **COMPLETE**
 - [x] 2.6.3: Create test_steps for each case ✅ **COMPLETE**
 - [x] 2.6.4: Create test_assertions for key criteria ✅ **COMPLETE**
 
 **Gap Analysis:**
+
 - Only 1 of 16 planned test suites exists (phase_1_frontend_shell)
 - Phases 2-16 do not have test suites yet
 - However, **this task specifically focuses on Phase 1** based on pass criteria
@@ -174,6 +180,7 @@ CREATE TABLE test_assertions (
 **File:** `parent-harness/orchestrator/src/db/seed-phase1-tests.ts`
 
 **Key Features:**
+
 - Creates 1 test suite (`phase_1_frontend_shell`)
 - Defines 8 test cases matching PHASES.md Task 1.1-1.8
 - Each case includes:
@@ -185,6 +192,7 @@ CREATE TABLE test_assertions (
 - Properly structured with TypeScript types
 
 **Sample Test Case Structure:**
+
 ```typescript
 {
   id: 'phase_1_task_1_vite_setup',
@@ -214,6 +222,7 @@ CREATE TABLE test_assertions (
 **File:** `parent-harness/orchestrator/src/db/verify-phase1-seed.ts`
 
 **Checks:**
+
 1. Counts test cases (expects 8)
 2. Counts test steps (expects at least 8)
 3. Counts test assertions (expects at least 8)
@@ -231,6 +240,7 @@ CREATE TABLE test_assertions (
 **Finding:** All Phase 1 test data already exists in the database. The task appears to be based on stale information.
 
 **Evidence:**
+
 ```bash
 # Verification Results
 sqlite3 parent-harness/data/harness.db "
@@ -247,12 +257,14 @@ sqlite3 parent-harness/data/harness.db "
 ### 4.2 Recommended Actions
 
 **Option 1: Mark Task Complete (RECOMMENDED)**
+
 - All pass criteria are satisfied
 - Seed data exists and is properly structured
 - Verification script confirms completeness
 - No implementation work required
 
 **Option 2: Re-run Seed Script (If data corruption suspected)**
+
 ```bash
 cd parent-harness/orchestrator
 npx tsx src/db/seed-phase1-tests.ts
@@ -260,6 +272,7 @@ npx tsx src/db/verify-phase1-seed.ts
 ```
 
 **Option 3: Extend for Phases 2-16 (Future work)**
+
 - This would require creating test suites for remaining phases
 - Not part of current task scope based on pass criteria
 - Should be a separate task (e.g., TASK-025)
@@ -267,17 +280,20 @@ npx tsx src/db/verify-phase1-seed.ts
 ### 4.3 Implementation Steps (If re-seeding required)
 
 **Step 1: Backup Current Database**
+
 ```bash
 cp parent-harness/data/harness.db parent-harness/data/harness.db.backup
 ```
 
 **Step 2: Run Seed Script**
+
 ```bash
 cd parent-harness/orchestrator
 npx tsx src/db/seed-phase1-tests.ts
 ```
 
 **Expected Output:**
+
 ```
 🧪 Seeding Phase 1 test data...
   📂 Created suite: phase_1_frontend_shell
@@ -293,11 +309,13 @@ npx tsx src/db/seed-phase1-tests.ts
 ```
 
 **Step 3: Verify Results**
+
 ```bash
 npx tsx src/db/verify-phase1-seed.ts
 ```
 
 **Expected Output:**
+
 ```
 🔍 Verification Results:
 1. Test Cases: 8/8 ✓
@@ -321,6 +339,7 @@ npx tsx src/db/verify-phase1-seed.ts
 **Criterion:** 8 test_cases created for phase_1 tasks
 
 **Validation Query:**
+
 ```sql
 SELECT id, name, priority
 FROM test_cases
@@ -337,6 +356,7 @@ ORDER BY id;
 **Criterion:** Each test_case has at least 1 test_step defined
 
 **Validation Query:**
+
 ```sql
 SELECT
   tc.id,
@@ -358,6 +378,7 @@ HAVING step_count = 0;
 **Criterion:** Key assertions defined for critical pass criteria
 
 **Validation Query:**
+
 ```sql
 SELECT COUNT(*) as assertion_count
 FROM test_assertions
@@ -376,6 +397,7 @@ WHERE step_id IN (
 **Criterion:** Validation query returns expected results
 
 **Validation Query:**
+
 ```sql
 SELECT * FROM test_case_results
 WHERE case_id LIKE 'phase_1_task_%' AND status = 'passed';
@@ -390,6 +412,7 @@ WHERE case_id LIKE 'phase_1_task_%' AND status = 'passed';
 **Criterion:** Phase 1 task completion can be properly tracked
 
 **Validation Query:**
+
 ```sql
 -- Check that test framework can track completion
 SELECT
@@ -408,16 +431,19 @@ WHERE case_id LIKE 'phase_1_task_%';
 ## 6. Dependencies
 
 ### 6.1 Database Dependencies
+
 - SQLite database at `parent-harness/data/harness.db`
 - Schema from `parent-harness/database/schema.sql` applied
 - Foreign keys enabled (`PRAGMA foreign_keys = ON`)
 
 ### 6.2 Code Dependencies
+
 - `better-sqlite3` package installed
 - TypeScript compilation environment (tsx or tsc)
 - Node.js runtime
 
 ### 6.3 Data Dependencies
+
 - Test suite `phase_1_frontend_shell` must exist
 - Phase 1 tasks defined in PHASES.md
 - File structure matching PHASES.md expectations:
@@ -433,6 +459,7 @@ WHERE case_id LIKE 'phase_1_task_%';
 ### 7.1 Manual Test Execution
 
 **Run a single test case:**
+
 ```bash
 # Execute test steps manually
 test -d parent-harness/dashboard && echo "PASS" || echo "FAIL"
@@ -443,6 +470,7 @@ test -f parent-harness/dashboard/src/main.tsx && echo "PASS" || echo "FAIL"
 ### 7.2 Automated Test Execution
 
 **Query test definition:**
+
 ```sql
 SELECT
   ts.sequence,
@@ -456,36 +484,47 @@ ORDER BY ts.sequence;
 ```
 
 **Execute and record results:**
+
 ```typescript
-import { query, run } from './db/index.js';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { query, run } from "./db/index.js";
+import { exec } from "child_process";
+import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
 async function runTestCase(caseId: string) {
-  const steps = query<{ id: string, command: string, expected_exit_code: number }>(
+  const steps = query<{
+    id: string;
+    command: string;
+    expected_exit_code: number;
+  }>(
     `SELECT id, command, expected_exit_code
      FROM test_steps
      WHERE case_id = ?
      ORDER BY sequence`,
-    [caseId]
+    [caseId],
   );
 
   for (const step of steps) {
     try {
       const { stdout, stderr } = await execAsync(step.command);
       // Record result
-      run(`
+      run(
+        `
         INSERT INTO test_step_results (id, step_id, status, actual_exit_code, actual_output)
         VALUES (?, ?, 'passed', 0, ?)
-      `, [uuidv4(), step.id, stdout]);
+      `,
+        [uuidv4(), step.id, stdout],
+      );
     } catch (error) {
       // Record failure
-      run(`
+      run(
+        `
         INSERT INTO test_step_results (id, step_id, status, actual_exit_code, actual_output)
         VALUES (?, ?, 'failed', ?, ?)
-      `, [uuidv4(), step.id, error.code, error.message]);
+      `,
+        [uuidv4(), step.id, error.code, error.message],
+      );
     }
   }
 }
@@ -500,6 +539,7 @@ async function runTestCase(caseId: string) {
 **Scope:** Create test suites for remaining phases
 
 **Estimated Effort:**
+
 - Phase 2 (Data Model): 6 test cases, ~18 steps
 - Phase 3 (Backend API): 7 test cases, ~21 steps
 - Phases 4-16: ~85 additional test cases
@@ -511,6 +551,7 @@ async function runTestCase(caseId: string) {
 ### 8.2 Test Runner Service
 
 **Features:**
+
 - Automated test execution engine
 - Parallel test execution
 - Result recording to test_case_results
@@ -520,6 +561,7 @@ async function runTestCase(caseId: string) {
 ### 8.3 Test Dependencies
 
 **Enhancement:** Implement test dependency resolution
+
 - Use `depends_on` JSON field in test_cases
 - Create dependency graph
 - Execute tests in topologically sorted order
@@ -534,6 +576,7 @@ async function runTestCase(caseId: string) {
 **Task Status:** Already Complete
 
 All pass criteria specified in TASK-024 are satisfied:
+
 - ✅ 8 test cases created for Phase 1 tasks
 - ✅ Each case has at least 1 test step (range: 2-4 steps)
 - ✅ 28 assertions defined for critical pass criteria
@@ -551,17 +594,20 @@ No implementation work is required. The task description appears to be based on 
 ### 9.3 Next Steps
 
 1. Run verification script to confirm current state:
+
    ```bash
    cd parent-harness/orchestrator
    npx tsx src/db/verify-phase1-seed.ts
    ```
 
 2. If verification fails, re-run seed script:
+
    ```bash
    npx tsx src/db/seed-phase1-tests.ts
    ```
 
 3. Update PHASES.md to mark Task 2.6 as complete:
+
    ```markdown
    - [x] 2.6.1: Create test_suites for each phase (16 suites) ✅ (1 complete, 15 pending)
    - [x] 2.6.2: Create test_cases for Phase 1 tasks (8 cases) ✅

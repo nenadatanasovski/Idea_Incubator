@@ -138,20 +138,20 @@ describe("TaskVersionService", () => {
   describe("getVersions", () => {
     it("should return all versions for a task", async () => {
       // Create versions with actual changes to trigger versioning
-      await taskVersionService.createVersion(testTaskId, { 
-        title: "Title v1", 
-        changeReason: "v1", 
-        changedBy: "system" 
+      await taskVersionService.createVersion(testTaskId, {
+        title: "Title v1",
+        changeReason: "v1",
+        changedBy: "system",
       });
-      await taskVersionService.createVersion(testTaskId, { 
-        title: "Title v2", 
-        changeReason: "v2", 
-        changedBy: "system" 
+      await taskVersionService.createVersion(testTaskId, {
+        title: "Title v2",
+        changeReason: "v2",
+        changedBy: "system",
       });
-      await taskVersionService.createVersion(testTaskId, { 
-        title: "Title v3", 
-        changeReason: "v3", 
-        changedBy: "system" 
+      await taskVersionService.createVersion(testTaskId, {
+        title: "Title v3",
+        changeReason: "v3",
+        changedBy: "system",
       });
 
       const versions = await taskVersionService.getVersions(testTaskId);

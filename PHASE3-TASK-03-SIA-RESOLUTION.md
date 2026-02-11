@@ -11,6 +11,7 @@
 ## Problem Analysis
 
 ### Task State
+
 - **Status:** blocked (5 failed retries)
 - **Owner:** build_agent
 - **Spec Link:** NULL ❌
@@ -42,11 +43,13 @@
 ### Root Cause
 
 **The task record has NO `spec_link` value**, which means:
+
 - Agents don't know where to find the specification
 - Build agent can't read the spec to implement it
 - Task gets stuck in retry loops
 
 **The specification EXISTS and is comprehensive:**
+
 - File: `docs/specs/PHASE3-TASK-03-agent-session-tracking.md`
 - Size: 882 lines
 - Contents: Complete technical design, 24 pass criteria, implementation plan
@@ -79,7 +82,8 @@ WHERE display_id = 'PHASE3-TASK-03'
 
 **Problem:** Agents create specs but fail to link them to task records.
 
-**Recommendation:** 
+**Recommendation:**
+
 - Add orchestrator validation after spec_agent completion
 - Auto-parse spec_agent output for file paths
 - Verify spec_link before assigning to build_agent

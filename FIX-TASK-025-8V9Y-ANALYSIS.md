@@ -22,6 +22,7 @@ fix(TASK-001): resolve 154 TypeScript compilation errors in frontend
 ```
 
 **Evidence:**
+
 ```bash
 $ npx tsc --noEmit 2>&1 | grep "TS6133"
 # (No output - zero warnings)
@@ -37,11 +38,13 @@ Tests: 15 failed | 1762 passed | 4 skipped (1777)
 ```
 
 **Failed Tests:**
+
 - `tests/avatar.test.ts` (2 failures) - missing `account_profiles` table
 - `tests/preferences.test.ts` (7 failures) - likely similar DB issues
 - Other files (6 failures) - various DB issues
 
 **Error Example:**
+
 ```
 DatabaseError: Database error during run: no such table: account_profiles
   at run database/db.ts:146:11
@@ -67,6 +70,7 @@ The tests fail because:
 **File:** `docs/specs/FIX-TASK-025-8V9Y-TEST-FAILURES.md`
 
 **Contents:**
+
 - Detailed problem analysis
 - Investigation steps
 - Three implementation options (fix migration, fix code, add validation)
@@ -77,16 +81,19 @@ The tests fail because:
 ## Recommended Next Steps
 
 1. **Investigate Migration 026**
+
    ```bash
    cat database/migrations/026_user_profiles.sql | grep -A10 "CREATE TABLE"
    ```
 
 2. **Check Code Reference**
+
    ```bash
    grep -n "account_profiles" database/db.ts
    ```
 
 3. **Verify Table Name Mismatch**
+
    ```bash
    sqlite3 database/test.db ".schema" | grep -i profile
    ```
@@ -105,12 +112,12 @@ The tests fail because:
 
 ## Pass Criteria Summary
 
-| Criterion | Status | Target |
-|-----------|--------|--------|
+| Criterion              | Status  | Target            |
+| ---------------------- | ------- | ----------------- |
 | Unused imports removed | ✅ DONE | 0 TS6133 warnings |
-| TypeScript compiles | ✅ DONE | No errors |
-| Build succeeds | ✅ DONE | Exit code 0 |
-| All tests pass | ❌ TODO | 1777/1777 passing |
+| TypeScript compiles    | ✅ DONE | No errors         |
+| Build succeeds         | ✅ DONE | Exit code 0       |
+| All tests pass         | ❌ TODO | 1777/1777 passing |
 
 ## Files Created
 

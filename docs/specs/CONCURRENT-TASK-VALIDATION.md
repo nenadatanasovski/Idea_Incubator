@@ -55,8 +55,8 @@ The validation is implemented in the E2E test suite:
 **File:** `parent-harness/orchestrator/tests/e2e/honest-validation.test.ts`
 
 ```typescript
-describe('Concurrent Access', () => {
-  test('multiple tasks can be created concurrently', async () => {
+describe("Concurrent Access", () => {
+  test("multiple tasks can be created concurrently", async () => {
     const promises = [];
     for (let i = 0; i < 5; i++) {
       promises.push(
@@ -64,16 +64,16 @@ describe('Concurrent Access', () => {
           tasks.createTask({
             display_id: `concurrent_${Date.now()}_${i}`,
             title: `Concurrent Task ${i}`,
-            category: 'test',
-            priority: 'P2',
-          })
-        )
+            category: "test",
+            priority: "P2",
+          }),
+        ),
       );
     }
 
     const results = await Promise.all(promises);
     expect(results.length).toBe(5);
-    expect(results.every(t => t && t.id)).toBe(true);
+    expect(results.every((t) => t && t.id)).toBe(true);
   });
 });
 ```
@@ -81,6 +81,7 @@ describe('Concurrent Access', () => {
 ### Database Layer
 
 The `tasks.createTask()` function in `parent-harness/orchestrator/src/db/tasks.ts` handles:
+
 - UUID generation for `id`
 - Timestamp assignment for `created_at`
 - Default status of `pending`
@@ -89,6 +90,7 @@ The `tasks.createTask()` function in `parent-harness/orchestrator/src/db/tasks.t
 ### SQLite Concurrency Model
 
 SQLite uses WAL (Write-Ahead Logging) mode configured in the parent-harness database:
+
 - WAL allows concurrent reads during writes
 - Writes are serialized but fast (microseconds for small inserts)
 - `SQLITE_BUSY` timeout is configured to retry automatically
@@ -99,13 +101,13 @@ SQLite uses WAL (Write-Ahead Logging) mode configured in the parent-harness data
 
 **PASS** when ALL of the following are true:
 
-| # | Criterion | How to Verify |
-|---|-----------|---------------|
-| 1 | 5 tasks created concurrently | `results.length === 5` |
-| 2 | All tasks have valid IDs | `results.every(t => t && t.id) === true` |
-| 3 | No duplicate IDs | `new Set(results.map(t => t.id)).size === 5` |
-| 4 | All tasks retrievable | Each task can be fetched by ID after creation |
-| 5 | Correct field values | Each task has expected title, category, priority |
+| #   | Criterion                    | How to Verify                                    |
+| --- | ---------------------------- | ------------------------------------------------ |
+| 1   | 5 tasks created concurrently | `results.length === 5`                           |
+| 2   | All tasks have valid IDs     | `results.every(t => t && t.id) === true`         |
+| 3   | No duplicate IDs             | `new Set(results.map(t => t.id)).size === 5`     |
+| 4   | All tasks retrievable        | Each task can be fetched by ID after creation    |
+| 5   | Correct field values         | Each task has expected title, category, priority |
 
 **FAIL** if any criterion is not met.
 
@@ -121,40 +123,40 @@ cd parent-harness/orchestrator && npx vitest run tests/e2e/honest-validation.tes
 
 ### Depends On
 
-| Dependency | Description |
-|------------|-------------|
-| `parent-harness/orchestrator/src/db/tasks.ts` | Task CRUD operations |
-| `parent-harness/database/schema.sql` | Tasks table schema |
-| SQLite WAL mode | Concurrent write support |
-| Vitest | Test framework |
+| Dependency                                    | Description              |
+| --------------------------------------------- | ------------------------ |
+| `parent-harness/orchestrator/src/db/tasks.ts` | Task CRUD operations     |
+| `parent-harness/database/schema.sql`          | Tasks table schema       |
+| SQLite WAL mode                               | Concurrent write support |
+| Vitest                                        | Test framework           |
 
 ### Affects
 
-| Component | Impact |
-|-----------|--------|
-| Wave execution system | Validates that parallel wave tasks can be created safely |
-| Agent spawner | Validates that multiple agents can register tasks concurrently |
-| Task API | Validates underlying database layer for concurrent API requests |
+| Component             | Impact                                                          |
+| --------------------- | --------------------------------------------------------------- |
+| Wave execution system | Validates that parallel wave tasks can be created safely        |
+| Agent spawner         | Validates that multiple agents can register tasks concurrently  |
+| Task API              | Validates underlying database layer for concurrent API requests |
 
 ---
 
 ## 6. Open Questions
 
-| # | Question | Status | Resolution |
-|---|----------|--------|------------|
-| 1 | Should concurrent tests clean up after themselves? | Resolved | Yes - test tasks should be cleaned up in afterAll() or via a dedicated cleanup utility. Orphaned test artifacts (25+ found in DB analysis) cause queue pollution and inflate task counts. Recommend `DELETE FROM tasks WHERE display_id LIKE 'concurrent_%' AND category = 'test'` in test teardown. |
-| 2 | Should we test higher concurrency (10+, 50+ tasks)? | Open | Current 5-task batch is adequate for correctness validation. Higher concurrency stress testing should be a separate test case, not a modification of the existing correctness test. |
-| 3 | Should we add stress testing for concurrent updates (not just creates)? | Open | Yes, recommended. Wave-based execution involves concurrent status transitions (pending → in_progress → complete) which should be validated separately. |
+| #   | Question                                                                | Status   | Resolution                                                                                                                                                                                                                                                                                           |
+| --- | ----------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Should concurrent tests clean up after themselves?                      | Resolved | Yes - test tasks should be cleaned up in afterAll() or via a dedicated cleanup utility. Orphaned test artifacts (25+ found in DB analysis) cause queue pollution and inflate task counts. Recommend `DELETE FROM tasks WHERE display_id LIKE 'concurrent_%' AND category = 'test'` in test teardown. |
+| 2   | Should we test higher concurrency (10+, 50+ tasks)?                     | Open     | Current 5-task batch is adequate for correctness validation. Higher concurrency stress testing should be a separate test case, not a modification of the existing correctness test.                                                                                                                  |
+| 3   | Should we add stress testing for concurrent updates (not just creates)? | Open     | Yes, recommended. Wave-based execution involves concurrent status transitions (pending → in_progress → complete) which should be validated separately.                                                                                                                                               |
 
 ---
 
 ## Related Documents
 
-| Document | Description |
-|----------|-------------|
-| [PARALLEL-EXECUTION-EXTENSIONS.md](./observability/data-model/PARALLEL-EXECUTION-EXTENSIONS.md) | Parallel execution observability schema |
-| [PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md](./PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md) | Wave-based parallel execution plan |
-| [task-example-reference.md](./task-example-reference.md) | Canonical task format reference |
+| Document                                                                                           | Description                             |
+| -------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| [PARALLEL-EXECUTION-EXTENSIONS.md](./observability/data-model/PARALLEL-EXECUTION-EXTENSIONS.md)    | Parallel execution observability schema |
+| [PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md](./PARALLEL-TASK-EXECUTION-IMPLEMENTATION-PLAN.md) | Wave-based parallel execution plan      |
+| [task-example-reference.md](./task-example-reference.md)                                           | Canonical task format reference         |
 
 ---
 
@@ -162,15 +164,15 @@ cd parent-harness/orchestrator && npx vitest run tests/e2e/honest-validation.tes
 
 The `concurrent_1770383122675_1` task experienced 4+ retry failures with "Unknown error" and "No approach" in the retry guidance. Root cause analysis:
 
-| Issue | Explanation |
-|-------|-------------|
-| **Ambiguous task title** | "Concurrent Task 1" provides no context about what needs to be done |
-| **Missing description** | The task description contained only retry guidance, not actual requirements |
-| **Agent type mismatch** | Multiple agent types (clarification, qa, task, evaluator, spec) were rotated through, but none had sufficient context to determine what action to take |
-| **Test artifact confusion** | Agents interpreted this as a feature/work task rather than recognizing it as a test validation artifact |
+| Issue                       | Explanation                                                                                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Ambiguous task title**    | "Concurrent Task 1" provides no context about what needs to be done                                                                                    |
+| **Missing description**     | The task description contained only retry guidance, not actual requirements                                                                            |
+| **Agent type mismatch**     | Multiple agent types (clarification, qa, task, evaluator, spec) were rotated through, but none had sufficient context to determine what action to take |
+| **Test artifact confusion** | Agents interpreted this as a feature/work task rather than recognizing it as a test validation artifact                                                |
 
 **Recommendation:** Test-generated tasks should include a `category: 'test'` marker and a description field that explicitly states "This is an automated test artifact for concurrent database validation. No agent action required." This would prevent the orchestrator from assigning agents to complete test infrastructure tasks.
 
 ---
 
-_This specification documents the concurrent task creation validation infrastructure. The tasks `concurrent_*` are test artifacts, not user-facing features._
+_This specification documents the concurrent task creation validation infrastructure. The tasks `concurrent_\*` are test artifacts, not user-facing features.\_

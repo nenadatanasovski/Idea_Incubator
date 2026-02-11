@@ -71,34 +71,47 @@ export const mockCrossReferenceService = {
 
 vi.mock("../../../server/services/observability/index.js", () => ({
   executionService: {
-    getExecution: (...args: unknown[]) => mockExecutionService.getExecution(...args),
-    listExecutions: (...args: unknown[]) => mockExecutionService.listExecutions(...args),
-    getExecutionStats: (...args: unknown[]) => mockExecutionService.getExecutionStats(...args),
+    getExecution: (...args: unknown[]) =>
+      mockExecutionService.getExecution(...args),
+    listExecutions: (...args: unknown[]) =>
+      mockExecutionService.listExecutions(...args),
+    getExecutionStats: (...args: unknown[]) =>
+      mockExecutionService.getExecutionStats(...args),
   },
   transcriptService: {
-    getTranscript: (...args: unknown[]) => mockTranscriptService.getTranscript(...args),
-    getTranscriptEntry: (...args: unknown[]) => mockTranscriptService.getTranscriptEntry(...args),
+    getTranscript: (...args: unknown[]) =>
+      mockTranscriptService.getTranscript(...args),
+    getTranscriptEntry: (...args: unknown[]) =>
+      mockTranscriptService.getTranscriptEntry(...args),
   },
   toolUseService: {
-    getToolUses: (...args: unknown[]) => mockToolUseService.getToolUses(...args),
+    getToolUses: (...args: unknown[]) =>
+      mockToolUseService.getToolUses(...args),
     getToolUse: (...args: unknown[]) => mockToolUseService.getToolUse(...args),
-    getToolSummary: (...args: unknown[]) => mockToolUseService.getToolSummary(...args),
+    getToolSummary: (...args: unknown[]) =>
+      mockToolUseService.getToolSummary(...args),
   },
   assertionService: {
-    getAssertions: (...args: unknown[]) => mockAssertionService.getAssertions(...args),
-    getAssertion: (...args: unknown[]) => mockAssertionService.getAssertion(...args),
-    getAssertionSummary: (...args: unknown[]) => mockAssertionService.getAssertionSummary(...args),
+    getAssertions: (...args: unknown[]) =>
+      mockAssertionService.getAssertions(...args),
+    getAssertion: (...args: unknown[]) =>
+      mockAssertionService.getAssertion(...args),
+    getAssertionSummary: (...args: unknown[]) =>
+      mockAssertionService.getAssertionSummary(...args),
   },
   skillService: {
-    getSkillTraces: (...args: unknown[]) => mockSkillService.getSkillTraces(...args),
-    getSkillTrace: (...args: unknown[]) => mockSkillService.getSkillTrace(...args),
+    getSkillTraces: (...args: unknown[]) =>
+      mockSkillService.getSkillTraces(...args),
+    getSkillTrace: (...args: unknown[]) =>
+      mockSkillService.getSkillTrace(...args),
   },
   messageBusService: {
     getLogs: (...args: unknown[]) => mockMessageBusService.getLogs(...args),
     getLog: (...args: unknown[]) => mockMessageBusService.getLog(...args),
   },
   crossReferenceService: {
-    getCrossReferences: (...args: unknown[]) => mockCrossReferenceService.getCrossReferences(...args),
+    getCrossReferences: (...args: unknown[]) =>
+      mockCrossReferenceService.getCrossReferences(...args),
   },
   TranscriptWriter: vi.fn(() => ({})),
   ToolUseLogger: vi.fn(() => ({})),
@@ -161,38 +174,45 @@ export async function seedTestData(
   }>,
 ): Promise<void> {
   // Use service mock (new architecture)
-  mockExecutionService.listExecutions.mockImplementation((options?: { status?: string[]; taskListId?: string; limit?: number; offset?: number }) => {
-    let filtered = executions;
-    if (options?.status?.length) {
-      filtered = filtered.filter(e => options.status!.includes(e.status));
-    }
-    if (options?.taskListId) {
-      filtered = filtered.filter(e => e.taskListId === options.taskListId);
-    }
-    const limit = options?.limit || 50;
-    const offset = options?.offset || 0;
-    const paginatedData = filtered.slice(offset, offset + limit);
-    const hasMore = offset + paginatedData.length < filtered.length;
-    
-    return Promise.resolve({
-      data: paginatedData.map(e => ({
-        id: e.id,
-        taskListId: e.taskListId,
-        runNumber: e.runNumber,
-        status: e.status,
-        startTime: e.startedAt,
-        endTime: e.completedAt || null,
-        waveCount: 0,
-        taskCount: 0,
-        completedCount: 0,
-        failedCount: 0,
-      })),
-      total: filtered.length,
-      limit,
-      offset,
-      hasMore,
-    });
-  });
+  mockExecutionService.listExecutions.mockImplementation(
+    (options?: {
+      status?: string[];
+      taskListId?: string;
+      limit?: number;
+      offset?: number;
+    }) => {
+      let filtered = executions;
+      if (options?.status?.length) {
+        filtered = filtered.filter((e) => options.status!.includes(e.status));
+      }
+      if (options?.taskListId) {
+        filtered = filtered.filter((e) => e.taskListId === options.taskListId);
+      }
+      const limit = options?.limit || 50;
+      const offset = options?.offset || 0;
+      const paginatedData = filtered.slice(offset, offset + limit);
+      const hasMore = offset + paginatedData.length < filtered.length;
+
+      return Promise.resolve({
+        data: paginatedData.map((e) => ({
+          id: e.id,
+          taskListId: e.taskListId,
+          runNumber: e.runNumber,
+          status: e.status,
+          startTime: e.startedAt,
+          endTime: e.completedAt || null,
+          waveCount: 0,
+          taskCount: 0,
+          completedCount: 0,
+          failedCount: 0,
+        })),
+        total: filtered.length,
+        limit,
+        offset,
+        hasMore,
+      });
+    },
+  );
 
   // Also keep query mock for backwards compatibility
   mockQuery.mockImplementation((sql: string, params: unknown[]) => {
@@ -274,51 +294,72 @@ export async function seedTranscriptData(
   ];
 
   // Use service mock (new architecture)
-  mockTranscriptService.getTranscript.mockImplementation((execId: string, options?: { limit?: number; offset?: number; entryTypes?: string[]; categories?: string[] }) => {
-    if (execId === executionId) {
-      const limit = options?.limit || 50;
-      const offset = options?.offset || 0;
-      
-      // Filter by entryType and category if specified
-      let filteredEntries = defaultEntries;
-      if (options?.entryTypes?.length) {
-        filteredEntries = filteredEntries.filter(e => options.entryTypes!.includes(e.entryType));
+  mockTranscriptService.getTranscript.mockImplementation(
+    (
+      execId: string,
+      options?: {
+        limit?: number;
+        offset?: number;
+        entryTypes?: string[];
+        categories?: string[];
+      },
+    ) => {
+      if (execId === executionId) {
+        const limit = options?.limit || 50;
+        const offset = options?.offset || 0;
+
+        // Filter by entryType and category if specified
+        let filteredEntries = defaultEntries;
+        if (options?.entryTypes?.length) {
+          filteredEntries = filteredEntries.filter((e) =>
+            options.entryTypes!.includes(e.entryType),
+          );
+        }
+        if (options?.categories?.length) {
+          filteredEntries = filteredEntries.filter((e) =>
+            options.categories!.includes(e.category),
+          );
+        }
+
+        const paginatedEntries = filteredEntries.slice(offset, offset + limit);
+        const hasMore =
+          offset + paginatedEntries.length < filteredEntries.length;
+
+        return Promise.resolve({
+          data: paginatedEntries.map((e) => ({
+            id: e.id,
+            timestamp: e.createdAt,
+            sequence: e.sequence,
+            executionId: executionId,
+            taskId: null,
+            instanceId: "instance-001",
+            waveNumber: null,
+            entryType: e.entryType,
+            category: e.category,
+            summary: e.summary,
+            details: null,
+            skillRef: null,
+            toolCalls: null,
+            assertions: null,
+            durationMs: null,
+            tokenEstimate: null,
+            createdAt: e.createdAt,
+          })),
+          total: filteredEntries.length,
+          limit,
+          offset,
+          hasMore,
+        });
       }
-      if (options?.categories?.length) {
-        filteredEntries = filteredEntries.filter(e => options.categories!.includes(e.category));
-      }
-      
-      const paginatedEntries = filteredEntries.slice(offset, offset + limit);
-      const hasMore = offset + paginatedEntries.length < filteredEntries.length;
-      
       return Promise.resolve({
-        data: paginatedEntries.map((e) => ({
-          id: e.id,
-          timestamp: e.createdAt,
-          sequence: e.sequence,
-          executionId: executionId,
-          taskId: null,
-          instanceId: "instance-001",
-          waveNumber: null,
-          entryType: e.entryType,
-          category: e.category,
-          summary: e.summary,
-          details: null,
-          skillRef: null,
-          toolCalls: null,
-          assertions: null,
-          durationMs: null,
-          tokenEstimate: null,
-          createdAt: e.createdAt,
-        })),
-        total: filteredEntries.length,
-        limit,
-        offset,
-        hasMore,
+        data: [],
+        total: 0,
+        limit: 50,
+        offset: 0,
+        hasMore: false,
       });
-    }
-    return Promise.resolve({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
-  });
+    },
+  );
 
   // Also keep query mock for backwards compatibility
   mockQuery.mockImplementation((sql: string, params: unknown[]) => {
@@ -426,20 +467,70 @@ export function resetMocks(): void {
   mockGetOne.mockResolvedValue(null);
   mockExecutionService.getExecution.mockResolvedValue(null);
   mockExecutionService.listExecutions.mockResolvedValue([]);
-  mockExecutionService.getExecutionStats.mockResolvedValue({ activeCount: 0, totalRecent: 0, failedRecent: 0 });
-  mockTranscriptService.getTranscript.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
+  mockExecutionService.getExecutionStats.mockResolvedValue({
+    activeCount: 0,
+    totalRecent: 0,
+    failedRecent: 0,
+  });
+  mockTranscriptService.getTranscript.mockResolvedValue({
+    data: [],
+    total: 0,
+    limit: 50,
+    offset: 0,
+    hasMore: false,
+  });
   mockTranscriptService.getTranscriptEntry.mockResolvedValue(null);
-  mockAssertionService.getAssertions.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0 });
+  mockAssertionService.getAssertions.mockResolvedValue({
+    data: [],
+    total: 0,
+    limit: 50,
+    offset: 0,
+  });
   mockAssertionService.getAssertionSummary.mockResolvedValue({
-    summary: { totalAssertions: 0, passed: 0, failed: 0, skipped: 0, warnings: 0, passRate: 0 },
+    summary: {
+      totalAssertions: 0,
+      passed: 0,
+      failed: 0,
+      skipped: 0,
+      warnings: 0,
+      passRate: 0,
+    },
     byCategory: {},
     chains: { total: 0, passed: 0, failed: 0 },
   });
   mockCrossReferenceService.getCrossReferences.mockResolvedValue(null);
-  mockToolUseService.getToolUses.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
-  mockToolUseService.getToolSummary.mockResolvedValue({ total: 0, errors: 0, blocked: 0, errorRate: 0, blockRate: 0, byTool: {}, byCategory: {}, byStatus: {}, avgDurationMs: 0 });
-  mockSkillService.getSkillTraces.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
-  mockMessageBusService.getLogs.mockResolvedValue({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
+  mockToolUseService.getToolUses.mockResolvedValue({
+    data: [],
+    total: 0,
+    limit: 50,
+    offset: 0,
+    hasMore: false,
+  });
+  mockToolUseService.getToolSummary.mockResolvedValue({
+    total: 0,
+    errors: 0,
+    blocked: 0,
+    errorRate: 0,
+    blockRate: 0,
+    byTool: {},
+    byCategory: {},
+    byStatus: {},
+    avgDurationMs: 0,
+  });
+  mockSkillService.getSkillTraces.mockResolvedValue({
+    data: [],
+    total: 0,
+    limit: 50,
+    offset: 0,
+    hasMore: false,
+  });
+  mockMessageBusService.getLogs.mockResolvedValue({
+    data: [],
+    total: 0,
+    limit: 50,
+    offset: 0,
+    hasMore: false,
+  });
 }
 
 /**
@@ -455,42 +546,50 @@ export function mockSkillTraces(
     durationMs?: number;
   }>,
 ): void {
-  mockSkillService.getSkillTraces.mockImplementation((execId: string, options?: { limit?: number; offset?: number }) => {
-    if (execId === executionId) {
-      const limit = options?.limit || 50;
-      const offset = options?.offset || 0;
-      const paginatedData = skills.slice(offset, offset + limit);
-      const hasMore = offset + paginatedData.length < skills.length;
-      
+  mockSkillService.getSkillTraces.mockImplementation(
+    (execId: string, options?: { limit?: number; offset?: number }) => {
+      if (execId === executionId) {
+        const limit = options?.limit || 50;
+        const offset = options?.offset || 0;
+        const paginatedData = skills.slice(offset, offset + limit);
+        const hasMore = offset + paginatedData.length < skills.length;
+
+        return Promise.resolve({
+          data: paginatedData.map((s) => ({
+            id: s.id,
+            executionId,
+            taskId: null,
+            skillName: s.skillName,
+            skillFile: s.skillFile || "skill.md",
+            lineNumber: 1,
+            sectionTitle: "Section",
+            inputSummary: "Input",
+            outputSummary: "Output",
+            startTime: new Date().toISOString(),
+            endTime: new Date().toISOString(),
+            durationMs: s.durationMs || 100,
+            tokenEstimate: 100,
+            status: s.status,
+            errorMessage: null,
+            toolCalls: [],
+            subSkills: [],
+            createdAt: new Date().toISOString(),
+          })),
+          total: skills.length,
+          limit,
+          offset,
+          hasMore,
+        });
+      }
       return Promise.resolve({
-        data: paginatedData.map(s => ({
-          id: s.id,
-          executionId,
-          taskId: null,
-          skillName: s.skillName,
-          skillFile: s.skillFile || "skill.md",
-          lineNumber: 1,
-          sectionTitle: "Section",
-          inputSummary: "Input",
-          outputSummary: "Output",
-          startTime: new Date().toISOString(),
-          endTime: new Date().toISOString(),
-          durationMs: s.durationMs || 100,
-          tokenEstimate: 100,
-          status: s.status,
-          errorMessage: null,
-          toolCalls: [],
-          subSkills: [],
-          createdAt: new Date().toISOString(),
-        })),
-        total: skills.length,
-        limit,
-        offset,
-        hasMore,
+        data: [],
+        total: 0,
+        limit: 50,
+        offset: 0,
+        hasMore: false,
       });
-    }
-    return Promise.resolve({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
-  });
+    },
+  );
 }
 
 /**
@@ -638,50 +737,61 @@ export function mockToolUses(
   }>,
 ): void {
   // Use service mock (new architecture)
-  mockToolUseService.getToolUses.mockImplementation((execId: string, options?: { limit?: number; offset?: number }) => {
-    if (execId === executionId) {
-      const limit = options?.limit || 50;
-      const offset = options?.offset || 0;
-      const paginatedData = toolUses.slice(offset, offset + limit);
-      const hasMore = offset + paginatedData.length < toolUses.length;
-      
+  mockToolUseService.getToolUses.mockImplementation(
+    (execId: string, options?: { limit?: number; offset?: number }) => {
+      if (execId === executionId) {
+        const limit = options?.limit || 50;
+        const offset = options?.offset || 0;
+        const paginatedData = toolUses.slice(offset, offset + limit);
+        const hasMore = offset + paginatedData.length < toolUses.length;
+
+        return Promise.resolve({
+          data: paginatedData.map((t) => ({
+            id: t.id,
+            executionId,
+            taskId: null,
+            transcriptEntryId: "transcript-001",
+            tool: t.tool,
+            toolCategory: t.toolCategory,
+            input: "{}",
+            inputSummary: t.inputSummary,
+            resultStatus: t.resultStatus,
+            output: null,
+            outputSummary: "Output summary",
+            isError: t.isError || false,
+            isBlocked: t.isBlocked || false,
+            errorMessage: null,
+            blockReason: null,
+            startTime: new Date().toISOString(),
+            endTime: new Date().toISOString(),
+            durationMs: t.durationMs || 100,
+            withinSkill: null,
+            parentToolUseId: null,
+            createdAt: new Date().toISOString(),
+          })),
+          total: toolUses.length,
+          limit,
+          offset,
+          hasMore,
+        });
+      }
       return Promise.resolve({
-        data: paginatedData.map((t) => ({
-          id: t.id,
-          executionId,
-          taskId: null,
-          transcriptEntryId: "transcript-001",
-          tool: t.tool,
-          toolCategory: t.toolCategory,
-          input: "{}",
-          inputSummary: t.inputSummary,
-          resultStatus: t.resultStatus,
-          output: null,
-          outputSummary: "Output summary",
-          isError: t.isError || false,
-          isBlocked: t.isBlocked || false,
-          errorMessage: null,
-          blockReason: null,
-          startTime: new Date().toISOString(),
-          endTime: new Date().toISOString(),
-          durationMs: t.durationMs || 100,
-          withinSkill: null,
-          parentToolUseId: null,
-          createdAt: new Date().toISOString(),
-        })),
-        total: toolUses.length,
-        limit,
-        offset,
-        hasMore,
+        data: [],
+        total: 0,
+        limit: 50,
+        offset: 0,
+        hasMore: false,
       });
-    }
-    return Promise.resolve({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
-  });
+    },
+  );
 
   // Mock tool summary
-  const errorCount = toolUses.filter(t => t.isError).length;
-  const blockedCount = toolUses.filter(t => t.isBlocked).length;
-  const byTool: Record<string, { count: number; errors: number; blocked: number; avgDurationMs: number }> = {};
+  const errorCount = toolUses.filter((t) => t.isError).length;
+  const blockedCount = toolUses.filter((t) => t.isBlocked).length;
+  const byTool: Record<
+    string,
+    { count: number; errors: number; blocked: number; avgDurationMs: number }
+  > = {};
   const byCategory: Record<string, { count: number }> = {};
   for (const t of toolUses) {
     if (!byTool[t.tool]) {
@@ -690,8 +800,9 @@ export function mockToolUses(
     byTool[t.tool].count++;
     if (t.isError) byTool[t.tool].errors++;
     if (t.isBlocked) byTool[t.tool].blocked++;
-    byTool[t.tool].avgDurationMs = (byTool[t.tool].avgDurationMs + (t.durationMs || 100)) / 2;
-    
+    byTool[t.tool].avgDurationMs =
+      (byTool[t.tool].avgDurationMs + (t.durationMs || 100)) / 2;
+
     if (!byCategory[t.toolCategory]) {
       byCategory[t.toolCategory] = { count: 0 };
     }
@@ -704,15 +815,29 @@ export function mockToolUses(
         total: toolUses.length,
         errors: errorCount,
         blocked: blockedCount,
-        errorRate: toolUses.length > 0 ? (errorCount / toolUses.length) * 100 : 0,
-        blockRate: toolUses.length > 0 ? (blockedCount / toolUses.length) * 100 : 0,
+        errorRate:
+          toolUses.length > 0 ? (errorCount / toolUses.length) * 100 : 0,
+        blockRate:
+          toolUses.length > 0 ? (blockedCount / toolUses.length) * 100 : 0,
         byTool,
         byCategory,
         byStatus: { success: toolUses.length - errorCount, error: errorCount },
-        avgDurationMs: toolUses.reduce((sum, t) => sum + (t.durationMs || 100), 0) / (toolUses.length || 1),
+        avgDurationMs:
+          toolUses.reduce((sum, t) => sum + (t.durationMs || 100), 0) /
+          (toolUses.length || 1),
       });
     }
-    return Promise.resolve({ total: 0, errors: 0, blocked: 0, errorRate: 0, blockRate: 0, byTool: {}, byCategory: {}, byStatus: {}, avgDurationMs: 0 });
+    return Promise.resolve({
+      total: 0,
+      errors: 0,
+      blocked: 0,
+      errorRate: 0,
+      blockRate: 0,
+      byTool: {},
+      byCategory: {},
+      byStatus: {},
+      avgDurationMs: 0,
+    });
   });
 
   // Also keep query mock for backwards compatibility
@@ -791,7 +916,13 @@ export function mockAssertions(
         hasMore: false,
       });
     }
-    return Promise.resolve({ data: [], total: 0, limit: 50, offset: 0, hasMore: false });
+    return Promise.resolve({
+      data: [],
+      total: 0,
+      limit: 50,
+      offset: 0,
+      hasMore: false,
+    });
   });
 
   // Mock assertion summary
@@ -806,31 +937,41 @@ export function mockAssertions(
     if (a.result === "pass") byCategory[a.category].passed++;
   }
 
-  mockAssertionService.getAssertionSummary.mockImplementation((execId: string) => {
-    if (execId === executionId) {
+  mockAssertionService.getAssertionSummary.mockImplementation(
+    (execId: string) => {
+      if (execId === executionId) {
+        return Promise.resolve({
+          summary: {
+            totalAssertions: assertions.length,
+            passed,
+            failed,
+            skipped: 0,
+            warnings: 0,
+            passRate:
+              assertions.length > 0 ? (passed / assertions.length) * 100 : 0,
+          },
+          byCategory,
+          chains: {
+            total: 0,
+            passed: 0,
+            failed: 0,
+          },
+        });
+      }
       return Promise.resolve({
         summary: {
-          totalAssertions: assertions.length,
-          passed,
-          failed,
-          skipped: 0,
-          warnings: 0,
-          passRate: assertions.length > 0 ? (passed / assertions.length) * 100 : 0,
-        },
-        byCategory,
-        chains: {
-          total: 0,
+          totalAssertions: 0,
           passed: 0,
           failed: 0,
+          skipped: 0,
+          warnings: 0,
+          passRate: 0,
         },
+        byCategory: {},
+        chains: { total: 0, passed: 0, failed: 0 },
       });
-    }
-    return Promise.resolve({
-      summary: { totalAssertions: 0, passed: 0, failed: 0, skipped: 0, warnings: 0, passRate: 0 },
-      byCategory: {},
-      chains: { total: 0, passed: 0, failed: 0 },
-    });
-  });
+    },
+  );
 
   // Also keep query mock for backwards compatibility
   mockQuery.mockImplementation((sql: string, params: unknown[]) => {
@@ -876,35 +1017,37 @@ export function mockMessageBusLogs(
   }>,
 ): void {
   // Use service mock (new architecture)
-  mockMessageBusService.getLogs.mockImplementation((options?: { limit?: number; offset?: number }) => {
-    const limit = options?.limit || 50;
-    const offset = options?.offset || 0;
-    const paginatedData = logs.slice(offset, offset + limit);
-    const hasMore = offset + paginatedData.length < logs.length;
-    
-    return Promise.resolve({
-      data: paginatedData.map((l) => ({
-        id: l.id,
-        eventId: `event-${l.id}`,
-        timestamp: new Date().toISOString(),
-        source: "test",
-        eventType: l.eventType,
-        correlationId: null,
-        humanSummary: l.humanSummary,
-        severity: l.severity,
-        category: "general",
-        transcriptEntryId: null,
-        taskId: null,
-        executionId: l.executionId || null,
-        payload: null,
-        createdAt: new Date().toISOString(),
-      })),
-      total: logs.length,
-      limit,
-      offset,
-      hasMore,
-    });
-  });
+  mockMessageBusService.getLogs.mockImplementation(
+    (options?: { limit?: number; offset?: number }) => {
+      const limit = options?.limit || 50;
+      const offset = options?.offset || 0;
+      const paginatedData = logs.slice(offset, offset + limit);
+      const hasMore = offset + paginatedData.length < logs.length;
+
+      return Promise.resolve({
+        data: paginatedData.map((l) => ({
+          id: l.id,
+          eventId: `event-${l.id}`,
+          timestamp: new Date().toISOString(),
+          source: "test",
+          eventType: l.eventType,
+          correlationId: null,
+          humanSummary: l.humanSummary,
+          severity: l.severity,
+          category: "general",
+          transcriptEntryId: null,
+          taskId: null,
+          executionId: l.executionId || null,
+          payload: null,
+          createdAt: new Date().toISOString(),
+        })),
+        total: logs.length,
+        limit,
+        offset,
+        hasMore,
+      });
+    },
+  );
 
   // Also keep query mock for backwards compatibility
   mockQuery.mockImplementation((sql: string) => {

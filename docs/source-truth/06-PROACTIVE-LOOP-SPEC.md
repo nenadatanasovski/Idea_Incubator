@@ -1,7 +1,7 @@
 # Proactive Loop Specification
 
 > **Source of Truth** for the bidirectional proactive improvement loop.
-> 
+>
 > Related: `00-ARCHITECTURE-OVERVIEW.md` (ARCH-013, ARCH-017, ARCH-023, ARCH-027-030)
 
 ---
@@ -58,22 +58,22 @@ Before building the full loop, get end-to-end working ugly:
 
 ### Event-Driven
 
-| Event | Action |
-|-------|--------|
-| Block created | Gap analysis on related context |
-| Task completed | Re-evaluate dependencies |
-| Task failed | Escalate to human |
-| Evidence added | Re-score related assumptions |
-| Approval received | Execute proposal |
+| Event              | Action                          |
+| ------------------ | ------------------------------- |
+| Block created      | Gap analysis on related context |
+| Task completed     | Re-evaluate dependencies        |
+| Task failed        | Escalate to human               |
+| Evidence added     | Re-score related assumptions    |
+| Approval received  | Execute proposal                |
 | Rejection received | Learn, don't re-propose similar |
 
 ### Scheduled
 
-| Schedule | Action |
-|----------|--------|
-| Daily | Full gap analysis against North Star |
-| Hourly | Health check on all loops |
-| Every 15min | Check for stuck agents |
+| Schedule    | Action                               |
+| ----------- | ------------------------------------ |
+| Daily       | Full gap analysis against North Star |
+| Hourly      | Health check on all loops            |
+| Every 15min | Check for stuck agents               |
 
 ### Implementation
 
@@ -116,8 +116,12 @@ LIMIT 5
 ```typescript
 interface Gap {
   id: string;
-  type: 'unvalidated_decision' | 'missing_capability' | 'blocked_task' | 'unvalidated_assumption';
-  severity: 'critical' | 'high' | 'medium' | 'low';
+  type:
+    | "unvalidated_decision"
+    | "missing_capability"
+    | "blocked_task"
+    | "unvalidated_assumption";
+  severity: "critical" | "high" | "medium" | "low";
   description: string;
   relatedBlocks: string[];
   suggestedAction: string;
@@ -126,22 +130,24 @@ interface Gap {
 
 ### Error Handling
 
-| Failure | Recovery |
-|---------|----------|
-| Neo4j connection fails | Retry 3x with backoff, then alert |
-| Query times out | Reduce scope (LIMIT 3), log warning |
-| No gaps found | Log info, skip cycle (not an error) |
+| Failure                | Recovery                            |
+| ---------------------- | ----------------------------------- |
+| Neo4j connection fails | Retry 3x with backoff, then alert   |
+| Query times out        | Reduce scope (LIMIT 3), log warning |
+| No gaps found          | Log info, skip cycle (not an error) |
 
 ---
 
 ## 3. Proposal Generator
 
 ### Input
+
 - Gap from analysis
 - Context from graph
 - Past rejections (avoid repeating)
 
 ### Output
+
 - Proposal block stored in Neo4j
 
 ### Proposal Structure
@@ -149,14 +155,19 @@ interface Gap {
 ```typescript
 interface Proposal {
   id: string;
-  type: 'proposal';
+  type: "proposal";
   title: string;
   content: string;
-  proposalType: 'feature' | 'improvement' | 'fix' | 'architecture' | 'knowledge';
+  proposalType:
+    | "feature"
+    | "improvement"
+    | "fix"
+    | "architecture"
+    | "knowledge";
   addressesGap: string;
-  impact: 'high' | 'medium' | 'low';
-  effort: 'high' | 'medium' | 'low';
-  status: 'draft' | 'debating' | 'ready' | 'approved' | 'rejected' | 'executed';
+  impact: "high" | "medium" | "low";
+  effort: "high" | "medium" | "low";
+  status: "draft" | "debating" | "ready" | "approved" | "rejected" | "executed";
   confidence: number;
 }
 ```
@@ -170,11 +181,11 @@ draft → debating → ready → approved → executing → executed
 
 ### Error Handling
 
-| Failure | Recovery |
-|---------|----------|
-| LLM call fails | Retry 2x, then skip this gap |
-| Proposal too vague | Log for manual review |
-| Similar to rejected | Skip, log as "avoided" |
+| Failure             | Recovery                     |
+| ------------------- | ---------------------------- |
+| LLM call fails      | Retry 2x, then skip this gap |
+| Proposal too vague  | Log for manual review        |
+| Similar to rejected | Skip, log as "avoided"       |
 
 ---
 
@@ -190,25 +201,26 @@ Proposer → Critic (challenges) → Arbiter (decides)
 
 ### Outcomes
 
-| Outcome | Action |
-|---------|--------|
-| Strong pass | Mark ready, send to human |
-| Weak pass | Strengthen, re-debate once |
-| Fail | Reject, don't show human |
+| Outcome     | Action                     |
+| ----------- | -------------------------- |
+| Strong pass | Mark ready, send to human  |
+| Weak pass   | Strengthen, re-debate once |
+| Fail        | Reject, don't show human   |
 
 ### Error Handling
 
-| Failure | Recovery |
-|---------|----------|
-| Debate loops >3 rounds | Escalate to human with both positions |
-| Critic always rejects | Log pattern, review critic prompts |
-| Arbiter undecided | Default to showing human with "uncertain" flag |
+| Failure                | Recovery                                       |
+| ---------------------- | ---------------------------------------------- |
+| Debate loops >3 rounds | Escalate to human with both positions          |
+| Critic always rejects  | Log pattern, review critic prompts             |
+| Arbiter undecided      | Default to showing human with "uncertain" flag |
 
 ---
 
 ## 5. Notification (ARCH-020, ARCH-028)
 
 ### Batching Rules
+
 - Group by theme (same gap type)
 - Max 5 per notification
 - Prioritize by impact
@@ -245,11 +257,11 @@ Reply /approve or /reject after reviewing.
 
 ### Error Handling
 
-| Failure | Recovery |
-|---------|----------|
-| Telegram API fails | Queue message, retry every 5min |
-| Rate limited | Batch more aggressively, slow down |
-| Message too long | Split or link to web |
+| Failure            | Recovery                           |
+| ------------------ | ---------------------------------- |
+| Telegram API fails | Queue message, retry every 5min    |
+| Rate limited       | Batch more aggressively, slow down |
+| Message too long   | Split or link to web               |
 
 ---
 
@@ -257,13 +269,13 @@ Reply /approve or /reject after reviewing.
 
 ### Escalation SLA
 
-| Duration Stuck | Action |
-|----------------|--------|
-| 5 min | Log to debug |
-| 15 min | Publish to message bus |
-| 30 min | Send Telegram question |
-| 2 hours | Re-send with 🔴 URGENT |
-| 8 hours | Pause loop, await human |
+| Duration Stuck | Action                  |
+| -------------- | ----------------------- |
+| 5 min          | Log to debug            |
+| 15 min         | Publish to message bus  |
+| 30 min         | Send Telegram question  |
+| 2 hours        | Re-send with 🔴 URGENT  |
+| 8 hours        | Pause loop, await human |
 
 ### Question Format
 
@@ -298,7 +310,7 @@ interface EscalationQuestion {
   context: string[];
   blockedTasks: string[];
   askedAt: Date;
-  urgency: 'normal' | 'urgent' | 'critical';
+  urgency: "normal" | "urgent" | "critical";
 }
 ```
 
@@ -312,10 +324,10 @@ interface EscalationQuestion {
 
 ### Error Handling
 
-| Failure | Recovery |
-|---------|----------|
-| Human gives unclear answer | Ask clarifying follow-up |
-| Human ignores for 24h | Re-escalate with higher urgency |
+| Failure                      | Recovery                         |
+| ---------------------------- | -------------------------------- |
+| Human gives unclear answer   | Ask clarifying follow-up         |
+| Human ignores for 24h        | Re-escalate with higher urgency  |
 | Answer doesn't match options | Accept free text, log for review |
 
 ---
@@ -324,13 +336,13 @@ interface EscalationQuestion {
 
 ### Commands
 
-| Command | Action |
-|---------|--------|
-| `/approve_N` | Approve proposal N |
-| `/reject_N` | Reject (default: not_now) |
-| `/reject_N never` | Never propose similar |
-| `/reject_N not_now` | Try again later |
-| `/reject_N bad_approach` | Approach is wrong |
+| Command                  | Action                    |
+| ------------------------ | ------------------------- |
+| `/approve_N`             | Approve proposal N        |
+| `/reject_N`              | Reject (default: not_now) |
+| `/reject_N never`        | Never propose similar     |
+| `/reject_N not_now`      | Try again later           |
+| `/reject_N bad_approach` | Approach is wrong         |
 
 ### Rejection Learning (ARCH-029)
 
@@ -357,26 +369,26 @@ RETURN p.title, p.content
 
 ## 8. Autonomy Tiers (ARCH-030)
 
-| Block Type | Autonomy |
-|------------|----------|
-| Knowledge | Auto-create |
-| Evidence | Auto-create |
-| Question | Auto-create |
-| Assumption | Auto-create |
-| Task (P3) | Auto-approve |
-| Task (P0-P2) | Require approval |
-| Decision | Require approval |
-| Proposal | Require approval |
+| Block Type      | Autonomy         |
+| --------------- | ---------------- |
+| Knowledge       | Auto-create      |
+| Evidence        | Auto-create      |
+| Question        | Auto-create      |
+| Assumption      | Auto-create      |
+| Task (P3)       | Auto-approve     |
+| Task (P0-P2)    | Require approval |
+| Decision        | Require approval |
+| Proposal        | Require approval |
 | Artifact (code) | Require approval |
-| North Star | Require approval |
+| North Star      | Require approval |
 
 ```typescript
 function requiresApproval(block: Block): boolean {
-  const autoCreate = ['knowledge', 'evidence', 'question', 'assumption'];
+  const autoCreate = ["knowledge", "evidence", "question", "assumption"];
   if (autoCreate.includes(block.type)) return false;
-  
-  if (block.type === 'task' && block.priority === 'P3') return false;
-  
+
+  if (block.type === "task" && block.priority === "P3") return false;
+
   return true;
 }
 ```
@@ -385,12 +397,12 @@ function requiresApproval(block: Block): boolean {
 
 ## 9. Outcome Metrics
 
-| Metric | Target | Meaning |
-|--------|--------|---------|
-| Proposal acceptance rate | >50% | System proposes useful things |
-| Gap detection accuracy | >80% | Gaps are real, not noise |
-| Escalation resolution time | <4h | Humans respond promptly |
-| Loop stuck rate | <5% | System rarely blocks |
+| Metric                     | Target | Meaning                       |
+| -------------------------- | ------ | ----------------------------- |
+| Proposal acceptance rate   | >50%   | System proposes useful things |
+| Gap detection accuracy     | >80%   | Gaps are real, not noise      |
+| Escalation resolution time | <4h    | Humans respond promptly       |
+| Loop stuck rate            | <5%    | System rarely blocks          |
 
 ---
 
@@ -411,11 +423,11 @@ function requiresApproval(block: Block): boolean {
 
 ## Revision History
 
-| Date | Change | Author |
-|------|--------|--------|
-| 2026-02-05 | Initial creation | AI Agent (Kai) |
+| Date       | Change                                                                | Author         |
+| ---------- | --------------------------------------------------------------------- | -------------- |
+| 2026-02-05 | Initial creation                                                      | AI Agent (Kai) |
 | 2026-02-05 | Added error handling, escalation SLA, question format, vertical slice | AI Agent (Kai) |
 
 ---
 
-*This is a source-truth document. Changes require founder review.*
+_This is a source-truth document. Changes require founder review._

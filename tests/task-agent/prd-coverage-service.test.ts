@@ -16,8 +16,8 @@ const TEST_PREFIX = "COVERAGE-TEST-";
 const TEST_USER_ID = "test-user-prd-coverage";
 
 // Create test PRD (wrapper to provide userId and map fields)
-async function createTestPRD(input: { 
-  title: string; 
+async function createTestPRD(input: {
+  title: string;
   problemStatement?: string;
   successCriteria?: string[];
   constraints?: string[];
@@ -25,10 +25,13 @@ async function createTestPRD(input: {
   status?: string; // Ignored - always draft
 }) {
   const { description, status, ...rest } = input;
-  return prdService.create({
-    ...rest,
-    problemStatement: input.problemStatement || description,
-  }, TEST_USER_ID);
+  return prdService.create(
+    {
+      ...rest,
+      problemStatement: input.problemStatement || description,
+    },
+    TEST_USER_ID,
+  );
 }
 
 // Create test task

@@ -1,11 +1,11 @@
 /**
  * Prisma Client Wrapper
- * 
+ *
  * Provides Prisma ORM access to the SQLite database.
  * Can coexist with the raw SQL approach in db.ts during migration.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 let prisma: PrismaClient | null = null;
 
@@ -15,7 +15,10 @@ let prisma: PrismaClient | null = null;
 export function getPrisma(): PrismaClient {
   if (!prisma) {
     prisma = new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+      log:
+        process.env.NODE_ENV === "development"
+          ? ["query", "error", "warn"]
+          : ["error"],
     });
   }
   return prisma;

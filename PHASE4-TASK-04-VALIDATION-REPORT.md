@@ -12,6 +12,7 @@
 **Status:** ❌ **NOT IMPLEMENTED**
 
 The specification exists for two different approaches to Build Agent learning from QA failures:
+
 1. `PHASE4-TASK-04-build-qa-feedback-loop.md` - Parent Harness focused
 2. `PHASE4-TASK-04-build-agent-qa-learning.md` - Ideas.db focused
 
@@ -23,14 +24,15 @@ However, **NO IMPLEMENTATION EXISTS**. None of the required database tables, mod
 
 ### Database Schema (Criteria 1-4)
 
-| # | Criterion | Status | Evidence |
-|---|-----------|--------|----------|
-| 1 | Tables created | ❌ FAIL | No qa_failures, technique_effectiveness, learning_injections, pitfall_warnings, or success_patterns tables exist |
-| 2 | Indexes created | ❌ FAIL | No indexes exist (tables don't exist) |
-| 3 | Seed data | ❌ FAIL | No seed pitfall warnings inserted |
-| 4 | Migration tested | ❌ FAIL | No migration file exists |
+| #   | Criterion        | Status  | Evidence                                                                                                         |
+| --- | ---------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
+| 1   | Tables created   | ❌ FAIL | No qa_failures, technique_effectiveness, learning_injections, pitfall_warnings, or success_patterns tables exist |
+| 2   | Indexes created  | ❌ FAIL | No indexes exist (tables don't exist)                                                                            |
+| 3   | Seed data        | ❌ FAIL | No seed pitfall warnings inserted                                                                                |
+| 4   | Migration tested | ❌ FAIL | No migration file exists                                                                                         |
 
 **Evidence:**
+
 ```bash
 sqlite3 parent-harness/data/harness.db ".tables" | grep -E "(qa_|technique_|learning_|pitfall_|success_)"
 # Result: No matching tables found
@@ -38,78 +40,84 @@ sqlite3 parent-harness/data/harness.db ".tables" | grep -E "(qa_|technique_|lear
 
 ### QA Failure Capture (Criteria 5-10)
 
-| # | Criterion | Status | Evidence |
-|---|-----------|--------|----------|
-| 5 | Failure capture works | ❌ FAIL | Module doesn't exist: `qa-failure-capture.ts` |
-| 6 | Error pattern extraction | ❌ FAIL | No implementation |
-| 7 | Root cause analysis | ❌ FAIL | No implementation |
-| 8 | File location extraction | ❌ FAIL | No implementation |
-| 9 | Duplicate detection | ❌ FAIL | No implementation |
-| 10 | Event emission | ❌ FAIL | No `qa:learning_captured` event |
+| #   | Criterion                | Status  | Evidence                                      |
+| --- | ------------------------ | ------- | --------------------------------------------- |
+| 5   | Failure capture works    | ❌ FAIL | Module doesn't exist: `qa-failure-capture.ts` |
+| 6   | Error pattern extraction | ❌ FAIL | No implementation                             |
+| 7   | Root cause analysis      | ❌ FAIL | No implementation                             |
+| 8   | File location extraction | ❌ FAIL | No implementation                             |
+| 9   | Duplicate detection      | ❌ FAIL | No implementation                             |
+| 10  | Event emission           | ❌ FAIL | No `qa:learning_captured` event               |
 
 **Missing Files:**
+
 - `parent-harness/orchestrator/src/learning/qa-failure-capture.ts` - NOT FOUND
 - `parent-harness/orchestrator/src/qa/failure-analyzer.ts` - NOT FOUND
 
 ### Learning Injection (Criteria 11-14)
 
-| # | Criterion | Status | Evidence |
-|---|-----------|--------|----------|
-| 11 | Learning retrieval | ❌ FAIL | Module doesn't exist: `learning-injector.ts` |
-| 12 | Prompt formatting | ❌ FAIL | No implementation |
-| 13 | Relevance filtering | ❌ FAIL | No implementation |
-| 14 | Technique recommendations | ❌ FAIL | No implementation |
+| #   | Criterion                 | Status  | Evidence                                     |
+| --- | ------------------------- | ------- | -------------------------------------------- |
+| 11  | Learning retrieval        | ❌ FAIL | Module doesn't exist: `learning-injector.ts` |
+| 12  | Prompt formatting         | ❌ FAIL | No implementation                            |
+| 13  | Relevance filtering       | ❌ FAIL | No implementation                            |
+| 14  | Technique recommendations | ❌ FAIL | No implementation                            |
 
 **Missing Files:**
+
 - `parent-harness/orchestrator/src/learning/learning-injector.ts` - NOT FOUND
 - `parent-harness/orchestrator/src/qa/learning-injector.ts` - NOT FOUND
 
 ### Technique Effectiveness (Criteria 15-17)
 
-| # | Criterion | Status | Evidence |
-|---|-----------|--------|----------|
-| 15 | Technique tracking | ❌ FAIL | No implementation |
-| 16 | Effectiveness calculation | ❌ FAIL | No GENERATED column exists |
-| 17 | Technique application | ❌ FAIL | No recording |
+| #   | Criterion                 | Status  | Evidence                   |
+| --- | ------------------------- | ------- | -------------------------- |
+| 15  | Technique tracking        | ❌ FAIL | No implementation          |
+| 16  | Effectiveness calculation | ❌ FAIL | No GENERATED column exists |
+| 17  | Technique application     | ❌ FAIL | No recording               |
 
 ### Pitfall Warnings (Criteria 18-20)
 
-| # | Criterion | Status | Evidence |
-|---|-----------|--------|----------|
-| 18 | Warning triggers | ❌ FAIL | No implementation |
-| 19 | Warning formatting | ❌ FAIL | No implementation |
-| 20 | Warning statistics | ❌ FAIL | No tracking |
+| #   | Criterion          | Status  | Evidence          |
+| --- | ------------------ | ------- | ----------------- |
+| 18  | Warning triggers   | ❌ FAIL | No implementation |
+| 19  | Warning formatting | ❌ FAIL | No implementation |
+| 20  | Warning statistics | ❌ FAIL | No tracking       |
 
 ### Integration (Criteria 21-24)
 
-| # | Criterion | Status | Evidence |
-|---|-----------|--------|----------|
-| 21 | QA Service integration | ❌ FAIL | No captureQAFailure() calls |
-| 22 | Build Agent integration | ❌ FAIL | No learning injection in spawner |
-| 23 | Event bus integration | ❌ FAIL | No learning events |
-| 24 | Knowledge Base integration | ❌ FAIL | No linkage |
+| #   | Criterion                  | Status  | Evidence                         |
+| --- | -------------------------- | ------- | -------------------------------- |
+| 21  | QA Service integration     | ❌ FAIL | No captureQAFailure() calls      |
+| 22  | Build Agent integration    | ❌ FAIL | No learning injection in spawner |
+| 23  | Event bus integration      | ❌ FAIL | No learning events               |
+| 24  | Knowledge Base integration | ❌ FAIL | No linkage                       |
 
 ### Testing (Criteria 25-27)
 
-| # | Criterion | Status | Evidence |
-|---|-----------|--------|----------|
-| 25 | Unit tests | ❌ FAIL | No test files exist |
-| 26 | Integration test | ❌ FAIL | No test exists |
-| 27 | Performance test | ❌ FAIL | No test exists |
+| #   | Criterion        | Status  | Evidence            |
+| --- | ---------------- | ------- | ------------------- |
+| 25  | Unit tests       | ❌ FAIL | No test files exist |
+| 26  | Integration test | ❌ FAIL | No test exists      |
+| 27  | Performance test | ❌ FAIL | No test exists      |
 
 ---
 
 ## System Validation
 
 ### TypeScript Compilation
+
 ✅ **PASS** - No compilation errors
+
 ```bash
 npx tsc --noEmit
 # Result: Success (0 errors)
 ```
 
 ### Test Suite
+
 ✅ **PASS** - All existing tests pass
+
 ```bash
 npm test
 # Result: 106 test files, 1773 tests passed, 4 skipped
@@ -120,12 +128,14 @@ npm test
 ## Critical Findings
 
 ### 1. Complete Non-Implementation
+
 - **Severity:** CRITICAL
 - **Issue:** Task has detailed specifications but ZERO implementation
 - **Impact:** No Build Agent learning from QA failures occurs
 - **Root Cause:** Specification-only task, no development work done
 
 ### 2. Ambiguous Specification
+
 - **Severity:** HIGH
 - **Issue:** Two different specs with different database locations
   - `build-qa-feedback-loop.md` → Parent Harness (`harness.db`)
@@ -134,6 +144,7 @@ npm test
 - **Recommendation:** Choose one specification and delete the other
 
 ### 3. Missing Prerequisites
+
 - **Severity:** MEDIUM
 - **Issue:** Spec references PHASE4-TASK-01 Knowledge Base but unclear if that's complete
 - **Impact:** May be waiting on upstream dependencies
@@ -168,6 +179,7 @@ npm test
    - Integration test for complete learning loop
 
 ### Implementation Priority
+
 1. Database schema (2 hours)
 2. Failure capture (4 hours)
 3. Learning injection (3 hours)
@@ -180,16 +192,16 @@ npm test
 
 ## Pass/Fail Summary
 
-| Category | Total | Pass | Fail | Pass Rate |
-|----------|-------|------|------|-----------|
-| Database Schema | 4 | 0 | 4 | 0% |
-| QA Failure Capture | 6 | 0 | 6 | 0% |
-| Learning Injection | 4 | 0 | 4 | 0% |
-| Technique Effectiveness | 3 | 0 | 3 | 0% |
-| Pitfall Warnings | 3 | 0 | 3 | 0% |
-| Integration | 4 | 0 | 4 | 0% |
-| Testing | 3 | 0 | 3 | 0% |
-| **TOTAL** | **27** | **0** | **27** | **0%** |
+| Category                | Total  | Pass  | Fail   | Pass Rate |
+| ----------------------- | ------ | ----- | ------ | --------- |
+| Database Schema         | 4      | 0     | 4      | 0%        |
+| QA Failure Capture      | 6      | 0     | 6      | 0%        |
+| Learning Injection      | 4      | 0     | 4      | 0%        |
+| Technique Effectiveness | 3      | 0     | 3      | 0%        |
+| Pitfall Warnings        | 3      | 0     | 3      | 0%        |
+| Integration             | 4      | 0     | 4      | 0%        |
+| Testing                 | 3      | 0     | 3      | 0%        |
+| **TOTAL**               | **27** | **0** | **27** | **0%**    |
 
 ---
 
@@ -200,6 +212,7 @@ npm test
 The task has comprehensive technical specifications but no actual implementation. All 27 pass criteria fail. The system compiles and existing tests pass, but that's because the learning system doesn't exist yet.
 
 **Next Steps:**
+
 1. Choose which specification to implement (recommend Parent Harness approach)
 2. Create database migration
 3. Implement core modules

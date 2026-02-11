@@ -45,7 +45,9 @@ async function validateExports() {
       "detectIssue",
     ];
     for (const method of methods) {
-      const hasMethod = typeof (proto as unknown as Record<string, unknown>)[method] === "function";
+      const hasMethod =
+        typeof (proto as unknown as Record<string, unknown>)[method] ===
+        "function";
       results.push({ test: `MON-001: ${method} method`, passed: hasMethod });
       console.log(
         hasMethod
@@ -168,7 +170,9 @@ async function validateExports() {
       "stopAll",
     ];
     for (const method of methods) {
-      const hasMethod = typeof (proto as unknown as Record<string, unknown>)[method] === "function";
+      const hasMethod =
+        typeof (proto as unknown as Record<string, unknown>)[method] ===
+        "function";
       results.push({ test: `MON-006: ${method} method`, passed: hasMethod });
       console.log(
         hasMethod
@@ -225,7 +229,9 @@ async function validateExports() {
       "getStatus",
     ];
     for (const method of methods) {
-      const hasMethod = typeof (proto as unknown as Record<string, unknown>)[method] === "function";
+      const hasMethod =
+        typeof (proto as unknown as Record<string, unknown>)[method] ===
+        "function";
       results.push({ test: `MON-003: ${method} method`, passed: hasMethod });
       console.log(
         hasMethod
@@ -294,7 +300,9 @@ async function validateExports() {
       "getStatus",
     ];
     for (const method of methods) {
-      const hasMethod = typeof (proto as unknown as Record<string, unknown>)[method] === "function";
+      const hasMethod =
+        typeof (proto as unknown as Record<string, unknown>)[method] ===
+        "function";
       results.push({ test: `MON-004: ${method} method`, passed: hasMethod });
       console.log(
         hasMethod
@@ -367,7 +375,9 @@ async function validateExports() {
       "cleanup",
     ];
     for (const method of methods) {
-      const hasMethod = typeof (proto as unknown as Record<string, unknown>)[method] === "function";
+      const hasMethod =
+        typeof (proto as unknown as Record<string, unknown>)[method] ===
+        "function";
       results.push({ test: `MON-007: ${method} method`, passed: hasMethod });
       console.log(
         hasMethod
@@ -438,7 +448,9 @@ async function validateExports() {
       "getStatus",
     ];
     for (const method of methods) {
-      const hasMethod = typeof (proto as unknown as Record<string, unknown>)[method] === "function";
+      const hasMethod =
+        typeof (proto as unknown as Record<string, unknown>)[method] ===
+        "function";
       results.push({ test: `MON-010: ${method} method`, passed: hasMethod });
       console.log(
         hasMethod

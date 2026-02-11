@@ -301,7 +301,9 @@ Should this be broken into subtasks? If yes, provide the breakdown in JSON forma
       try {
         parsed = JSON.parse(jsonMatch[1]);
       } catch (e) {
-        this.log("Failed to parse breakdown JSON from code block", { error: e });
+        this.log("Failed to parse breakdown JSON from code block", {
+          error: e,
+        });
       }
     }
 
@@ -329,7 +331,11 @@ Should this be broken into subtasks? If yes, provide the breakdown in JSON forma
     executionId: string,
     retryCount: number = 0,
   ): Promise<string> {
-    this.log("Calling Claude API", { executionId, retryCount, model: this.model });
+    this.log("Calling Claude API", {
+      executionId,
+      retryCount,
+      model: this.model,
+    });
 
     try {
       const response = await this.client.messages.create({

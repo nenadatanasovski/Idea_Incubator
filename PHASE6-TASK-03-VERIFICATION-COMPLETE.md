@@ -13,6 +13,7 @@
 The evaluation results interface for the Idea Incubator has been **successfully implemented and verified**. The system provides comprehensive visualization of evaluation criteria scores, evidence-based reasoning, and debate summaries through a polished React-based interface with full backend API support.
 
 ### Key Achievements
+
 ✅ Complete evaluation scorecard with category breakdown
 ✅ Debate summary with red team challenges and arbiter verdicts
 ✅ Evidence-based reasoning display for each criterion
@@ -31,9 +32,11 @@ The evaluation results interface for the Idea Incubator has been **successfully 
 **Location**: `frontend/src/components/`
 
 #### EvaluationScorecard.tsx (880 lines)
+
 **Primary Interface**: Comprehensive scorecard showing evaluation results
 
 **Features Implemented**:
+
 - Overall weighted score with circular gauge visualization
 - Category breakdown with expandable cards (Problem, Solution, Feasibility, Fit, Market, Risk)
 - **Criteria scores** with detailed reasoning for all 30 evaluation criteria
@@ -48,6 +51,7 @@ The evaluation results interface for the Idea Incubator has been **successfully 
 - Executive summary with recommendation reasoning
 
 **Technical Details**:
+
 ```typescript
 // Evidence and reasoning (line 225-226)
 reasoning: string;
@@ -61,9 +65,11 @@ const debateChallenges = criterionDebates
 ```
 
 #### EvaluationDashboard.tsx (411 lines)
+
 **Secondary Interface**: Data visualization with charts
 
 **Features Implemented**:
+
 - Overall weighted score display
 - Radar chart for category overview (6 categories)
 - Horizontal bar chart for all 30 criteria
@@ -73,32 +79,40 @@ const debateChallenges = criterionDebates
 - Color-coded scores by performance level
 
 **Technical Details**:
+
 ```typescript
 // Debate integration (lines 316-338)
-const criterionDebates = rounds.filter(r => r.criterion === eval_.criterion);
+const criterionDebates = rounds.filter((r) => r.criterion === eval_.criterion);
 const debateChallenges = criterionDebates
-  .filter(r => r.arbiter_verdict === "RED_TEAM" || r.arbiter_verdict === "DRAW")
-  .map(r => r.redteam_challenge);
+  .filter(
+    (r) => r.arbiter_verdict === "RED_TEAM" || r.arbiter_verdict === "DRAW",
+  )
+  .map((r) => r.redteam_challenge);
 ```
 
 #### EvaluationTabs.tsx (124 lines)
+
 **Tab Navigation Component**
 
 **Features**:
+
 - 4 tabs: Scorecard, Charts (Dashboard), Red Team, Synthesis
 - Keeps all tabs mounted for data persistence
 - CSS-based visibility toggle
 - Close button integration
 
 #### EvaluationSummaryCard.tsx (8,895 bytes)
+
 **Summary Card for Idea Detail Page**
 
 **Features**:
+
 - Quick overview of evaluation results
 - Recommendation display (PURSUE, REFINE, PAUSE, ABANDON)
 - Integration with full evaluation modal
 
 #### Supporting Components
+
 - **RedTeamView.tsx**: Displays red team challenges and risk responses
 - **SynthesisView.tsx**: Shows synthesis output with strengths, weaknesses, assumptions
 
@@ -109,31 +123,37 @@ const debateChallenges = criterionDebates
 #### Evaluation Data Endpoints
 
 **1. GET /api/ideas/:slug/evaluations** (lines 278-315)
+
 - Returns all evaluation criteria with scores and reasoning
 - Optional `runId` parameter for specific evaluation run
 - Defaults to latest run if not specified
 
 **2. GET /api/ideas/:slug/category-scores** (lines 317-419)
+
 - Aggregates criteria into category averages
 - Calculates weighted scores
 - Returns both initial and final scores (pre/post-debate)
 - **Evidence included**: Each category includes full criteria list with reasoning
 
 **3. GET /api/ideas/:slug/evaluation-runs** (lines 421-446)
+
 - Lists all evaluation run IDs for an idea
 - Enables run history browsing
 
 **4. GET /api/ideas/:slug/debates** (lines 448-487)
+
 - Returns debate rounds with arbiter verdicts
 - Shows red team challenges and evaluator defenses
 - **Debate summary data**: round number, criterion, verdict, challenges
 
 **5. GET /api/ideas/:slug/redteam** (lines 489-544)
+
 - Returns red team challenge log
 - Includes severity, addressed status
 - Falls back to preliminary analysis if no evaluation exists
 
 **6. GET /api/ideas/:slug/synthesis** (lines 546-700+)
+
 - Returns final synthesis with overall score
 - **Evidence**: Key strengths, weaknesses, assumptions, unresolved questions
 - Recalculates overall score from actual evaluation data for integrity
@@ -143,6 +163,7 @@ const debateChallenges = criterionDebates
 **Location**: `frontend/src/hooks/useEvaluations.ts`
 
 **Implemented Hooks**:
+
 - `useEvaluations(slug, runId)` - Fetches criteria evaluations
 - `useCategoryScores(slug, runId)` - Fetches category scores
 - `useEvaluationRuns(slug)` - Fetches run history
@@ -158,6 +179,7 @@ All hooks implement loading and error states with proper TypeScript typing.
 **Location**: `frontend/src/types/`
 
 **Core Types Defined**:
+
 ```typescript
 interface Evaluation {
   criterion: string;
@@ -171,7 +193,7 @@ interface Evaluation {
 interface DebateRound {
   criterion: string;
   round_number: number;
-  arbiter_verdict: 'EVALUATOR' | 'RED_TEAM' | 'DRAW';
+  arbiter_verdict: "EVALUATOR" | "RED_TEAM" | "DRAW";
   redteam_challenge: string; // ← Debate summary
   evaluator_defense: string;
   score_adjustment: number;
@@ -186,7 +208,7 @@ interface CategoryScore {
 
 interface Synthesis {
   overall_score: number;
-  recommendation: 'PURSUE' | 'REFINE' | 'PAUSE' | 'ABANDON';
+  recommendation: "PURSUE" | "REFINE" | "PAUSE" | "ABANDON";
   key_strengths: string[];
   key_weaknesses: string[];
   critical_assumptions: string[];
@@ -223,6 +245,7 @@ interface Synthesis {
 **Requirement**: Display scores for all evaluation criteria
 
 **Implementation**:
+
 - ✅ All 30 criteria displayed (5 per category × 6 categories)
 - ✅ Individual criterion scores shown (1-10 scale)
 - ✅ Color-coded by performance level (excellent/good/fair/poor/critical)
@@ -232,6 +255,7 @@ interface Synthesis {
 - ✅ Category aggregation with weighted averages
 
 **Evidence**:
+
 - `EvaluationScorecard.tsx` lines 289-366: Criterion cards with scores
 - `EvaluationDashboard.tsx` lines 113-287: Bar chart visualization
 - Backend: `/api/ideas/:slug/evaluations` endpoint
@@ -241,6 +265,7 @@ interface Synthesis {
 **Requirement**: Show evidence-based reasoning for each criterion
 
 **Implementation**:
+
 - ✅ Detailed reasoning text for every criterion
 - ✅ Reasoning length: 100-1000+ words per criterion (comprehensive)
 - ✅ Expandable sections to manage screen space
@@ -248,6 +273,7 @@ interface Synthesis {
 - ✅ Structured display: criterion name → score → reasoning
 
 **Evidence**:
+
 - `EvaluationScorecard.tsx` line 357: `{c.reasoning}` display
 - `EvaluationDashboard.tsx` line 390: `{eval_.reasoning}` in table
 - Database: `evaluations.reasoning` column populated by specialized evaluators
@@ -257,6 +283,7 @@ interface Synthesis {
 **Requirement**: Display debate summary with challenges and verdicts
 
 **Implementation**:
+
 - ✅ **Debate Results Section** with survival rate (lines 664-738)
   - Total rounds, evaluator wins, red team wins
   - Survival rate percentage with color coding
@@ -271,12 +298,14 @@ interface Synthesis {
 - ✅ **Visual Indicators**: Badges for debate-adjusted scores
 
 **Evidence**:
+
 - `EvaluationScorecard.tsx` lines 501-534: Debate data extraction
 - `EvaluationScorecard.tsx` lines 334-353: Challenge display UI
 - `EvaluationScorecard.tsx` lines 664-738: Debate summary section
 - Backend: `/api/ideas/:slug/debates` endpoint (lines 448-487)
 
 **Example Data Flow**:
+
 ```typescript
 // 1. Backend fetches debate rounds
 GET /api/ideas/:slug/debates
@@ -309,6 +338,7 @@ const debateChallenges = rounds
 **Integration**: `frontend/src/pages/IdeaDetail.tsx`
 
 **Implementation**:
+
 - Evaluation results accessible via tabs (lines 77-80)
 - Tab IDs: 'scorecard', 'evaluation' (dashboard), 'redteam', 'synthesis'
 - Components imported and rendered (lines 44-48, 62)
@@ -320,12 +350,13 @@ const debateChallenges = rounds
 **Location**: `frontend/src/api/client.ts`
 
 **Implemented Functions** (lines 58-137):
+
 ```typescript
-export async function getEvaluations(slug: string, runId?: string)
-export async function getCategoryScores(slug: string, runId?: string)
-export async function getDebateRounds(slug: string, runId?: string)
-export async function getSynthesis(slug: string, runId?: string)
-export async function getEvaluationRuns(slug: string)
+export async function getEvaluations(slug: string, runId?: string);
+export async function getCategoryScores(slug: string, runId?: string);
+export async function getDebateRounds(slug: string, runId?: string);
+export async function getSynthesis(slug: string, runId?: string);
+export async function getEvaluationRuns(slug: string);
 ```
 
 All functions use proper error handling and return typed responses.
@@ -333,6 +364,7 @@ All functions use proper error handling and return typed responses.
 ### 3.3 Database Integration ✅
 
 **Tables Used**:
+
 - `ideas` - Core idea data
 - `evaluations` - Criterion scores and reasoning
 - `debate_rounds` - Multi-round debate records
@@ -362,12 +394,14 @@ $ npm run build
 **Backend Tests**: ✅ PASSED (1773 tests passing from previous verification)
 
 **Frontend Tests**: Partial
+
 - Core logic tests: 84 passed
 - Component tests: 32 failed due to missing `@testing-library/dom` dependency
 - **Note**: Test failures are due to test infrastructure, not implementation bugs
 - **Core evaluation hooks tested successfully**
 
 **Recommendation**: Install missing test dependency to restore full test coverage
+
 ```bash
 cd frontend && npm install --save-dev @testing-library/dom
 ```
@@ -375,6 +409,7 @@ cd frontend && npm install --save-dev @testing-library/dom
 ### 4.3 Frontend Build ✅
 
 **Status**: Some TypeScript warnings exist in unrelated components (task-agent, tasks) but:
+
 - No errors in evaluation components
 - All evaluation interfaces compile successfully
 - Runtime functionality verified
@@ -386,28 +421,36 @@ cd frontend && npm install --save-dev @testing-library/dom
 ### Original Requirements (PHASE6-TASK-03):
 
 ✅ **Criterion 1**: Display evaluation criteria scores
-   - **Verified**: All 30 criteria displayed with scores, confidence, and color coding
+
+- **Verified**: All 30 criteria displayed with scores, confidence, and color coding
 
 ✅ **Criterion 2**: Show evidence-based reasoning for each criterion
-   - **Verified**: Full reasoning text displayed for every criterion in multiple views
+
+- **Verified**: Full reasoning text displayed for every criterion in multiple views
 
 ✅ **Criterion 3**: Display debate summary with rounds, verdicts, and challenges
-   - **Verified**: Comprehensive debate section with statistics and per-criterion challenges
+
+- **Verified**: Comprehensive debate section with statistics and per-criterion challenges
 
 ✅ **Criterion 4**: Category aggregation and overall score
-   - **Verified**: Category averages calculated with weighted overall score
+
+- **Verified**: Category averages calculated with weighted overall score
 
 ✅ **Criterion 5**: Previous run comparison
-   - **Verified**: Score deltas shown when previous runs exist
+
+- **Verified**: Score deltas shown when previous runs exist
 
 ✅ **Criterion 6**: Multiple visualization modes
-   - **Verified**: Scorecard (detailed), Dashboard (charts), Red Team, Synthesis tabs
+
+- **Verified**: Scorecard (detailed), Dashboard (charts), Red Team, Synthesis tabs
 
 ✅ **Criterion 7**: API endpoint integration
-   - **Verified**: 6 API endpoints implemented and functional
+
+- **Verified**: 6 API endpoints implemented and functional
 
 ✅ **Criterion 8**: TypeScript type safety
-   - **Verified**: Full type definitions for all data structures
+
+- **Verified**: Full type definitions for all data structures
 
 ---
 
@@ -416,6 +459,7 @@ cd frontend && npm install --save-dev @testing-library/dom
 ### 6.1 Design Quality ✅
 
 **Visual Design**:
+
 - Professional scorecard layout with clear hierarchy
 - Color-coded scores for quick assessment
 - Responsive grid layouts
@@ -423,6 +467,7 @@ cd frontend && npm install --save-dev @testing-library/dom
 - Consistent spacing and typography
 
 **Interactivity**:
+
 - Expandable/collapsible sections
 - Tab navigation
 - Smooth transitions
@@ -432,12 +477,14 @@ cd frontend && npm install --save-dev @testing-library/dom
 ### 6.2 User Experience ✅
 
 **Information Architecture**:
+
 - Logical flow: Overall → Categories → Criteria
 - Clear separation of views (Scorecard vs Charts)
 - Contextual data (debate challenges shown with affected criteria)
 - Progressive disclosure (collapsed by default, expand for details)
 
 **Accessibility**:
+
 - Semantic HTML structure
 - ARIA labels (via Lucide icons)
 - Keyboard navigation (tab system)
@@ -446,6 +493,7 @@ cd frontend && npm install --save-dev @testing-library/dom
 ### 6.3 Performance ✅
 
 **Optimization**:
+
 - Memoized computations (`useMemo` for filtering, aggregation)
 - Lazy rendering (CSS-based tab hiding keeps components mounted)
 - Efficient re-renders (state scoped to components)
@@ -458,6 +506,7 @@ cd frontend && npm install --save-dev @testing-library/dom
 ### 7.1 Implementation Files
 
 **Frontend Components**:
+
 ```
 frontend/src/components/
 ├── EvaluationScorecard.tsx      (880 lines) - Primary interface ✓
@@ -469,6 +518,7 @@ frontend/src/components/
 ```
 
 **Backend API**:
+
 ```
 server/api.ts (lines 278-700+)
 ├── GET /api/ideas/:slug/evaluations       ✓
@@ -480,6 +530,7 @@ server/api.ts (lines 278-700+)
 ```
 
 **Data Layer**:
+
 ```
 frontend/src/hooks/useEvaluations.ts
 ├── useEvaluations()         ✓
@@ -492,6 +543,7 @@ frontend/src/hooks/useEvaluations.ts
 ### 7.2 Database Schema
 
 **Tables Involved**:
+
 - `evaluations` (30 rows per evaluation run)
 - `debate_rounds` (variable, up to 90 rows per run with 3 rounds/criterion)
 - `final_syntheses` (1 row per evaluation run)
@@ -502,6 +554,7 @@ frontend/src/hooks/useEvaluations.ts
 ### 7.3 Type Safety
 
 **TypeScript Coverage**: 100% for evaluation interfaces
+
 - All API responses typed
 - All component props typed
 - All hooks typed
@@ -554,12 +607,14 @@ frontend/src/hooks/useEvaluations.ts
 ### 9.2 Deployment Notes
 
 **Environment Requirements**:
+
 - Node.js v22+ (confirmed)
 - SQLite with evaluation data
 - Frontend build output
 - Backend server running on port 3001
 
 **Startup Sequence**:
+
 ```bash
 # Backend
 npm run server  # Start API on port 3001
@@ -617,6 +672,7 @@ The evaluation results interface is:
 **APPROVE for production deployment** with minor test infrastructure fix as follow-up.
 
 **Priority Fix** (Non-blocking):
+
 ```bash
 cd frontend && npm install --save-dev @testing-library/dom
 ```
@@ -629,9 +685,9 @@ cd frontend && npm install --save-dev @testing-library/dom
 
 ```typescript
 interface EvaluationScorecardProps {
-  slug: string;              // Idea slug
-  runId?: string;            // Optional specific run
-  profile?: UserProfileSummary | null;  // User profile for FIT personalization
+  slug: string; // Idea slug
+  runId?: string; // Optional specific run
+  profile?: UserProfileSummary | null; // User profile for FIT personalization
 }
 ```
 
@@ -639,8 +695,8 @@ interface EvaluationScorecardProps {
 
 ```typescript
 interface EvaluationDashboardProps {
-  slug: string;              // Idea slug
-  runId?: string;            // Optional specific run
+  slug: string; // Idea slug
+  runId?: string; // Optional specific run
 }
 ```
 
@@ -652,7 +708,7 @@ interface EvaluationTabsProps {
   runId?: string;
   synthesis: Synthesis | null;
   profile?: UserProfileSummary | null;
-  defaultTab?: 'scorecard' | 'dashboard' | 'redteam' | 'synthesis';
+  defaultTab?: "scorecard" | "dashboard" | "redteam" | "synthesis";
   onClose?: () => void;
 }
 ```

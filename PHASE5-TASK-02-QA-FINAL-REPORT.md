@@ -19,17 +19,22 @@ PHASE5-TASK-02 has a **comprehensive technical specification** (1,054 lines) but
 ## Validation Checklist
 
 ### ✅ PC-1: TypeScript Compilation
+
 ```bash
 npx tsc --noEmit
 ```
+
 **Result:** ✅ **PASS** - No compilation errors
 
 ### ❌ PC-2: Database Schema
+
 **Required:**
+
 - Migration `XXX_evaluation_evidence.sql` adds `evidence_cited` and `gaps_identified` columns to `evaluations` table
 - Migration `XXX_research_sessions.sql` creates `research_sessions` table
 
 **Actual Status:**
+
 ```sql
 -- Current evaluations table schema:
 CREATE TABLE evaluations (
@@ -53,30 +58,37 @@ CREATE TABLE evaluations (
 ```
 
 **Missing Columns:**
+
 - ❌ `evidence_cited` - Not present
 - ❌ `gaps_identified` - Not present
 
 **Missing Tables:**
+
 - ❌ `research_sessions` - Does not exist
 
 **Migrations:**
+
 - ❌ No migration files found matching `*evidence*.sql`
 - ❌ No migration files found matching `*research*.sql`
 
 **Result:** ❌ **FAIL** - Database schema not modified
 
 ### ❌ PC-3: Evidence Persistence
+
 **Required:**
+
 - Evidence saved to database when running evaluation
 - Research session saved to `research_sessions` table
 - Existing evaluations show empty arrays (not null)
 
 **Actual Status:**
+
 - ❌ Evidence collection happens in memory only (via `agents/research.ts`)
 - ❌ No `saveResearchSession()` function exists in `scripts/evaluate.ts`
 - ❌ Evaluation save logic does NOT include evidence fields
 
 **Verification:**
+
 ```bash
 grep -n "saveResearchSession" scripts/evaluate.ts
 # Result: No matches found
@@ -85,11 +97,14 @@ grep -n "saveResearchSession" scripts/evaluate.ts
 **Result:** ❌ **FAIL** - Evidence not persisted
 
 ### ❌ PC-4: Evidence Retrieval API
+
 **Required:**
+
 - `GET /api/ideas/:slug/evaluations/:sessionId/evidence`
 - `GET /api/ideas/:slug/research/:sessionId`
 
 **Actual Status:**
+
 - ❌ `server/routes/evidence.ts` - Does not exist
 - ❌ `server/routes/research.ts` - Does not exist
 - ❌ No evidence endpoints registered in `server/api.ts`
@@ -97,12 +112,15 @@ grep -n "saveResearchSession" scripts/evaluate.ts
 **Result:** ❌ **FAIL** - API endpoints not implemented
 
 ### ❌ PC-5: Frontend Evidence Display
+
 **Required:**
+
 - `EvidenceTab` component in evaluation dashboard
 - `ResearchModal` component for viewing sources
 - Integration with `EvaluationDashboard.tsx`
 
 **Actual Status:**
+
 - ❌ `frontend/src/components/EvidenceTab.tsx` - Does not exist
 - ❌ `frontend/src/components/ResearchModal.tsx` - Does not exist
 - ❌ No Evidence tab in EvaluationDashboard
@@ -110,9 +128,11 @@ grep -n "saveResearchSession" scripts/evaluate.ts
 **Result:** ❌ **FAIL** - Frontend components not implemented
 
 ### ✅ PC-6: Test Coverage
+
 **Required:** 95%+ tests passing
 
 **Actual Status:**
+
 ```
 Test Files  106 passed (106)
 Tests       1773 passed | 4 skipped (1777)
@@ -124,18 +144,22 @@ Duration    7.67s
 **Note:** No NEW tests exist for this task because no implementation exists to test.
 
 **Missing Test Files:**
+
 - ❌ `tests/evidence/persistence.test.ts`
 - ❌ `tests/api/evidence.test.ts`
 - ❌ `tests/e2e/evidence-flow.test.ts`
 
 ### ❌ PC-7: Data Integrity
+
 **Required:**
+
 - Evidence JSON fields parse without errors
 - Empty evidence arrays handled gracefully
 - Research sources stored as arrays
 - No data loss for existing evaluations
 
 **Actual Status:**
+
 - N/A - No evidence fields exist in database to test
 
 **Result:** ❌ **FAIL** - Cannot validate (not implemented)
@@ -144,15 +168,15 @@ Duration    7.67s
 
 ## Pass Criteria Summary
 
-| ID | Criterion | Expected | Actual | Status |
-|----|-----------|----------|--------|--------|
-| PC-1 | TypeScript Compilation | No errors | No errors | ✅ PASS |
-| PC-2 | Database Schema | 2 migrations, 3+ new columns/tables | 0 migrations, 0 changes | ❌ FAIL |
-| PC-3 | Evidence Persistence | Save to DB on evaluation | Evidence ephemeral only | ❌ FAIL |
-| PC-4 | API Endpoints | 2 endpoints | 0 endpoints | ❌ FAIL |
-| PC-5 | Frontend Display | 2 components, 1 integration | 0 components | ❌ FAIL |
-| PC-6 | Test Coverage | 95%+ passing | 100% passing | ✅ PASS |
-| PC-7 | Data Integrity | Validated | Cannot validate | ❌ FAIL |
+| ID   | Criterion              | Expected                            | Actual                  | Status  |
+| ---- | ---------------------- | ----------------------------------- | ----------------------- | ------- |
+| PC-1 | TypeScript Compilation | No errors                           | No errors               | ✅ PASS |
+| PC-2 | Database Schema        | 2 migrations, 3+ new columns/tables | 0 migrations, 0 changes | ❌ FAIL |
+| PC-3 | Evidence Persistence   | Save to DB on evaluation            | Evidence ephemeral only | ❌ FAIL |
+| PC-4 | API Endpoints          | 2 endpoints                         | 0 endpoints             | ❌ FAIL |
+| PC-5 | Frontend Display       | 2 components, 1 integration         | 0 components            | ❌ FAIL |
+| PC-6 | Test Coverage          | 95%+ passing                        | 100% passing            | ✅ PASS |
+| PC-7 | Data Integrity         | Validated                           | Cannot validate         | ❌ FAIL |
 
 **Overall:** 2/7 pass criteria met (29%)
 
@@ -163,6 +187,7 @@ Duration    7.67s
 ### ✅ What EXISTS (PHASE1-TASK-03)
 
 **Pre-evaluation research agent** (`agents/research.ts`) - This collects evidence:
+
 - Market size verification with sources
 - Competitor discovery with sources
 - Market trends with sources
@@ -170,6 +195,7 @@ Duration    7.67s
 - Geographic analysis (local + global)
 
 **Evidence collection in memory** (`agents/evaluator.ts`):
+
 - `EvaluationResult` interface includes `evidenceCited` and `gapsIdentified` fields
 - Evaluators are instructed to cite evidence in prompts
 
@@ -178,27 +204,32 @@ Duration    7.67s
 ### ❌ What's MISSING (PHASE5-TASK-02)
 
 **Database persistence:**
+
 - No `evidence_cited` column in `evaluations` table
 - No `gaps_identified` column in `evaluations` table
 - No `research_sessions` table
 - No migrations to add these
 
 **Save logic:**
+
 - `scripts/evaluate.ts` does NOT save evidence fields
 - No `saveResearchSession()` function exists
 - Evidence is lost after evaluation completes
 
 **API endpoints:**
+
 - No evidence retrieval endpoint
 - No research data endpoint
 - No route files created
 
 **Frontend components:**
+
 - No Evidence tab
 - No Research modal
 - No integration with dashboard
 
 **Tests:**
+
 - No persistence tests
 - No API endpoint tests
 - No E2E evidence flow tests
@@ -208,12 +239,14 @@ Duration    7.67s
 ## Confusion Point: PHASE1-TASK-03 vs PHASE5-TASK-02
 
 **PHASE1-TASK-03: Pre-evaluation web research** ✅ **COMPLETE**
+
 - Collects external evidence via web search
 - Provides evidence to evaluators
 - Evidence flows through evaluation pipeline
 - **Status:** Implemented and validated
 
 **PHASE5-TASK-02: Evidence collection for Market/Competition criteria** ❌ **NOT STARTED**
+
 - **Depends on PHASE1-TASK-03** (which provides the evidence)
 - **Adds persistence** of that evidence to database
 - **Adds API retrieval** of historical evidence
@@ -227,6 +260,7 @@ The confusion likely stems from the similar names. PHASE1-TASK-03 collects the e
 ## Files Required (from Specification)
 
 ### Create (9 files) - All MISSING
+
 1. ❌ `database/migrations/XXX_evaluation_evidence.sql`
 2. ❌ `database/migrations/XXX_research_sessions.sql`
 3. ❌ `server/routes/evidence.ts`
@@ -238,6 +272,7 @@ The confusion likely stems from the similar names. PHASE1-TASK-03 collects the e
 9. ❌ `tests/e2e/evidence-flow.test.ts`
 
 ### Modify (3 files) - All UNMODIFIED
+
 1. ❌ `scripts/evaluate.ts` - Needs evidence persistence logic
 2. ❌ `server/api.ts` - Needs route registration
 3. ❌ `frontend/src/components/EvaluationDashboard.tsx` - Needs Evidence tab
@@ -249,6 +284,7 @@ The confusion likely stems from the similar names. PHASE1-TASK-03 collects the e
 The specification (`docs/specs/PHASE5-TASK-02-evidence-collection.md`) is **excellent**:
 
 ✅ **Strengths:**
+
 - 1,054 lines of comprehensive technical detail
 - Complete database schema design
 - Full API endpoint specifications with examples
@@ -268,31 +304,35 @@ This is a **high-quality, implementation-ready specification**. The problem is n
 
 Based on the specification:
 
-| Component | Estimated Time | Status |
-|-----------|---------------|--------|
-| Database migrations (2 files) | 1 hour | ❌ Not started |
-| Persistence logic (`evaluate.ts`) | 2 hours | ❌ Not started |
-| API endpoints (2 routes) | 2 hours | ❌ Not started |
-| Frontend components (2 components) | 3 hours | ❌ Not started |
-| Testing (3 test files) | 1 hour | ❌ Not started |
-| **Total** | **9 hours** | **0% complete** |
+| Component                          | Estimated Time | Status          |
+| ---------------------------------- | -------------- | --------------- |
+| Database migrations (2 files)      | 1 hour         | ❌ Not started  |
+| Persistence logic (`evaluate.ts`)  | 2 hours        | ❌ Not started  |
+| API endpoints (2 routes)           | 2 hours        | ❌ Not started  |
+| Frontend components (2 components) | 3 hours        | ❌ Not started  |
+| Testing (3 test files)             | 1 hour         | ❌ Not started  |
+| **Total**                          | **9 hours**    | **0% complete** |
 
 ---
 
 ## Test Results
 
 ### TypeScript Compilation
+
 ```bash
 npx tsc --noEmit
 ```
+
 ✅ **PASS** - No errors
 
 ### Test Suite
+
 ```
 Test Files  106 passed (106)
 Tests       1773 passed | 4 skipped (1777)
 Duration    7.67s
 ```
+
 ✅ **PASS** - 100% passing
 
 **Note:** Existing tests pass because no broken code was introduced. But there are **no new tests** for this task because nothing was implemented.
@@ -302,13 +342,17 @@ Duration    7.67s
 ## Recommendations
 
 ### Option 1: Mark as SPECIFICATION COMPLETE ✅
+
 If the task was to create a specification:
+
 - Specification is excellent and complete
 - Ready for Build Agent implementation
 - Mark task as COMPLETE with "Spec ready for implementation" status
 
 ### Option 2: Mark as IMPLEMENTATION FAILED ❌ (CURRENT RECOMMENDATION)
+
 If the task was to implement evidence persistence:
+
 - 0% of implementation complete
 - Only specification exists
 - Mark task as **TASK_FAILED** with reason: "Specification only, no implementation"
@@ -331,9 +375,11 @@ If the task was to implement evidence persistence:
 ## Critical Distinction
 
 **What was REQUESTED:**
+
 > "Evidence collection for Market/Competition criteria"
 
 **What EXISTS:**
+
 - ✅ Evidence **collection** (PHASE1-TASK-03) - working
 - ❌ Evidence **persistence** (PHASE5-TASK-02) - not implemented
 - ❌ Evidence **retrieval** (PHASE5-TASK-02) - not implemented
@@ -350,6 +396,7 @@ The **collection** is done. The **persistence, retrieval, and display** are not.
 **Reason:** Task requires implementation of evidence persistence, API endpoints, and frontend display. Only specification exists. Zero implementation completed.
 
 **Pass Rate:** 2/7 criteria (29%)
+
 - ✅ TypeScript compiles
 - ✅ Existing tests pass
 - ❌ Database schema not modified

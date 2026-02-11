@@ -9,6 +9,7 @@
 A comprehensive technical specification for completing Phase 2 Task 2.6 test system seed data, including:
 
 ### 1. Requirements Analysis
+
 - **Current State**: 1 test suite (Phase 1) with 8 cases, 21 steps, 28 assertions
 - **Missing**: 15 test suites (Phases 2-16) with complete test case data
 - **Priority**: P0 (Must Have) - Phase 2 test data (6 cases)
@@ -16,6 +17,7 @@ A comprehensive technical specification for completing Phase 2 Task 2.6 test sys
 ### 2. Technical Design
 
 #### Files to Create:
+
 1. **`seed-phase2-tests.ts`** - Complete Phase 2 test data seeding
    - 6 test cases (tasks 2.1-2.6)
    - 14+ test steps across all cases
@@ -31,6 +33,7 @@ A comprehensive technical specification for completing Phase 2 Task 2.6 test sys
    - Exits with code 0 on success, 1 on failure
 
 #### Files to Modify:
+
 1. **`seed.ts`** - Update to call new seed functions
    - Remove inline suite creation (lines 85-107)
    - Import and call `seedAllTestSuites()`
@@ -44,6 +47,7 @@ A comprehensive technical specification for completing Phase 2 Task 2.6 test sys
 ### 3. Phase 2 Test Cases Specification
 
 Complete test case definitions with commands and assertions for:
+
 - Task 2.1: SQLite Database Setup (3 steps, 3 assertions)
 - Task 2.2: Run Schema (3 steps, 3 assertions)
 - Task 2.3: Seed Agents (3 steps, 3 assertions)
@@ -66,6 +70,7 @@ Complete test case definitions with commands and assertions for:
 ### 5. Implementation Pattern
 
 Follows existing `seed-phase1-tests.ts` pattern:
+
 - `ON CONFLICT` for idempotency
 - Console logging with emojis
 - Count and report created records
@@ -93,11 +98,13 @@ sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM test_cases WHERE su
 ## Key Design Decisions
 
 ### ✅ Hybrid Approach (Chosen)
+
 - Lightweight suite creation (`seed-all-suites.ts`)
 - Detailed test data per phase (`seed-phase2-tests.ts`, `seed-phase1-tests.ts`)
 - **Rationale**: Scalable, maintainable, follows existing pattern
 
 ### ❌ Rejected Alternatives
+
 - Single monolithic seed script (hard to debug)
 - Separate script per phase (too many files)
 - Auto-generate from PHASES.md (over-engineered)
@@ -105,12 +112,14 @@ sqlite3 parent-harness/data/harness.db "SELECT COUNT(*) FROM test_cases WHERE su
 ## Dependencies
 
 ### Required (Complete):
+
 - ✅ SQLite database exists (`parent-harness/data/harness.db`)
 - ✅ Schema migrated (33 tables including test system)
 - ✅ `seed-phase1-tests.ts` (reference implementation)
 - ✅ Helper functions in `db/index.ts`
 
 ### Blocks:
+
 - Phase 3+ validation queries
 - Build Agent pass criteria validation
 - QA Agent test result queries

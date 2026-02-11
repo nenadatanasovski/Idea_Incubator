@@ -31,6 +31,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 ### Current State
 
 **Existing Infrastructure** (from VIBE-P10-007):
+
 - ✅ `InfrastructureGenerator` class at `agents/architect/infrastructure-generator.ts`
 - ✅ Docker Compose generation with service definitions
 - ✅ Dockerfile templates for Node.js and Python
@@ -40,6 +41,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - ✅ Architecture document parsing
 
 **Existing Test Infrastructure** (from project):
+
 - ✅ Vitest test framework with coverage reporting
 - ✅ Unit test patterns in `tests/unit/`
 - ✅ Integration test patterns in `tests/integration/`
@@ -47,6 +49,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - ✅ Test database setup utilities
 
 **Missing Components** (this task):
+
 - ❌ Unit tests for DockerfileGenerator
 - ❌ Unit tests for K8sManifestGenerator (if implemented)
 - ❌ PlatformAdapter unit tests with mocked APIs
@@ -65,6 +68,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 #### FR-1: DockerfileGenerator Unit Tests
 
 **FR-1.1: Node.js Dockerfile Generation**
+
 - Test multi-stage build pattern (builder + production stages)
 - Verify package.json copying and `npm ci` installation
 - Validate TypeScript compilation step (`npm run build`)
@@ -75,6 +79,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Test port exposure (3000 default)
 
 **FR-1.2: Python Dockerfile Generation**
+
 - Test multi-stage build pattern (builder + production)
 - Verify requirements.txt installation with pip
 - Check non-root user creation (appuser:1001)
@@ -85,6 +90,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Validate uvicorn command configuration
 
 **FR-1.3: Go Dockerfile Generation**
+
 - Test static binary compilation in builder stage
 - Verify minimal production image (scratch or alpine)
 - Check binary copying from builder
@@ -92,12 +98,14 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Test port exposure configuration
 
 **FR-1.4: Rust Dockerfile Generation**
+
 - Test Cargo build in builder stage
 - Verify target/release binary copying
 - Check minimal production image
 - Validate health check configuration
 
 **FR-1.5: Dockerfile Validation**
+
 - Test generated Dockerfiles are syntactically valid
 - Verify all COPY instructions reference existing paths
 - Check environment variable placeholders
@@ -105,6 +113,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Test that images build successfully (docker build dry-run)
 
 **FR-1.6: Coverage Target**
+
 - DockerfileGenerator class achieves >80% line coverage
 - All public methods tested
 - Edge cases covered (missing runtime, unknown language)
@@ -112,6 +121,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 #### FR-2: K8sManifestGenerator Unit Tests
 
 **FR-2.1: Deployment Manifest**
+
 - Test Deployment resource generation
 - Verify replica count configuration
 - Check container spec (image, ports, env)
@@ -120,6 +130,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Verify rolling update strategy
 
 **FR-2.2: Service Manifest**
+
 - Test Service resource generation
 - Verify type (ClusterIP, NodePort, LoadBalancer)
 - Check port mapping configuration
@@ -127,6 +138,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Test annotations for cloud providers
 
 **FR-2.3: Ingress Manifest**
+
 - Test Ingress resource generation
 - Verify host and path rules
 - Check TLS configuration
@@ -134,12 +146,14 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Test ingress class annotation
 
 **FR-2.4: ConfigMap and Secret**
+
 - Test ConfigMap generation for environment variables
 - Verify Secret placeholders for sensitive data
 - Check volume mount configurations
 - Validate naming conventions
 
 **FR-2.5: Manifest Validation**
+
 - Generated manifests are valid YAML
 - Resources pass `kubectl apply --dry-run` validation
 - All resource references are consistent
@@ -148,6 +162,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 #### FR-3: PlatformAdapter Unit Tests with Mocked APIs
 
 **FR-3.1: AWS Adapter**
+
 - Mock AWS SDK calls (ECR, ECS, RDS, S3)
 - Test ECS task definition generation
 - Verify service creation with load balancer
@@ -158,6 +173,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Test error handling for API failures
 
 **FR-3.2: Vercel Adapter**
+
 - Mock Vercel API calls (deployment, project config)
 - Test project creation and configuration
 - Verify environment variable setting
@@ -167,6 +183,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Verify error handling for quota limits
 
 **FR-3.3: Railway Adapter**
+
 - Mock Railway API calls (service deployment)
 - Test project creation via API
 - Verify service configuration (start command, build command)
@@ -176,6 +193,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Verify error handling for build failures
 
 **FR-3.4: Cloudflare Adapter**
+
 - Mock Cloudflare Pages API
 - Test Workers deployment
 - Verify KV namespace creation
@@ -184,6 +202,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Mock deployment status checks
 
 **FR-3.5: API Mocking Strategy**
+
 - Use vitest `vi.fn()` for function mocking
 - Mock HTTP responses with `vi.spyOn(global, 'fetch')`
 - Verify correct API endpoints called
@@ -194,6 +213,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 #### FR-4: Integration Tests for Deployment Workflows
 
 **FR-4.1: Full Docker Workflow**
+
 - Generate Dockerfile for sample Node.js project
 - Generate docker-compose.yml with database
 - Build Docker image (docker build)
@@ -203,6 +223,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Stop and clean up containers
 
 **FR-4.2: GitHub Actions Workflow**
+
 - Generate GitHub Actions workflow file
 - Validate YAML syntax
 - Verify job dependencies (test → build → deploy)
@@ -211,6 +232,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Validate secret placeholders
 
 **FR-4.3: End-to-End Deployment Simulation**
+
 - Create architecture document for test project
 - Generate infrastructure configs (all formats)
 - Validate generated Docker Compose
@@ -220,6 +242,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Check environment configs (dev/staging/prod)
 
 **FR-4.4: Multi-Environment Deployment**
+
 - Generate configs for dev environment
 - Generate configs for staging environment
 - Generate configs for production environment
@@ -230,6 +253,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 #### FR-5: Rollback Scenario Tests
 
 **FR-5.1: Docker Rollback**
+
 - Deploy version 1 of service
 - Deploy version 2 of service
 - Trigger rollback to version 1
@@ -238,6 +262,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Test data persistence through rollback
 
 **FR-5.2: Kubernetes Rollback**
+
 - Deploy Deployment version 1 (revision 1)
 - Update to version 2 (revision 2)
 - Execute `kubectl rollout undo`
@@ -246,6 +271,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Test rollout status monitoring
 
 **FR-5.3: CI/CD Pipeline Rollback**
+
 - Simulate failed deployment in staging
 - Prevent promotion to production
 - Verify previous production deployment unchanged
@@ -253,6 +279,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Check rollback notification flow
 
 **FR-5.4: Database Migration Rollback**
+
 - Apply database migration forward
 - Test migration rollback (down migration)
 - Verify schema reverted correctly
@@ -262,6 +289,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 #### FR-6: Health Check and Monitoring Tests
 
 **FR-6.1: HTTP Health Check Validation**
+
 - Test HTTP GET /health endpoint
 - Verify 200 status code response
 - Check response body format (JSON)
@@ -270,6 +298,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Test unhealthy state detection
 
 **FR-6.2: TCP Health Check Validation**
+
 - Test TCP socket connection to service port
 - Verify connection established within timeout
 - Check graceful connection closure
@@ -277,6 +306,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Verify port exposure configuration
 
 **FR-6.3: Liveness and Readiness Probes**
+
 - Test Kubernetes liveness probe configuration
 - Verify readiness probe configuration
 - Check probe timing (initialDelaySeconds, periodSeconds)
@@ -285,6 +315,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Test traffic routing on readiness failure
 
 **FR-6.4: Custom Health Check Logic**
+
 - Test custom health check command execution
 - Verify exit code interpretation (0 = healthy)
 - Check stdout/stderr capture
@@ -294,6 +325,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 #### FR-7: SSL Certificate Workflow Tests (Mocked ACME)
 
 **FR-7.1: Certificate Request**
+
 - Mock ACME protocol server (Let's Encrypt)
 - Test domain ownership validation (HTTP-01 challenge)
 - Verify certificate signing request (CSR) generation
@@ -302,6 +334,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Mock DNS-01 challenge for wildcard certificates
 
 **FR-7.2: Certificate Installation**
+
 - Test certificate file writing (cert.pem, key.pem, chain.pem)
 - Verify correct file permissions (600 for private key)
 - Check certificate bundle creation (fullchain.pem)
@@ -309,6 +342,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Verify HTTPS endpoint configuration
 
 **FR-7.3: Certificate Renewal**
+
 - Mock certificate near expiration (7 days remaining)
 - Test automatic renewal trigger
 - Verify ACME renewal protocol
@@ -317,6 +351,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Verify expiration monitoring
 
 **FR-7.4: Certificate Validation**
+
 - Test certificate expiration date parsing
 - Verify domain name matching
 - Check certificate chain validation
@@ -326,6 +361,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 #### FR-8: Test Fixtures for Various Project Types
 
 **FR-8.1: Node.js Test Fixture**
+
 - Create sample Express.js API project
 - Include package.json with dependencies
 - Add TypeScript configuration (tsconfig.json)
@@ -335,6 +371,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Test fixture location: `tests/fixtures/nodejs-api/`
 
 **FR-8.2: Python Test Fixture**
+
 - Create sample FastAPI project
 - Include requirements.txt with dependencies
 - Add Python configuration (pyproject.toml)
@@ -344,6 +381,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Test fixture location: `tests/fixtures/python-api/`
 
 **FR-8.3: Go Test Fixture**
+
 - Create sample HTTP server (net/http or Gin)
 - Include go.mod and go.sum
 - Add main.go with sample endpoints
@@ -353,6 +391,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Test fixture location: `tests/fixtures/go-api/`
 
 **FR-8.4: Full-Stack Test Fixture**
+
 - Create frontend (React) + backend (Node.js) + database (PostgreSQL)
 - Include Docker Compose for local development
 - Add nginx configuration for reverse proxy
@@ -361,6 +400,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Test fixture location: `tests/fixtures/fullstack-app/`
 
 **FR-8.5: Microservices Test Fixture**
+
 - Create 3 microservices (API Gateway, Auth, Data)
 - Include service mesh configuration (Istio/Linkerd)
 - Add inter-service communication (gRPC or REST)
@@ -371,6 +411,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 ### Non-Functional Requirements
 
 **NFR-1: Test Performance**
+
 - Unit tests execute in <10 seconds total
 - Integration tests execute in <60 seconds total
 - E2E tests execute in <5 minutes total
@@ -378,6 +419,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Mocked API responses return in <50ms
 
 **NFR-2: Test Coverage**
+
 - DockerfileGenerator: >80% line coverage
 - K8sManifestGenerator: >80% line coverage
 - PlatformAdapters: >75% line coverage
@@ -385,6 +427,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Overall infrastructure code: >75% coverage
 
 **NFR-3: Test Reliability**
+
 - Tests are deterministic (no flaky tests)
 - Mocked APIs use consistent fixtures
 - Test cleanup removes all Docker containers/images
@@ -392,6 +435,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - No test order dependencies
 
 **NFR-4: Test Maintainability**
+
 - Test names follow convention: `describe() > it() > expect()`
 - Shared test utilities in `tests/utils/`
 - Mocking utilities reusable across tests
@@ -399,6 +443,7 @@ This test suite validates all these capabilities with comprehensive coverage.
 - Test fixtures documented with usage examples
 
 **NFR-5: CI/CD Integration**
+
 - Tests run in GitHub Actions workflow
 - Test results reported with coverage badges
 - Failed tests block PR merges
@@ -481,268 +526,272 @@ This test suite validates all these capabilities with comprehensive coverage.
 **File**: `tests/unit/generators/dockerfile-generator.test.ts`
 
 ```typescript
-import { describe, it, expect, beforeEach } from 'vitest';
-import { InfrastructureGenerator } from '../../../agents/architect/infrastructure-generator.js';
-import type { ArchitectureDoc } from '../../../agents/architect/types.js';
+import { describe, it, expect, beforeEach } from "vitest";
+import { InfrastructureGenerator } from "../../../agents/architect/infrastructure-generator.js";
+import type { ArchitectureDoc } from "../../../agents/architect/types.js";
 
-describe('DockerfileGenerator', () => {
+describe("DockerfileGenerator", () => {
   let mockArchitecture: ArchitectureDoc;
 
   beforeEach(() => {
     mockArchitecture = {
-      id: 'test-arch',
-      name: 'Test Architecture',
-      version: '1.0.0',
+      id: "test-arch",
+      name: "Test Architecture",
+      version: "1.0.0",
       components: [
         {
-          id: 'api-service',
-          name: 'API Service',
-          type: 'backend',
-          description: 'REST API',
-          responsibilities: ['Handle HTTP requests'],
-          technologies: ['Node.js', 'TypeScript', 'Express'],
+          id: "api-service",
+          name: "API Service",
+          type: "backend",
+          description: "REST API",
+          responsibilities: ["Handle HTTP requests"],
+          technologies: ["Node.js", "TypeScript", "Express"],
           interfaces: [],
-          dependencies: ['database'],
+          dependencies: ["database"],
         },
       ],
       techStack: {
         backend: {
-          runtime: 'node',
-          framework: 'express',
-          version: '20',
+          runtime: "node",
+          framework: "express",
+          version: "20",
         },
         database: {
-          engine: 'postgres',
-          version: '16',
+          engine: "postgres",
+          version: "16",
         },
       },
       databaseSchema: {
-        engine: 'postgres',
+        engine: "postgres",
         tables: [],
       },
     };
   });
 
-  describe('Node.js Dockerfile Generation', () => {
-    it('generates multi-stage Dockerfile with builder and production stages', () => {
+  describe("Node.js Dockerfile Generation", () => {
+    it("generates multi-stage Dockerfile with builder and production stages", () => {
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
-      expect(apiDockerfile).toContain('FROM node:20-alpine AS builder');
-      expect(apiDockerfile).toContain('FROM node:20-alpine');
-      expect(apiDockerfile).not.toContain('FROM node:20-alpine AS builder FROM');
+      expect(apiDockerfile).toContain("FROM node:20-alpine AS builder");
+      expect(apiDockerfile).toContain("FROM node:20-alpine");
+      expect(apiDockerfile).not.toContain(
+        "FROM node:20-alpine AS builder FROM",
+      );
     });
 
-    it('includes package.json copying and npm ci in builder stage', () => {
+    it("includes package.json copying and npm ci in builder stage", () => {
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
-      expect(apiDockerfile).toContain('COPY package*.json ./');
-      expect(apiDockerfile).toContain('RUN npm ci');
+      expect(apiDockerfile).toContain("COPY package*.json ./");
+      expect(apiDockerfile).toContain("RUN npm ci");
     });
 
-    it('includes TypeScript compilation step', () => {
+    it("includes TypeScript compilation step", () => {
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
-      expect(apiDockerfile).toContain('RUN npm run build');
-      expect(apiDockerfile).toContain('COPY --from=builder /app/dist ./dist');
+      expect(apiDockerfile).toContain("RUN npm run build");
+      expect(apiDockerfile).toContain("COPY --from=builder /app/dist ./dist");
     });
 
-    it('creates non-root user (nodejs:1001)', () => {
+    it("creates non-root user (nodejs:1001)", () => {
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
-      expect(apiDockerfile).toContain('addgroup -g 1001');
-      expect(apiDockerfile).toContain('adduser -S nodejs -u 1001');
-      expect(apiDockerfile).toContain('USER nodejs');
+      expect(apiDockerfile).toContain("addgroup -g 1001");
+      expect(apiDockerfile).toContain("adduser -S nodejs -u 1001");
+      expect(apiDockerfile).toContain("USER nodejs");
     });
 
-    it('includes health check command', () => {
+    it("includes health check command", () => {
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
-      expect(apiDockerfile).toContain('HEALTHCHECK');
+      expect(apiDockerfile).toContain("HEALTHCHECK");
       expect(apiDockerfile).toMatch(/http:\/\/localhost:\d+\/health/);
     });
 
-    it('uses Alpine base image for minimal size', () => {
+    it("uses Alpine base image for minimal size", () => {
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
-      expect(apiDockerfile).toContain('node:20-alpine');
-      expect(apiDockerfile).not.toContain('node:20-slim');
+      expect(apiDockerfile).toContain("node:20-alpine");
+      expect(apiDockerfile).not.toContain("node:20-slim");
     });
 
-    it('installs production dependencies only in final stage', () => {
+    it("installs production dependencies only in final stage", () => {
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
-      const prodStage = apiDockerfile.split('FROM node:20-alpine')[1];
-      expect(prodStage).toContain('npm ci --omit=dev');
+      const prodStage = apiDockerfile.split("FROM node:20-alpine")[1];
+      expect(prodStage).toContain("npm ci --omit=dev");
     });
 
-    it('exposes port 3000 by default', () => {
+    it("exposes port 3000 by default", () => {
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
-      expect(apiDockerfile).toContain('EXPOSE 3000');
+      expect(apiDockerfile).toContain("EXPOSE 3000");
     });
   });
 
-  describe('Python Dockerfile Generation', () => {
+  describe("Python Dockerfile Generation", () => {
     beforeEach(() => {
-      mockArchitecture.components[0].technologies = ['Python', 'FastAPI'];
+      mockArchitecture.components[0].technologies = ["Python", "FastAPI"];
       mockArchitecture.techStack.backend = {
-        runtime: 'python',
-        framework: 'fastapi',
-        version: '3.12',
+        runtime: "python",
+        framework: "fastapi",
+        version: "3.12",
       };
     });
 
-    it('generates multi-stage Dockerfile with builder and production stages', () => {
+    it("generates multi-stage Dockerfile with builder and production stages", () => {
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
-      expect(apiDockerfile).toContain('FROM python:3.12-slim AS builder');
-      expect(apiDockerfile).toContain('FROM python:3.12-slim');
+      expect(apiDockerfile).toContain("FROM python:3.12-slim AS builder");
+      expect(apiDockerfile).toContain("FROM python:3.12-slim");
     });
 
-    it('includes requirements.txt installation with pip', () => {
+    it("includes requirements.txt installation with pip", () => {
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
-      expect(apiDockerfile).toContain('COPY requirements.txt .');
-      expect(apiDockerfile).toContain('pip install --user --no-cache-dir -r requirements.txt');
+      expect(apiDockerfile).toContain("COPY requirements.txt .");
+      expect(apiDockerfile).toContain(
+        "pip install --user --no-cache-dir -r requirements.txt",
+      );
     });
 
-    it('creates non-root user (appuser:1001)', () => {
+    it("creates non-root user (appuser:1001)", () => {
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
-      expect(apiDockerfile).toContain('useradd -m -u 1001 appuser');
-      expect(apiDockerfile).toContain('USER appuser');
+      expect(apiDockerfile).toContain("useradd -m -u 1001 appuser");
+      expect(apiDockerfile).toContain("USER appuser");
     });
 
-    it('includes health check with urllib', () => {
+    it("includes health check with urllib", () => {
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
-      expect(apiDockerfile).toContain('HEALTHCHECK');
-      expect(apiDockerfile).toContain('urllib.request');
+      expect(apiDockerfile).toContain("HEALTHCHECK");
+      expect(apiDockerfile).toContain("urllib.request");
       expect(apiDockerfile).toMatch(/http:\/\/localhost:\d+\/health/);
     });
 
-    it('exposes port 8000 by default', () => {
+    it("exposes port 8000 by default", () => {
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
-      expect(apiDockerfile).toContain('EXPOSE 8000');
+      expect(apiDockerfile).toContain("EXPOSE 8000");
     });
 
-    it('configures uvicorn command', () => {
+    it("configures uvicorn command", () => {
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
-      expect(apiDockerfile).toContain('uvicorn');
-      expect(apiDockerfile).toContain('--host 0.0.0.0');
-      expect(apiDockerfile).toContain('--port 8000');
+      expect(apiDockerfile).toContain("uvicorn");
+      expect(apiDockerfile).toContain("--host 0.0.0.0");
+      expect(apiDockerfile).toContain("--port 8000");
     });
   });
 
-  describe('Coverage and Validation', () => {
-    it('achieves >80% coverage for generateDockerfile method', () => {
+  describe("Coverage and Validation", () => {
+    it("achieves >80% coverage for generateDockerfile method", () => {
       // This is validated by vitest coverage reporting
       // Ensure all code paths tested
     });
 
-    it('handles unknown runtime gracefully (defaults to Node.js)', () => {
+    it("handles unknown runtime gracefully (defaults to Node.js)", () => {
       mockArchitecture.techStack.backend = {
-        runtime: 'unknown-runtime' as any,
-        framework: 'custom',
-        version: '1.0',
+        runtime: "unknown-runtime" as any,
+        framework: "custom",
+        version: "1.0",
       };
 
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
       // Should default to Node.js
-      expect(apiDockerfile).toContain('node:20-alpine');
+      expect(apiDockerfile).toContain("node:20-alpine");
     });
 
-    it('generates valid Dockerfile syntax (no obvious errors)', () => {
+    it("generates valid Dockerfile syntax (no obvious errors)", () => {
       const generator = new InfrastructureGenerator(mockArchitecture, {
-        projectName: 'test-project',
+        projectName: "test-project",
       });
 
-      const dockerfiles = generator['generateDockerfiles']();
-      const apiDockerfile = dockerfiles['api-service'];
+      const dockerfiles = generator["generateDockerfiles"]();
+      const apiDockerfile = dockerfiles["api-service"];
 
       // Check for common Dockerfile errors
-      expect(apiDockerfile).not.toContain('FROM FROM');
-      expect(apiDockerfile).not.toContain('COPY COPY');
+      expect(apiDockerfile).not.toContain("FROM FROM");
+      expect(apiDockerfile).not.toContain("COPY COPY");
       expect(apiDockerfile).toMatch(/FROM .+ AS builder/);
-      expect(apiDockerfile.split('FROM').length).toBeGreaterThanOrEqual(3); // 2 stages = 3 FROMs (including split result)
+      expect(apiDockerfile.split("FROM").length).toBeGreaterThanOrEqual(3); // 2 stages = 3 FROMs (including split result)
     });
   });
 });
@@ -753,9 +802,9 @@ describe('DockerfileGenerator', () => {
 **File**: `tests/unit/generators/platform-adapters.test.ts`
 
 ```typescript
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 
-describe('PlatformAdapters', () => {
+describe("PlatformAdapters", () => {
   beforeEach(() => {
     // Mock global fetch
     global.fetch = vi.fn();
@@ -765,15 +814,16 @@ describe('PlatformAdapters', () => {
     vi.restoreAllMocks();
   });
 
-  describe('AWS Adapter', () => {
-    it('creates ECS task definition with correct configuration', async () => {
+  describe("AWS Adapter", () => {
+    it("creates ECS task definition with correct configuration", async () => {
       const mockFetch = global.fetch as any;
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           taskDefinition: {
-            family: 'test-service',
-            taskDefinitionArn: 'arn:aws:ecs:us-east-1:123456789:task-definition/test-service:1',
+            family: "test-service",
+            taskDefinitionArn:
+              "arn:aws:ecs:us-east-1:123456789:task-definition/test-service:1",
           },
         }),
       });
@@ -782,37 +832,37 @@ describe('PlatformAdapters', () => {
       // (Implementation depends on actual adapter structure)
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('ecs.amazonaws.com'),
+        expect.stringContaining("ecs.amazonaws.com"),
         expect.objectContaining({
-          method: 'POST',
+          method: "POST",
           headers: expect.objectContaining({
-            'Content-Type': 'application/x-amz-json-1.1',
+            "Content-Type": "application/x-amz-json-1.1",
           }),
-        })
+        }),
       );
     });
 
-    it('handles ECS API failures gracefully', async () => {
+    it("handles ECS API failures gracefully", async () => {
       const mockFetch = global.fetch as any;
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 400,
-        json: async () => ({ message: 'Invalid task definition' }),
+        json: async () => ({ message: "Invalid task definition" }),
       });
 
       // Test error handling
       // Expect adapter to throw meaningful error
     });
 
-    it('mocks RDS instance creation', async () => {
+    it("mocks RDS instance creation", async () => {
       const mockFetch = global.fetch as any;
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           DBInstance: {
-            DBInstanceIdentifier: 'test-db',
+            DBInstanceIdentifier: "test-db",
             Endpoint: {
-              Address: 'test-db.abc123.us-east-1.rds.amazonaws.com',
+              Address: "test-db.abc123.us-east-1.rds.amazonaws.com",
               Port: 5432,
             },
           },
@@ -823,64 +873,64 @@ describe('PlatformAdapters', () => {
     });
   });
 
-  describe('Vercel Adapter', () => {
-    it('creates Vercel project via API', async () => {
+  describe("Vercel Adapter", () => {
+    it("creates Vercel project via API", async () => {
       const mockFetch = global.fetch as any;
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          id: 'prj_abc123',
-          name: 'test-project',
+          id: "prj_abc123",
+          name: "test-project",
         }),
       });
 
       // Test Vercel project creation
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('vercel.com/v9/projects'),
+        expect.stringContaining("vercel.com/v9/projects"),
         expect.objectContaining({
-          method: 'POST',
+          method: "POST",
           headers: expect.objectContaining({
-            Authorization: expect.stringContaining('Bearer '),
+            Authorization: expect.stringContaining("Bearer "),
           }),
-        })
+        }),
       );
     });
 
-    it('sets environment variables in Vercel project', async () => {
+    it("sets environment variables in Vercel project", async () => {
       const mockFetch = global.fetch as any;
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          created: [{ key: 'DATABASE_URL', target: ['production'] }],
+          created: [{ key: "DATABASE_URL", target: ["production"] }],
         }),
       });
 
       // Test environment variable setting
     });
 
-    it('handles Vercel API rate limiting', async () => {
+    it("handles Vercel API rate limiting", async () => {
       const mockFetch = global.fetch as any;
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 429,
-        headers: new Map([['Retry-After', '60']]),
+        headers: new Map([["Retry-After", "60"]]),
       });
 
       // Test rate limit handling
     });
   });
 
-  describe('Railway Adapter', () => {
-    it('deploys service via Railway API', async () => {
+  describe("Railway Adapter", () => {
+    it("deploys service via Railway API", async () => {
       const mockFetch = global.fetch as any;
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           data: {
             serviceCreate: {
-              id: 'svc_abc123',
-              name: 'test-service',
+              id: "svc_abc123",
+              name: "test-service",
             },
           },
         }),
@@ -889,15 +939,15 @@ describe('PlatformAdapters', () => {
       // Test Railway service deployment
     });
 
-    it('configures Railway service with start command', async () => {
+    it("configures Railway service with start command", async () => {
       const mockFetch = global.fetch as any;
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           data: {
             serviceUpdate: {
-              id: 'svc_abc123',
-              startCommand: 'npm start',
+              id: "svc_abc123",
+              startCommand: "npm start",
             },
           },
         }),
@@ -907,8 +957,8 @@ describe('PlatformAdapters', () => {
     });
   });
 
-  describe('API Mocking Utilities', () => {
-    it('provides reusable mock response builder', () => {
+  describe("API Mocking Utilities", () => {
+    it("provides reusable mock response builder", () => {
       const mockResponse = createMockApiResponse({
         status: 200,
         body: { success: true },
@@ -918,12 +968,13 @@ describe('PlatformAdapters', () => {
       expect(mockResponse.status).toBe(200);
     });
 
-    it('simulates network timeout', async () => {
+    it("simulates network timeout", async () => {
       const mockFetch = global.fetch as any;
-      mockFetch.mockImplementation(() =>
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Network timeout')), 100)
-        )
+      mockFetch.mockImplementation(
+        () =>
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Network timeout")), 100),
+          ),
       );
 
       // Test timeout handling
@@ -947,18 +998,18 @@ function createMockApiResponse(config: { status: number; body: any }) {
 **File**: `tests/integration/devops/deployment-workflow.test.ts`
 
 ```typescript
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { InfrastructureGenerator } from '../../../agents/architect/infrastructure-generator.js';
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
-import { writeFile, mkdir, rm } from 'node:fs/promises';
-import path from 'node:path';
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { InfrastructureGenerator } from "../../../agents/architect/infrastructure-generator.js";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
+import { writeFile, mkdir, rm } from "node:fs/promises";
+import path from "node:path";
 
 const execAsync = promisify(exec);
 
-describe('Full Deployment Workflow Integration', () => {
-  const testDir = path.join(__dirname, '../../temp/deployment-test');
-  const dockerComposeFile = path.join(testDir, 'docker-compose.yml');
+describe("Full Deployment Workflow Integration", () => {
+  const testDir = path.join(__dirname, "../../temp/deployment-test");
+  const dockerComposeFile = path.join(testDir, "docker-compose.yml");
 
   beforeAll(async () => {
     await mkdir(testDir, { recursive: true });
@@ -974,126 +1025,133 @@ describe('Full Deployment Workflow Integration', () => {
     await rm(testDir, { recursive: true, force: true });
   });
 
-  it('generates and validates complete Docker deployment', async () => {
+  it("generates and validates complete Docker deployment", async () => {
     // 1. Create architecture document
     const architecture = createTestArchitecture();
 
     // 2. Generate infrastructure configs
     const generator = new InfrastructureGenerator(architecture, {
-      projectName: 'integration-test',
+      projectName: "integration-test",
     });
 
     const output = await generator.generate({
-      outputFormat: 'docker-compose',
+      outputFormat: "docker-compose",
     });
 
     // 3. Write Docker Compose file
     await writeFile(dockerComposeFile, output.dockerCompose!);
 
     // 4. Write Dockerfiles
-    for (const [componentId, dockerfileContent] of Object.entries(output.dockerfile || {})) {
+    for (const [componentId, dockerfileContent] of Object.entries(
+      output.dockerfile || {},
+    )) {
       const componentDir = path.join(testDir, componentId);
       await mkdir(componentDir, { recursive: true });
-      await writeFile(path.join(componentDir, 'Dockerfile'), dockerfileContent);
+      await writeFile(path.join(componentDir, "Dockerfile"), dockerfileContent);
     }
 
     // 5. Validate docker-compose config
-    const { stdout } = await execAsync(`cd ${testDir} && docker-compose config`);
-    expect(stdout).toContain('services:');
-    expect(stdout).toContain('networks:');
-    expect(stdout).toContain('volumes:');
+    const { stdout } = await execAsync(
+      `cd ${testDir} && docker-compose config`,
+    );
+    expect(stdout).toContain("services:");
+    expect(stdout).toContain("networks:");
+    expect(stdout).toContain("volumes:");
 
     // 6. Build images (dry-run mode, don't actually build)
     // In real test, would do: docker-compose build
     // For speed, just validate syntax
-    expect(output.dockerCompose).toContain('build:');
-    expect(output.dockerCompose).toContain('context:');
+    expect(output.dockerCompose).toContain("build:");
+    expect(output.dockerCompose).toContain("context:");
   }, 60000); // 60 second timeout
 
-  it('validates GitHub Actions workflow syntax', async () => {
+  it("validates GitHub Actions workflow syntax", async () => {
     const architecture = createTestArchitecture();
     const generator = new InfrastructureGenerator(architecture, {
-      projectName: 'integration-test',
+      projectName: "integration-test",
       includeCI: true,
     });
 
     const output = await generator.generate({
-      outputFormat: 'github-actions',
+      outputFormat: "github-actions",
     });
 
     // Write workflow file
-    const workflowDir = path.join(testDir, '.github/workflows');
+    const workflowDir = path.join(testDir, ".github/workflows");
     await mkdir(workflowDir, { recursive: true });
-    await writeFile(path.join(workflowDir, 'deploy.yml'), output.githubActions!);
+    await writeFile(
+      path.join(workflowDir, "deploy.yml"),
+      output.githubActions!,
+    );
 
     // Validate YAML syntax (basic check)
-    expect(output.githubActions).toContain('name:');
-    expect(output.githubActions).toContain('on:');
-    expect(output.githubActions).toContain('jobs:');
-    expect(output.githubActions).toContain('test:');
-    expect(output.githubActions).toContain('build:');
-    expect(output.githubActions).toContain('deploy');
+    expect(output.githubActions).toContain("name:");
+    expect(output.githubActions).toContain("on:");
+    expect(output.githubActions).toContain("jobs:");
+    expect(output.githubActions).toContain("test:");
+    expect(output.githubActions).toContain("build:");
+    expect(output.githubActions).toContain("deploy");
   });
 
-  it('generates environment-specific configs', async () => {
+  it("generates environment-specific configs", async () => {
     const architecture = createTestArchitecture();
     const generator = new InfrastructureGenerator(architecture, {
-      projectName: 'integration-test',
-      environments: ['dev', 'staging', 'prod'],
+      projectName: "integration-test",
+      environments: ["dev", "staging", "prod"],
     });
 
     const output = await generator.generate({
-      outputFormat: 'all',
+      outputFormat: "all",
     });
 
     expect(output.environmentConfigs).toHaveLength(3);
 
-    const devConfig = output.environmentConfigs.find(c => c.name === 'dev');
-    const prodConfig = output.environmentConfigs.find(c => c.name === 'prod');
+    const devConfig = output.environmentConfigs.find((c) => c.name === "dev");
+    const prodConfig = output.environmentConfigs.find((c) => c.name === "prod");
 
     expect(devConfig).toBeDefined();
     expect(prodConfig).toBeDefined();
 
     // Dev should have fewer resources than prod
     expect(devConfig!.resources.compute.instanceCount).toBeLessThan(
-      prodConfig!.resources.compute.instanceCount
+      prodConfig!.resources.compute.instanceCount,
     );
   });
 });
 
 function createTestArchitecture() {
   return {
-    id: 'test-arch',
-    name: 'Test Architecture',
-    version: '1.0.0',
+    id: "test-arch",
+    name: "Test Architecture",
+    version: "1.0.0",
     components: [
       {
-        id: 'api',
-        name: 'API Service',
-        type: 'backend',
-        description: 'REST API',
-        responsibilities: ['Handle requests'],
-        technologies: ['Node.js', 'Express'],
+        id: "api",
+        name: "API Service",
+        type: "backend",
+        description: "REST API",
+        responsibilities: ["Handle requests"],
+        technologies: ["Node.js", "Express"],
         interfaces: [],
-        dependencies: ['database'],
+        dependencies: ["database"],
       },
       {
-        id: 'database',
-        name: 'Database',
-        type: 'database',
-        description: 'PostgreSQL',
-        responsibilities: ['Data persistence'],
-        technologies: ['PostgreSQL'],
+        id: "database",
+        name: "Database",
+        type: "database",
+        description: "PostgreSQL",
+        responsibilities: ["Data persistence"],
+        technologies: ["PostgreSQL"],
         interfaces: [],
         dependencies: [],
       },
     ],
     techStack: {
-      backend: { runtime: 'node', framework: 'express', version: '20' },
-      database: { engine: 'postgres', version: '16' },
+      backend: { runtime: "node", framework: "express", version: "20" },
+      database: { engine: "postgres", version: "16" },
     },
     databaseSchema: {
-      engine: 'postgres',
+      engine: "postgres",
       tables: [],
     },
   };
@@ -1103,6 +1161,7 @@ function createTestArchitecture() {
 #### 4. Test Fixtures
 
 **Directory Structure**:
+
 ```
 tests/fixtures/
 ├── nodejs-api/
@@ -1137,6 +1196,7 @@ tests/fixtures/
 **Example: Node.js Test Fixture**
 
 **File**: `tests/fixtures/nodejs-api/package.json`
+
 ```json
 {
   "name": "nodejs-api-fixture",
@@ -1163,18 +1223,19 @@ tests/fixtures/
 ```
 
 **File**: `tests/fixtures/nodejs-api/src/index.ts`
+
 ```typescript
-import express from 'express';
+import express from "express";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-app.get('/api/hello', (req, res) => {
-  res.json({ message: 'Hello from Node.js API' });
+app.get("/api/hello", (req, res) => {
+  res.json({ message: "Hello from Node.js API" });
 });
 
 app.listen(PORT, () => {
@@ -1189,14 +1250,16 @@ app.listen(PORT, () => {
 ### Must Pass (Critical for Completion)
 
 **PC-1: DockerfileGenerator Unit Tests**
+
 - [ ] Test file exists at `tests/unit/generators/dockerfile-generator.test.ts`
 - [ ] Tests cover Node.js Dockerfile generation (multi-stage, health check, non-root user)
 - [ ] Tests cover Python Dockerfile generation (requirements.txt, uvicorn, health check)
 - [ ] Tests validate Dockerfile syntax (no FROM FROM, valid stages)
-- [ ] >80% line coverage for Dockerfile generation methods
+- [ ] > 80% line coverage for Dockerfile generation methods
 - [ ] All tests pass
 
 **PC-2: K8sManifestGenerator Unit Tests** (if implemented)
+
 - [ ] Test file exists at `tests/unit/generators/k8s-manifest-generator.test.ts`
 - [ ] Tests cover Deployment manifest generation
 - [ ] Tests cover Service manifest generation
@@ -1204,6 +1267,7 @@ app.listen(PORT, () => {
 - [ ] All tests pass
 
 **PC-3: PlatformAdapter Unit Tests with Mocked APIs**
+
 - [ ] Test file exists at `tests/unit/generators/platform-adapters.test.ts`
 - [ ] Tests mock AWS SDK calls (ECS, RDS, S3)
 - [ ] Tests mock Vercel API calls
@@ -1213,6 +1277,7 @@ app.listen(PORT, () => {
 - [ ] All tests pass
 
 **PC-4: Integration Tests for Deployment Workflows**
+
 - [ ] Test file exists at `tests/integration/devops/deployment-workflow.test.ts`
 - [ ] Tests generate complete Docker Compose configuration
 - [ ] Tests validate docker-compose config syntax
@@ -1221,6 +1286,7 @@ app.listen(PORT, () => {
 - [ ] All tests pass
 
 **PC-5: Rollback Scenario Tests**
+
 - [ ] Test file exists at `tests/integration/devops/rollback-scenarios.test.ts`
 - [ ] Tests simulate Docker rollback (version 2 → version 1)
 - [ ] Tests verify service runs previous version
@@ -1228,6 +1294,7 @@ app.listen(PORT, () => {
 - [ ] All tests pass
 
 **PC-6: Health Check Tests**
+
 - [ ] Test file exists at `tests/integration/devops/health-checks.test.ts`
 - [ ] Tests validate HTTP health check configuration
 - [ ] Tests validate TCP health check configuration
@@ -1236,6 +1303,7 @@ app.listen(PORT, () => {
 - [ ] All tests pass
 
 **PC-7: SSL Certificate Workflow Tests**
+
 - [ ] Test file exists at `tests/integration/devops/ssl-certificates.test.ts`
 - [ ] Tests mock ACME protocol (Let's Encrypt)
 - [ ] Tests validate certificate request flow
@@ -1244,6 +1312,7 @@ app.listen(PORT, () => {
 - [ ] All tests pass
 
 **PC-8: Test Fixtures for Multiple Project Types**
+
 - [ ] Node.js fixture exists at `tests/fixtures/nodejs-api/`
 - [ ] Python fixture exists at `tests/fixtures/python-api/`
 - [ ] Go fixture exists at `tests/fixtures/go-api/`
@@ -1254,6 +1323,7 @@ app.listen(PORT, () => {
 ### Should Pass (Important)
 
 **PC-9: Test Coverage Targets**
+
 - [ ] DockerfileGenerator achieves >80% coverage
 - [ ] K8sManifestGenerator achieves >80% coverage (if implemented)
 - [ ] PlatformAdapters achieve >75% coverage
@@ -1261,18 +1331,21 @@ app.listen(PORT, () => {
 - [ ] Coverage report generated by Vitest
 
 **PC-10: Test Performance**
+
 - [ ] Unit tests execute in <10 seconds
 - [ ] Integration tests execute in <60 seconds
 - [ ] E2E tests execute in <5 minutes
 - [ ] No flaky tests (deterministic results)
 
 **PC-11: Test Maintainability**
+
 - [ ] Test utilities created in `tests/utils/devops/`
 - [ ] Mock API utilities reusable across tests
 - [ ] Clear test names following describe/it/expect pattern
 - [ ] Test cleanup removes all Docker artifacts
 
 **PC-12: CI/CD Integration**
+
 - [ ] Tests run in GitHub Actions workflow
 - [ ] Test results reported with coverage percentage
 - [ ] Failed tests block PR merges
@@ -1281,12 +1354,14 @@ app.listen(PORT, () => {
 ### Nice to Have
 
 **PC-13: Advanced Test Scenarios**
+
 - [ ] Microservices fixture with 3+ services
 - [ ] Chaos testing (random container failures)
 - [ ] Load testing for health check endpoints
 - [ ] Blue-green deployment simulation
 
 **PC-14: Documentation**
+
 - [ ] Test README in `tests/devops/README.md`
 - [ ] Fixture usage examples documented
 - [ ] Mocking patterns documented
@@ -1299,11 +1374,13 @@ app.listen(PORT, () => {
 ### Required Dependencies
 
 **Existing Project Dependencies**:
+
 - ✅ Vitest (test framework)
 - ✅ TypeScript compiler
 - ✅ Infrastructure Generator (`agents/architect/infrastructure-generator.ts`)
 
 **New Test Dependencies** (add to `devDependencies`):
+
 ```json
 {
   "devDependencies": {
@@ -1335,6 +1412,7 @@ app.listen(PORT, () => {
 ### Phase 1: Unit Test Foundation (4 hours)
 
 1. **Create test directory structure**:
+
    ```
    tests/
    ├── unit/generators/
@@ -1362,6 +1440,7 @@ app.listen(PORT, () => {
 ### Phase 2: Integration Tests (4 hours)
 
 1. **Create integration test directory**:
+
    ```
    tests/integration/devops/
    ├── deployment-workflow.test.ts
@@ -1507,10 +1586,10 @@ Configure in `vitest.config.ts`:
 export default defineConfig({
   test: {
     coverage: {
-      provider: 'v8',
+      provider: "v8",
       include: [
-        'agents/architect/infrastructure-generator.ts',
-        'agents/architect/infrastructure-types.ts',
+        "agents/architect/infrastructure-generator.ts",
+        "agents/architect/infrastructure-types.ts",
       ],
       thresholds: {
         lines: 80,
@@ -1526,6 +1605,7 @@ export default defineConfig({
 ### Manual Validation
 
 1. **Docker Build Test**:
+
    ```bash
    # Generate Dockerfile for Node.js fixture
    npm run test:devops:generate -- --fixture nodejs-api --output /tmp/test-dockerfile
@@ -1539,6 +1619,7 @@ export default defineConfig({
    ```
 
 2. **Docker Compose Validation**:
+
    ```bash
    # Generate docker-compose.yml
    npm run test:devops:generate -- --fixture fullstack --output /tmp/test-compose
@@ -1554,6 +1635,7 @@ export default defineConfig({
    ```
 
 3. **GitHub Actions Validation**:
+
    ```bash
    # Generate workflow
    npm run test:devops:generate -- --ci github-actions --output /tmp/test-workflow
@@ -1566,20 +1648,21 @@ export default defineConfig({
 
 ## Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Docker not available in CI | Low | High | Use docker/setup-docker-action in GitHub Actions |
-| Tests too slow (>5 min) | Medium | Medium | Use mocked APIs instead of real Docker builds where possible |
-| Flaky Docker tests | Medium | High | Ensure proper cleanup, use deterministic test data, add retry logic |
-| Test fixture maintenance burden | Medium | Low | Keep fixtures minimal, document update process |
-| Mock APIs drift from real APIs | Low | Medium | Periodically validate mocks against real API responses |
-| Coverage target too aggressive | Low | Medium | Adjust thresholds if needed, focus on critical paths first |
+| Risk                            | Likelihood | Impact | Mitigation                                                          |
+| ------------------------------- | ---------- | ------ | ------------------------------------------------------------------- |
+| Docker not available in CI      | Low        | High   | Use docker/setup-docker-action in GitHub Actions                    |
+| Tests too slow (>5 min)         | Medium     | Medium | Use mocked APIs instead of real Docker builds where possible        |
+| Flaky Docker tests              | Medium     | High   | Ensure proper cleanup, use deterministic test data, add retry logic |
+| Test fixture maintenance burden | Medium     | Low    | Keep fixtures minimal, document update process                      |
+| Mock APIs drift from real APIs  | Low        | Medium | Periodically validate mocks against real API responses              |
+| Coverage target too aggressive  | Low        | Medium | Adjust thresholds if needed, focus on critical paths first          |
 
 ---
 
 ## Success Metrics
 
 ### Implementation Success
+
 - ✅ All 8 "Must Pass" criteria verified
 - ✅ Unit tests achieve >80% coverage for Dockerfile generation
 - ✅ Platform adapters achieve >75% coverage
@@ -1587,6 +1670,7 @@ export default defineConfig({
 - ✅ All tests pass in CI/CD pipeline
 
 ### Quality Metrics
+
 - Test suite executes in <10 minutes total
 - Zero flaky tests (100% deterministic)
 - Test failures provide actionable error messages
@@ -1610,12 +1694,14 @@ export default defineConfig({
 ## References
 
 ### Related Specifications
+
 - VIBE-P10-007: Infrastructure Requirements Generator
 - PHASE7-TASK-01: Docker Containerization
 - VIBE-P15-007: Monitoring and Alerting System
 - VIBE-P14-008: Test Coverage Reporting
 
 ### External Resources
+
 - Docker best practices: https://docs.docker.com/develop/develop-images/dockerfile_best-practices/
 - Kubernetes testing: https://kubernetes.io/blog/2019/03/22/kubernetes-end-to-end-testing-for-everyone/
 - Vitest documentation: https://vitest.dev/guide/

@@ -16,10 +16,12 @@ export class BotRegistry {
 
   async initialize(): Promise<void> {
     console.log("[BotRegistry] Initializing bot registry...");
-    
-    const skipValidation = process.env.SKIP_TELEGRAM_VALIDATION === 'true';
+
+    const skipValidation = process.env.SKIP_TELEGRAM_VALIDATION === "true";
     if (skipValidation) {
-      console.log("[BotRegistry] Skipping token validation (SKIP_TELEGRAM_VALIDATION=true)");
+      console.log(
+        "[BotRegistry] Skipping token validation (SKIP_TELEGRAM_VALIDATION=true)",
+      );
     }
 
     for (const config of BOT_CONFIGS) {
@@ -34,7 +36,8 @@ export class BotRegistry {
 
       // In skip mode, register bot without validation
       if (skipValidation) {
-        const username = process.env[config.envUsernameVar] || `${config.agentType}_bot`;
+        const username =
+          process.env[config.envUsernameVar] || `${config.agentType}_bot`;
         this.bots.set(config.agentType, {
           agentType: config.agentType,
           token,
@@ -44,7 +47,9 @@ export class BotRegistry {
           healthy: true, // Assume healthy
           lastChecked: new Date(),
         });
-        console.log(`[BotRegistry] Registered ${config.agentType} bot (unvalidated): @${username}`);
+        console.log(
+          `[BotRegistry] Registered ${config.agentType} bot (unvalidated): @${username}`,
+        );
         continue;
       }
 
@@ -159,7 +164,7 @@ export class BotRegistry {
     try {
       const data = await httpsGetIPv4(
         `https://api.telegram.org/bot${token}/getMe`,
-        10000
+        10000,
       );
 
       if (data.ok) {

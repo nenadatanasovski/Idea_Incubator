@@ -13,13 +13,13 @@ TASK-012 was filed to implement missing methods and type properties in TaskTestS
 
 ### Pass Criteria Status
 
-| # | Criterion | Status | Evidence |
-|---|-----------|--------|----------|
-| **PC-1** | `TaskTestService.recordResult()` method implemented | ✅ PASS | Method exists at `server/services/task-agent/task-test-service.ts:69-96` |
-| **PC-2** | `TaskTestConfig` includes `expectedExitCode` and `description` | ✅ PASS | Both fields present in `types/task-test.ts:108-114` |
-| **PC-3** | `AcceptanceCriteriaResult` includes `allPassing` and `missingLevels` | ✅ PASS | Both properties at `types/task-test.ts:225-232` |
-| **PC-4** | Test file compiles without errors | ✅ PASS | `npm run build` completes successfully |
-| **PC-5** | All tests pass | ✅ PASS | 9/9 tests pass in `tests/task-agent/task-test-service.test.ts` |
+| #        | Criterion                                                            | Status  | Evidence                                                                 |
+| -------- | -------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------ |
+| **PC-1** | `TaskTestService.recordResult()` method implemented                  | ✅ PASS | Method exists at `server/services/task-agent/task-test-service.ts:69-96` |
+| **PC-2** | `TaskTestConfig` includes `expectedExitCode` and `description`       | ✅ PASS | Both fields present in `types/task-test.ts:108-114`                      |
+| **PC-3** | `AcceptanceCriteriaResult` includes `allPassing` and `missingLevels` | ✅ PASS | Both properties at `types/task-test.ts:225-232`                          |
+| **PC-4** | Test file compiles without errors                                    | ✅ PASS | `npm run build` completes successfully                                   |
+| **PC-5** | All tests pass                                                       | ✅ PASS | 9/9 tests pass in `tests/task-agent/task-test-service.test.ts`           |
 
 ### Test Execution Results
 
@@ -34,6 +34,7 @@ Test Files  1 passed (1)
 ```
 
 **All 9 tests passing:**
+
 1. ✓ setTestConfig - should set test configuration for a task
 2. ✓ getTestConfig - should return default configs for task without custom config
 3. ✓ recordResult - should record test result
@@ -61,17 +62,20 @@ $ npm run build
 **Location:** `server/services/task-agent/task-test-service.ts:69-96`
 
 **Signature:**
+
 ```typescript
 async recordResult(input: RecordResultInput): Promise<RecordedResult>
 ```
 
 **Implementation:**
+
 - Accepts `RecordResultInput` containing taskId, overallPassed status, totalDuration, and per-level results
 - Generates UUID for the recorded result
 - Iterates through level results and persists each to `task_test_results` table via `saveResult()`
 - Returns `RecordedResult` with id, taskId, overallPassed, totalDuration, levels array, and createdAt timestamp
 
 **Test Coverage:**
+
 - ✓ Recording passing test results
 - ✓ Recording failed test results with error messages
 - ✓ Multiple result retrieval
@@ -81,21 +85,24 @@ async recordResult(input: RecordResultInput): Promise<RecordedResult>
 **Location:** `types/task-test.ts:108-114`
 
 **Definition:**
+
 ```typescript
 interface TaskTestConfig {
-  level: TestLevel;           // 1 = syntax, 2 = unit, 3 = e2e
-  command: string;            // Command to execute
-  expectedExitCode: number;   // ✅ Required field
-  timeout: number;            // Timeout in milliseconds
-  description: string;        // ✅ Required field
+  level: TestLevel; // 1 = syntax, 2 = unit, 3 = e2e
+  command: string; // Command to execute
+  expectedExitCode: number; // ✅ Required field
+  timeout: number; // Timeout in milliseconds
+  description: string; // ✅ Required field
 }
 ```
 
 **Usage:**
+
 - `expectedExitCode` used at line 170: `const passed = exitCode === config.expectedExitCode;`
 - `description` used at line 177: `testName: config.description`
 
 **Test Coverage:**
+
 - ✓ Setting custom test configs with expectedExitCode and description
 - ✓ Retrieving default configs that include both fields
 
@@ -104,11 +111,12 @@ interface TaskTestConfig {
 **Location:** `types/task-test.ts:225-232`
 
 **Definition:**
+
 ```typescript
 interface AcceptanceCriteriaResult {
   taskId: string;
   passed: boolean;
-  allPassing: boolean;        // ✅ Required field
+  allPassing: boolean; // ✅ Required field
   missingLevels: TestLevel[]; // ✅ Required field
   criteria: AcceptanceCriterion[];
   checkedAt: string;
@@ -116,6 +124,7 @@ interface AcceptanceCriteriaResult {
 ```
 
 **Computed in `checkAcceptanceCriteria()` at lines 335-345:**
+
 - `missingLevels`: Test levels configured but with no recorded results
 - `allPassing`: True only when:
   - All tests pass (`testsPass === true`)
@@ -123,6 +132,7 @@ interface AcceptanceCriteriaResult {
   - No missing test levels (`missingLevels.length === 0`)
 
 **Test Coverage:**
+
 - ✓ Checking acceptance criteria with all levels passing
 - ✓ Reporting missing required levels in missingLevels array
 - ✓ allPassing correctly reflects overall status
@@ -130,6 +140,7 @@ interface AcceptanceCriteriaResult {
 ## Architecture Context
 
 ### Service Layer
+
 - **TaskTestService** (`server/services/task-agent/task-test-service.ts`)
   - Manages three-level testing: syntax (1), unit (2), e2e (3)
   - Persists test results to database
@@ -137,17 +148,20 @@ interface AcceptanceCriteriaResult {
   - Part of Task System V2 Implementation Plan (IMPL-3.10)
 
 ### Type System
+
 - **task-test.ts** (`types/task-test.ts`)
   - Defines all task testing types
   - Includes mapper functions for DB rows
   - Exports default test configurations
 
 ### Database Tables
+
 - `task_test_results` — Individual test level results
 - `acceptance_criteria_results` — Acceptance criterion verification statuses
 - `task_appendices` — Source of acceptance criteria text
 
 ### Test Suite
+
 - **task-test-service.test.ts** (`tests/task-agent/task-test-service.test.ts`)
   - 9 comprehensive unit tests
   - Tests all public methods
@@ -158,24 +172,26 @@ interface AcceptanceCriteriaResult {
 
 All referenced types are fully implemented:
 
-| Type | Location | Purpose |
-|------|----------|---------|
-| `RecordResultInput` | `types/task-test.ts:260-270` | Input for recordResult() |
-| `RecordedResult` | `types/task-test.ts:275-287` | Output from recordResult() |
-| `AcceptanceCriterion` | `types/task-test.ts:213-220` | Individual acceptance criterion |
-| `AcceptanceCriterionResult` | `types/task-test.ts:242-255` | Persisted verification result |
-| `AcceptanceCriterionResultRow` | `types/task-test.ts:315-328` | DB row representation |
-| `TestLevel` | `types/task-test.ts:14` | Type alias: 1 \| 2 \| 3 |
-| `TestScope` | `types/task-test.ts:18` | Enum: codebase/api/ui/database/integration |
+| Type                           | Location                     | Purpose                                    |
+| ------------------------------ | ---------------------------- | ------------------------------------------ |
+| `RecordResultInput`            | `types/task-test.ts:260-270` | Input for recordResult()                   |
+| `RecordedResult`               | `types/task-test.ts:275-287` | Output from recordResult()                 |
+| `AcceptanceCriterion`          | `types/task-test.ts:213-220` | Individual acceptance criterion            |
+| `AcceptanceCriterionResult`    | `types/task-test.ts:242-255` | Persisted verification result              |
+| `AcceptanceCriterionResultRow` | `types/task-test.ts:315-328` | DB row representation                      |
+| `TestLevel`                    | `types/task-test.ts:14`      | Type alias: 1 \| 2 \| 3                    |
+| `TestScope`                    | `types/task-test.ts:18`      | Enum: codebase/api/ui/database/integration |
 
 ## Dependencies
 
 ### Internal Dependencies
+
 - `database/db.ts` — Database operations (query, run, exec, saveDb)
 - `uuid` — ID generation
 - `child_process` — Command execution
 
 ### Database Schema
+
 - Migration `083_create_task_test_results.sql`
 - Migration `106_acceptance_criteria_results.sql`
 

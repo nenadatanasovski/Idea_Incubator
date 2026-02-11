@@ -16,6 +16,7 @@ Implement a specialized code generator module within the spawner system that tra
 ### Problem Statement
 
 **Current State:**
+
 - Spawner system exists at `parent-harness/orchestrator/src/spawner/`
 - Backend generator module exists as reference pattern (`generators/backend.ts`)
 - No database migration generator module
@@ -25,6 +26,7 @@ Implement a specialized code generator module within the spawner system that tra
 - Database schema changes require manual coordination between SQL and TypeScript types
 
 **Desired State:**
+
 - `DatabaseMigrationGenerator` module at `parent-harness/orchestrator/src/spawner/generators/database.ts`
 - Accept schema specifications (tables, columns, constraints, indexes)
 - Auto-detect existing tables via schema introspection
@@ -56,6 +58,7 @@ The Database Migration Generator is the **"Schema Evolution Automator"** that:
 #### FR-1: DatabaseMigrationGenerator Module
 
 **FR-1.1: Module Structure**
+
 - Create `DatabaseMigrationGenerator` module at `parent-harness/orchestrator/src/spawner/generators/database.ts`
 - Export `generateMigration()` function matching spawner generator pattern
 - Follow same structure as `backend.ts` generator
@@ -63,6 +66,7 @@ The Database Migration Generator is the **"Schema Evolution Automator"** that:
 - All configuration passed via spec parameter
 
 **FR-1.2: Core Method - generateMigration()**
+
 ```typescript
 export function generateMigration(spec: MigrationSpec): GeneratedMigration {
   // 1. Validate specification
@@ -77,13 +81,14 @@ export function generateMigration(spec: MigrationSpec): GeneratedMigration {
 ```
 
 **FR-1.3: Input Specification Interface**
+
 ```typescript
 interface MigrationSpec {
   /** Migration description */
   description: string;
 
   /** Database type */
-  databaseType: 'sqlite' | 'postgresql' | 'mysql';
+  databaseType: "sqlite" | "postgresql" | "mysql";
 
   /** Tables to create or modify */
   tables: TableDefinition[];
@@ -92,7 +97,7 @@ interface MigrationSpec {
   existingDbPath?: string;
 
   /** Optional: Migration file naming format */
-  fileFormat?: 'timestamp' | 'numbered';
+  fileFormat?: "timestamp" | "numbered";
 
   /** Optional: Generate TypeScript types */
   generateTypes?: boolean;
@@ -148,9 +153,24 @@ interface ColumnDefinition {
 }
 
 type ColumnType =
-  | 'TEXT' | 'INTEGER' | 'REAL' | 'BLOB' | 'NUMERIC'  // SQLite
-  | 'VARCHAR' | 'INT' | 'BIGINT' | 'DECIMAL' | 'BOOLEAN' | 'TIMESTAMP' | 'DATE' | 'UUID' | 'JSONB'  // PostgreSQL
-  | 'CHAR' | 'TINYINT' | 'DATETIME' | 'JSON';  // MySQL
+  | "TEXT"
+  | "INTEGER"
+  | "REAL"
+  | "BLOB"
+  | "NUMERIC" // SQLite
+  | "VARCHAR"
+  | "INT"
+  | "BIGINT"
+  | "DECIMAL"
+  | "BOOLEAN"
+  | "TIMESTAMP"
+  | "DATE"
+  | "UUID"
+  | "JSONB" // PostgreSQL
+  | "CHAR"
+  | "TINYINT"
+  | "DATETIME"
+  | "JSON"; // MySQL
 
 interface ForeignKeyDefinition {
   /** Local column(s) */
@@ -163,10 +183,10 @@ interface ForeignKeyDefinition {
   referencedColumns: string[];
 
   /** ON DELETE action */
-  onDelete?: 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION';
+  onDelete?: "CASCADE" | "SET NULL" | "RESTRICT" | "NO ACTION";
 
   /** ON UPDATE action */
-  onUpdate?: 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION';
+  onUpdate?: "CASCADE" | "SET NULL" | "RESTRICT" | "NO ACTION";
 }
 
 interface UniqueConstraintDefinition {
@@ -196,19 +216,20 @@ interface IndexDefinition {
   unique: boolean;
 
   /** Index type (PostgreSQL-specific) */
-  type?: 'btree' | 'hash' | 'gin' | 'gist';
+  type?: "btree" | "hash" | "gin" | "gist";
 }
 ```
 
 **FR-1.4: Output Interface**
+
 ```typescript
 interface GeneratedMigration {
   /** Migration file metadata */
   metadata: {
-    filename: string;           // e.g., "20260209120000_create_users_table.sql"
+    filename: string; // e.g., "20260209120000_create_users_table.sql"
     description: string;
     databaseType: string;
-    operationType: 'CREATE' | 'ALTER' | 'MIXED';
+    operationType: "CREATE" | "ALTER" | "MIXED";
     tablesAffected: string[];
     generatedAt: string;
   };
@@ -234,12 +255,14 @@ interface GeneratedMigration {
 #### FR-2: Schema Introspection
 
 **FR-2.1: Detect Existing Tables**
+
 - Read SQLite database file via `sql.js` (if path provided)
 - Query `sqlite_master` table for existing tables
 - Read table schema via `PRAGMA table_info(table_name)`
 - Determine if CREATE or ALTER needed per table
 
 **FR-2.2: Schema Comparison**
+
 ```typescript
 interface SchemaIntrospection {
   /** Existing tables */
@@ -249,7 +272,7 @@ interface SchemaIntrospection {
   tableSchemas: Map<string, ExistingTableSchema>;
 
   /** Detect operation needed */
-  determineOperation(tableName: string): 'CREATE' | 'ALTER' | 'SKIP';
+  determineOperation(tableName: string): "CREATE" | "ALTER" | "SKIP";
 }
 
 interface ExistingTableSchema {
@@ -269,6 +292,7 @@ interface ExistingColumn {
 ```
 
 **FR-2.3: Migration Strategy Selection**
+
 - **CREATE TABLE**: Table doesn't exist in database
 - **ALTER TABLE**: Table exists, add/modify columns
 - **SKIP**: Table exists with identical schema
@@ -277,6 +301,7 @@ interface ExistingColumn {
 #### FR-3: SQL Migration Generation
 
 **FR-3.1: CREATE TABLE Statements**
+
 ```sql
 -- SQLite format (matches existing migration patterns)
 CREATE TABLE IF NOT EXISTS users (
@@ -292,6 +317,7 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 ```
 
 **FR-3.2: ALTER TABLE Statements**
+
 ```sql
 -- Add new columns
 ALTER TABLE users ADD COLUMN phone TEXT;
@@ -302,6 +328,7 @@ CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 ```
 
 **FR-3.3: Foreign Key Constraints**
+
 ```sql
 -- SQLite (inline with CREATE TABLE)
 CREATE TABLE IF NOT EXISTS orders (
@@ -320,6 +347,7 @@ ALTER TABLE orders
 **FR-3.4: Database-Specific Syntax**
 
 **SQLite:**
+
 - Data types: `TEXT`, `INTEGER`, `REAL`, `BLOB`
 - Booleans: `INTEGER` (0/1)
 - Timestamps: `TEXT` with `datetime('now')`
@@ -328,6 +356,7 @@ ALTER TABLE orders
 - Pattern: Match existing migrations in `database/migrations/`
 
 **PostgreSQL:**
+
 - Data types: `VARCHAR`, `INTEGER`, `BIGINT`, `DECIMAL`, `BOOLEAN`, `TIMESTAMP`, `UUID`, `JSONB`
 - Auto-increment: `SERIAL` or `BIGSERIAL`
 - Timestamps: `TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
@@ -335,6 +364,7 @@ ALTER TABLE orders
 - Partial indexes: `CREATE INDEX WHERE condition`
 
 **MySQL:**
+
 - Data types: `VARCHAR`, `INT`, `BIGINT`, `DECIMAL`, `TINYINT(1)`, `DATETIME`, `JSON`, `CHAR(36)`
 - Auto-increment: `AUTO_INCREMENT`
 - Timestamps: `DATETIME DEFAULT CURRENT_TIMESTAMP`
@@ -344,12 +374,14 @@ ALTER TABLE orders
 #### FR-4: Reverse Migration Generation
 
 **FR-4.1: Down Migration Strategy**
+
 - **CREATE TABLE** → **DROP TABLE IF EXISTS**
 - **ALTER TABLE ADD COLUMN** → **ALTER TABLE DROP COLUMN** (if supported)
 - **CREATE INDEX** → **DROP INDEX IF EXISTS**
 - **ADD CONSTRAINT** → **DROP CONSTRAINT**
 
 **FR-4.2: Down Migration Example**
+
 ```sql
 -- Down migration for CREATE TABLE
 DROP TABLE IF EXISTS orders;
@@ -362,6 +394,7 @@ DROP INDEX IF EXISTS idx_users_phone;
 ```
 
 **FR-4.3: Destructive Operation Warnings**
+
 - Warn if down migration will drop columns with data
 - Warn if foreign key constraints prevent table drops
 - Suggest data backup before reversible migrations
@@ -369,6 +402,7 @@ DROP INDEX IF EXISTS idx_users_phone;
 #### FR-5: TypeScript Type Generation
 
 **FR-5.1: Interface Generation**
+
 ```typescript
 /**
  * User table row
@@ -395,43 +429,46 @@ export interface UserInsert {
 ```
 
 **FR-5.2: Type Mapping (SQL → TypeScript)**
+
 ```typescript
 const typeMap: Record<string, string> = {
   // SQLite
-  'TEXT': 'string',
-  'INTEGER': 'number',
-  'REAL': 'number',
-  'BLOB': 'Buffer',
-  'NUMERIC': 'number',
+  TEXT: "string",
+  INTEGER: "number",
+  REAL: "number",
+  BLOB: "Buffer",
+  NUMERIC: "number",
 
   // PostgreSQL
-  'VARCHAR': 'string',
-  'TEXT': 'string',
-  'INT': 'number',
-  'INTEGER': 'number',
-  'BIGINT': 'number',
-  'DECIMAL': 'number',
-  'NUMERIC': 'number',
-  'BOOLEAN': 'boolean',
-  'TIMESTAMP': 'string',
-  'DATE': 'string',
-  'UUID': 'string',
-  'JSONB': 'Record<string, unknown>',
-  'JSON': 'Record<string, unknown>',
+  VARCHAR: "string",
+  TEXT: "string",
+  INT: "number",
+  INTEGER: "number",
+  BIGINT: "number",
+  DECIMAL: "number",
+  NUMERIC: "number",
+  BOOLEAN: "boolean",
+  TIMESTAMP: "string",
+  DATE: "string",
+  UUID: "string",
+  JSONB: "Record<string, unknown>",
+  JSON: "Record<string, unknown>",
 
   // MySQL
-  'CHAR': 'string',
-  'TINYINT': 'number',
-  'DATETIME': 'string',
+  CHAR: "string",
+  TINYINT: "number",
+  DATETIME: "string",
 };
 ```
 
 **FR-5.3: Nullable Handling**
+
 - Nullable columns: `field: type | null`
 - Non-nullable columns: `field: type`
 - Optional columns (for inserts): `field?: type`
 
 **FR-5.4: Type File Output**
+
 - Generate `.d.ts` file alongside migration
 - Export all table interfaces
 - Include JSDoc comments with schema metadata
@@ -440,20 +477,25 @@ const typeMap: Record<string, string> = {
 #### FR-6: Migration File Formatting
 
 **FR-6.1: Timestamp Format**
+
 - Format: `YYYYMMDDHHMMSS` (e.g., `20260209120000`)
 - Generate from current date/time
 - Ensures unique, sortable filenames
 
 **FR-6.2: File Naming Convention**
+
 ```
 {timestamp}_{description}.sql
 ```
+
 Examples:
+
 - `20260209120000_create_users_table.sql`
 - `20260209120100_add_phone_to_users.sql`
 - `20260209120200_create_orders_and_items.sql`
 
 **FR-6.3: Migration File Header**
+
 ```sql
 -- Migration: {timestamp}
 -- Description: {description}
@@ -472,6 +514,7 @@ Examples:
 ```
 
 **FR-6.4: SQL Formatting**
+
 - Indent: 2 spaces
 - Line length: Max 120 characters
 - Keywords: UPPERCASE (CREATE, TABLE, INDEX, etc.)
@@ -482,6 +525,7 @@ Examples:
 #### FR-7: Validation and Error Handling
 
 **FR-7.1: Input Validation**
+
 - Validate table names: lowercase, snake_case, alphanumeric + underscore
 - Validate column names: same rules as table names
 - Check for reserved keywords (SELECT, WHERE, etc.)
@@ -491,15 +535,17 @@ Examples:
 - Validate data types for selected database
 
 **FR-7.2: Schema Conflict Detection**
+
 - Detect if table already exists with different schema
 - Warn about incompatible column type changes
 - Detect missing referenced tables for foreign keys
 - Warn about potential data loss (column type narrowing)
 
 **FR-7.3: Error Messages**
+
 ```typescript
 interface ValidationError {
-  type: 'error' | 'warning';
+  type: "error" | "warning";
   code: string;
   message: string;
   table?: string;
@@ -509,6 +555,7 @@ interface ValidationError {
 ```
 
 **FR-7.4: Common Validation Errors**
+
 - `INVALID_TABLE_NAME`: Table name contains invalid characters
 - `MISSING_PRIMARY_KEY`: Table has no primary key defined
 - `DUPLICATE_COLUMN`: Column name appears twice in table
@@ -519,12 +566,14 @@ interface ValidationError {
 #### FR-8: Integration with Spawner System
 
 **FR-8.1: Generator Registration**
+
 - Export generator function matching spawner pattern
 - Register with spawner orchestrator
 - Support parallel execution for multiple migrations
 - Return standardized `GeneratedCode` interface
 
 **FR-8.2: Spawner Interface Compliance**
+
 ```typescript
 /**
  * Generate database migration from specification
@@ -534,10 +583,10 @@ export function generateMigration(spec: MigrationSpec): GeneratedCode {
 
   return {
     // Migration file (SQL)
-    routeHandler: result.upMigration,  // Reuse field for SQL content
+    routeHandler: result.upMigration, // Reuse field for SQL content
 
     // Type definitions
-    typeDefinitions: result.typeDefinitions || '',
+    typeDefinitions: result.typeDefinitions || "",
 
     // Down migration (validation middleware field reused)
     validationMiddleware: result.downMigration,
@@ -549,6 +598,7 @@ export function generateMigration(spec: MigrationSpec): GeneratedCode {
 ```
 
 **FR-8.3: File Output Locations**
+
 - SQL migrations: `database/migrations/{timestamp}_{description}.sql`
 - Type definitions: `types/generated/db/{table_name}.d.ts`
 - Follow existing codebase directory structure
@@ -556,6 +606,7 @@ export function generateMigration(spec: MigrationSpec): GeneratedCode {
 ### Non-Functional Requirements
 
 **NFR-1: Code Quality**
+
 - TypeScript strict mode enabled
 - Comprehensive JSDoc comments for all exported functions
 - No `any` types (use proper type definitions)
@@ -563,12 +614,14 @@ export function generateMigration(spec: MigrationSpec): GeneratedCode {
 - Modular design (separate concerns: validation, generation, formatting)
 
 **NFR-2: Performance**
+
 - Generate migration for 10 tables in < 500ms
 - Schema introspection for 100 tables in < 1 second
 - Type generation for 20 tables in < 200ms
 - Memory efficient (stream large outputs)
 
 **NFR-3: Compatibility**
+
 - SQLite 3.35+ (match existing codebase)
 - PostgreSQL 12+ compatibility
 - MySQL 8.0+ compatibility
@@ -576,6 +629,7 @@ export function generateMigration(spec: MigrationSpec): GeneratedCode {
 - Drizzle ORM compatibility (future)
 
 **NFR-4: Maintainability**
+
 - Clear separation of database-specific logic
 - Easy to add new database types
 - Template-based SQL generation
@@ -583,6 +637,7 @@ export function generateMigration(spec: MigrationSpec): GeneratedCode {
 - Well-documented code with examples
 
 **NFR-5: Reliability**
+
 - 100% of generated SQL passes syntax validation
 - Reversible migrations (up/down always paired)
 - Idempotent migrations (IF NOT EXISTS, IF EXISTS)
@@ -671,9 +726,9 @@ export function generateMigration(spec: MigrationSpec): GeneratedMigration {
   if (!validation.valid) {
     return {
       metadata: createErrorMetadata(spec),
-      upMigration: '',
-      downMigration: '',
-      validation
+      upMigration: "",
+      downMigration: "",
+      validation,
     };
   }
 
@@ -705,7 +760,7 @@ export function generateMigration(spec: MigrationSpec): GeneratedMigration {
     upMigration,
     downMigration,
     typeDefinitions,
-    validation: { valid: true, errors: [], warnings: validation.warnings }
+    validation: { valid: true, errors: [], warnings: validation.warnings },
   };
 }
 
@@ -713,13 +768,25 @@ export function generateMigration(spec: MigrationSpec): GeneratedMigration {
 // HELPER FUNCTIONS
 // ============================================================================
 
-function validateSpecification(spec: MigrationSpec): ValidationResult { }
-function introspectSchema(dbPath: string): SchemaIntrospection | null { }
-function determineOperations(tables: TableDefinition[], introspection: SchemaIntrospection | null): OperationType[] { }
-function generateUpMigration(spec: MigrationSpec, operations: OperationType[]): string { }
-function generateDownMigration(spec: MigrationSpec, operations: OperationType[]): string { }
-function generateTypeDefinitions(tables: TableDefinition[]): string { }
-function createMetadata(spec: MigrationSpec, operations: OperationType[]): GeneratedMigration['metadata'] { }
+function validateSpecification(spec: MigrationSpec): ValidationResult {}
+function introspectSchema(dbPath: string): SchemaIntrospection | null {}
+function determineOperations(
+  tables: TableDefinition[],
+  introspection: SchemaIntrospection | null,
+): OperationType[] {}
+function generateUpMigration(
+  spec: MigrationSpec,
+  operations: OperationType[],
+): string {}
+function generateDownMigration(
+  spec: MigrationSpec,
+  operations: OperationType[],
+): string {}
+function generateTypeDefinitions(tables: TableDefinition[]): string {}
+function createMetadata(
+  spec: MigrationSpec,
+  operations: OperationType[],
+): GeneratedMigration["metadata"] {}
 ```
 
 ### File Organization
@@ -741,21 +808,25 @@ parent-harness/orchestrator/src/spawner/generators/
 ### Integration Points
 
 **1. Spawner Orchestrator**
+
 - Location: `parent-harness/orchestrator/src/spawner/index.ts`
 - Register `generateMigration()` with spawner
 - Support parallel migration generation
 
 **2. Existing Migration System**
+
 - Location: `database/migrations/`
 - Pattern: Follow existing numbering/naming (001, 002, ..., 133)
 - Format: Match existing SQLite migration syntax
 
 **3. Database Module**
+
 - Location: `database/db.ts`
 - Use `getDb()` for schema introspection
 - Use `query()` to read `sqlite_master` table
 
 **4. Type System**
+
 - Location: `types/generated/db/`
 - Generate `.d.ts` files for each table
 - Import in service layers for type safety
@@ -767,17 +838,20 @@ parent-harness/orchestrator/src/spawner/generators/
 ### Phase 1: Core Foundation (4-5 hours)
 
 **Step 1.1: Type Definitions**
+
 - Create `database-types.ts` with all interfaces
 - Define `MigrationSpec`, `TableDefinition`, `ColumnDefinition`
 - Define `GeneratedMigration`, `ValidationResult`
 - Export all types
 
 **Step 1.2: Main Generator Module**
+
 - Create `database.ts` with `generateMigration()` function
 - Implement basic structure (validate → introspect → generate → format)
 - Set up module exports
 
 **Step 1.3: Input Validation**
+
 - Create `sql-validator.ts`
 - Implement `validateSpecification()` function
 - Validate table names, column names, data types
@@ -786,6 +860,7 @@ parent-harness/orchestrator/src/spawner/generators/
 ### Phase 2: Schema Introspection (3-4 hours)
 
 **Step 2.1: SQLite Introspection**
+
 - Create `schema-introspector.ts`
 - Implement `introspectSchema()` function
 - Query `sqlite_master` for existing tables
@@ -793,6 +868,7 @@ parent-harness/orchestrator/src/spawner/generators/
 - Return `SchemaIntrospection` object
 
 **Step 2.2: Operation Determination**
+
 - Implement `determineOperations()` function
 - Compare spec tables with existing schema
 - Return CREATE, ALTER, or SKIP for each table
@@ -801,6 +877,7 @@ parent-harness/orchestrator/src/spawner/generators/
 ### Phase 3: SQL Generation (4-5 hours)
 
 **Step 3.1: SQLite Generator**
+
 - Create `sql-generators/sqlite-generator.ts`
 - Implement `generateCreateTable()` function
 - Implement `generateAlterTable()` function
@@ -808,6 +885,7 @@ parent-harness/orchestrator/src/spawner/generators/
 - Follow existing migration pattern
 
 **Step 3.2: PostgreSQL Generator**
+
 - Create `sql-generators/postgresql-generator.ts`
 - Implement PostgreSQL-specific syntax
 - Map data types (UUID, JSONB, TIMESTAMP, etc.)
@@ -815,6 +893,7 @@ parent-harness/orchestrator/src/spawner/generators/
 - Add `ALTER TABLE ADD CONSTRAINT` for foreign keys
 
 **Step 3.3: MySQL Generator**
+
 - Create `sql-generators/mysql-generator.ts`
 - Implement MySQL-specific syntax
 - Map data types (CHAR(36), JSON, DATETIME, etc.)
@@ -822,6 +901,7 @@ parent-harness/orchestrator/src/spawner/generators/
 - Use `AUTO_INCREMENT` for primary keys
 
 **Step 3.4: Down Migration Generation**
+
 - Implement `generateDownMigration()` function
 - Generate `DROP TABLE`, `DROP INDEX`, `DROP CONSTRAINT`
 - Add warnings for destructive operations
@@ -830,12 +910,14 @@ parent-harness/orchestrator/src/spawner/generators/
 ### Phase 4: TypeScript Type Generation (2-3 hours)
 
 **Step 4.1: Type Mapper**
+
 - Create `type-generator.ts`
 - Implement SQL → TypeScript type mapping
 - Handle nullable columns (`type | null`)
 - Handle optional fields for inserts (`field?: type`)
 
 **Step 4.2: Interface Generation**
+
 - Implement `generateTypeDefinitions()` function
 - Generate interface for each table
 - Add JSDoc comments with schema metadata
@@ -844,6 +926,7 @@ parent-harness/orchestrator/src/spawner/generators/
 ### Phase 5: Formatting & Integration (2-3 hours)
 
 **Step 5.1: Migration File Formatting**
+
 - Create `migration-formatter.ts`
 - Generate timestamp-based filenames
 - Format SQL with proper indentation
@@ -851,12 +934,14 @@ parent-harness/orchestrator/src/spawner/generators/
 - Combine up/down migrations
 
 **Step 5.2: Spawner Integration**
+
 - Update spawner orchestrator to register generator
 - Map `MigrationSpec` to spawner input format
 - Map `GeneratedMigration` to spawner output format
 - Test parallel generation
 
 **Step 5.3: Testing**
+
 - Create unit tests for each generator function
 - Test validation, introspection, SQL generation
 - Test TypeScript type generation
@@ -952,17 +1037,20 @@ parent-harness/orchestrator/src/spawner/generators/
 ## Dependencies
 
 ### Required (Must exist before implementation)
+
 - ✅ Spawner system (`parent-harness/orchestrator/src/spawner/`) - EXISTS
 - ✅ Backend generator (`generators/backend.ts`) - EXISTS as reference pattern
 - ✅ Database module (`database/db.ts`) - EXISTS
 - ✅ Migration directory (`database/migrations/`) - EXISTS
 
 ### Optional (Can be integrated later)
+
 - Prisma CLI (for Prisma schema generation)
 - SQL formatting library (for prettier SQL output)
 - SQL parser (for validating generated SQL)
 
 ### Blocked By
+
 - None (can be implemented independently)
 
 ---
@@ -974,6 +1062,7 @@ parent-harness/orchestrator/src/spawner/generators/
 **Test File**: `tests/unit/generators/database-migration-generator.test.ts`
 
 **Test Cases**:
+
 1. **Specification Validation**
    - Valid specifications pass validation
    - Invalid table names throw errors
@@ -1026,6 +1115,7 @@ parent-harness/orchestrator/src/spawner/generators/
 **Test File**: `tests/integration/spawner-database-generator.test.ts`
 
 **Test Cases**:
+
 1. Full spawner integration with database generator
 2. Generate migration, write to `database/migrations/`
 3. Load migration file and verify SQL
@@ -1047,28 +1137,42 @@ parent-harness/orchestrator/src/spawner/generators/
 
 ```typescript
 const spec: MigrationSpec = {
-  description: 'create_users_table',
-  databaseType: 'sqlite',
+  description: "create_users_table",
+  databaseType: "sqlite",
   generateTypes: true,
   tables: [
     {
-      name: 'users',
-      description: 'Application users',
+      name: "users",
+      description: "Application users",
       columns: [
-        { name: 'id', type: 'TEXT', nullable: false, description: 'User ID' },
-        { name: 'email', type: 'TEXT', nullable: false, unique: true, description: 'Email address' },
-        { name: 'name', type: 'TEXT', nullable: false, description: 'Full name' },
-        { name: 'age', type: 'INTEGER', nullable: true, description: 'User age' },
+        { name: "id", type: "TEXT", nullable: false, description: "User ID" },
+        {
+          name: "email",
+          type: "TEXT",
+          nullable: false,
+          unique: true,
+          description: "Email address",
+        },
+        {
+          name: "name",
+          type: "TEXT",
+          nullable: false,
+          description: "Full name",
+        },
+        {
+          name: "age",
+          type: "INTEGER",
+          nullable: true,
+          description: "User age",
+        },
       ],
-      primaryKey: ['id'],
-      indexes: [
-        { name: 'idx_users_email', columns: ['email'], unique: true }
-      ],
+      primaryKey: ["id"],
+      indexes: [{ name: "idx_users_email", columns: ["email"], unique: true }],
       checkConstraints: [
-        { name: 'chk_age_positive', expression: 'age >= 0 AND age <= 150' }
-      ]
-    }
-  ]
+        { name: "chk_age_positive", expression: "age >= 0 AND age <= 150" },
+      ],
+    },
+  ],
 };
 
 const result = generateMigration(spec);
@@ -1105,38 +1209,41 @@ const result = generateMigration(spec);
 
 ```typescript
 const spec: MigrationSpec = {
-  description: 'create_orders_table',
-  databaseType: 'sqlite',
+  description: "create_orders_table",
+  databaseType: "sqlite",
   generateTypes: true,
   tables: [
     {
-      name: 'orders',
-      description: 'Customer orders',
+      name: "orders",
+      description: "Customer orders",
       columns: [
-        { name: 'id', type: 'TEXT', nullable: false },
-        { name: 'user_id', type: 'TEXT', nullable: false },
-        { name: 'total', type: 'REAL', nullable: false },
-        { name: 'status', type: 'TEXT', nullable: false },
+        { name: "id", type: "TEXT", nullable: false },
+        { name: "user_id", type: "TEXT", nullable: false },
+        { name: "total", type: "REAL", nullable: false },
+        { name: "status", type: "TEXT", nullable: false },
       ],
-      primaryKey: ['id'],
+      primaryKey: ["id"],
       foreignKeys: [
         {
-          columns: ['user_id'],
-          referencedTable: 'users',
-          referencedColumns: ['id'],
-          onDelete: 'CASCADE'
-        }
+          columns: ["user_id"],
+          referencedTable: "users",
+          referencedColumns: ["id"],
+          onDelete: "CASCADE",
+        },
       ],
       indexes: [
-        { name: 'idx_orders_user', columns: ['user_id'], unique: false },
-        { name: 'idx_orders_status', columns: ['status'], unique: false }
+        { name: "idx_orders_user", columns: ["user_id"], unique: false },
+        { name: "idx_orders_status", columns: ["status"], unique: false },
       ],
       checkConstraints: [
-        { name: 'chk_total_positive', expression: 'total >= 0' },
-        { name: 'chk_status_valid', expression: "status IN ('pending', 'completed', 'cancelled')" }
-      ]
-    }
-  ]
+        { name: "chk_total_positive", expression: "total >= 0" },
+        {
+          name: "chk_status_valid",
+          expression: "status IN ('pending', 'completed', 'cancelled')",
+        },
+      ],
+    },
+  ],
 };
 
 // Generated SQL includes foreign key constraint
@@ -1146,19 +1253,30 @@ const spec: MigrationSpec = {
 
 ```typescript
 const spec: MigrationSpec = {
-  description: 'add_phone_to_users',
-  databaseType: 'sqlite',
-  existingDbPath: 'database/myapp.db',  // Schema introspection enabled
+  description: "add_phone_to_users",
+  databaseType: "sqlite",
+  existingDbPath: "database/myapp.db", // Schema introspection enabled
   tables: [
     {
-      name: 'users',
+      name: "users",
       columns: [
         // ... existing columns ...
-        { name: 'phone', type: 'TEXT', nullable: true, description: 'Phone number' },
-        { name: 'verified', type: 'INTEGER', nullable: false, default: 0, description: 'Email verified flag' }
-      ]
-    }
-  ]
+        {
+          name: "phone",
+          type: "TEXT",
+          nullable: true,
+          description: "Phone number",
+        },
+        {
+          name: "verified",
+          type: "INTEGER",
+          nullable: false,
+          default: 0,
+          description: "Email verified flag",
+        },
+      ],
+    },
+  ],
 };
 
 // Generated SQL:
@@ -1172,6 +1290,7 @@ const spec: MigrationSpec = {
 ## Success Metrics
 
 ### Implementation Success
+
 - ✅ All 10 "Must Pass" and "Should Pass" criteria verified
 - ✅ TypeScript compilation clean with no errors
 - ✅ Database generator callable from spawner
@@ -1180,6 +1299,7 @@ const spec: MigrationSpec = {
 - ✅ Reversible migrations (up/down paired)
 
 ### Usage Success (Post-Implementation)
+
 - Spawner system generates migrations automatically
 - Generated migrations run without SQL errors
 - TypeScript types compile without errors
@@ -1191,16 +1311,19 @@ const spec: MigrationSpec = {
 ## References
 
 ### Related Tasks
+
 - VIBE-P13-003: Backend Endpoint Generator (similar generator pattern)
 - VIBE-P10-006: Database Schema Generator (Architect Agent version)
 - VIBE-P13-005: Feature Orchestration System (multi-layer coordination)
 
 ### Similar Patterns in Codebase
+
 - Migration files (`database/migrations/`) - SQL patterns
 - Backend generator (`generators/backend.ts`) - Generator structure
 - Database module (`database/db.ts`) - Schema introspection
 
 ### External References
+
 - SQLite Documentation: https://www.sqlite.org/lang_createtable.html
 - PostgreSQL Documentation: https://www.postgresql.org/docs/current/sql-createtable.html
 - MySQL Documentation: https://dev.mysql.com/doc/refman/8.0/en/create-table.html
@@ -1211,12 +1334,14 @@ const spec: MigrationSpec = {
 ## Future Enhancements
 
 ### Phase 2 Additions
+
 - **Schema Diffing** - Compare existing schema with target, generate minimal ALTER statements
 - **Data Migration Scripts** - Generate data transformation SQL for type changes
 - **Prisma Schema Generation** - Output Prisma schema files alongside SQL
 - **Drizzle ORM Support** - Generate Drizzle schema definitions
 
 ### Advanced Features
+
 - **Rollback Safety** - Detect destructive changes and require confirmation
 - **Multi-Step Migrations** - Break complex migrations into smaller steps
 - **Seed Data Generation** - Auto-generate seed data templates

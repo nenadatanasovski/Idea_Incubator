@@ -336,7 +336,8 @@ export class TaskTestService {
       .map((c) => c.level)
       .filter((level) => !coveredLevels.has(level));
 
-    const allPassing = testsPass && criteria.every((c) => c.met) && missingLevels.length === 0;
+    const allPassing =
+      testsPass && criteria.every((c) => c.met) && missingLevels.length === 0;
 
     return {
       taskId,

@@ -1,24 +1,24 @@
 /**
  * Spawn Service - Handles agent spawning with backpressure
- * 
+ *
  * Decoupled from tick loop. Reacts to events:
  * - 'task:pending' - Consider spawning an agent
  * - 'agent:idle' - Agent available, check for work
  * - Respects CPU/memory limits before spawning
- * 
+ *
  * This is Phase 4 of the event-driven architecture.
  */
 
-import { bus } from './bus.js';
-import { transitionTask } from './task-state-machine.js';
-import * as spawner from '../spawner/index.js';
-import * as agents from '../db/agents.js';
-import * as tasks from '../db/tasks.js';
-import * as config from '../config/index.js';
-import type { Task } from '../db/tasks.js';
-import type { Agent } from '../db/agents.js';
-import { isRunnableProductionTask } from '../orchestrator/task-gating.js';
-import { isSystemFlagEnabled } from '../db/system-state.js';
+import { bus } from "./bus.js";
+import { transitionTask } from "./task-state-machine.js";
+import * as spawner from "../spawner/index.js";
+import * as agents from "../db/agents.js";
+import * as tasks from "../db/tasks.js";
+import * as config from "../config/index.js";
+import type { Task } from "../db/tasks.js";
+import type { Agent } from "../db/agents.js";
+import { isRunnableProductionTask } from "../orchestrator/task-gating.js";
+import { isSystemFlagEnabled } from "../db/system-state.js";
 
 interface SpawnRequest {
   task: Task;
@@ -42,53 +42,53 @@ class SpawnService {
    */
   private setupEventListeners(): void {
     // When a task becomes pending, consider it for spawning
-    bus.on('task:pending', ({ task }) => {
+    bus.on("task:pending", ({ task }) => {
       this.considerTask(task);
     });
 
     // When an agent becomes idle, check for work
-    bus.on('agent:idle', ({ agent }) => {
+    bus.on("agent:idle", ({ agent }) => {
       this.processQueue();
     });
 
     // Backpressure: pause on high CPU
-    bus.on('system:cpu_high', ({ usage }) => {
+    bus.on("system:cpu_high", ({ usage }) => {
       console.log(`🚀 Spawn Service: Pausing (CPU at ${usage}%)`);
       this.cpuOk = false;
     });
 
-    bus.on('system:cpu_normal', () => {
-      console.log('🚀 Spawn Service: CPU normalized, resuming');
+    bus.on("system:cpu_normal", () => {
+      console.log("🚀 Spawn Service: CPU normalized, resuming");
       this.cpuOk = true;
       this.processQueue();
     });
 
     // Backpressure: pause on high memory
-    bus.on('system:memory_high', ({ usage }) => {
+    bus.on("system:memory_high", ({ usage }) => {
       console.log(`🚀 Spawn Service: Pausing (Memory at ${usage}%)`);
       this.memoryOk = false;
     });
 
-    bus.on('system:memory_normal', () => {
-      console.log('🚀 Spawn Service: Memory normalized, resuming');
+    bus.on("system:memory_normal", () => {
+      console.log("🚀 Spawn Service: Memory normalized, resuming");
       this.memoryOk = true;
       this.processQueue();
     });
 
     // Budget exceeded: stop spawning
-    bus.on('budget:exceeded', () => {
-      console.log('🚀 Spawn Service: Budget exceeded, stopping');
+    bus.on("budget:exceeded", () => {
+      console.log("🚀 Spawn Service: Budget exceeded, stopping");
       this.enabled = false;
     });
 
-    bus.on('budget:reset', () => {
-      console.log('🚀 Spawn Service: Budget reset, resuming');
+    bus.on("budget:reset", () => {
+      console.log("🚀 Spawn Service: Budget reset, resuming");
       this.enabled = true;
       this.processQueue();
     });
 
     // System shutdown
-    bus.on('system:shutdown', () => {
+    bus.on("system:shutdown", () => {
       this.enabled = false;
     });
   }
@@ -102,13 +102,13 @@ class SpawnService {
     }
 
     // Skip if already in queue
-    if (this.queue.some(r => r.task.id === task.id)) {
+    if (this.queue.some((r) => r.task.id === task.id)) {
       return;
     }
 
     // Calculate priority (P0 = 100, P1 = 50, P2 = 25)
     const priorityMap: Record<string, number> = { P0: 100, P1: 50, P2: 25 };
-    const priority = priorityMap[task.priority || 'P2'] || 25;
+    const priority = priorityMap[task.priority || "P2"] || 25;
 
     this.queue.push({
       task,
@@ -119,7 +119,9 @@ class SpawnService {
     // Sort by priority (higher first)
     this.queue.sort((a, b) => b.priority - a.priority);
 
-    console.log(`🚀 Spawn Service: Queued ${task.display_id} (priority: ${priority}, queue: ${this.queue.length})`);
+    console.log(
+      `🚀 Spawn Service: Queued ${task.display_id} (priority: ${priority}, queue: ${this.queue.length})`,
+    );
 
     this.processQueue();
   }
@@ -131,7 +133,7 @@ class SpawnService {
     if (!this.enabled) return false;
     if (!this.cpuOk) return false;
     if (!this.memoryOk) return false;
-    if (isSystemFlagEnabled('spawning_paused')) return false;
+    if (isSystemFlagEnabled("spawning_paused")) return false;
 
     // Check concurrent agent limit
     const cfg = config.getConfig();
@@ -152,21 +154,21 @@ class SpawnService {
 
     // Prefer agent types that match task category
     const categoryToType: Record<string, string> = {
-      feature: 'build',
-      bug: 'build',
-      improvement: 'build',
-      spec: 'spec',
-      research: 'research',
+      feature: "build",
+      bug: "build",
+      improvement: "build",
+      spec: "spec",
+      research: "research",
     };
 
-    const preferredType = categoryToType[task.category || 'feature'] || 'build';
-    
+    const preferredType = categoryToType[task.category || "feature"] || "build";
+
     // Try to find preferred type first
-    let agent = idleAgents.find(a => a.type === preferredType);
-    
+    let agent = idleAgents.find((a) => a.type === preferredType);
+
     // Fall back to any idle build agent
     if (!agent) {
-      agent = idleAgents.find(a => a.type === 'build');
+      agent = idleAgents.find((a) => a.type === "build");
     }
 
     // Fall back to any idle agent
@@ -201,13 +203,15 @@ class SpawnService {
 
       // Spawn the agent
       try {
-        console.log(`🚀 Spawn Service: Spawning ${agent.name} for ${request.task.display_id}`);
-        
+        console.log(
+          `🚀 Spawn Service: Spawning ${agent.name} for ${request.task.display_id}`,
+        );
+
         // Update heartbeat BEFORE transition to prevent stuck detection race condition
         agents.updateHeartbeat(agent.id);
-        
+
         // Transition task to in_progress
-        transitionTask(request.task.id, 'in_progress', { agentId: agent.id });
+        transitionTask(request.task.id, "in_progress", { agentId: agent.id });
 
         // Actually spawn
         const result = await spawner.spawnAgentSession({
@@ -221,28 +225,31 @@ class SpawnService {
           if (!result.sessionId) {
             // Pre-session failure: release claim without charging a retry.
             tasks.updateTask(request.task.id, {
-              status: 'pending',
+              status: "pending",
               assigned_agent_id: null,
             });
             const pendingTask = tasks.getTask(request.task.id);
             if (pendingTask) {
-              bus.emit('task:pending', { task: pendingTask });
+              bus.emit("task:pending", { task: pendingTask });
             }
           } else {
-            transitionTask(request.task.id, 'failed', {
-              error: (result.error || 'Spawn failure').slice(0, 2000),
+            transitionTask(request.task.id, "failed", {
+              error: (result.error || "Spawn failure").slice(0, 2000),
               agentId: agent.id,
               sessionId: result.sessionId,
-              source: 'event_spawn_service',
+              source: "event_spawn_service",
             });
           }
         }
       } catch (err) {
-        console.error(`🚀 Spawn Service: Error spawning for ${request.task.display_id}:`, err);
-        transitionTask(request.task.id, 'failed', { 
-          error: err instanceof Error ? err.message : 'Spawn error',
+        console.error(
+          `🚀 Spawn Service: Error spawning for ${request.task.display_id}:`,
+          err,
+        );
+        transitionTask(request.task.id, "failed", {
+          error: err instanceof Error ? err.message : "Spawn error",
           agentId: agent.id,
-          source: 'event_spawn_service',
+          source: "event_spawn_service",
         });
       }
     }

@@ -14,9 +14,7 @@ import {
   ExecutionWave,
   TaskListParallelism,
 } from "../../../types/task-agent.js";
-import {
-  getConflictDetails,
-} from "./file-conflict-detector.js";
+import { getConflictDetails } from "./file-conflict-detector.js";
 
 /**
  * Database row for parallelism analysis

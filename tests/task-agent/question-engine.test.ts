@@ -15,10 +15,7 @@ const TEST_PREFIX = "QUESTION-TEST-";
 import type { Task } from "../../types/task-agent.js";
 
 // Create test task and return Task object
-function createTestTask(attrs: {
-  title?: string;
-  description?: string;
-}): Task {
+function createTestTask(attrs: { title?: string; description?: string }): Task {
   const taskId = uuidv4();
   return {
     id: taskId,
@@ -40,8 +37,12 @@ function createTestTask(attrs: {
 
 // Cleanup test data
 async function cleanupTestData(): Promise<void> {
-  await run(`DELETE FROM task_questions WHERE task_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`);
-  await run(`DELETE FROM task_questions WHERE task_id NOT IN (SELECT id FROM tasks) AND task_id LIKE '%-%-%-%-%'`);
+  await run(
+    `DELETE FROM task_questions WHERE task_id IN (SELECT id FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%')`,
+  );
+  await run(
+    `DELETE FROM task_questions WHERE task_id NOT IN (SELECT id FROM tasks) AND task_id LIKE '%-%-%-%-%'`,
+  );
   await run(`DELETE FROM tasks WHERE display_id LIKE '${TEST_PREFIX}%'`);
   await saveDb();
 }
@@ -83,8 +84,12 @@ describe("QuestionEngine", () => {
         updated_at TEXT DEFAULT (datetime('now'))
       )
     `);
-    await exec(`CREATE INDEX IF NOT EXISTS idx_task_questions_task ON task_questions(task_id)`);
-    await exec(`CREATE INDEX IF NOT EXISTS idx_task_questions_task_status ON task_questions(task_id, skipped)`);
+    await exec(
+      `CREATE INDEX IF NOT EXISTS idx_task_questions_task ON task_questions(task_id)`,
+    );
+    await exec(
+      `CREATE INDEX IF NOT EXISTS idx_task_questions_task_status ON task_questions(task_id, skipped)`,
+    );
     await exec(`
       CREATE TABLE IF NOT EXISTS task_relationships (
         id TEXT PRIMARY KEY,
@@ -165,7 +170,9 @@ describe("QuestionEngine", () => {
 
       // Questions should have priority values (1-10)
       expect(questions.length).toBeGreaterThan(0);
-      expect(questions.every(q => q.priority >= 1 && q.priority <= 10)).toBe(true);
+      expect(questions.every((q) => q.priority >= 1 && q.priority <= 10)).toBe(
+        true,
+      );
     });
   });
 
@@ -308,8 +315,9 @@ describe("QuestionEngine", () => {
       });
 
       await questionEngine.generateQuestions(task);
-      const allAnswered =
-        await questionEngine.areRequiredQuestionsAnswered(task.id);
+      const allAnswered = await questionEngine.areRequiredQuestionsAnswered(
+        task.id,
+      );
 
       expect(allAnswered).toBe(false);
     });
@@ -329,8 +337,9 @@ describe("QuestionEngine", () => {
         await questionEngine.answerQuestion(task.id, q.id, "Answer");
       }
 
-      const allAnswered =
-        await questionEngine.areRequiredQuestionsAnswered(task.id);
+      const allAnswered = await questionEngine.areRequiredQuestionsAnswered(
+        task.id,
+      );
 
       expect(allAnswered).toBe(true);
     });

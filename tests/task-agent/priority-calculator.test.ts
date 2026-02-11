@@ -120,9 +120,7 @@ describe("PriorityCalculator", () => {
 
       expect(blockerResult.factors.blockingCount).toBe(2);
       expect(blockerResult.factors.blockingCount).toBeGreaterThan(0);
-      expect(blockerResult.score).toBeGreaterThan(
-        nonBlockerResult.score,
-      );
+      expect(blockerResult.score).toBeGreaterThan(nonBlockerResult.score);
     });
   });
 
@@ -229,8 +227,7 @@ describe("PriorityCalculator", () => {
       await saveDb();
 
       // calculateForList returns a Map<string, PriorityResult>
-      const results =
-        await priorityCalculator.calculateForList(taskListId);
+      const results = await priorityCalculator.calculateForList(taskListId);
 
       expect(results.size).toBe(2);
       expect([...results.values()].every((r) => r.score > 0)).toBe(true);

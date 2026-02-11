@@ -66,24 +66,24 @@ Agent (test_agent_001)
 **File:** `parent-harness/orchestrator/tests/e2e/honest-validation.test.ts`
 
 ```typescript
-test('events link to valid agents/tasks/sessions', () => {
+test("events link to valid agents/tasks/sessions", () => {
   // 1. Create or retrieve agent
-  let agent = agents.getAgent('test_agent_001');
+  let agent = agents.getAgent("test_agent_001");
   if (!agent) {
     agents.createAgent({
-      id: 'test_agent_001',
-      name: 'Test Agent',
-      type: 'build_agent',
+      id: "test_agent_001",
+      name: "Test Agent",
+      type: "build_agent",
     });
-    agent = agents.getAgent('test_agent_001')!;
+    agent = agents.getAgent("test_agent_001")!;
   }
 
   // 2. Create task with unique display_id
   const task = tasks.createTask({
     display_id: `test_linked_${Date.now()}`,
-    title: 'Linked Test Task',
-    category: 'test',
-    priority: 'P2',
+    title: "Linked Test Task",
+    category: "test",
+    priority: "P2",
   });
   createdTaskIds.push(task.id);
 
@@ -91,7 +91,7 @@ test('events link to valid agents/tasks/sessions', () => {
   const session = sessions.createSession(agent.id, task.id);
 
   // 4. Create event with agent and session links
-  eventHelpers.toolUse(agent.id, session.id, 'test_tool', { test: true });
+  eventHelpers.toolUse(agent.id, session.id, "test_tool", { test: true });
 
   // 5. Verify event references correct agent
   const recentEvents = getEvents({ agentId: agent.id, limit: 1 });
@@ -102,21 +102,21 @@ test('events link to valid agents/tasks/sessions', () => {
 
 ### Database Layer
 
-| Module | File | Role |
-|--------|------|------|
-| Agents | `parent-harness/orchestrator/src/db/agents.ts` | `createAgent()`, `getAgent()` |
-| Tasks | `parent-harness/orchestrator/src/db/tasks.ts` | `createTask()` with UUID generation |
-| Sessions | `parent-harness/orchestrator/src/db/sessions.ts` | `createSession(agentId, taskId)` with FK validation |
-| Events | `parent-harness/orchestrator/src/db/events.ts` | `events.toolUse()`, `getEvents()` with agent/session/task filters |
+| Module   | File                                             | Role                                                              |
+| -------- | ------------------------------------------------ | ----------------------------------------------------------------- |
+| Agents   | `parent-harness/orchestrator/src/db/agents.ts`   | `createAgent()`, `getAgent()`                                     |
+| Tasks    | `parent-harness/orchestrator/src/db/tasks.ts`    | `createTask()` with UUID generation                               |
+| Sessions | `parent-harness/orchestrator/src/db/sessions.ts` | `createSession(agentId, taskId)` with FK validation               |
+| Events   | `parent-harness/orchestrator/src/db/events.ts`   | `events.toolUse()`, `getEvents()` with agent/session/task filters |
 
 ### Foreign Key Constraint Companion Test
 
 The linked entity test works in tandem with the foreign key constraint test (same `Data Integrity` describe block):
 
 ```typescript
-test('foreign key constraints work (session requires valid agent/task)', () => {
+test("foreign key constraints work (session requires valid agent/task)", () => {
   expect(() => {
-    sessions.createSession('nonexistent_agent_xyz', 'nonexistent_task_xyz');
+    sessions.createSession("nonexistent_agent_xyz", "nonexistent_task_xyz");
   }).toThrow();
 });
 ```
@@ -129,15 +129,15 @@ This proves that the database rejects invalid references, which is the prerequis
 
 **PASS** when ALL of the following are true:
 
-| # | Criterion | How to Verify |
-|---|-----------|---------------|
-| 1 | Agent exists or is created successfully | `agents.getAgent('test_agent_001')` returns non-null |
-| 2 | Task is created with unique display_id | `task.id` is a valid UUID, `task.display_id` matches `test_linked_*` |
-| 3 | Session links agent to task | `sessions.createSession(agent.id, task.id)` returns a session object without error |
-| 4 | Event is created with correct agent reference | `getEvents({ agentId: agent.id, limit: 1 })` returns at least 1 event |
-| 5 | Event agent_id matches the creating agent | `recentEvents[0].agent_id === agent.id` |
-| 6 | Foreign key constraints are enforced | `sessions.createSession('nonexistent', 'nonexistent')` throws |
-| 7 | Test cleanup completes | All created task IDs are marked `completed` in `afterAll()` |
+| #   | Criterion                                     | How to Verify                                                                      |
+| --- | --------------------------------------------- | ---------------------------------------------------------------------------------- |
+| 1   | Agent exists or is created successfully       | `agents.getAgent('test_agent_001')` returns non-null                               |
+| 2   | Task is created with unique display_id        | `task.id` is a valid UUID, `task.display_id` matches `test_linked_*`               |
+| 3   | Session links agent to task                   | `sessions.createSession(agent.id, task.id)` returns a session object without error |
+| 4   | Event is created with correct agent reference | `getEvents({ agentId: agent.id, limit: 1 })` returns at least 1 event              |
+| 5   | Event agent_id matches the creating agent     | `recentEvents[0].agent_id === agent.id`                                            |
+| 6   | Foreign key constraints are enforced          | `sessions.createSession('nonexistent', 'nonexistent')` throws                      |
+| 7   | Test cleanup completes                        | All created task IDs are marked `completed` in `afterAll()`                        |
 
 **FAIL** if any criterion is not met.
 
@@ -153,34 +153,34 @@ cd parent-harness/orchestrator && npx vitest run tests/e2e/honest-validation.tes
 
 ### Depends On
 
-| Dependency | Description |
-|------------|-------------|
-| `parent-harness/orchestrator/src/db/agents.ts` | Agent CRUD operations |
-| `parent-harness/orchestrator/src/db/tasks.ts` | Task CRUD operations |
-| `parent-harness/orchestrator/src/db/sessions.ts` | Session creation with FK constraints |
-| `parent-harness/orchestrator/src/db/events.ts` | Event recording and querying |
-| `parent-harness/database/schema.sql` | Schema for agents, tasks, sessions, observability_events tables |
-| SQLite FK pragma | `PRAGMA foreign_keys = ON` for constraint enforcement |
-| Vitest | Test framework |
+| Dependency                                       | Description                                                     |
+| ------------------------------------------------ | --------------------------------------------------------------- |
+| `parent-harness/orchestrator/src/db/agents.ts`   | Agent CRUD operations                                           |
+| `parent-harness/orchestrator/src/db/tasks.ts`    | Task CRUD operations                                            |
+| `parent-harness/orchestrator/src/db/sessions.ts` | Session creation with FK constraints                            |
+| `parent-harness/orchestrator/src/db/events.ts`   | Event recording and querying                                    |
+| `parent-harness/database/schema.sql`             | Schema for agents, tasks, sessions, observability_events tables |
+| SQLite FK pragma                                 | `PRAGMA foreign_keys = ON` for constraint enforcement           |
+| Vitest                                           | Test framework                                                  |
 
 ### Affects
 
-| Component | Impact |
-|-----------|--------|
-| Dashboard event views | Validates that events displayed in the dashboard have valid agent/task/session links |
-| Observability pipeline | Validates the core data model that all monitoring and alerting depends on |
-| Agent spawner | Validates that spawned agent sessions correctly link to assigned tasks |
-| Crown agent / SIA | Validates that system investigation events can be traced back to their originating agents and tasks |
+| Component              | Impact                                                                                              |
+| ---------------------- | --------------------------------------------------------------------------------------------------- |
+| Dashboard event views  | Validates that events displayed in the dashboard have valid agent/task/session links                |
+| Observability pipeline | Validates the core data model that all monitoring and alerting depends on                           |
+| Agent spawner          | Validates that spawned agent sessions correctly link to assigned tasks                              |
+| Crown agent / SIA      | Validates that system investigation events can be traced back to their originating agents and tasks |
 
 ---
 
 ## 6. Open Questions
 
-| # | Question | Status | Resolution |
-|---|----------|--------|------------|
-| 1 | Should event session_id linkage also be verified? | Open | The current test only asserts `agent_id` on the returned event. Asserting `session_id` matches the created session would strengthen the validation. |
-| 2 | Should task_id be verified on events? | Open | Events created via `eventHelpers.toolUse()` receive `agent_id` and `session_id` but task_id linkage is indirect (through the session). Consider adding a direct task_id assertion. |
-| 3 | Should test tasks use a dedicated `test` status instead of being set to `completed` during cleanup? | Resolved | No - marking as `completed` is sufficient to prevent scanners from picking them up. A dedicated test status would require schema changes for minimal benefit. |
+| #   | Question                                                                                            | Status   | Resolution                                                                                                                                                                         |
+| --- | --------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Should event session_id linkage also be verified?                                                   | Open     | The current test only asserts `agent_id` on the returned event. Asserting `session_id` matches the created session would strengthen the validation.                                |
+| 2   | Should task_id be verified on events?                                                               | Open     | Events created via `eventHelpers.toolUse()` receive `agent_id` and `session_id` but task_id linkage is indirect (through the session). Consider adding a direct task_id assertion. |
+| 3   | Should test tasks use a dedicated `test` status instead of being set to `completed` during cleanup? | Resolved | No - marking as `completed` is sufficient to prevent scanners from picking them up. A dedicated test status would require schema changes for minimal benefit.                      |
 
 ---
 
@@ -188,11 +188,11 @@ cd parent-harness/orchestrator && npx vitest run tests/e2e/honest-validation.tes
 
 The `test_linked_1770449774551` task was generated as part of the E2E honest-validation test suite's "Data Integrity" test group. When this task appears in the orchestrator's task queue, it is a **test artifact** that should not be assigned to agents for execution.
 
-| Issue | Explanation |
-|-------|-------------|
-| **Test artifact misidentified as work item** | The task has `category: 'test'` but the orchestrator's scanners may still pick it up if cleanup fails |
-| **Retry guidance is generic** | "Analyze the error carefully and try a different approach" provides no actionable context because this is a test artifact, not a real task |
-| **Agent rotation ineffective** | Assigning spec/build/qa agents to a test artifact produces no useful output |
+| Issue                                        | Explanation                                                                                                                                |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Test artifact misidentified as work item** | The task has `category: 'test'` but the orchestrator's scanners may still pick it up if cleanup fails                                      |
+| **Retry guidance is generic**                | "Analyze the error carefully and try a different approach" provides no actionable context because this is a test artifact, not a real task |
+| **Agent rotation ineffective**               | Assigning spec/build/qa agents to a test artifact produces no useful output                                                                |
 
 **Recommendation:** Test-generated tasks with `display_id` matching `test_linked_*` should be excluded from the scanner's pending task query, or the `afterAll()` cleanup should delete (not just complete) test tasks to prevent any scanner interaction.
 
@@ -200,13 +200,13 @@ The `test_linked_1770449774551` task was generated as part of the E2E honest-val
 
 ## Related Documents
 
-| Document | Description |
-|----------|-------------|
+| Document                                                         | Description                                            |
+| ---------------------------------------------------------------- | ------------------------------------------------------ |
 | [CONCURRENT-TASK-VALIDATION.md](./CONCURRENT-TASK-VALIDATION.md) | Companion spec for concurrent task creation validation |
-| [task-example-reference.md](./task-example-reference.md) | Canonical task format reference |
-| [observability/SPEC.md](./observability/SPEC.md) | Observability event schema and design |
-| [E2E-SCENARIOS-CORE.md](./E2E-SCENARIOS-CORE.md) | Core E2E scenario definitions |
+| [task-example-reference.md](./task-example-reference.md)         | Canonical task format reference                        |
+| [observability/SPEC.md](./observability/SPEC.md)                 | Observability event schema and design                  |
+| [E2E-SCENARIOS-CORE.md](./E2E-SCENARIOS-CORE.md)                 | Core E2E scenario definitions                          |
 
 ---
 
-_This specification documents the linked entity data integrity validation infrastructure. Tasks with `display_id` matching `test_linked_*` are test artifacts, not user-facing features._
+_This specification documents the linked entity data integrity validation infrastructure. Tasks with `display_id` matching `test_linked_\*` are test artifacts, not user-facing features.\_

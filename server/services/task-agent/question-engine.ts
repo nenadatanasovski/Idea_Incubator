@@ -548,7 +548,8 @@ export class QuestionEngine {
       category: row.category,
       text: row.text,
       priority: row.priority,
-      importance: (row.importance || importanceFromPriority(row.priority)) as QuestionImportance,
+      importance: (row.importance ||
+        importanceFromPriority(row.priority)) as QuestionImportance,
       targetField: row.target_field || undefined,
       answer: row.answer || undefined,
       answeredAt: row.answered_at || undefined,
@@ -595,7 +596,9 @@ export class QuestionEngine {
     const answeredQuestions = rows.filter((r) => r.answer !== null).length;
     const requiredRows = rows.filter((r) => r.importance === "required");
     const requiredTotal = requiredRows.length;
-    const requiredAnswered = requiredRows.filter((r) => r.answer !== null).length;
+    const requiredAnswered = requiredRows.filter(
+      (r) => r.answer !== null,
+    ).length;
 
     return {
       totalQuestions,

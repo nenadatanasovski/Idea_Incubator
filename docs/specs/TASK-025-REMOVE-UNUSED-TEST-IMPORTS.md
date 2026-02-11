@@ -148,25 +148,28 @@ npx tsc --noUnusedLocals --noEmit
 ### File-by-File Breakdown
 
 **Category A: Vitest Hook Imports** (12 files)
+
 - Remove unused `vi`, `beforeEach`, `afterEach`, `beforeAll`, `afterAll`
 - Example: `tests/ideation/streaming.test.ts`
 
 **Category B: Type Imports** (18 instances)
+
 - Remove unused type imports
 - Example: `tests/specification/question-generator.test.ts`
 
 **Category C: Variable Declarations** (17 instances)
+
 - Remove unused variable assignments
 - Example: `tests/ideation/message-store.test.ts`
 
 ### Risk Analysis
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Remove used import | Low | Medium | Search file thoroughly; verify with tsc |
-| Break test functionality | Very Low | High | Run tests after each change |
-| Introduce new errors | Very Low | Medium | Incremental changes + tsc verification |
-| Miss some warnings | Low | Low | Automated final check |
+| Risk                     | Likelihood | Impact | Mitigation                              |
+| ------------------------ | ---------- | ------ | --------------------------------------- |
+| Remove used import       | Low        | Medium | Search file thoroughly; verify with tsc |
+| Break test functionality | Very Low   | High   | Run tests after each change             |
+| Introduce new errors     | Very Low   | Medium | Incremental changes + tsc verification  |
+| Miss some warnings       | Low        | Low    | Automated final check                   |
 
 **Overall Risk Level**: **Very Low** - Mechanical task with automated verification
 
@@ -189,16 +192,19 @@ npx tsc --noUnusedLocals --noEmit
 ### Example Implementation
 
 **Before** (`tests/ideation/streaming.test.ts`):
+
 ```typescript
 import { describe, test, expect, vi, beforeEach } from "vitest";
 ```
 
 **After**:
+
 ```typescript
 import { describe, test, expect } from "vitest";
 ```
 
 **Before** (`tests/specification/question-generator.test.ts`):
+
 ```typescript
 import {
   QuestionGenerator,
@@ -210,6 +216,7 @@ import {
 ```
 
 **After**:
+
 ```typescript
 import {
   QuestionGenerator,
@@ -224,6 +231,7 @@ import {
 ### PC-1: All TS6133 Warnings Eliminated in Test Files
 
 **Verification**:
+
 ```bash
 npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "tests/"
 ```
@@ -239,6 +247,7 @@ npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | grep "tests/"
 ### PC-2: Full Test Suite Passes
 
 **Verification**:
+
 ```bash
 npm test
 ```
@@ -252,6 +261,7 @@ npm test
 ### PC-3: No Actual Usage of "Unused" Imports Overlooked
 
 **Verification**:
+
 - Manual code review during implementation
 - TypeScript compilation succeeds without new errors
 - Runtime test execution succeeds
@@ -265,6 +275,7 @@ npm test
 ### PC-4: TypeScript Compilation with --noUnusedLocals Passes
 
 **Verification**:
+
 ```bash
 npx tsc --noUnusedLocals --noEmit
 ```
@@ -302,9 +313,11 @@ None - No other tasks depend on this cleanup
 ### Test Execution Plan
 
 1. **Baseline Capture**
+
    ```bash
    npm test > /tmp/baseline-tests.txt 2>&1
    ```
+
    - Capture test count
    - Capture pass/fail status
    - Save for comparison
@@ -317,26 +330,31 @@ None - No other tasks depend on this cleanup
    - Verify file-specific tests still pass
 
 3. **Final Validation**
+
    ```bash
    npm test > /tmp/final-tests.txt 2>&1
    diff /tmp/baseline-tests.txt /tmp/final-tests.txt
    ```
+
    - Should show no test count changes
    - All tests should still pass
 
 ### TypeScript Verification Plan
 
 1. **Per-File Checks**
+
    ```bash
    npx tsc --noEmit <file>
    ```
 
 2. **Full Project Check**
+
    ```bash
    npx tsc --noUnusedLocals --noEmit
    ```
 
 3. **Warning Count Tracking**
+
    ```bash
    # Before
    npx tsc --noUnusedLocals --noEmit 2>&1 | grep "TS6133" | wc -l
@@ -373,6 +391,7 @@ After this cleanup, consider:
 ### Current Configuration
 
 The project's `tsconfig.json` currently has:
+
 ```json
 {
   "compilerOptions": {
@@ -425,13 +444,13 @@ Based on TypeScript compilation output:
 
 ## Success Metrics
 
-| Metric | Before | Target | Verification |
-|--------|--------|--------|--------------|
-| TS6133 warnings in tests | 47 | 0 | `tsc --noUnusedLocals` |
-| Total TS6133 warnings | 160 | 113 | `tsc --noUnusedLocals` |
-| Test suite status | ✅ 1773 passing | ✅ 1773 passing | `npm test` |
-| TypeScript compilation | ✅ Success | ✅ Success | `tsc --noEmit` |
-| Files modified | 0 | 22 | `git diff --stat` |
+| Metric                   | Before          | Target          | Verification           |
+| ------------------------ | --------------- | --------------- | ---------------------- |
+| TS6133 warnings in tests | 47              | 0               | `tsc --noUnusedLocals` |
+| Total TS6133 warnings    | 160             | 113             | `tsc --noUnusedLocals` |
+| Test suite status        | ✅ 1773 passing | ✅ 1773 passing | `npm test`             |
+| TypeScript compilation   | ✅ Success      | ✅ Success      | `tsc --noEmit`         |
+| Files modified           | 0               | 22              | `git diff --stat`      |
 
 ---
 
@@ -440,6 +459,7 @@ Based on TypeScript compilation output:
 This specification provides a clear, systematic approach to eliminating 47 TS6133 warnings across the test suite. The task is low-risk, mechanical in nature, and includes comprehensive verification steps to ensure no functionality is broken. Implementation should take 30-45 minutes with careful, incremental progress.
 
 **Recommended Next Steps**:
+
 1. Create feature branch: `git checkout -b task-025-remove-unused-test-imports`
 2. Capture baseline metrics
 3. Process files incrementally with verification

@@ -97,7 +97,8 @@ export function logDebate(
 }
 
 // Queue for WebSocket messages when connection not ready
-let wsMessageQueue: Array<{ agent: string; message: string; type: string }> = [];
+let wsMessageQueue: Array<{ agent: string; message: string; type: string }> =
+  [];
 let wsConnection: WebSocket | null = null;
 
 function broadcastDebateEvent(

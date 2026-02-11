@@ -1,8 +1,8 @@
 /**
  * Git API Routes
  */
-import { Router } from 'express';
-import * as git from '../git/index.js';
+import { Router } from "express";
+import * as git from "../git/index.js";
 
 const router = Router();
 
@@ -10,7 +10,7 @@ const router = Router();
  * GET /api/git/status
  * Get git status
  */
-router.get('/status', async (_req, res) => {
+router.get("/status", async (_req, res) => {
   try {
     const [branch, hash, clean, changedFiles] = await Promise.all([
       git.getCurrentBranch(),
@@ -37,7 +37,7 @@ router.get('/status', async (_req, res) => {
  * GET /api/git/commits
  * Get recent commits
  */
-router.get('/commits', (req, res) => {
+router.get("/commits", (req, res) => {
   const limit = parseInt(req.query.limit as string) || 10;
   const commits = git.getRecentCommits(limit);
   res.json(commits);
@@ -47,7 +47,7 @@ router.get('/commits', (req, res) => {
  * GET /api/git/commits/task/:taskId
  * Get commits for a task
  */
-router.get('/commits/task/:taskId', (req, res) => {
+router.get("/commits/task/:taskId", (req, res) => {
   const commits = git.getTaskCommits(req.params.taskId);
   res.json(commits);
 });
@@ -56,18 +56,18 @@ router.get('/commits/task/:taskId', (req, res) => {
  * POST /api/git/commit
  * Create a commit
  */
-router.post('/commit', async (req, res) => {
+router.post("/commit", async (req, res) => {
   const { message, taskId, sessionId, agentId } = req.body;
 
   if (!message) {
-    return res.status(400).json({ error: 'message is required' });
+    return res.status(400).json({ error: "message is required" });
   }
 
   try {
     const commit = await git.commit(message, { taskId, sessionId, agentId });
 
     if (!commit) {
-      return res.json({ success: false, message: 'No changes to commit' });
+      return res.json({ success: false, message: "No changes to commit" });
     }
 
     return res.json({ success: true, commit });
@@ -83,8 +83,8 @@ router.post('/commit', async (req, res) => {
  * POST /api/git/push
  * Push to remote
  */
-router.post('/push', async (req, res) => {
-  const { remote = 'origin', branch } = req.body;
+router.post("/push", async (req, res) => {
+  const { remote = "origin", branch } = req.body;
 
   try {
     const success = await git.push(remote, branch);
@@ -101,11 +101,11 @@ router.post('/push', async (req, res) => {
  * POST /api/git/branch
  * Create a branch
  */
-router.post('/branch', async (req, res) => {
+router.post("/branch", async (req, res) => {
   const { name } = req.body;
 
   if (!name) {
-    return res.status(400).json({ error: 'name is required' });
+    return res.status(400).json({ error: "name is required" });
   }
 
   try {

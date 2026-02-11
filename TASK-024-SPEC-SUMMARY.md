@@ -3,9 +3,11 @@
 **Status**: ✅ Specification Complete
 
 ## Task Overview
+
 Complete Phase 2 Task 2.6 test system seed data to enable proper test tracking and validation queries for the phased implementation approach.
 
 ## Current State
+
 - ✅ **Phase 1 complete**: 1 suite, 8 test cases, 21 steps, 28 assertions
 - ❌ **Missing**: 15 additional test suites for Phases 2-16
 - ❌ **Missing**: Detailed test data for Phase 2 (6 tasks)
@@ -13,22 +15,26 @@ Complete Phase 2 Task 2.6 test system seed data to enable proper test tracking a
 ## What Needs to Be Built
 
 ### 1. Create All 16 Test Suites
+
 - File: `parent-harness/orchestrator/src/db/seed-all-suites.ts`
 - Creates suite metadata for all 16 phases
 - Lightweight placeholder creation
 
 ### 2. Create Phase 2 Detailed Test Data
+
 - File: `parent-harness/orchestrator/src/db/seed-phase2-tests.ts`
 - 6 test cases (tasks 2.1-2.6)
 - Test steps for each case
 - Test assertions for key pass criteria
 
 ### 3. Create Verification Script
+
 - File: `parent-harness/orchestrator/src/db/verify-test-seed.ts`
 - Validates seed data completeness
 - Checks counts match expectations
 
 ### 4. Update Main Seed Script
+
 - File: `parent-harness/orchestrator/src/db/seed.ts`
 - Import and call new seed functions
 
@@ -79,12 +85,12 @@ Complete Phase 2 Task 2.6 test system seed data to enable proper test tracking a
 
 ## Files to Create/Modify
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `seed-all-suites.ts` | CREATE | All 16 test suite records |
+| File                   | Action | Purpose                    |
+| ---------------------- | ------ | -------------------------- |
+| `seed-all-suites.ts`   | CREATE | All 16 test suite records  |
 | `seed-phase2-tests.ts` | CREATE | Phase 2 detailed test data |
-| `verify-test-seed.ts` | CREATE | Validation script |
-| `seed.ts` | MODIFY | Call new seed functions |
+| `verify-test-seed.ts`  | CREATE | Validation script          |
+| `seed.ts`              | MODIFY | Call new seed functions    |
 
 ## Next Steps for Build Agent
 

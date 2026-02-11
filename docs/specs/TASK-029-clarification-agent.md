@@ -20,6 +20,7 @@ Currently, when users create tasks like "make it faster" or "add authentication"
 4. **User frustration** - Deliverables don't match expectations
 
 The Clarification Agent solves this by:
+
 - **Detecting vague tasks** using pattern matching and scoring
 - **Generating targeted questions** using the QuestionEngine
 - **Blocking execution** until clarification is received
@@ -107,8 +108,8 @@ Task enters normal queue (pending)
 **File**: `parent-harness/orchestrator/src/clarification/vagueness-checker.ts`
 
 ```typescript
-import { detectVagueness } from '../../../agents/ideation/vagueness-detector.js';
-import { Task } from '../db/tasks.js';
+import { detectVagueness } from "../../../agents/ideation/vagueness-detector.js";
+import { Task } from "../db/tasks.js";
 
 export interface VaguenessCheck {
   taskId: string;
@@ -123,12 +124,12 @@ export interface VaguenessCheck {
  */
 export function checkTaskVagueness(task: Task): VaguenessCheck {
   // Only check user-created tasks
-  if (task.source !== 'user') {
+  if (task.source !== "user") {
     return {
       taskId: task.id,
       isVague: false,
       score: 0,
-      reasons: ['Agent-created task, bypass clarification'],
+      reasons: ["Agent-created task, bypass clarification"],
       shouldClarify: false,
     };
   }
@@ -158,7 +159,7 @@ export function checkTaskVagueness(task: Task): VaguenessCheck {
  * Trigger clarification workflow for a vague task
  */
 export async function triggerClarificationWorkflow(
-  taskId: string
+  taskId: string,
 ): Promise<void> {
   const task = tasks.getTask(taskId);
   if (!task) {
@@ -171,13 +172,13 @@ export async function triggerClarificationWorkflow(
 
   // Filter to required + important only (exclude optional)
   const priorityQuestions = questions.filter(
-    q => q.importance === 'required' || q.importance === 'important'
+    (q) => q.importance === "required" || q.importance === "important",
   );
 
   // Format questions for Telegram
   const questionText = priorityQuestions
     .map((q, i) => `${i + 1}. ${q.text}`)
-    .join('\n');
+    .join("\n");
 
   // Request clarification (blocks task)
   await requestClarification(
@@ -186,7 +187,7 @@ export async function triggerClarificationWorkflow(
     {
       context: `Task: ${task.title}\nDescription: ${task.description}`,
       expiresInHours: 24,
-    }
+    },
   );
 
   console.log(`❓ Clarification workflow triggered for ${task.display_id}`);
@@ -200,15 +201,25 @@ export async function triggerClarificationWorkflow(
 **Modify POST /api/tasks endpoint**:
 
 ```typescript
-import { checkTaskVagueness } from '../clarification/vagueness-checker.js';
-import { triggerClarificationWorkflow } from '../clarification/index.js';
+import { checkTaskVagueness } from "../clarification/vagueness-checker.js";
+import { triggerClarificationWorkflow } from "../clarification/index.js";
 
-tasksRouter.post('/', async (req, res) => {
-  const { display_id, title, description, category, priority, task_list_id, parent_task_id, pass_criteria, source } = req.body;
+tasksRouter.post("/", async (req, res) => {
+  const {
+    display_id,
+    title,
+    description,
+    category,
+    priority,
+    task_list_id,
+    parent_task_id,
+    pass_criteria,
+    source,
+  } = req.body;
 
   if (!display_id || !title || !task_list_id) {
     return res.status(400).json({
-      error: 'Missing required fields: display_id, title, task_list_id',
+      error: "Missing required fields: display_id, title, task_list_id",
       status: 400,
     });
   }
@@ -223,15 +234,17 @@ tasksRouter.post('/', async (req, res) => {
     task_list_id,
     parent_task_id,
     pass_criteria,
-    source: source || 'user', // Default to 'user' for API-created tasks
+    source: source || "user", // Default to 'user' for API-created tasks
   });
 
   // Check vagueness (async, don't block response)
   setImmediate(async () => {
     const vagueness = checkTaskVagueness(task);
     if (vagueness.shouldClarify) {
-      console.log(`🔍 Vague task detected: ${task.display_id} (score: ${vagueness.score})`);
-      await triggerClarificationWorkflow(task.id).catch(err => {
+      console.log(
+        `🔍 Vague task detected: ${task.display_id} (score: ${vagueness.score})`,
+      );
+      await triggerClarificationWorkflow(task.id).catch((err) => {
         console.error(`❌ Clarification workflow failed for ${task.id}:`, err);
       });
     }
@@ -253,41 +266,48 @@ export interface CreateTaskInput {
   title: string;
   description?: string;
   category?: string;
-  priority?: Task['priority'];
-  status?: Task['status'];
+  priority?: Task["priority"];
+  status?: Task["status"];
   task_list_id?: string;
   parent_task_id?: string;
   pass_criteria?: string[];
   source?: string; // NEW: Track task origin
 }
 
-export function createTask(input: CreateTaskInput & { wave_number?: number }): Task {
+export function createTask(
+  input: CreateTaskInput & { wave_number?: number },
+): Task {
   const id = uuidv4();
-  const passCriteria = input.pass_criteria ? JSON.stringify(input.pass_criteria) : null;
+  const passCriteria = input.pass_criteria
+    ? JSON.stringify(input.pass_criteria)
+    : null;
   const taskListId = input.task_list_id ?? null;
-  const status = input.status ?? 'pending';
+  const status = input.status ?? "pending";
   const source = input.source ?? null; // NEW: Default to null if not provided
 
-  run(`
+  run(
+    `
     INSERT INTO tasks (
       id, display_id, title, description, category,
       priority, task_list_id, parent_task_id, pass_criteria, status, retry_count, wave_number, source
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
-  `, [
-    id,
-    input.display_id,
-    input.title,
-    input.description ?? null,
-    input.category ?? null,
-    input.priority ?? 'P2',
-    taskListId,
-    input.parent_task_id ?? null,
-    passCriteria,
-    status,
-    input.wave_number ?? null,
-    source, // NEW: Insert source field
-  ]);
+  `,
+    [
+      id,
+      input.display_id,
+      input.title,
+      input.description ?? null,
+      input.category ?? null,
+      input.priority ?? "P2",
+      taskListId,
+      input.parent_task_id ?? null,
+      passCriteria,
+      status,
+      input.wave_number ?? null,
+      source, // NEW: Insert source field
+    ],
+  );
 
   return getTask(id)!;
 }
@@ -303,42 +323,49 @@ export function createTask(input: CreateTaskInput & { wave_number?: number }): T
 export async function answerClarification(
   requestId: string,
   answer: string,
-  answeredBy?: string
+  answeredBy?: string,
 ): Promise<ClarificationRequest | undefined> {
   const request = getClarificationRequest(requestId);
-  if (!request || request.status !== 'pending') {
+  if (!request || request.status !== "pending") {
     return undefined;
   }
 
-  run(`
+  run(
+    `
     UPDATE clarification_requests
     SET status = 'answered', answer = ?, answered_by = ?, answered_at = datetime('now')
     WHERE id = ?
-  `, [answer, answeredBy ?? 'human', requestId]);
+  `,
+    [answer, answeredBy ?? "human", requestId],
+  );
 
   // NEW: Process answer with QuestionEngine
   const engine = new QuestionEngine();
-  const processed = await engine.processAnswer(request.task_id, requestId, answer);
+  const processed = await engine.processAnswer(
+    request.task_id,
+    requestId,
+    answer,
+  );
 
   // Apply extracted information to task
   await engine.applyAnswers(request.task_id, [
-    { questionId: requestId, answer, answeredAt: new Date().toISOString() }
+    { questionId: requestId, answer, answeredAt: new Date().toISOString() },
   ]);
 
   // Update task description with clarified details
   const task = tasks.getTask(request.task_id);
   if (task && processed.extractedInfo) {
-    let enhancedDescription = task.description || '';
+    let enhancedDescription = task.description || "";
 
     if (processed.extractedInfo.acceptanceCriteria) {
-      enhancedDescription += `\n\nAcceptance Criteria:\n${(processed.extractedInfo.acceptanceCriteria as string[]).map(c => `- ${c}`).join('\n')}`;
+      enhancedDescription += `\n\nAcceptance Criteria:\n${(processed.extractedInfo.acceptanceCriteria as string[]).map((c) => `- ${c}`).join("\n")}`;
     }
 
     tasks.updateTask(task.id, { description: enhancedDescription });
   }
 
   // Unblock the task
-  tasks.updateTask(request.task_id, { status: 'pending' });
+  tasks.updateTask(request.task_id, { status: "pending" });
 
   console.log(`✅ Clarification answered for request ${requestId}: ${answer}`);
 
@@ -359,6 +386,7 @@ export async function answerClarification(
 **DECISION**: Use `source` field name in code and update schema column name from `created_by` to `source` for consistency.
 
 **Migration needed**:
+
 ```sql
 ALTER TABLE tasks RENAME COLUMN created_by TO source;
 ```
@@ -381,6 +409,7 @@ No changes needed - clarification workflow is self-contained and triggered by AP
 #### 3. Telegram Integration
 
 Already implemented in `clarification/index.ts`:
+
 - Uses `@vibe-clarification` bot
 - Sends questions with `/answer` command instructions
 - Handles responses via webhook
@@ -412,11 +441,13 @@ Already implemented in `clarification/index.ts`:
 ### 1. New clarification_agent implemented using Sonnet model
 
 **Verification**:
+
 - ✅ Agent metadata exists in `agents/metadata.ts` (already implemented)
 - ✅ Agent uses Sonnet as defaultModel
 - ✅ Agent has Read-only tools (no Write/Edit to prevent code modification)
 
 **Test**:
+
 ```bash
 grep -A 20 "clarification_agent:" parent-harness/orchestrator/src/agents/metadata.ts
 # Should show: defaultModel: 'sonnet', tools: ['Read']
@@ -425,11 +456,13 @@ grep -A 20 "clarification_agent:" parent-harness/orchestrator/src/agents/metadat
 ### 2. Agent triggers on new user-created tasks (bypass for agent-created)
 
 **Verification**:
+
 - ✅ `checkTaskVagueness()` returns `shouldClarify: false` if `task.source !== 'user'`
 - ✅ POST /api/tasks creates tasks with `source='user'` by default
 - ✅ Agent-created tasks set `source` to agent name (e.g., 'planning_agent')
 
 **Test**:
+
 ```bash
 # Test 1: User task should trigger clarification
 curl -X POST http://localhost:3333/api/tasks \
@@ -458,12 +491,14 @@ curl -X POST http://localhost:3333/api/tasks \
 ### 3. Integrates with QuestionEngine to generate questions
 
 **Verification**:
+
 - ✅ `triggerClarificationWorkflow()` calls `QuestionEngine.generateQuestions()`
 - ✅ Questions are filtered by importance (required + important only)
 - ✅ Questions are persisted to `task_questions` table
 - ✅ Questions are sent via Telegram with context
 
 **Test**:
+
 ```bash
 # After creating vague task, check database
 sqlite3 parent-harness/data/harness.db "SELECT * FROM task_questions WHERE task_id = (SELECT id FROM tasks WHERE display_id = 'TEST-001');"
@@ -473,12 +508,14 @@ sqlite3 parent-harness/data/harness.db "SELECT * FROM task_questions WHERE task_
 ### 4. User responses stored and used to refine task definition
 
 **Verification**:
+
 - ✅ Answers are stored in `clarification_requests.answer` field
 - ✅ `processAnswer()` extracts file paths, acceptance criteria, dependencies
 - ✅ `applyAnswers()` updates task description with clarified details
 - ✅ Extracted file impacts are saved to `task_impacts` table
 
 **Test**:
+
 ```bash
 # Simulate Telegram answer via API
 curl -X POST http://localhost:3333/api/clarification/answer \
@@ -496,12 +533,14 @@ sqlite3 parent-harness/data/harness.db "SELECT description FROM tasks WHERE disp
 ### 5. Well-defined tasks enter queue after clarification complete
 
 **Verification**:
+
 - ✅ Task status changes from 'blocked' to 'pending' after clarification answered
 - ✅ Task is visible in `getPendingTasks()` query
 - ✅ Orchestrator can assign task to build agent
 - ✅ Expired clarifications (24h timeout) also unblock task with warning
 
 **Test**:
+
 ```bash
 # After answering clarification
 curl http://localhost:3333/api/tasks/pending
@@ -591,17 +630,17 @@ sqlite3 parent-harness/data/harness.db "SELECT status, assigned_agent_id FROM ta
 **File**: `parent-harness/orchestrator/src/clarification/__tests__/vagueness-checker.test.ts`
 
 ```typescript
-import { checkTaskVagueness } from '../vagueness-checker.js';
-import { Task } from '../../db/tasks.js';
+import { checkTaskVagueness } from "../vagueness-checker.js";
+import { Task } from "../../db/tasks.js";
 
-describe('checkTaskVagueness', () => {
-  it('should flag vague user tasks', () => {
+describe("checkTaskVagueness", () => {
+  it("should flag vague user tasks", () => {
     const task: Task = {
-      id: '1',
-      display_id: 'TEST-001',
-      title: 'make it faster',
-      description: 'the app is slow',
-      source: 'user',
+      id: "1",
+      display_id: "TEST-001",
+      title: "make it faster",
+      description: "the app is slow",
+      source: "user",
       // ... other fields
     };
 
@@ -610,28 +649,31 @@ describe('checkTaskVagueness', () => {
     expect(result.score).toBeGreaterThanOrEqual(0.3);
   });
 
-  it('should bypass agent-created tasks', () => {
+  it("should bypass agent-created tasks", () => {
     const task: Task = {
-      id: '2',
-      display_id: 'TEST-002',
-      title: 'make it faster',
-      description: 'the app is slow',
-      source: 'planning_agent',
+      id: "2",
+      display_id: "TEST-002",
+      title: "make it faster",
+      description: "the app is slow",
+      source: "planning_agent",
       // ... other fields
     };
 
     const result = checkTaskVagueness(task);
     expect(result.shouldClarify).toBe(false);
-    expect(result.reasons).toContain('Agent-created task, bypass clarification');
+    expect(result.reasons).toContain(
+      "Agent-created task, bypass clarification",
+    );
   });
 
-  it('should not flag specific tasks', () => {
+  it("should not flag specific tasks", () => {
     const task: Task = {
-      id: '3',
-      display_id: 'TEST-003',
-      title: 'Optimize database query in server/routes/api.ts',
-      description: 'The /api/ideas endpoint currently takes 850ms. Optimize the SQL query to return in under 200ms. Add index on ideas.created_at if needed.',
-      source: 'user',
+      id: "3",
+      display_id: "TEST-003",
+      title: "Optimize database query in server/routes/api.ts",
+      description:
+        "The /api/ideas endpoint currently takes 850ms. Optimize the SQL query to return in under 200ms. Add index on ideas.created_at if needed.",
+      source: "user",
       // ... other fields
     };
 
@@ -647,45 +689,45 @@ describe('checkTaskVagueness', () => {
 **File**: `parent-harness/orchestrator/src/clarification/__tests__/workflow.test.ts`
 
 ```typescript
-describe('Clarification Workflow Integration', () => {
-  it('should trigger clarification for vague user task', async () => {
+describe("Clarification Workflow Integration", () => {
+  it("should trigger clarification for vague user task", async () => {
     // Create vague task
     const task = createTask({
-      display_id: 'TEST-VAGUE-001',
-      title: 'improve the UI',
-      description: 'make it better',
-      task_list_id: 'test-list',
-      source: 'user',
+      display_id: "TEST-VAGUE-001",
+      title: "improve the UI",
+      description: "make it better",
+      task_list_id: "test-list",
+      source: "user",
     });
 
     // Wait for async vagueness check
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Check task is blocked
     const updated = getTask(task.id);
-    expect(updated.status).toBe('blocked');
+    expect(updated.status).toBe("blocked");
 
     // Check clarification request exists
     const requests = getTaskClarifications(task.id);
     expect(requests.length).toBe(1);
-    expect(requests[0].status).toBe('pending');
+    expect(requests[0].status).toBe("pending");
   });
 
-  it('should unblock task after clarification', async () => {
+  it("should unblock task after clarification", async () => {
     // ... create and block task ...
 
     // Answer clarification
     const request = getTaskClarifications(task.id)[0];
     await answerClarification(
       request.id,
-      'Improve the task creation form in frontend/src/components/TaskForm.tsx. Add validation for required fields. Acceptance: Form shows error messages for missing fields.',
-      'test-user'
+      "Improve the task creation form in frontend/src/components/TaskForm.tsx. Add validation for required fields. Acceptance: Form shows error messages for missing fields.",
+      "test-user",
     );
 
     // Check task is unblocked
     const updated = getTask(task.id);
-    expect(updated.status).toBe('pending');
-    expect(updated.description).toContain('Acceptance Criteria');
+    expect(updated.status).toBe("pending");
+    expect(updated.description).toContain("Acceptance Criteria");
   });
 });
 ```

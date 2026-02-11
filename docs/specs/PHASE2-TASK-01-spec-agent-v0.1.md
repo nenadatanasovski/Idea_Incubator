@@ -16,19 +16,20 @@
 
 The Spec Agent v0.1 is fully implemented in `agents/specification/` with the following modules:
 
-| Module | File | Lines | Status |
-|--------|------|-------|--------|
-| Core Agent | `core.ts` | 494 | ✅ Complete |
-| Brief Parser | `brief-parser.ts` | 378 | ✅ Complete |
-| Context Loader | `context-loader.ts` | 400+ | ✅ Complete |
-| Claude Client | `claude-client.ts` | 350+ | ✅ Complete |
-| Task Generator | `task-generator.ts` | 450+ | ✅ Complete |
-| Question Generator | `question-generator.ts` | 350+ | ✅ Complete |
-| Gotcha Injector | `gotcha-injector.ts` | 380+ | ✅ Complete |
-| Template Renderer | `template-renderer.ts` | 300+ | ✅ Complete |
-| Session Manager | `session-manager.ts` | 250+ | ✅ Complete |
+| Module             | File                    | Lines | Status      |
+| ------------------ | ----------------------- | ----- | ----------- |
+| Core Agent         | `core.ts`               | 494   | ✅ Complete |
+| Brief Parser       | `brief-parser.ts`       | 378   | ✅ Complete |
+| Context Loader     | `context-loader.ts`     | 400+  | ✅ Complete |
+| Claude Client      | `claude-client.ts`      | 350+  | ✅ Complete |
+| Task Generator     | `task-generator.ts`     | 450+  | ✅ Complete |
+| Question Generator | `question-generator.ts` | 350+  | ✅ Complete |
+| Gotcha Injector    | `gotcha-injector.ts`    | 380+  | ✅ Complete |
+| Template Renderer  | `template-renderer.ts`  | 300+  | ✅ Complete |
+| Session Manager    | `session-manager.ts`    | 250+  | ✅ Complete |
 
 **Key Features Implemented:**
+
 - ✅ Brief parsing with YAML frontmatter + markdown sections
 - ✅ Context loading from docs/gotchas/ directory
 - ✅ Requirement analysis using Claude Opus
@@ -40,6 +41,7 @@ The Spec Agent v0.1 is fully implemented in `agents/specification/` with the fol
 - ✅ Token tracking and cost monitoring
 
 **Pass Criteria Verification:**
+
 1. ✅ Brief Parsing - Handles all section types, validates required fields
 2. ✅ Context Loading - Loads and categorizes gotchas
 3. ✅ Requirement Analysis - Uses Claude Opus for deep analysis
@@ -52,6 +54,7 @@ The Spec Agent v0.1 is fully implemented in `agents/specification/` with the fol
 10. ✅ End-to-End Workflow - Brief → Spec → Tasks pipeline functional
 
 **Next Steps:**
+
 1. Create integration tests for end-to-end workflow
 2. Document usage in parent-harness/orchestrator/CLAUDE.md
 3. Test with Planning Agent for live integration
@@ -68,6 +71,7 @@ This is the **critical foundation** for Phase 2's autonomous execution vision. W
 ### Problem Statement
 
 **Current State:**
+
 - Tasks created manually with varying levels of detail
 - Build Agents make assumptions about unclear requirements
 - Multiple back-and-forth iterations to clarify expectations
@@ -75,6 +79,7 @@ This is the **critical foundation** for Phase 2's autonomous execution vision. W
 - No systematic task breakdown for complex work
 
 **Desired State:**
+
 - Tasks automatically receive detailed technical specifications
 - Build Agents have clear implementation guidance
 - Consistent spec format across all tasks
@@ -103,12 +108,12 @@ The Spec Agent serves as the **"Requirements Translator"** between user intent a
 
 ```typescript
 interface TaskBrief {
-  display_id: string;        // e.g., "TASK-042"
-  title: string;             // e.g., "Add user authentication"
-  description?: string;      // Optional details
-  category?: string;         // feature | bug | refactor | test | docs
-  priority?: string;         // P0 | P1 | P2 | P3
-  context?: string;          // Additional background
+  display_id: string; // e.g., "TASK-042"
+  title: string; // e.g., "Add user authentication"
+  description?: string; // Optional details
+  category?: string; // feature | bug | refactor | test | docs
+  priority?: string; // P0 | P1 | P2 | P3
+  context?: string; // Additional background
 }
 ```
 
@@ -118,51 +123,69 @@ interface TaskBrief {
 # TASK-{ID}: {Title}
 
 ## Overview
+
 [Problem statement, solution approach, value proposition]
 
 ## Requirements
+
 ### Functional Requirements
+
 [What the system must do]
 
 ### Non-Functional Requirements
+
 [Performance, security, scalability constraints]
 
 ## Technical Design
+
 ### Architecture
+
 [Component diagram, data flow]
 
 ### Key Components
+
 [Files to create/modify, functions/classes to implement]
 
 ### Integration Points
+
 [Dependencies, APIs, external systems]
 
 ### Error Handling
+
 [Edge cases, failure modes, recovery strategies]
 
 ## Pass Criteria
+
 1. [Testable criterion 1]
 2. [Testable criterion 2]
-...
+   ...
 
 ## Dependencies
+
 ### Upstream (must exist first)
+
 [Required tasks, libraries, infrastructure]
 
 ### Downstream (depends on this)
+
 [Tasks that will use this work]
 
 ## Implementation Plan
+
 ### Phase 1: [Subtask 1]
+
 [Detailed steps]
 
 ### Phase 2: [Subtask 2]
+
 [Detailed steps]
 
 ## Testing Strategy
+
 [Unit tests, integration tests, manual verification]
 
 ## Open Questions
+
 [Unresolved decisions, need for clarification]
 ```
 
@@ -177,6 +200,7 @@ Before writing specs, the Spec Agent must:
 - **Review recent specs** to maintain consistency
 
 **Example Analysis for "Add user authentication":**
+
 ```typescript
 // Spec Agent explores:
 - server/routes/auth.ts (if exists, reuse patterns)
@@ -196,6 +220,7 @@ For complex tasks (>2 days estimated effort), the Spec Agent must:
 - **Create subtask specs** (lightweight, reference parent)
 
 **Example Decomposition:**
+
 ```
 TASK-042: Add user authentication
 ├── TASK-042-1: Database schema for users table (Wave 1)
@@ -211,6 +236,7 @@ TASK-042: Add user authentication
 Every specification must include **testable** pass criteria:
 
 **Good Pass Criteria:**
+
 ```
 ✅ POST /api/auth/login returns 200 with JWT token when credentials valid
 ✅ POST /api/auth/login returns 401 when password incorrect
@@ -220,6 +246,7 @@ Every specification must include **testable** pass criteria:
 ```
 
 **Bad Pass Criteria:**
+
 ```
 ❌ Authentication works properly
 ❌ Users can log in
@@ -228,6 +255,7 @@ Every specification must include **testable** pass criteria:
 ```
 
 Criteria must be:
+
 - **Specific**: Exact endpoints, status codes, behaviors
 - **Measurable**: Can verify with tests or commands
 - **Actionable**: Build/QA agents know exactly what to check
@@ -238,12 +266,14 @@ Criteria must be:
 The Spec Agent must identify:
 
 **Upstream Dependencies (blockers):**
+
 - Existing tasks that must complete first
 - External libraries to install
 - Infrastructure setup required
 - Schema migrations needed
 
 **Downstream Dependencies (impacts):**
+
 - Tasks that will build on this work
 - Files that may need updates
 - Tests that may break
@@ -262,17 +292,20 @@ To maintain codebase consistency:
 ### Non-Functional Requirements
 
 #### Performance
+
 - Spec generation: < 60 seconds for simple tasks, < 180 seconds for complex tasks
 - Codebase analysis: Limit file reads to <50 files per spec
 - Token usage: < 30k tokens per specification (Opus model cost consideration)
 
 #### Quality
+
 - Specs must be **unambiguous** (no room for multiple interpretations)
 - Specs must be **complete** (Build Agent can start immediately)
 - Specs must be **accurate** (reflect current codebase state)
 - Specs must be **actionable** (clear next steps)
 
 #### Integration
+
 - Output format: Markdown files in `docs/specs/`
 - Naming: `TASK-{ID}-{slug}.md` or `PHASE{N}-TASK-{ID}-{slug}.md`
 - Database update: Link spec file path to task record
@@ -455,26 +488,29 @@ function assignSpecAgentTasks() {
 
   for (const task of tasksNeedingSpecs) {
     // Check if spec_agent is idle
-    const specAgentSession = getActiveSession('spec_agent');
+    const specAgentSession = getActiveSession("spec_agent");
     if (specAgentSession) {
       console.log(`⏭️  Spec Agent busy, skipping TASK-${task.display_id}`);
       continue;
     }
 
     // Assign to spec_agent
-    db.run(`
+    db.run(
+      `
       UPDATE tasks
       SET assigned_agent_id = 'spec_agent',
           status = 'in_progress',
           assigned_at = datetime('now')
       WHERE id = ?
-    `, [task.id]);
+    `,
+      [task.id],
+    );
 
     // Create agent session
     const sessionId = createAgentSession({
-      agent_id: 'spec_agent',
+      agent_id: "spec_agent",
       task_id: task.id,
-      status: 'active',
+      status: "active",
     });
 
     // Launch Spec Agent via Claude Code (TODO: implement launcher)
@@ -491,15 +527,18 @@ function assignSpecAgentTasks() {
 **File:** `parent-harness/orchestrator/src/agents/launchers/spec-agent-launcher.ts` (NEW)
 
 ```typescript
-import { spawn } from 'child_process';
-import { writeFileSync } from 'fs';
-import { Task } from '../../db/tasks.js';
-import { SPEC_AGENT_SYSTEM_PROMPT } from '../prompts/spec-agent-prompt.js';
+import { spawn } from "child_process";
+import { writeFileSync } from "fs";
+import { Task } from "../../db/tasks.js";
+import { SPEC_AGENT_SYSTEM_PROMPT } from "../prompts/spec-agent-prompt.js";
 
 /**
  * Launch Spec Agent for a task
  */
-export async function launchSpecAgent(sessionId: string, task: Task): Promise<void> {
+export async function launchSpecAgent(
+  sessionId: string,
+  task: Task,
+): Promise<void> {
   // Prepare task brief for agent
   const taskBrief = formatTaskBrief(task);
 
@@ -531,35 +570,42 @@ Begin by exploring the codebase to identify similar implementations.
 `;
 
   // Launch Claude Code agent (via subprocess or API)
-  const agentProcess = spawn('claude-code-cli', [
-    '--mode=autonomous',
-    '--agent=spec_agent',
-    '--session-id', sessionId,
-    '--model', 'opus',
-    '--prompt', agentPrompt,
-  ], {
-    cwd: process.cwd(),
-    env: {
-      ...process.env,
-      CLAUDE_SESSION_ID: sessionId,
-      TASK_ID: task.id,
-      TASK_DISPLAY_ID: task.display_id,
+  const agentProcess = spawn(
+    "claude-code-cli",
+    [
+      "--mode=autonomous",
+      "--agent=spec_agent",
+      "--session-id",
+      sessionId,
+      "--model",
+      "opus",
+      "--prompt",
+      agentPrompt,
+    ],
+    {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        CLAUDE_SESSION_ID: sessionId,
+        TASK_ID: task.id,
+        TASK_DISPLAY_ID: task.display_id,
+      },
     },
-  });
+  );
 
   // Stream output to logs
-  agentProcess.stdout.on('data', (data) => {
+  agentProcess.stdout.on("data", (data) => {
     console.log(`[spec_agent:${sessionId}] ${data}`);
     appendToSessionLog(sessionId, data.toString());
   });
 
-  agentProcess.stderr.on('data', (data) => {
+  agentProcess.stderr.on("data", (data) => {
     console.error(`[spec_agent:${sessionId}:error] ${data}`);
   });
 
-  agentProcess.on('exit', (code) => {
+  agentProcess.on("exit", (code) => {
     console.log(`[spec_agent:${sessionId}] Exited with code ${code}`);
-    handleAgentCompletion(sessionId, code === 0 ? 'completed' : 'failed');
+    handleAgentCompletion(sessionId, code === 0 ? "completed" : "failed");
   });
 }
 
@@ -567,20 +613,20 @@ function formatTaskBrief(task: Task): string {
   return `
 # TASK-${task.display_id}: ${task.title}
 
-**Category:** ${task.category || 'feature'}
-**Priority:** ${task.priority || 'P2'}
+**Category:** ${task.category || "feature"}
+**Priority:** ${task.priority || "P2"}
 
 ## Description
 
-${task.description || 'No additional description provided.'}
+${task.description || "No additional description provided."}
 
 ## Context
 
-${task.context || 'No additional context provided.'}
+${task.context || "No additional context provided."}
 
 ## Parent Task
 
-${task.parent_task_id ? `This is a subtask of TASK-${task.parent_task_id}` : 'This is a standalone task.'}
+${task.parent_task_id ? `This is a subtask of TASK-${task.parent_task_id}` : "This is a standalone task."}
 `;
 }
 ```
@@ -592,19 +638,20 @@ ${task.parent_task_id ? `This is a subtask of TASK-${task.parent_task_id}` : 'Th
 **Modify POST /api/tasks to set initial status:**
 
 ```typescript
-tasksRouter.post('/', async (req, res) => {
-  const { display_id, title, description, category, priority, source } = req.body;
+tasksRouter.post("/", async (req, res) => {
+  const { display_id, title, description, category, priority, source } =
+    req.body;
 
   if (!display_id || !title) {
     return res.status(400).json({
-      error: 'Missing required fields: display_id, title',
+      error: "Missing required fields: display_id, title",
     });
   }
 
   // Determine initial status
   // - User-created tasks: pending_spec (need Spec Agent)
   // - Agent-created tasks: ready (agents write their own specs)
-  const initialStatus = source === 'user' ? 'pending_spec' : 'ready';
+  const initialStatus = source === "user" ? "pending_spec" : "ready";
 
   const task = tasks.createTask({
     display_id,
@@ -612,7 +659,7 @@ tasksRouter.post('/', async (req, res) => {
     description,
     category,
     priority,
-    source: source || 'user',
+    source: source || "user",
     status: initialStatus,
   });
 
@@ -736,6 +783,7 @@ pending_spec → in_progress (spec_agent) → ready → in_progress (build_agent
 ```
 
 **New State:** `pending_spec`
+
 - Indicates task needs specification before build can start
 - Only applies to user-created tasks
 - Agent-created tasks skip this state (agents write inline specs)
@@ -747,10 +795,10 @@ pending_spec → in_progress (spec_agent) → ready → in_progress (build_agent
 
 ```typescript
 function orchestratorTick() {
-  assignSpecAgentTasks();     // NEW: Spec Agent gets priority
-  assignBuildAgentTasks();    // Existing: Build Agent tasks
-  assignQAAgentTasks();       // Existing: QA validation
-  checkStuckAgents();         // Existing: Stuck detection
+  assignSpecAgentTasks(); // NEW: Spec Agent gets priority
+  assignBuildAgentTasks(); // Existing: Build Agent tasks
+  assignQAAgentTasks(); // Existing: QA validation
+  checkStuckAgents(); // Existing: Stuck detection
 }
 ```
 
@@ -788,6 +836,7 @@ Post to `@vibe-spec` channel:
 **Scenario:** Spec Agent crashes or cannot complete spec
 
 **Recovery:**
+
 - Mark task status as `'spec_failed'`
 - Log error details to session logs
 - Notify via Telegram: "@vibe-spec ⚠️ TASK-{ID} spec failed: {reason}"
@@ -799,6 +848,7 @@ Post to `@vibe-spec` channel:
 **Scenario:** Task brief too vague for spec creation
 
 **Recovery:**
+
 - Spec Agent creates spec with **Open Questions** section
 - Task status remains `'pending_spec'`
 - Trigger Clarification Agent (if implemented) to ask questions
@@ -809,6 +859,7 @@ Post to `@vibe-spec` channel:
 **Scenario:** Relevant files not found, patterns unclear
 
 **Recovery:**
+
 - Proceed with spec based on task brief only
 - Note limitations in spec (e.g., "No existing auth implementation found, proposing new pattern")
 - QA Agent will validate during review
@@ -818,6 +869,7 @@ Post to `@vibe-spec` channel:
 **Scenario:** Complex task decomposition encounters errors
 
 **Recovery:**
+
 - Create parent task spec without subtasks
 - Note in spec: "Subtask decomposition recommended, manual breakdown needed"
 - Build Agent can request decomposition later if needed
@@ -829,11 +881,13 @@ Post to `@vibe-spec` channel:
 ### 1. ✅ Spec Agent Metadata Configured
 
 **Verification:**
+
 ```bash
 grep -A 20 "spec_agent:" parent-harness/orchestrator/src/agents/metadata.ts
 ```
 
 **Expected:**
+
 - `defaultModel: 'opus'`
 - `tools: ['Read', 'Write', 'Edit']` (no Bash)
 - `telegram.channel: '@vibe-spec'`
@@ -841,11 +895,13 @@ grep -A 20 "spec_agent:" parent-harness/orchestrator/src/agents/metadata.ts
 ### 2. ✅ Spec Agent System Prompt Defined
 
 **Verification:**
+
 ```bash
 cat parent-harness/orchestrator/src/agents/prompts/spec-agent-prompt.ts
 ```
 
 **Expected:**
+
 - Prompt defines role, responsibilities, guidelines
 - Output format matches standard spec template
 - Includes codebase exploration instructions
@@ -854,6 +910,7 @@ cat parent-harness/orchestrator/src/agents/prompts/spec-agent-prompt.ts
 ### 3. ✅ Orchestrator Assigns Pending Spec Tasks
 
 **Test:**
+
 ```bash
 # Create task via API
 curl -X POST http://localhost:3333/api/tasks \
@@ -874,6 +931,7 @@ sqlite3 parent-harness/data/harness.db "SELECT status, assigned_agent_id FROM ta
 ```
 
 **Expected Output:**
+
 ```
 in_progress|spec_agent
 ```
@@ -881,12 +939,14 @@ in_progress|spec_agent
 ### 4. ✅ Spec Generated in Correct Format
 
 **Test:**
+
 ```bash
 # After spec_agent completes
 cat docs/specs/TEST-SPEC-001-dashboard-filters.md
 ```
 
 **Expected:**
+
 - File exists at `docs/specs/TEST-SPEC-001-*.md`
 - Contains all required sections: Overview, Requirements, Technical Design, Pass Criteria, Dependencies
 - Pass criteria are specific and testable (5-10 criteria)
@@ -896,11 +956,13 @@ cat docs/specs/TEST-SPEC-001-dashboard-filters.md
 ### 5. ✅ Task Status Updated to 'ready'
 
 **Test:**
+
 ```bash
 sqlite3 parent-harness/data/harness.db "SELECT status, spec_file_path FROM tasks WHERE display_id = 'TEST-SPEC-001';"
 ```
 
 **Expected Output:**
+
 ```
 ready|docs/specs/TEST-SPEC-001-dashboard-filters.md
 ```
@@ -908,6 +970,7 @@ ready|docs/specs/TEST-SPEC-001-dashboard-filters.md
 ### 6. ✅ Complex Tasks Decomposed into Subtasks
 
 **Test:**
+
 ```bash
 # Create complex task
 curl -X POST http://localhost:3333/api/tasks \
@@ -925,6 +988,7 @@ sqlite3 parent-harness/data/harness.db "SELECT display_id, title FROM tasks WHER
 ```
 
 **Expected:**
+
 - 4-8 subtasks created
 - Each subtask has `parent_task_id` linking to TEST-COMPLEX-001
 - Subtasks have `wave_number` assigned (1, 2, 3, etc.)
@@ -942,6 +1006,7 @@ Check generated spec for evidence of codebase exploration:
 ### Existing Patterns
 
 Based on analysis of existing dashboard components:
+
 - Filter pattern: `dashboard/src/components/TaskList/filters.tsx`
 - State management: React Query (useQuery, useMutation)
 - Form controls: Controlled components with onChange handlers
@@ -953,6 +1018,7 @@ Based on analysis of existing dashboard components:
 ```
 
 **Expected:**
+
 - Spec references actual files from codebase
 - Mentions existing patterns discovered via Read/Glob
 - Proposes changes consistent with project conventions
@@ -960,6 +1026,7 @@ Based on analysis of existing dashboard components:
 ### 8. ✅ Event Emitted on Completion
 
 **Test:**
+
 ```bash
 # Monitor WebSocket events
 wscat -c ws://localhost:3333/ws
@@ -971,6 +1038,7 @@ curl -X POST http://localhost:3333/api/tasks ...
 ```
 
 **Expected Event:**
+
 ```json
 {
   "type": "task:spec_complete",
@@ -998,6 +1066,7 @@ Check `@vibe-spec` Telegram channel for message:
 ### 10. ✅ Agent-Created Tasks Skip Spec Phase
 
 **Test:**
+
 ```bash
 # Create task with source='planning_agent'
 curl -X POST http://localhost:3333/api/tasks \
@@ -1014,6 +1083,7 @@ sqlite3 parent-harness/data/harness.db "SELECT status FROM tasks WHERE display_i
 ```
 
 **Expected Output:**
+
 ```
 ready
 ```
@@ -1052,6 +1122,7 @@ ready
 ### Phase 1: Foundation (Spec Agent Infrastructure)
 
 **Tasks:**
+
 1. Create `spec-agent-prompt.ts` with system prompt
 2. Create `spec-templates.ts` with reusable templates
 3. Create `spec-agent-launcher.ts` with launch logic
@@ -1063,6 +1134,7 @@ ready
 ### Phase 2: Core Spec Generation
 
 **Tasks:**
+
 1. Implement codebase exploration workflow (Glob → Read → pattern analysis)
 2. Implement spec template population (fill in sections with analyzed data)
 3. Implement pass criteria generation (convert requirements to testable criteria)
@@ -1074,6 +1146,7 @@ ready
 ### Phase 3: Task Decomposition
 
 **Tasks:**
+
 1. Implement complexity estimation (simple vs complex task detection)
 2. Implement subtask generation (break into atomic tasks)
 3. Implement wave number assignment (dependency-aware parallelism)
@@ -1085,6 +1158,7 @@ ready
 ### Phase 4: Integration & Testing
 
 **Tasks:**
+
 1. Test with simple feature task (single spec, no decomposition)
 2. Test with complex feature task (subtask decomposition)
 3. Test with bug fix task (different spec template)
@@ -1096,6 +1170,7 @@ ready
 ### Phase 5: Polish & Documentation
 
 **Tasks:**
+
 1. Add Telegram notifications
 2. Add event broadcasting
 3. Add error handling and recovery
@@ -1115,26 +1190,26 @@ ready
 **File:** `parent-harness/orchestrator/src/agents/__tests__/spec-agent.test.ts`
 
 ```typescript
-describe('Spec Agent', () => {
-  describe('Task Brief Parsing', () => {
-    it('should extract title, description, category from brief');
-    it('should handle missing description gracefully');
+describe("Spec Agent", () => {
+  describe("Task Brief Parsing", () => {
+    it("should extract title, description, category from brief");
+    it("should handle missing description gracefully");
   });
 
-  describe('Complexity Estimation', () => {
-    it('should classify simple tasks (1 file, <4 hours)');
-    it('should classify complex tasks (multiple files, >2 days)');
+  describe("Complexity Estimation", () => {
+    it("should classify simple tasks (1 file, <4 hours)");
+    it("should classify complex tasks (multiple files, >2 days)");
   });
 
-  describe('Subtask Decomposition', () => {
-    it('should break complex task into 4-8 subtasks');
-    it('should assign wave numbers based on dependencies');
-    it('should create subtask specs referencing parent');
+  describe("Subtask Decomposition", () => {
+    it("should break complex task into 4-8 subtasks");
+    it("should assign wave numbers based on dependencies");
+    it("should create subtask specs referencing parent");
   });
 
-  describe('Pass Criteria Generation', () => {
-    it('should generate 5-10 testable criteria');
-    it('should include specific commands/endpoints');
+  describe("Pass Criteria Generation", () => {
+    it("should generate 5-10 testable criteria");
+    it("should include specific commands/endpoints");
     it('should avoid vague criteria like "works properly"');
   });
 });
@@ -1145,20 +1220,20 @@ describe('Spec Agent', () => {
 **File:** `parent-harness/orchestrator/src/agents/__tests__/spec-workflow.test.ts`
 
 ```typescript
-describe('Spec Agent Workflow', () => {
-  it('should create spec for user task', async () => {
+describe("Spec Agent Workflow", () => {
+  it("should create spec for user task", async () => {
     // Create user task
     const task = await createTask({
-      display_id: 'TEST-001',
-      title: 'Add user profile page',
-      source: 'user',
+      display_id: "TEST-001",
+      title: "Add user profile page",
+      source: "user",
     });
 
     // Trigger orchestrator
     await runOrchestratorTick();
 
     // Wait for spec completion
-    await waitForTaskStatus(task.id, 'ready', 300_000); // 5 min timeout
+    await waitForTaskStatus(task.id, "ready", 300_000); // 5 min timeout
 
     // Verify spec file exists
     const specExists = existsSync(`docs/specs/TEST-001-user-profile-page.md`);
@@ -1166,22 +1241,22 @@ describe('Spec Agent Workflow', () => {
 
     // Verify task updated
     const updated = await getTask(task.id);
-    expect(updated.status).toBe('ready');
-    expect(updated.spec_file_path).toContain('TEST-001');
+    expect(updated.status).toBe("ready");
+    expect(updated.spec_file_path).toContain("TEST-001");
   });
 
-  it('should skip spec for agent task', async () => {
+  it("should skip spec for agent task", async () => {
     const task = await createTask({
-      display_id: 'AUTO-001',
-      title: 'Fix bug',
-      source: 'planning_agent',
+      display_id: "AUTO-001",
+      title: "Fix bug",
+      source: "planning_agent",
     });
 
     await runOrchestratorTick();
 
     // Task should remain 'ready', not assigned to spec_agent
     const updated = await getTask(task.id);
-    expect(updated.status).toBe('ready');
+    expect(updated.status).toBe("ready");
     expect(updated.assigned_agent_id).toBeNull();
   });
 });
@@ -1209,6 +1284,7 @@ describe('Spec Agent Workflow', () => {
 **Question:** Should specs require human approval before Build Agent starts?
 
 **Options:**
+
 - **A:** Auto-approve (Build Agent starts immediately after spec completion)
 - **B:** Manual approval (human reviews spec via Telegram, approves/rejects)
 - **C:** Conditional approval (auto for simple tasks, manual for complex/risky)
@@ -1220,6 +1296,7 @@ describe('Spec Agent Workflow', () => {
 **Question:** How to handle spec updates (e.g., requirements change mid-implementation)?
 
 **Options:**
+
 - **A:** Create new spec version (TASK-042-v2.md)
 - **B:** Edit existing spec with changelog section
 - **C:** Store versions in database (spec_versions table)
@@ -1231,6 +1308,7 @@ describe('Spec Agent Workflow', () => {
 **Question:** What if spec generation exceeds 30k tokens (cost control)?
 
 **Options:**
+
 - **A:** Hard limit - fail if >30k tokens, request simpler brief
 - **B:** Soft limit - warn but allow completion
 - **C:** No limit - trust Spec Agent to be efficient
@@ -1242,6 +1320,7 @@ describe('Spec Agent Workflow', () => {
 **Question:** Who validates that specs are actually good before Build Agent uses them?
 
 **Options:**
+
 - **A:** No validation (trust Spec Agent)
 - **B:** QA Agent reviews specs (new responsibility)
 - **C:** Human spot-checks (manual review of 10% random sample)

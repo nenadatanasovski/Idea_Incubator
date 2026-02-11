@@ -30,6 +30,7 @@ Phase 2 Task 2.6 (Create Test System Tables Seed) is partially complete accordin
 **Database is not populated**: The seed script exists but has not been executed against the production database at `parent-harness/orchestrator/data/harness.db`.
 
 **Current state**:
+
 ```bash
 $ sqlite3 data/harness.db "SELECT COUNT(*) FROM test_cases WHERE suite_id = 'phase_1_frontend_shell'"
 0
@@ -48,6 +49,7 @@ $ sqlite3 data/harness.db "SELECT COUNT(*) FROM test_cases WHERE suite_id = 'pha
 Based on `seed-phase1-tests.ts`, the following data must exist in the database:
 
 #### Test Suite
+
 - **ID**: `phase_1_frontend_shell`
 - **Name**: "Phase 1: Frontend Shell"
 - **Type**: `verification`
@@ -56,20 +58,21 @@ Based on `seed-phase1-tests.ts`, the following data must exist in the database:
 
 #### Test Cases (8 total)
 
-| ID | Name | Priority | Steps |
-|----|------|----------|-------|
-| `phase_1_task_1_vite_setup` | Vite + React + TypeScript Setup | P0 | 3 |
-| `phase_1_task_2_tailwind` | Tailwind CSS Configuration | P0 | 4 |
-| `phase_1_task_3_layout` | Three-Column Layout | P0 | 2 |
-| `phase_1_task_4_agent_card` | AgentStatusCard Component | P1 | 2 |
-| `phase_1_task_5_event_stream` | EventStream Component | P1 | 2 |
-| `phase_1_task_6_task_card` | TaskCard Component | P1 | 2 |
-| `phase_1_task_7_routing` | Basic Routing | P0 | 4 |
-| `phase_1_task_8_notifications` | Notification Center | P2 | 2 |
+| ID                             | Name                            | Priority | Steps |
+| ------------------------------ | ------------------------------- | -------- | ----- |
+| `phase_1_task_1_vite_setup`    | Vite + React + TypeScript Setup | P0       | 3     |
+| `phase_1_task_2_tailwind`      | Tailwind CSS Configuration      | P0       | 4     |
+| `phase_1_task_3_layout`        | Three-Column Layout             | P0       | 2     |
+| `phase_1_task_4_agent_card`    | AgentStatusCard Component       | P1       | 2     |
+| `phase_1_task_5_event_stream`  | EventStream Component           | P1       | 2     |
+| `phase_1_task_6_task_card`     | TaskCard Component              | P1       | 2     |
+| `phase_1_task_7_routing`       | Basic Routing                   | P0       | 4     |
+| `phase_1_task_8_notifications` | Notification Center             | P2       | 2     |
 
 #### Test Steps (21 total)
 
 Each test case has multiple steps that verify:
+
 - File existence (e.g., `test -f parent-harness/dashboard/src/main.tsx`)
 - Package dependencies (e.g., checking `package.json` contents)
 - Configuration files (e.g., `vite.config.ts`, `index.css`)
@@ -79,6 +82,7 @@ Each test case has multiple steps that verify:
 #### Test Assertions (28 total)
 
 Assertions validate:
+
 - **Type**: `exists`, `contains`, `equals`
 - **Target**: File paths or content patterns
 - **Expected Values**: Specific strings or patterns
@@ -151,6 +155,7 @@ run(`
 ```
 
 This ensures:
+
 - Script can be run multiple times safely
 - Existing data is updated, not duplicated
 - No manual cleanup required between runs
@@ -158,12 +163,14 @@ This ensures:
 ### ID Generation Strategy
 
 **Deterministic IDs** are used for test records:
+
 - Suite: `phase_1_frontend_shell`
 - Case: `phase_1_task_N_<slug>` (e.g., `phase_1_task_1_vite_setup`)
 - Step: `<case_id>_step_N` (e.g., `phase_1_task_1_vite_setup_step_1`)
 - Assertion: `<step_id>_assert_N` (e.g., `phase_1_task_1_vite_setup_step_1_assert_1`)
 
 **Benefits**:
+
 - Predictable IDs for validation queries
 - Easy to reference in PHASES.md
 - No UUID collisions
@@ -190,6 +197,7 @@ npm run seed-phase1-tests
 ```
 
 **Expected output**:
+
 ```
 🧪 Seeding Phase 1 test data...
   📂 Created suite: phase_1_frontend_shell
@@ -218,6 +226,7 @@ npx tsx src/db/verify-phase1-seed.ts
 ```
 
 **Expected output**:
+
 ```
 🔍 Verification Results:
 
@@ -270,12 +279,14 @@ Mark Task 2.6 as complete in `parent-harness/docs/PHASES.md`:
 **Test Record:** `phase_2_task_6_test_seed`
 
 **Build Steps:**
+
 - [x] 2.6.1: Create test_suites for each phase (16 suites) ✅
 - [x] 2.6.2: Create test_cases for Phase 1 tasks (8 cases) ✅
 - [x] 2.6.3: Create test_steps for each case ✅
 - [x] 2.6.4: Create test_assertions for key criteria ✅
 
 **Pass Criteria:**
+
 - [x] 16 rows in `test_suites` (one per phase) ✅
 - [x] 8 rows in `test_cases` for phase_1 ✅
 - [x] Each test_case has at least 1 test_step ✅
@@ -287,6 +298,7 @@ Mark Task 2.6 as complete in `parent-harness/docs/PHASES.md`:
 ### 1. Test Cases Created ✓
 
 **Validation Query**:
+
 ```sql
 SELECT COUNT(*) as count FROM test_cases
 WHERE suite_id = 'phase_1_frontend_shell';
@@ -299,6 +311,7 @@ WHERE suite_id = 'phase_1_frontend_shell';
 ### 2. Test Steps Defined ✓
 
 **Validation Query**:
+
 ```sql
 SELECT case_id, COUNT(*) as step_count
 FROM test_steps
@@ -316,6 +329,7 @@ GROUP BY case_id;
 ### 3. Assertions Defined ✓
 
 **Validation Query**:
+
 ```sql
 SELECT COUNT(*) as count FROM test_assertions
 WHERE step_id IN (
@@ -334,6 +348,7 @@ WHERE step_id IN (
 ### 4. Validation Query Works ✓
 
 **Validation Query**:
+
 ```sql
 SELECT * FROM test_case_results
 WHERE case_id = 'phase_1_task_1_vite_setup' AND status = 'passed';
@@ -346,6 +361,7 @@ WHERE case_id = 'phase_1_task_1_vite_setup' AND status = 'passed';
 ### 5. Phase 1 Task Completion Tracking ✓
 
 **Validation Query**:
+
 ```sql
 SELECT
   COUNT(*) as total,
@@ -390,15 +406,19 @@ WHERE case_id LIKE 'phase_1_task_%';
 ### Manual Verification
 
 1. **Direct SQL Query**:
+
    ```bash
    sqlite3 data/harness.db "SELECT COUNT(*) FROM test_cases WHERE suite_id = 'phase_1_frontend_shell'"
    ```
+
    Should return `8`.
 
 2. **Verification Script**:
+
    ```bash
    npx tsx src/db/verify-phase1-seed.ts
    ```
+
    All checks should show `✓ PASS`.
 
 3. **Idempotency Test**:
@@ -474,6 +494,7 @@ cp data/harness.db.backup data/harness.db
 ### Query Performance
 
 Validation queries use indexed columns:
+
 - `test_cases.suite_id` (foreign key, indexed)
 - `test_steps.case_id` (foreign key, indexed)
 - `test_assertions.step_id` (foreign key, indexed)
@@ -581,11 +602,13 @@ Keep these files synchronized:
 ### Key SQL Queries
 
 **Check Test Suite**:
+
 ```sql
 SELECT * FROM test_suites WHERE id = 'phase_1_frontend_shell';
 ```
 
 **List All Phase 1 Cases**:
+
 ```sql
 SELECT id, name, priority
 FROM test_cases
@@ -594,6 +617,7 @@ ORDER BY id;
 ```
 
 **Steps Per Case**:
+
 ```sql
 SELECT tc.name, COUNT(ts.id) as step_count
 FROM test_cases tc
@@ -603,6 +627,7 @@ GROUP BY tc.id;
 ```
 
 **Assertions Per Step**:
+
 ```sql
 SELECT ts.name, COUNT(ta.id) as assertion_count
 FROM test_steps ts

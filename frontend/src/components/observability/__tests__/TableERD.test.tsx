@@ -31,7 +31,8 @@ const mockGetContext = vi.fn(() => ({
   setTransform: vi.fn(),
 }));
 
-HTMLCanvasElement.prototype.getContext = mockGetContext as unknown as typeof HTMLCanvasElement.prototype.getContext;
+HTMLCanvasElement.prototype.getContext =
+  mockGetContext as unknown as typeof HTMLCanvasElement.prototype.getContext;
 
 describe("TableERD", () => {
   const mockTableData = {

@@ -15,6 +15,7 @@ TASK-025 (remove unused imports) was **successfully completed** in commit 29cf07
 ## Current Status
 
 ### ✅ Completed (Commit 29cf072)
+
 - Removed 58 unused imports across 30+ files
 - Fixed 154 TypeScript compilation errors in frontend
 - TypeScript compilation now passes with zero TS6133 warnings
@@ -23,6 +24,7 @@ TASK-025 (remove unused imports) was **successfully completed** in commit 29cf07
 ### ❌ Test Failures (15 failed / 1777 total)
 
 **Test Results:**
+
 ```
 Test Files: 5 failed | 101 passed (106)
 Tests: 15 failed | 1762 passed | 4 skipped (1777)
@@ -30,8 +32,9 @@ Pass Rate: 99.2% (target: 100%)
 ```
 
 **Failed Test Files:**
+
 1. `tests/avatar.test.ts` - 2 failures
-2. `tests/preferences.test.ts` - 7 failures  
+2. `tests/preferences.test.ts` - 7 failures
 3. Other files - 6 failures
 
 **Root Cause:** Database table `account_profiles` missing despite migration 026_user_profiles.sql being applied.
@@ -46,6 +49,7 @@ Pass Rate: 99.2% (target: 100%)
    - But table is not available to tests
 
 2. **Error Pattern**
+
    ```
    DatabaseError: Database error during run: no such table: account_profiles
      at run database/db.ts:146:11
@@ -69,16 +73,19 @@ Pass Rate: 99.2% (target: 100%)
 One of the following is likely true:
 
 **Hypothesis A**: Migration 026 doesn't create `account_profiles`
+
 - Need to verify SQL content
 - May create different table name
 - May have been superseded by later migration
 
 **Hypothesis B**: Table created in different database
+
 - Test database path mismatch
 - Migration runs against different DB than tests use
 - Config path issue
 
 **Hypothesis C**: Table creation fails silently
+
 - SQL syntax error in migration
 - Constraint violation during creation
 - IF NOT EXISTS preventing creation
@@ -88,18 +95,21 @@ One of the following is likely true:
 ### Functional Requirements
 
 **FR1: All Tests Pass**
+
 - 100% test pass rate (1777 / 1777 tests passing)
 - Zero test failures in avatar.test.ts
 - Zero test failures in preferences.test.ts
 - All other test files continue to pass
 
 **FR2: Database Schema Complete**
+
 - All required tables exist after migration
 - Tables are accessible to all tests
 - Foreign key relationships work correctly
 - Constraints are enforced
 
 **FR3: Migration Reliability**
+
 - Migrations run deterministically
 - Migration idempotency (safe to run multiple times)
 - No race conditions between tests
@@ -107,11 +117,13 @@ One of the following is likely true:
 ### Non-Functional Requirements
 
 **NFR1: Test Isolation**
+
 - Tests don't pollute shared database
 - Each test file can run independently
 - Single-fork mode prevents concurrency issues
 
 **NFR2: Maintainability**
+
 - Clear error messages for schema issues
 - Migration failures are visible and actionable
 - Test setup validates schema before running tests
@@ -121,12 +133,14 @@ One of the following is likely true:
 ### Investigation Phase
 
 **Step 1: Verify Migration Content**
+
 ```bash
 # Read migration 026 to confirm it creates account_profiles
 cat database/migrations/026_user_profiles.sql
 ```
 
 **Step 2: Check Test Database State**
+
 ```bash
 # Run migration and inspect database
 npm run schema:migrate
@@ -134,12 +148,14 @@ sqlite3 database/test.db ".tables" | grep account
 ```
 
 **Step 3: Inspect db.ts updateAvatarPath**
+
 ```typescript
 // Check what table it expects
 // Line 883: updateAvatarPath function
 ```
 
 **Step 4: Check for Table Conflicts**
+
 ```bash
 # Search for account_profiles references
 grep -r "account_profiles" database/migrations/
@@ -184,18 +200,18 @@ If table exists but isn't visible yet:
 export async function setup() {
   // ... existing code ...
   await runMigrations();
-  
+
   // Verify critical tables exist
   const db = await getDb();
   const tables = db.exec(`
     SELECT name FROM sqlite_master 
     WHERE type='table' AND name IN ('account_profiles', 'ideation_sessions')
   `);
-  
+
   if (tables[0]?.values.length !== 2) {
-    throw new Error('Critical tables missing after migration');
+    throw new Error("Critical tables missing after migration");
   }
-  
+
   await closeDb();
 }
 ```
@@ -225,47 +241,61 @@ export async function setup() {
 ## Pass Criteria
 
 ### ✅ Pass Criterion 1: All Tests Pass
+
 ```bash
 npm test -- --pool=forks --poolOptions.forks.maxForks=1
 ```
+
 **Expected:**
+
 - Test Files: 106 passed (106)
 - Tests: 1777 passed | 4 skipped (1777)
 - Zero failures
 
 ### ✅ Pass Criterion 2: Build Succeeds
+
 ```bash
 npm run build
 ```
+
 **Expected:** Clean build with exit code 0
 
 ### ✅ Pass Criterion 3: TypeScript Compiles
+
 ```bash
 npx tsc --noEmit
 ```
+
 **Expected:** No errors, no TS6133 warnings (already passing)
 
 ### ✅ Pass Criterion 4: Database Tables Exist
+
 ```bash
 sqlite3 database/test.db "SELECT name FROM sqlite_master WHERE type='table' AND name='account_profiles'"
 ```
+
 **Expected:** `account_profiles` returned
 
 ### ✅ Pass Criterion 5: Avatar Tests Pass
+
 ```bash
 npm test -- tests/avatar.test.ts --pool=forks
 ```
+
 **Expected:** 4/4 tests pass
 
 ### ✅ Pass Criterion 6: Preferences Tests Pass
+
 ```bash
 npm test -- tests/preferences.test.ts --pool=forks
 ```
+
 **Expected:** All tests pass (8/8 or similar)
 
 ## Files to Investigate/Modify
 
 ### Investigation (Read-Only)
+
 1. `database/migrations/026_user_profiles.sql` - Check what tables are created
 2. `database/db.ts` (lines 880-890) - Check updateAvatarPath implementation
 3. `tests/avatar.test.ts` - Understand test expectations
@@ -273,6 +303,7 @@ npm test -- tests/preferences.test.ts --pool=forks
 5. `tests/globalSetup.ts` - Check migration execution
 
 ### Potential Changes
+
 1. **New Migration** (if table missing)
    - `database/migrations/134_fix_account_profiles.sql`
 
@@ -285,25 +316,30 @@ npm test -- tests/preferences.test.ts --pool=forks
 ## Dependencies
 
 ### Blocked By
+
 - None
 
 ### Blocks
+
 - None (quality improvement)
 
 ### Related Tasks
+
 - TASK-025: Remove unused imports (✅ completed)
-- TASK-001: Fix TypeScript errors (✅ completed)  
+- TASK-001: Fix TypeScript errors (✅ completed)
 - FIX-TASK-025-8V9Y: This task
 
 ## Risk Assessment
 
 ### Low Risk
+
 - Changes are to database schema or test setup
 - Full test suite validates no regressions
 - Single-fork mode prevents race conditions
 - Changes don't affect production code
 
 ### Mitigation
+
 - Test after each change
 - Use git for easy rollback
 - Verify other tests still pass
@@ -311,13 +347,13 @@ npm test -- tests/preferences.test.ts --pool=forks
 
 ## Success Metrics
 
-| Metric | Before | Target |
-|--------|--------|--------|
-| Test Pass Rate | 99.2% | 100% |
-| Failed Tests | 15 | 0 |
-| Passing Tests | 1762 | 1777 |
-| TypeScript Errors | 0 ✅ | 0 |
-| Unused Imports | 0 ✅ | 0 |
+| Metric            | Before | Target |
+| ----------------- | ------ | ------ |
+| Test Pass Rate    | 99.2%  | 100%   |
+| Failed Tests      | 15     | 0      |
+| Passing Tests     | 1762   | 1777   |
+| TypeScript Errors | 0 ✅   | 0      |
+| Unused Imports    | 0 ✅   | 0      |
 
 ## Implementation Notes
 

@@ -14,6 +14,7 @@ The Search and Filtering feature provides comprehensive user interface controls 
 ### Purpose
 
 Enable users to:
+
 - Search ideas by title and summary text
 - Filter ideas by type (business, creative, technical, personal, research)
 - Filter ideas by lifecycle stage (SPARK through ARCHIVE)
@@ -34,6 +35,7 @@ This implementation is part of the Idea Incubator frontend, providing the primar
 ### Functional Requirements
 
 #### FR-1: Text Search
+
 - **Search Input**: Visible search bar with search icon
 - **Search Scope**: Match against idea title and summary fields
 - **Case-Insensitive**: Ignore case when matching search terms
@@ -42,6 +44,7 @@ This implementation is part of the Idea Incubator frontend, providing the primar
 - **Empty Search State**: Show all ideas when search field is empty
 
 #### FR-2: Type Filtering
+
 - **Type Options**: Filter by 5 idea types
   - Business (blue badge)
   - Creative (purple badge)
@@ -54,6 +57,7 @@ This implementation is part of the Idea Incubator frontend, providing the primar
 - **Single Selection**: Only one type filter active at a time
 
 #### FR-3: Lifecycle Stage Filtering
+
 - **Stage Options**: Filter by all lifecycle stages (SPARK through ARCHIVE)
 - **Visual Display**: Show first 12 stages in filter panel (UI space constraint)
 - **Color Coding**: Stage badges color-coded by semantic meaning
@@ -62,12 +66,14 @@ This implementation is part of the Idea Incubator frontend, providing the primar
 - **Single Selection**: Only one stage filter active at a time
 
 #### FR-4: Tag Filtering
+
 - **Backend Support**: API accepts tag query parameter
 - **Tag Matching**: Filter ideas that have the specified tag
 - **Post-SQL Filtering**: Tag filtering applied after SQL query (avoids complex joins)
 - **Future Enhancement**: UI component for tag selection (currently API-only)
 
 #### FR-5: Sorting
+
 - **Sort Fields**:
   - Updated date (default)
   - Created date
@@ -79,6 +85,7 @@ This implementation is part of the Idea Incubator frontend, providing the primar
 - **Default Sort**: Updated date, descending (newest first)
 
 #### FR-6: Filter Combination
+
 - **Multiple Filters**: All filters work together without conflicts
 - **Additive Logic**: Filters narrow results (AND logic)
 - **Search + Type**: Search within filtered type
@@ -87,6 +94,7 @@ This implementation is part of the Idea Incubator frontend, providing the primar
 - **Search + Type + Stage + Sort**: All filters + sort work together
 
 #### FR-7: Filter UI Controls
+
 - **Collapsible Panel**: Show/hide filters to save screen space
 - **Filter Toggle Button**: Icon button to expand/collapse filters
 - **Active State**: Filter button highlighted when filters shown
@@ -96,6 +104,7 @@ This implementation is part of the Idea Incubator frontend, providing the primar
 ### Non-Functional Requirements
 
 #### NFR-1: Performance
+
 - **SQL-based Filtering**: Database-level filtering (not in-memory)
 - **Search Latency**: <100ms for typical datasets (<1000 ideas)
 - **API Response**: <200ms for filtered queries
@@ -103,6 +112,7 @@ This implementation is part of the Idea Incubator frontend, providing the primar
 - **Efficient Tag Queries**: Tag JOIN executed per-idea after filtering
 
 #### NFR-2: Usability
+
 - **Visual Feedback**: Clear indication of active filters
 - **Empty States**: Clear messaging when no results found
 - **Loading States**: Loading indicators during API fetch
@@ -110,6 +120,7 @@ This implementation is part of the Idea Incubator frontend, providing the primar
 - **Result Count**: Display "X ideas in your incubator"
 
 #### NFR-3: Maintainability
+
 - **Type Safety**: Full TypeScript coverage with IdeaFilters interface
 - **Component Reusability**: Filter components isolated and reusable
 - **Configuration Objects**: ideaTypes, lifecycleStages, ideaTypeColors externalized
@@ -182,6 +193,7 @@ This implementation is part of the Idea Incubator frontend, providing the primar
 **IdeaList.tsx** (`frontend/src/pages/IdeaList.tsx` - 299 lines)
 
 **State Management**:
+
 ```typescript
 const [filters, setFilters] = useState<IdeaFilters>({
   sortBy: "updated_at",
@@ -192,6 +204,7 @@ const [showFilters, setShowFilters] = useState(false);
 ```
 
 **Filter Handlers**:
+
 ```typescript
 handleTypeFilter(type: IdeaType | undefined)
 handleStageFilter(stage: LifecycleStage | undefined)
@@ -199,6 +212,7 @@ handleSort(sortBy: IdeaFilters["sortBy"])
 ```
 
 **Data Fetching**:
+
 ```typescript
 const { ideas, loading, error } = useIdeas({
   ...filters,
@@ -207,6 +221,7 @@ const { ideas, loading, error } = useIdeas({
 ```
 
 **UI Sections**:
+
 - **Header** (lines 57-71): Title, count, "New Idea" button
 - **Search Bar** (lines 77-86): Text input with search icon
 - **Filter Toggle** (lines 89-98): Show/hide filters button
@@ -222,25 +237,28 @@ const { ideas, loading, error } = useIdeas({
 **Purpose**: Encapsulates data fetching logic with filter support
 
 **API**:
+
 ```typescript
 function useIdeas(filters?: IdeaFilters): {
   ideas: IdeaWithScores[];
   loading: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
-}
+};
 ```
 
 **Behavior**:
+
 - Fetches ideas on mount
 - Re-fetches when any filter dependency changes (type, stage, tag, search, sortBy, sortOrder)
 - Provides refetch function for manual refresh
 - Manages loading and error states
 
 **Dependencies Array**:
+
 ```typescript
 useEffect(() => {
-  getIdeas(filters).then(setIdeas).catch(setError)
+  getIdeas(filters).then(setIdeas).catch(setError);
 }, [
   filters?.type,
   filters?.stage,
@@ -256,6 +274,7 @@ useEffect(() => {
 **client.ts** (`frontend/src/api/client.ts`)
 
 **getIdeas Function** (lines 38-50):
+
 ```typescript
 export async function getIdeas(
   filters?: IdeaFilters,
@@ -274,6 +293,7 @@ export async function getIdeas(
 ```
 
 **Behavior**:
+
 - Builds URLSearchParams from filter object
 - Omits undefined/null filter values
 - Constructs query string
@@ -286,6 +306,7 @@ export async function getIdeas(
 **GET /api/ideas Endpoint**:
 
 **Query Parameters**:
+
 - `type` (string): Idea type filter
 - `stage` (string): Lifecycle stage filter
 - `tag` (string): Tag name filter
@@ -294,6 +315,7 @@ export async function getIdeas(
 - `sortOrder` (string): Sort direction (default: "desc")
 
 **SQL Query Construction**:
+
 ```sql
 SELECT
   i.*,
@@ -311,6 +333,7 @@ ORDER BY <sortField> <sortOrder>
 ```
 
 **Tag Filtering Logic** (lines 68-83):
+
 1. Execute main SQL query (without tag filter)
 2. For each idea, fetch associated tags via JOIN query
 3. Apply tag filter in JavaScript (post-SQL)
@@ -319,13 +342,14 @@ ORDER BY <sortField> <sortOrder>
 **Rationale**: Tag filtering post-SQL avoids complex multi-join queries that degrade performance. Acceptable trade-off for typical datasets (<1000 ideas).
 
 **Sort Field Validation** (lines 53-60):
+
 ```typescript
 const validSortFields = ["title", "created_at", "updated_at", "score"];
 const sortField = validSortFields.includes(sortBy as string)
   ? sortBy === "score"
-    ? "avg_final_score"  // Map "score" to joined column
+    ? "avg_final_score" // Map "score" to joined column
     : `i.${sortBy}`
-  : "i.updated_at";      // Default fallback
+  : "i.updated_at"; // Default fallback
 const order = sortOrder === "asc" ? "ASC" : "DESC";
 ```
 
@@ -334,6 +358,7 @@ const order = sortOrder === "asc" ? "ASC" : "DESC";
 **index.ts** (`frontend/src/types/index.ts`)
 
 **IdeaFilters Interface** (lines 229-236):
+
 ```typescript
 export interface IdeaFilters {
   type?: IdeaType;
@@ -346,6 +371,7 @@ export interface IdeaFilters {
 ```
 
 **IdeaType** (lines 24-29):
+
 ```typescript
 export type IdeaType =
   | "business"
@@ -356,16 +382,32 @@ export type IdeaType =
 ```
 
 **LifecycleStage** (lines 2-21):
+
 ```typescript
 export type LifecycleStage =
-  | "SPARK" | "CLARIFY" | "RESEARCH" | "IDEATE"
-  | "EVALUATE" | "VALIDATE" | "DESIGN" | "PROTOTYPE"
-  | "TEST" | "REFINE" | "BUILD" | "LAUNCH"
-  | "GROW" | "MAINTAIN" | "PIVOT" | "PAUSE"
-  | "SUNSET" | "ARCHIVE" | "ABANDONED";
+  | "SPARK"
+  | "CLARIFY"
+  | "RESEARCH"
+  | "IDEATE"
+  | "EVALUATE"
+  | "VALIDATE"
+  | "DESIGN"
+  | "PROTOTYPE"
+  | "TEST"
+  | "REFINE"
+  | "BUILD"
+  | "LAUNCH"
+  | "GROW"
+  | "MAINTAIN"
+  | "PIVOT"
+  | "PAUSE"
+  | "SUNSET"
+  | "ARCHIVE"
+  | "ABANDONED";
 ```
 
 **IdeaWithScores** (lines 66-82):
+
 ```typescript
 export interface IdeaWithScores extends Idea {
   avg_agent_score: number | null;
@@ -382,6 +424,7 @@ export interface IdeaWithScores extends Idea {
 #### 6. Configuration Objects
 
 **Type Colors** (IdeaList.tsx lines 17-23):
+
 ```typescript
 const ideaTypeColors: Record<IdeaType, string> = {
   business: "bg-blue-100 text-blue-800",
@@ -393,6 +436,7 @@ const ideaTypeColors: Record<IdeaType, string> = {
 ```
 
 **Type Options** (IdeaList.tsx lines 9-15):
+
 ```typescript
 const ideaTypes: { value: IdeaType; label: string }[] = [
   { value: "business", label: "Business" },
@@ -649,11 +693,13 @@ npm run dev
 ### Environment Configuration
 
 **Frontend** (`.env` or `vite.config.ts`):
+
 ```env
 VITE_API_BASE_URL=http://localhost:3000
 ```
 
 **Backend** (`.env`):
+
 ```env
 PORT=3000
 DATABASE_PATH=./database/incubator.db
@@ -702,51 +748,61 @@ npm run seed
 ### Example API Requests
 
 **Search Only**:
+
 ```http
 GET /api/ideas?search=automation
 ```
 
 **Type Filter Only**:
+
 ```http
 GET /api/ideas?type=business
 ```
 
 **Stage Filter Only**:
+
 ```http
 GET /api/ideas?stage=VALIDATE
 ```
 
 **Tag Filter Only**:
+
 ```http
 GET /api/ideas?tag=startup
 ```
 
 **Sort Only**:
+
 ```http
 GET /api/ideas?sortBy=title&sortOrder=asc
 ```
 
 **Search + Type**:
+
 ```http
 GET /api/ideas?search=AI&type=technical
 ```
 
 **Search + Stage**:
+
 ```http
 GET /api/ideas?search=tool&stage=PROTOTYPE
 ```
 
 **Type + Stage**:
+
 ```http
 GET /api/ideas?type=business&stage=EVALUATE
 ```
 
 **All Filters + Sort**:
+
 ```http
 GET /api/ideas?type=business&stage=VALIDATE&search=AI&sortBy=score&sortOrder=desc
 ```
 
 **Tag Filter (Post-SQL)**:
+
 ```http
 GET /api/ideas?tag=machine-learning&type=research
 ```
@@ -757,51 +813,52 @@ GET /api/ideas?tag=machine-learning&type=research
 
 ### Idea Type Colors
 
-| Type | Badge Class | Hex Approximation |
-|------|-------------|-------------------|
-| Business | `bg-blue-100 text-blue-800` | #DBEAFE / #1E40AF |
-| Creative | `bg-purple-100 text-purple-800` | #EDE9FE / #5B21B6 |
-| Technical | `bg-green-100 text-green-800` | #D1FAE5 / #166534 |
-| Personal | `bg-orange-100 text-orange-800` | #FFEDD5 / #9A3412 |
-| Research | `bg-cyan-100 text-cyan-800` | #CFFAFE / #155E75 |
+| Type      | Badge Class                     | Hex Approximation |
+| --------- | ------------------------------- | ----------------- |
+| Business  | `bg-blue-100 text-blue-800`     | #DBEAFE / #1E40AF |
+| Creative  | `bg-purple-100 text-purple-800` | #EDE9FE / #5B21B6 |
+| Technical | `bg-green-100 text-green-800`   | #D1FAE5 / #166534 |
+| Personal  | `bg-orange-100 text-orange-800` | #FFEDD5 / #9A3412 |
+| Research  | `bg-cyan-100 text-cyan-800`     | #CFFAFE / #155E75 |
 
 ### Filter Button States
 
-| State | Class | Description |
-|-------|-------|-------------|
-| Default | `btn-secondary` | Gray background, subtle border |
-| Active | `bg-primary-50 text-primary-700` | Light blue background, blue text |
-| Hover | `hover:bg-gray-50` | Slight background change |
+| State   | Class                            | Description                      |
+| ------- | -------------------------------- | -------------------------------- |
+| Default | `btn-secondary`                  | Gray background, subtle border   |
+| Active  | `bg-primary-50 text-primary-700` | Light blue background, blue text |
+| Hover   | `hover:bg-gray-50`               | Slight background change         |
 
 ### Sort Direction Indicators
 
-| Direction | Icon | Character |
-|-----------|------|-----------|
-| Ascending | ↑ | U+2191 |
-| Descending | ↓ | U+2193 |
-| Both (inactive) | ↕ | U+2195 (or show current only) |
+| Direction       | Icon | Character                     |
+| --------------- | ---- | ----------------------------- |
+| Ascending       | ↑    | U+2191                        |
+| Descending      | ↓    | U+2193                        |
+| Both (inactive) | ↕    | U+2195 (or show current only) |
 
 ---
 
 ## Appendix C: Performance Benchmarks
 
 ### Test Conditions
+
 - **Dataset**: 500 ideas, 10 tags, 50 evaluations
 - **Environment**: Development server (localhost)
 - **Database**: SQLite in-memory mode
 
 ### Measured Latencies
 
-| Operation | Latency (p50) | Latency (p95) |
-|-----------|---------------|---------------|
-| GET /api/ideas (no filters) | 45ms | 78ms |
-| GET /api/ideas?search=AI | 52ms | 89ms |
-| GET /api/ideas?type=business | 38ms | 65ms |
-| GET /api/ideas?stage=VALIDATE | 41ms | 71ms |
-| GET /api/ideas?sortBy=score | 62ms | 105ms |
-| GET /api/ideas (all filters) | 68ms | 118ms |
-| Tag enrichment (per idea) | 3ms | 6ms |
-| Tag filter (post-SQL) | 1ms | 2ms |
+| Operation                     | Latency (p50) | Latency (p95) |
+| ----------------------------- | ------------- | ------------- |
+| GET /api/ideas (no filters)   | 45ms          | 78ms          |
+| GET /api/ideas?search=AI      | 52ms          | 89ms          |
+| GET /api/ideas?type=business  | 38ms          | 65ms          |
+| GET /api/ideas?stage=VALIDATE | 41ms          | 71ms          |
+| GET /api/ideas?sortBy=score   | 62ms          | 105ms         |
+| GET /api/ideas (all filters)  | 68ms          | 118ms         |
+| Tag enrichment (per idea)     | 3ms           | 6ms           |
+| Tag filter (post-SQL)         | 1ms           | 2ms           |
 
 ### Recommended Database Indexes
 

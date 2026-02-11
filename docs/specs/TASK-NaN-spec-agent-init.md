@@ -14,9 +14,11 @@ This module establishes the foundation for the Spec Agent, following patterns fr
 ## Requirements
 
 ### REQ-1: Agent Class Implementation (Must-Have)
+
 Implement `SpecAgent` class with proper initialization, configuration, and lifecycle management.
 
 **Key Features:**
+
 - Constructor accepting `SpecAgentOptions` for configuration
 - Anthropic client initialization using `createAnthropicClient()`
 - Model configuration (default: `claude-opus-4-6`)
@@ -24,20 +26,25 @@ Implement `SpecAgent` class with proper initialization, configuration, and lifec
 - Retry logic with exponential backoff
 
 **References:**
+
 - Pattern: `DecompositionAgent` class (lines 139-532)
 - Auth: `utils/anthropic-client.ts`
 
 ### REQ-2: Type System (Must-Have)
+
 Export all types defined in `agents/spec-agent/types.ts` for external use.
 
 **Key Types:**
+
 - `SpecificationBrief`: Input format
 - `TechnicalSpecification`: Output format
 - `SpecAgentOutput`: Complete response with metadata
 - `SpecAgentOptions`: Configuration options
 
 ### REQ-3: Logging Infrastructure (Must-Have)
+
 Implement structured logging for:
+
 - Timestamp on all log entries
 - Tool calls (API requests to Anthropic)
 - Errors with context
@@ -45,12 +52,15 @@ Implement structured logging for:
 - Execution timing
 
 **Format:**
+
 ```
 [SpecAgent] <timestamp> <level>: <message>
 ```
 
 ### REQ-4: Singleton Pattern (Must-Have)
+
 Export both:
+
 - `SpecAgent` class for custom instances
 - `specAgent` singleton instance for convenience
 - Type re-exports for external consumption
@@ -58,12 +68,14 @@ Export both:
 **Pattern Reference:** `agents/decomposition/index.ts` lines 534-544
 
 ### REQ-5: Configuration Defaults (Must-Have)
+
 Define sensible defaults:
+
 ```typescript
-DEFAULT_MODEL = "claude-opus-4-6"
-DEFAULT_MAX_TOKENS = 8192  // Larger for detailed specs
-DEFAULT_MAX_RETRIES = 3
-DEFAULT_BASE_DELAY = 1000  // 1 second
+DEFAULT_MODEL = "claude-opus-4-6";
+DEFAULT_MAX_TOKENS = 8192; // Larger for detailed specs
+DEFAULT_MAX_RETRIES = 3;
+DEFAULT_BASE_DELAY = 1000; // 1 second
 ```
 
 ## Technical Design
@@ -81,13 +93,22 @@ Follow the established agent architecture pattern from `DecompositionAgent` but 
 ### Files to Create
 
 #### `agents/spec-agent/index.ts`
+
 **Purpose:** Main agent implementation
 
 **Structure:**
+
 ```typescript
 // 1. Imports
-import { createAnthropicClient, type AnthropicClient } from "../../utils/anthropic-client.js";
-import type { SpecAgentOptions, SpecificationBrief, SpecAgentOutput } from "./types.js";
+import {
+  createAnthropicClient,
+  type AnthropicClient,
+} from "../../utils/anthropic-client.js";
+import type {
+  SpecAgentOptions,
+  SpecificationBrief,
+  SpecAgentOutput,
+} from "./types.js";
 
 // 2. Constants
 const DEFAULT_MODEL = "claude-opus-4-6";
@@ -114,10 +135,16 @@ export class SpecAgent {
   }
 
   // Logging method
-  private log(level: "info" | "error" | "debug", message: string, meta?: any): void {
+  private log(
+    level: "info" | "error" | "debug",
+    message: string,
+    meta?: any,
+  ): void {
     const timestamp = new Date().toISOString();
     const metaStr = meta ? ` ${JSON.stringify(meta)}` : "";
-    console.log(`[SpecAgent] ${timestamp} ${level.toUpperCase()}: ${message}${metaStr}`);
+    console.log(
+      `[SpecAgent] ${timestamp} ${level.toUpperCase()}: ${message}${metaStr}`,
+    );
   }
 
   // Token tracking
@@ -133,11 +160,14 @@ export class SpecAgent {
   private async callWithRetry(
     systemPrompt: string,
     userPrompt: string,
-    retryCount: number = 0
+    retryCount: number = 0,
   ): Promise<string> {
     try {
       const startTime = Date.now();
-      this.log("debug", "Calling Anthropic API", { model: this.model, retryCount });
+      this.log("debug", "Calling Anthropic API", {
+        model: this.model,
+        retryCount,
+      });
 
       const response = await this.client.messages.create({
         model: this.model,
@@ -148,7 +178,8 @@ export class SpecAgent {
 
       // Track tokens
       if (response.usage) {
-        const tokens = response.usage.input_tokens + response.usage.output_tokens;
+        const tokens =
+          response.usage.input_tokens + response.usage.output_tokens;
         this.totalTokensUsed += tokens;
         this.log("debug", `API call completed in ${Date.now() - startTime}ms`, {
           inputTokens: response.usage.input_tokens,
@@ -170,7 +201,10 @@ export class SpecAgent {
       // Retry if applicable
       if (retryCount < this.maxRetries && this.isRetryableError(error)) {
         const delay = this.calculateBackoff(retryCount);
-        this.log("info", `Retrying in ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries})`);
+        this.log(
+          "info",
+          `Retrying in ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries})`,
+        );
         await this.sleep(delay);
         return this.callWithRetry(systemPrompt, userPrompt, retryCount + 1);
       }
@@ -181,7 +215,7 @@ export class SpecAgent {
 
   private isRetryableError(error: any): boolean {
     if (error.status === 429) return true; // Rate limit
-    if (error.status >= 500) return true;  // Server error
+    if (error.status >= 500) return true; // Server error
     if (error.code === "ECONNRESET" || error.code === "ETIMEDOUT") return true;
     return false;
   }
@@ -197,7 +231,9 @@ export class SpecAgent {
   }
 
   // Placeholder for main generation method (to be implemented in next phase)
-  async generateSpecification(brief: SpecificationBrief): Promise<SpecAgentOutput> {
+  async generateSpecification(
+    brief: SpecificationBrief,
+  ): Promise<SpecAgentOutput> {
     this.log("info", `Generating specification for: ${brief.title}`);
     throw new Error("Not implemented - will be added in next phase");
   }
@@ -221,6 +257,7 @@ export type {
 ```
 
 **Rationale:**
+
 - Follows DecompositionAgent pattern for consistency
 - Uses existing Anthropic client infrastructure
 - Includes comprehensive logging from the start
@@ -247,9 +284,11 @@ All types already defined in `agents/spec-agent/types.ts` (no changes needed):
 ## Pass Criteria
 
 ### PC-1: File Creation
+
 **Description:** File `agents/spec-agent/index.ts` exists with complete implementation
 
 **Verification Method:**
+
 ```bash
 ls -la agents/spec-agent/index.ts
 ```
@@ -257,37 +296,44 @@ ls -la agents/spec-agent/index.ts
 **Expected Outcome:** File exists and is readable
 
 ### PC-2: Opus Model Initialization
+
 **Description:** Agent initializes with `claude-opus-4-6` model by default
 
 **Verification Method:**
+
 ```typescript
-import { specAgent } from './agents/spec-agent/index.js';
+import { specAgent } from "./agents/spec-agent/index.js";
 // Check default model in constructor
 ```
 
 **Expected Outcome:** Default model constant is `"claude-opus-4-6"` and agent uses it when no options provided
 
 ### PC-3: Singleton Pattern
+
 **Description:** Both class and singleton instance are exported
 
 **Verification Method:**
+
 ```typescript
-import { SpecAgent, specAgent } from './agents/spec-agent/index.js';
+import { SpecAgent, specAgent } from "./agents/spec-agent/index.js";
 // SpecAgent is a class
 // specAgent is an instance
 ```
 
 **Expected Outcome:**
+
 - `SpecAgent` is constructable class
 - `specAgent` is pre-instantiated singleton
 - Can create custom instances: `new SpecAgent({ model: 'custom' })`
 
 ### PC-4: Logging Infrastructure
+
 **Description:** Logging includes timestamps, levels, and structured metadata
 
 **Verification Method:**
+
 ```typescript
-import { specAgent } from './agents/spec-agent/index.js';
+import { specAgent } from "./agents/spec-agent/index.js";
 // Observe console output on initialization
 // Check for: [SpecAgent] <ISO timestamp> INFO: Initialized with model...
 ```
@@ -295,9 +341,11 @@ import { specAgent } from './agents/spec-agent/index.js';
 **Expected Outcome:** All log messages follow format: `[SpecAgent] <timestamp> <LEVEL>: <message>`
 
 ### PC-5: TypeScript Compilation
+
 **Description:** Code compiles without errors
 
 **Verification Method:**
+
 ```bash
 npx tsc --noEmit
 ```
@@ -305,31 +353,36 @@ npx tsc --noEmit
 **Expected Outcome:** Exit code 0, no type errors
 
 ### PC-6: Token Tracking
+
 **Description:** Agent tracks token usage across API calls
 
 **Verification Method:**
+
 ```typescript
-import { specAgent } from './agents/spec-agent/index.js';
+import { specAgent } from "./agents/spec-agent/index.js";
 const initialTokens = specAgent.getTokensUsed(); // Should be 0
 specAgent.resetTokenCounter();
 const afterReset = specAgent.getTokensUsed(); // Should be 0
 ```
 
 **Expected Outcome:**
+
 - `getTokensUsed()` returns number
 - `resetTokenCounter()` resets to 0
 
 ### PC-7: Type Exports
+
 **Description:** All types are properly exported and importable
 
 **Verification Method:**
+
 ```typescript
 import type {
   SpecificationBrief,
   TechnicalSpecification,
   SpecAgentOutput,
   SpecAgentOptions,
-} from './agents/spec-agent/index.js';
+} from "./agents/spec-agent/index.js";
 ```
 
 **Expected Outcome:** TypeScript resolves all type imports without errors
@@ -337,24 +390,28 @@ import type {
 ## Dependencies
 
 ### DEP-1: Anthropic Client Utility
+
 **Type:** File
 **Name:** `utils/anthropic-client.ts`
 **Required:** Yes
 **Reason:** Provides `createAnthropicClient()` and `AnthropicClient` type for API communication
 
 ### DEP-2: Types File
+
 **Type:** File
 **Name:** `agents/spec-agent/types.ts`
 **Required:** Yes
 **Reason:** Defines all type interfaces for the agent
 
 ### DEP-3: Anthropic SDK
+
 **Type:** Library
 **Name:** `@anthropic-ai/sdk`
 **Required:** Yes
 **Reason:** Underlying SDK for Claude API calls (via anthropic-client wrapper)
 
 ### DEP-4: UUID Library
+
 **Type:** Library
 **Name:** `uuid`
 **Required:** No (future)
@@ -394,35 +451,42 @@ import type {
 ### ✅ All Pass Criteria Met
 
 **PC-1: File Creation** ✅
+
 - `agents/spec-agent/index.ts` exists (13,564 bytes, 493 lines)
 - `agents/spec-agent/types.ts` exists (5,142 bytes, 214 lines)
 
 **PC-2: Opus Model Initialization** ✅
+
 - Line 22: `const DEFAULT_MODEL = "claude-opus-4-6";`
 - Line 51: `this.model = options.model || DEFAULT_MODEL;`
 - Agent uses Opus 4.6 by default
 
 **PC-3: Singleton Pattern** ✅
+
 - Lines 461-470: `getSpecAgent()` factory with singleton logic
 - Lines 476-478: `createSpecAgent()` for non-singleton instances
 - Both class and factory function exported
 
 **PC-4: Logging Infrastructure** ✅
+
 - Line 428-437: `private log()` with ISO 8601 timestamps
 - Line 443-457: `private logError()` with stack traces
 - Format: `[SpecAgent <timestamp>] <message> <metadata>`
 - Structured metadata support
 
 **PC-5: TypeScript Compilation** ✅
+
 - Command: `npx tsc --noEmit`
 - Result: Exit code 0, no compilation errors
 
 **PC-6: Token Tracking** ✅
+
 - Line 46: `private totalTokensUsed: number = 0`
 - Lines 343-353: Token accumulation on API calls
 - Lines 414-423: `getTokensUsed()` and `resetTokenCounter()` methods
 
 **PC-7: Type Exports** ✅
+
 - Lines 481-492: Re-exports all types from types.ts
 - All types properly exported and importable
 
@@ -467,6 +531,7 @@ import type {
 **Actual Time:** ~2 hours (estimated based on comprehensive implementation)
 
 **Implementation went beyond spec:**
+
 - Initial spec: Initialization module only
 - Actual: Full specification generation capability
 - Additional: Prompt engineering, JSON parsing, breakdown generation

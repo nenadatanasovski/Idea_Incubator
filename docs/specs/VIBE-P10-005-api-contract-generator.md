@@ -16,6 +16,7 @@ Implement an API Contract Generator that transforms natural language API require
 ### Problem Statement
 
 **Current State:**
+
 - Architect Agent has `APIContract` interface defined in types (line 89-101 of `agents/architect/types.ts`)
 - `API_CONTRACT_PROMPT` exists for guiding API design (line 120-158 of `agents/architect/prompts.ts`)
 - No automated generation of OpenAPI 3.0 specifications from requirements
@@ -24,6 +25,7 @@ Implement an API Contract Generator that transforms natural language API require
 - No standardized example generation for endpoints
 
 **Desired State:**
+
 - `APIContractGenerator` class at `agents/architect/generators/api-contract-generator.ts`
 - Parser that extracts API requirements from natural language
 - Generator that produces valid OpenAPI 3.0 YAML specifications
@@ -54,6 +56,7 @@ The API Contract Generator is the **"API Documentation Automation Engine"** that
 #### 1. Natural Language Requirements Parser
 
 **FR-1.1: Endpoint Extraction**
+
 - Parse natural language text to identify API endpoints
 - Extract endpoint patterns: `GET /users/{id}`, `POST /auth/login`, etc.
 - Recognize HTTP methods: GET, POST, PUT, PATCH, DELETE
@@ -62,6 +65,7 @@ The API Contract Generator is the **"API Documentation Automation Engine"** that
 - Support grouping endpoints by resource or tag
 
 **FR-1.2: Schema Inference**
+
 - Identify request body structure from requirements
 - Identify response body structure from requirements
 - Infer data types: string, number, integer, boolean, array, object
@@ -70,6 +74,7 @@ The API Contract Generator is the **"API Documentation Automation Engine"** that
 - Support schema references for reusable components
 
 **FR-1.3: Authentication Requirements**
+
 - Identify authentication mechanisms: JWT, OAuth2, API Key, Basic Auth
 - Extract token location: header, query, cookie
 - Parse OAuth2 flows: authorization code, implicit, client credentials, password
@@ -77,6 +82,7 @@ The API Contract Generator is the **"API Documentation Automation Engine"** that
 - Support multiple authentication schemes per endpoint
 
 **FR-1.4: Status Code Detection**
+
 - Identify success responses (200, 201, 204)
 - Identify client error responses (400, 401, 403, 404)
 - Identify server error responses (500, 503)
@@ -86,29 +92,32 @@ The API Contract Generator is the **"API Documentation Automation Engine"** that
 #### 2. APIContractGenerator Class
 
 **FR-2.1: Class Structure**
+
 ```typescript
 class APIContractGenerator {
-  constructor(config?: APIContractGeneratorConfig)
-  generateSpec(requirements: APIRequirements): Promise<OpenAPISpec>
-  generateYAML(spec: OpenAPISpec): string
-  validate(yaml: string): Promise<ValidationResult>
-  parseRequirements(text: string): Promise<APIRequirements>
+  constructor(config?: APIContractGeneratorConfig);
+  generateSpec(requirements: APIRequirements): Promise<OpenAPISpec>;
+  generateYAML(spec: OpenAPISpec): string;
+  validate(yaml: string): Promise<ValidationResult>;
+  parseRequirements(text: string): Promise<APIRequirements>;
 }
 ```
 
 **FR-2.2: Configuration Options**
+
 ```typescript
 interface APIContractGeneratorConfig {
-  defaultVersion?: string;        // Default: "1.0.0"
-  baseUrl?: string;                // Default: "https://api.example.com"
-  includeExamples?: boolean;       // Default: true
-  includeSchemas?: boolean;        // Default: true
-  authDefaults?: SecurityScheme;   // Default auth scheme
-  verbose?: boolean;               // Default: false
+  defaultVersion?: string; // Default: "1.0.0"
+  baseUrl?: string; // Default: "https://api.example.com"
+  includeExamples?: boolean; // Default: true
+  includeSchemas?: boolean; // Default: true
+  authDefaults?: SecurityScheme; // Default auth scheme
+  verbose?: boolean; // Default: false
 }
 ```
 
 **FR-2.3: Core Capabilities**
+
 - Generate complete OpenAPI 3.0 specification object
 - Convert specification object to valid YAML format
 - Validate generated YAML against OpenAPI 3.0 schema
@@ -120,6 +129,7 @@ interface APIContractGeneratorConfig {
 
 **FR-3.1: OpenAPI Structure**
 Generate complete OpenAPI 3.0 spec with:
+
 - `openapi: "3.0.3"` version declaration
 - `info` object: title, version, description, contact, license
 - `servers` array: URLs for different environments (dev, staging, prod)
@@ -130,6 +140,7 @@ Generate complete OpenAPI 3.0 spec with:
 
 **FR-3.2: Path Item Generation**
 For each endpoint generate:
+
 - Operation ID (unique identifier)
 - Summary (brief description)
 - Description (detailed explanation)
@@ -142,6 +153,7 @@ For each endpoint generate:
 
 **FR-3.3: Schema Generation**
 Generate JSON Schema definitions with:
+
 - Type specification (string, number, integer, boolean, array, object, null)
 - Format hints (date-time, email, uri, uuid, etc.)
 - Validation constraints:
@@ -158,6 +170,7 @@ Generate JSON Schema definitions with:
 
 **FR-3.4: Security Scheme Generation**
 Generate security scheme definitions:
+
 - **JWT/Bearer**: `type: http`, `scheme: bearer`, `bearerFormat: JWT`
 - **OAuth2**: `type: oauth2`, flows (authorizationCode, implicit, clientCredentials, password)
 - **API Key**: `type: apiKey`, `in: header|query|cookie`, `name: X-API-Key`
@@ -168,6 +181,7 @@ Generate security scheme definitions:
 
 **FR-4.1: Request Examples**
 Generate realistic examples for:
+
 - Path parameters: `{ "id": "123e4567-e89b-12d3-a456-426614174000" }`
 - Query parameters: `{ "limit": 10, "offset": 0, "sort": "created_at" }`
 - Request bodies:
@@ -178,6 +192,7 @@ Generate realistic examples for:
 
 **FR-4.2: Response Examples**
 Generate examples for each status code:
+
 - `200 OK`: Success response with full data structure
 - `201 Created`: Created resource with ID and metadata
 - `400 Bad Request`: Validation error with field-level details
@@ -187,6 +202,7 @@ Generate examples for each status code:
 
 **FR-4.3: Example Value Inference**
 Infer realistic values based on field names:
+
 - `id`, `uuid`: UUID v4 format
 - `email`: `user@example.com`
 - `name`, `firstName`, `lastName`: Common names
@@ -199,6 +215,7 @@ Infer realistic values based on field names:
 
 **FR-5.1: API Version Strategies**
 Support multiple versioning approaches:
+
 - **Path-based**: `/v1/users`, `/v2/users`
 - **Header-based**: `Accept: application/vnd.api.v1+json`
 - **Query parameter**: `/users?version=1`
@@ -206,6 +223,7 @@ Support multiple versioning approaches:
 
 **FR-5.2: Version Metadata**
 Include version information:
+
 - `info.version`: Semantic version (e.g., "1.2.0")
 - `servers` URLs reflecting versioned paths
 - Deprecation notices for old versions
@@ -216,6 +234,7 @@ Include version information:
 
 **FR-6.1: Schema Validation**
 Validate generated YAML:
+
 - Use `swagger-cli validate` for OpenAPI 3.0 compliance
 - Check required fields are present
 - Verify schema references are valid
@@ -223,6 +242,7 @@ Validate generated YAML:
 - Validate security scheme references
 
 **FR-6.2: Validation Result**
+
 ```typescript
 interface ValidationResult {
   valid: boolean;
@@ -234,13 +254,14 @@ interface ValidationResult {
 interface ValidationError {
   path: string;
   message: string;
-  severity: 'error' | 'warning';
+  severity: "error" | "warning";
 }
 ```
 
 ### Non-Functional Requirements
 
 **NFR-1: Specification Quality**
+
 - Generated specs must pass `swagger-cli validate` with zero errors
 - All endpoints must include descriptions and examples
 - Schemas must be fully typed with validation rules
@@ -248,25 +269,29 @@ interface ValidationError {
 - Generated YAML must be properly formatted and human-readable
 
 **NFR-2: Performance**
+
 - Generate OpenAPI spec from requirements in < 5 seconds
 - Parse requirements text in < 2 seconds
 - YAML generation and validation in < 1 second
 - Support specs with 100+ endpoints without performance degradation
 
 **NFR-3: Extensibility**
+
 - Support custom authentication schemes
 - Allow custom schema templates
 - Enable custom example generators
-- Support OpenAPI extensions (x-* fields)
+- Support OpenAPI extensions (x-\* fields)
 - Pluggable requirement parsers for different formats
 
 **NFR-4: Type Safety**
+
 - All generator methods strongly typed
 - OpenAPI spec types match specification exactly
 - No `any` types in public APIs
 - Compile-time safety for schema generation
 
 **NFR-5: Error Handling**
+
 - Clear error messages for malformed requirements
 - Validation errors include line numbers and paths
 - Graceful degradation for partial requirements
@@ -337,7 +362,7 @@ export interface APIRequirements {
 
 export interface EndpointRequirement {
   path: string;
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   summary: string;
   description?: string;
   tags?: string[];
@@ -350,7 +375,7 @@ export interface EndpointRequirement {
 
 export interface ParameterRequirement {
   name: string;
-  in: 'path' | 'query' | 'header' | 'cookie';
+  in: "path" | "query" | "header" | "cookie";
   type: string;
   required: boolean;
   description?: string;
@@ -360,7 +385,7 @@ export interface ParameterRequirement {
 }
 
 export interface SchemaRequirement {
-  type: 'object' | 'array' | 'string' | 'number' | 'integer' | 'boolean';
+  type: "object" | "array" | "string" | "number" | "integer" | "boolean";
   properties?: Record<string, PropertyRequirement>;
   items?: SchemaRequirement;
   required?: string[];
@@ -402,10 +427,10 @@ export interface HeaderRequirement {
 }
 
 export interface AuthRequirement {
-  type: 'jwt' | 'oauth2' | 'apikey' | 'basic' | 'custom';
+  type: "jwt" | "oauth2" | "apikey" | "basic" | "custom";
   scheme?: string;
   bearerFormat?: string;
-  location?: 'header' | 'query' | 'cookie';
+  location?: "header" | "query" | "cookie";
   name?: string;
   flows?: OAuth2Flows;
   description?: string;
@@ -434,7 +459,7 @@ export interface TagRequirement {
  * OpenAPI 3.0 Specification Types
  */
 export interface OpenAPISpec {
-  openapi: '3.0.3';
+  openapi: "3.0.3";
   info: InfoObject;
   servers?: ServerObject[];
   paths: PathsObject;
@@ -503,7 +528,7 @@ export interface OperationObject {
 
 export interface ParameterObject {
   name: string;
-  in: 'path' | 'query' | 'header' | 'cookie';
+  in: "path" | "query" | "header" | "cookie";
   description?: string;
   required?: boolean;
   deprecated?: boolean;
@@ -574,10 +599,10 @@ export interface ComponentsObject {
 }
 
 export interface SecuritySchemeObject {
-  type: 'apiKey' | 'http' | 'oauth2' | 'openIdConnect';
+  type: "apiKey" | "http" | "oauth2" | "openIdConnect";
   description?: string;
   name?: string;
-  in?: 'query' | 'header' | 'cookie';
+  in?: "query" | "header" | "cookie";
   scheme?: string;
   bearerFormat?: string;
   flows?: OAuth2FlowsObject;
@@ -640,7 +665,7 @@ export interface ValidationResult {
 export interface ValidationError {
   path: string;
   message: string;
-  severity: 'error' | 'warning';
+  severity: "error" | "warning";
   line?: number;
   column?: number;
 }
@@ -651,8 +676,8 @@ export interface ValidationError {
 ```typescript
 // agents/architect/generators/api-contract-generator.ts
 
-import yaml from 'js-yaml';
-import { v4 as uuid } from 'uuid';
+import yaml from "js-yaml";
+import { v4 as uuid } from "uuid";
 import {
   APIRequirements,
   OpenAPISpec,
@@ -664,7 +689,7 @@ import {
   OperationObject,
   SchemaObject,
   ComponentsObject,
-} from './types.js';
+} from "./types.js";
 
 /**
  * API Contract Generator
@@ -677,11 +702,11 @@ export class APIContractGenerator {
 
   constructor(config: APIContractGeneratorConfig = {}) {
     this.config = {
-      defaultVersion: config.defaultVersion || '1.0.0',
-      baseUrl: config.baseUrl || 'https://api.example.com',
+      defaultVersion: config.defaultVersion || "1.0.0",
+      baseUrl: config.baseUrl || "https://api.example.com",
       includeExamples: config.includeExamples !== false,
       includeSchemas: config.includeSchemas !== false,
-      authDefaults: config.authDefaults || { type: 'jwt' },
+      authDefaults: config.authDefaults || { type: "jwt" },
       verbose: config.verbose || false,
       yamlIndent: config.yamlIndent || 2,
       useRefs: config.useRefs !== false,
@@ -693,11 +718,11 @@ export class APIContractGenerator {
    */
   async generateSpec(requirements: APIRequirements): Promise<OpenAPISpec> {
     const spec: OpenAPISpec = {
-      openapi: '3.0.3',
+      openapi: "3.0.3",
       info: this.buildInfo(requirements),
       servers: this.buildServers(requirements),
       paths: this.buildPaths(requirements),
-      tags: requirements.tags?.map(tag => ({
+      tags: requirements.tags?.map((tag) => ({
         name: tag.name,
         description: tag.description,
       })),
@@ -737,31 +762,31 @@ export class APIContractGenerator {
       const spec = yaml.load(yamlContent) as OpenAPISpec;
 
       // Basic validation
-      const errors: ValidationResult['errors'] = [];
+      const errors: ValidationResult["errors"] = [];
       const warnings: string[] = [];
 
       // Check required fields
       if (!spec.openapi) {
         errors.push({
-          path: '/openapi',
-          message: 'Missing required field: openapi',
-          severity: 'error',
+          path: "/openapi",
+          message: "Missing required field: openapi",
+          severity: "error",
         });
       }
 
       if (!spec.info) {
         errors.push({
-          path: '/info',
-          message: 'Missing required field: info',
-          severity: 'error',
+          path: "/info",
+          message: "Missing required field: info",
+          severity: "error",
         });
       }
 
       if (!spec.paths || Object.keys(spec.paths).length === 0) {
         errors.push({
-          path: '/paths',
-          message: 'Paths object is empty or missing',
-          severity: 'error',
+          path: "/paths",
+          message: "Paths object is empty or missing",
+          severity: "error",
         });
       }
 
@@ -774,7 +799,7 @@ export class APIContractGenerator {
               errors.push({
                 path: `/security/${schemeName}`,
                 message: `Security scheme '${schemeName}' not defined in components`,
-                severity: 'error',
+                severity: "error",
               });
             }
           }
@@ -786,11 +811,11 @@ export class APIContractGenerator {
 
       // Additional warnings
       if (!spec.servers || spec.servers.length === 0) {
-        warnings.push('No servers defined - consider adding server URLs');
+        warnings.push("No servers defined - consider adding server URLs");
       }
 
       return {
-        valid: errors.filter(e => e.severity === 'error').length === 0,
+        valid: errors.filter((e) => e.severity === "error").length === 0,
         errors,
         warnings,
         spec,
@@ -798,11 +823,13 @@ export class APIContractGenerator {
     } catch (error) {
       return {
         valid: false,
-        errors: [{
-          path: '/',
-          message: `YAML parsing error: ${error instanceof Error ? error.message : String(error)}`,
-          severity: 'error',
-        }],
+        errors: [
+          {
+            path: "/",
+            message: `YAML parsing error: ${error instanceof Error ? error.message : String(error)}`,
+            severity: "error",
+          },
+        ],
         warnings: [],
       };
     }
@@ -814,7 +841,9 @@ export class APIContractGenerator {
   async parseRequirements(text: string): Promise<APIRequirements> {
     // TODO: Integrate with LLM to parse natural language
     // For now, this is a placeholder that would be enhanced with AI
-    throw new Error('Natural language parsing not yet implemented. Use structured APIRequirements instead.');
+    throw new Error(
+      "Natural language parsing not yet implemented. Use structured APIRequirements instead.",
+    );
   }
 
   // ========== Private Helper Methods ==========
@@ -832,7 +861,7 @@ export class APIContractGenerator {
     return [
       {
         url: baseUrl,
-        description: 'Production server',
+        description: "Production server",
       },
     ];
   }
@@ -847,7 +876,12 @@ export class APIContractGenerator {
         paths[path] = {};
       }
 
-      const method = endpoint.method.toLowerCase() as 'get' | 'post' | 'put' | 'patch' | 'delete';
+      const method = endpoint.method.toLowerCase() as
+        | "get"
+        | "post"
+        | "put"
+        | "patch"
+        | "delete";
       paths[path][method] = this.buildOperation(endpoint);
     }
 
@@ -867,14 +901,14 @@ export class APIContractGenerator {
 
     // Add parameters
     if (endpoint.parameters && endpoint.parameters.length > 0) {
-      operation.parameters = endpoint.parameters.map(param => ({
+      operation.parameters = endpoint.parameters.map((param) => ({
         name: param.name,
         in: param.in,
         description: param.description,
         required: param.required,
         schema: this.buildParameterSchema(param),
         example: this.config.includeExamples
-          ? (param.example || this.generateExampleValue(param.name, param.type))
+          ? param.example || this.generateExampleValue(param.name, param.type)
           : undefined,
       }));
     }
@@ -884,7 +918,7 @@ export class APIContractGenerator {
       operation.requestBody = {
         required: true,
         content: {
-          'application/json': {
+          "application/json": {
             schema: this.buildSchema(endpoint.requestBody),
             example: this.config.includeExamples
               ? this.generateSchemaExample(endpoint.requestBody)
@@ -907,7 +941,7 @@ export class APIContractGenerator {
   }
 
   private buildResponses(endpoint: EndpointRequirement) {
-    const responses: OperationObject['responses'] = {};
+    const responses: OperationObject["responses"] = {};
 
     for (const response of endpoint.responses) {
       const statusCode = String(response.status);
@@ -918,10 +952,10 @@ export class APIContractGenerator {
 
       if (response.schema) {
         responses[statusCode].content = {
-          'application/json': {
+          "application/json": {
             schema: this.buildSchema(response.schema),
             example: this.config.includeExamples
-              ? (response.example || this.generateSchemaExample(response.schema))
+              ? response.example || this.generateSchemaExample(response.schema)
               : undefined,
           },
         };
@@ -947,14 +981,16 @@ export class APIContractGenerator {
       description: schemaReq.description,
     };
 
-    if (schemaReq.type === 'object' && schemaReq.properties) {
+    if (schemaReq.type === "object" && schemaReq.properties) {
       schema.properties = {};
       for (const [name, prop] of Object.entries(schemaReq.properties)) {
         schema.properties[name] = {
           type: prop.type,
           format: prop.format,
           description: prop.description,
-          example: this.config.includeExamples ? this.generateExampleValue(name, prop.type) : undefined,
+          example: this.config.includeExamples
+            ? this.generateExampleValue(name, prop.type)
+            : undefined,
           ...(prop.validation || {}),
         };
       }
@@ -964,7 +1000,7 @@ export class APIContractGenerator {
       }
     }
 
-    if (schemaReq.type === 'array' && schemaReq.items) {
+    if (schemaReq.type === "array" && schemaReq.items) {
       schema.items = this.buildSchema(schemaReq.items);
     }
 
@@ -996,40 +1032,40 @@ export class APIContractGenerator {
 
   private buildSecurityScheme(auth: any) {
     switch (auth.type) {
-      case 'jwt':
+      case "jwt":
         return {
-          type: 'http' as const,
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          description: auth.description || 'JWT Bearer token authentication',
+          type: "http" as const,
+          scheme: "bearer",
+          bearerFormat: "JWT",
+          description: auth.description || "JWT Bearer token authentication",
         };
 
-      case 'apikey':
+      case "apikey":
         return {
-          type: 'apiKey' as const,
-          in: auth.location || 'header',
-          name: auth.name || 'X-API-Key',
-          description: auth.description || 'API key authentication',
+          type: "apiKey" as const,
+          in: auth.location || "header",
+          name: auth.name || "X-API-Key",
+          description: auth.description || "API key authentication",
         };
 
-      case 'oauth2':
+      case "oauth2":
         return {
-          type: 'oauth2' as const,
+          type: "oauth2" as const,
           flows: auth.flows,
-          description: auth.description || 'OAuth 2.0 authentication',
+          description: auth.description || "OAuth 2.0 authentication",
         };
 
-      case 'basic':
+      case "basic":
         return {
-          type: 'http' as const,
-          scheme: 'basic',
-          description: auth.description || 'HTTP Basic authentication',
+          type: "http" as const,
+          scheme: "basic",
+          description: auth.description || "HTTP Basic authentication",
         };
 
       default:
         return {
-          type: 'http' as const,
-          scheme: 'bearer',
+          type: "http" as const,
+          scheme: "bearer",
         };
     }
   }
@@ -1043,61 +1079,74 @@ export class APIContractGenerator {
     // e.g., GET /users/{id} -> getUsersById
     const method = endpoint.method.toLowerCase();
     const pathParts = endpoint.path
-      .split('/')
-      .filter(p => p && !p.startsWith('{'))
-      .map((p, i) => i === 0 ? p : p.charAt(0).toUpperCase() + p.slice(1));
+      .split("/")
+      .filter((p) => p && !p.startsWith("{"))
+      .map((p, i) => (i === 0 ? p : p.charAt(0).toUpperCase() + p.slice(1)));
 
-    return method + pathParts.join('');
+    return method + pathParts.join("");
   }
 
   private generateExampleValue(fieldName: string, type: string): unknown {
     const lowerName = fieldName.toLowerCase();
 
     // UUID/ID fields
-    if (lowerName.includes('id') || lowerName.includes('uuid')) {
+    if (lowerName.includes("id") || lowerName.includes("uuid")) {
       return uuid();
     }
 
     // Email fields
-    if (lowerName.includes('email')) {
-      return 'user@example.com';
+    if (lowerName.includes("email")) {
+      return "user@example.com";
     }
 
     // Name fields
-    if (lowerName.includes('name')) {
-      if (lowerName.includes('first')) return 'John';
-      if (lowerName.includes('last')) return 'Doe';
-      return 'Example Name';
+    if (lowerName.includes("name")) {
+      if (lowerName.includes("first")) return "John";
+      if (lowerName.includes("last")) return "Doe";
+      return "Example Name";
     }
 
     // Timestamp fields
-    if (lowerName.includes('created') || lowerName.includes('updated') || lowerName.includes('date') || lowerName.includes('time')) {
+    if (
+      lowerName.includes("created") ||
+      lowerName.includes("updated") ||
+      lowerName.includes("date") ||
+      lowerName.includes("time")
+    ) {
       return new Date().toISOString();
     }
 
     // URL fields
-    if (lowerName.includes('url') || lowerName.includes('link')) {
-      return 'https://example.com';
+    if (lowerName.includes("url") || lowerName.includes("link")) {
+      return "https://example.com";
     }
 
     // Count/numeric fields
-    if (lowerName.includes('count') || lowerName.includes('total') || lowerName.includes('number')) {
+    if (
+      lowerName.includes("count") ||
+      lowerName.includes("total") ||
+      lowerName.includes("number")
+    ) {
       return 42;
     }
 
     // Price/amount fields
-    if (lowerName.includes('price') || lowerName.includes('amount') || lowerName.includes('cost')) {
+    if (
+      lowerName.includes("price") ||
+      lowerName.includes("amount") ||
+      lowerName.includes("cost")
+    ) {
       return 99.99;
     }
 
     // Default by type
     switch (type) {
-      case 'string':
-        return 'example string';
-      case 'integer':
-      case 'number':
+      case "string":
+        return "example string";
+      case "integer":
+      case "number":
         return 0;
-      case 'boolean':
+      case "boolean":
         return true;
       default:
         return null;
@@ -1109,7 +1158,7 @@ export class APIContractGenerator {
       return schema.example;
     }
 
-    if (schema.type === 'object' && schema.properties) {
+    if (schema.type === "object" && schema.properties) {
       const example: Record<string, unknown> = {};
       for (const [name, prop] of Object.entries(schema.properties)) {
         example[name] = this.generateExampleValue(name, prop.type);
@@ -1117,25 +1166,28 @@ export class APIContractGenerator {
       return example;
     }
 
-    if (schema.type === 'array' && schema.items) {
+    if (schema.type === "array" && schema.items) {
       return [this.generateSchemaExample(schema.items)];
     }
 
-    return this.generateExampleValue('value', schema.type);
+    return this.generateExampleValue("value", schema.type);
   }
 
-  private validateSchemaRefs(spec: OpenAPISpec, errors: ValidationResult['errors']): void {
+  private validateSchemaRefs(
+    spec: OpenAPISpec,
+    errors: ValidationResult["errors"],
+  ): void {
     const schemas = spec.components?.schemas || {};
 
     // Helper to check if $ref exists
     const checkRef = (ref: string, path: string) => {
-      if (ref.startsWith('#/components/schemas/')) {
-        const schemaName = ref.replace('#/components/schemas/', '');
+      if (ref.startsWith("#/components/schemas/")) {
+        const schemaName = ref.replace("#/components/schemas/", "");
         if (!schemas[schemaName]) {
           errors.push({
             path,
             message: `Schema reference '${ref}' not found in components`,
-            severity: 'error',
+            severity: "error",
           });
         }
       }
@@ -1144,13 +1196,22 @@ export class APIContractGenerator {
     // Validate refs in paths
     for (const [path, pathItem] of Object.entries(spec.paths)) {
       for (const [method, operation] of Object.entries(pathItem)) {
-        if (typeof operation === 'object' && operation !== null && 'responses' in operation) {
+        if (
+          typeof operation === "object" &&
+          operation !== null &&
+          "responses" in operation
+        ) {
           // Check response schemas
-          for (const [status, response] of Object.entries((operation as OperationObject).responses)) {
-            if ('content' in response && response.content) {
+          for (const [status, response] of Object.entries(
+            (operation as OperationObject).responses,
+          )) {
+            if ("content" in response && response.content) {
               for (const mediaType of Object.values(response.content)) {
                 if (mediaType.schema?.$ref) {
-                  checkRef(mediaType.schema.$ref, `${path}.${method}.responses.${status}`);
+                  checkRef(
+                    mediaType.schema.$ref,
+                    `${path}.${method}.responses.${status}`,
+                  );
                 }
               }
             }
@@ -1164,7 +1225,9 @@ export class APIContractGenerator {
 /**
  * Factory function to create generator with defaults
  */
-export function createAPIContractGenerator(config?: APIContractGeneratorConfig): APIContractGenerator {
+export function createAPIContractGenerator(
+  config?: APIContractGeneratorConfig,
+): APIContractGenerator {
   return new APIContractGenerator(config);
 }
 ```
@@ -1248,16 +1311,19 @@ export function createAPIContractGenerator(config?: APIContractGeneratorConfig):
 ## Dependencies
 
 ### Required
+
 - **js-yaml** - YAML parsing and serialization (already in project)
 - **uuid** - UUID generation for examples (already in project)
 - Architect Agent types (`agents/architect/types.ts`) - EXISTS ✅
 - TypeScript compiler - EXISTS ✅
 
 ### Optional
+
 - **swagger-cli** - OpenAPI validation (install: `npm install -D swagger-cli`)
 - **openapi-types** - TypeScript types for OpenAPI 3.0 (install: `npm install -D openapi-types`)
 
 ### Blocked By
+
 - None (can be implemented independently)
 
 ---
@@ -1265,6 +1331,7 @@ export function createAPIContractGenerator(config?: APIContractGeneratorConfig):
 ## Implementation Notes
 
 ### File Creation Order
+
 1. Create `generators/types.ts` with all TypeScript interfaces
 2. Create `generators/api-contract-generator.ts` with main class
 3. Create `generators/index.ts` to export public APIs
@@ -1272,9 +1339,11 @@ export function createAPIContractGenerator(config?: APIContractGeneratorConfig):
 5. Integrate with Architect Agent's `generateAPIContract()` method
 
 ### OpenAPI 3.0 Specification
+
 Reference: https://swagger.io/specification/
 
 Key sections:
+
 - **openapi**: Version string (must be "3.0.x")
 - **info**: Metadata about the API
 - **servers**: API server URLs
@@ -1284,7 +1353,9 @@ Key sections:
 - **tags**: Grouping and organization
 
 ### Example Value Generation Strategy
+
 Use field name patterns to infer realistic values:
+
 - `*id`, `*uuid` → UUID v4
 - `*email` → `user@example.com`
 - `*name` → Context-appropriate name
@@ -1294,11 +1365,13 @@ Use field name patterns to infer realistic values:
 - `*price`, `*amount` → Decimal number
 
 ### Validation Strategy
+
 Phase 1: Internal validation (check required fields, refs)
 Phase 2: Integrate swagger-cli for full validation
 Phase 3: Schema-level validation for examples
 
 ### Integration with Architect Agent
+
 ```typescript
 // In architect-agent.ts
 async generateAPIContract(requirements: string): Promise<APIContract> {
@@ -1328,6 +1401,7 @@ async generateAPIContract(requirements: string): Promise<APIContract> {
 ## Future Enhancements
 
 ### Phase 2 Additions (Post-MVP)
+
 - **GraphQL Schema Generation** - Generate GraphQL SDL from requirements
 - **gRPC Proto Generation** - Generate Protocol Buffer definitions
 - **Postman Collection Export** - Convert OpenAPI to Postman collection
@@ -1335,6 +1409,7 @@ async generateAPIContract(requirements: string): Promise<APIContract> {
 - **Mock Server** - Generate mock API server from spec
 
 ### Advanced Features
+
 - **AI-Powered Parsing** - Use LLM to parse natural language requirements
 - **Schema Inference** - Automatically infer schemas from example data
 - **Versioning Strategy** - Automated version bumping and changelog
@@ -1342,6 +1417,7 @@ async generateAPIContract(requirements: string): Promise<APIContract> {
 - **Performance Annotations** - Add caching, rate limiting metadata
 
 ### Integration Points
+
 - **Architect Agent** - Use generator in `generateAPIContract()` method
 - **Build Agent** - Generate API implementation stubs from spec
 - **QA Agent** - Validate implementation matches spec
@@ -1352,6 +1428,7 @@ async generateAPIContract(requirements: string): Promise<APIContract> {
 ## Success Metrics
 
 ### Implementation Success
+
 - All 8 "Must Pass" criteria verified ✅
 - TypeScript compilation clean with no errors ✅
 - Generated YAML passes `swagger-cli validate` ✅
@@ -1359,6 +1436,7 @@ async generateAPIContract(requirements: string): Promise<APIContract> {
 - Security definitions are complete ✅
 
 ### Usage Success (Post-Implementation)
+
 - Architect Agent successfully generates API contracts from requirements
 - Generated OpenAPI specs are used in development workflow
 - Developers report time savings from automated spec generation
@@ -1369,16 +1447,19 @@ async generateAPIContract(requirements: string): Promise<APIContract> {
 ## References
 
 ### Related Tasks
+
 - VIBE-P10-001: Architect Agent Base (uses APIContract interface)
 - VIBE-P10-002: Architecture Template System (API templates)
 - VIBE-P10-003: Tech Stack Decision Tree (API framework choices)
 
 ### Similar Patterns in Codebase
+
 - `agents/specification/task-generator.ts` - Generator pattern example
 - `agents/architect/types.ts` - APIContract interface (lines 89-101)
 - `agents/architect/prompts.ts` - API_CONTRACT_PROMPT (lines 120-158)
 
 ### External References
+
 - OpenAPI 3.0 Specification: https://swagger.io/specification/
 - OpenAPI Examples: https://github.com/OAI/OpenAPI-Specification/tree/main/examples
 - swagger-cli: https://github.com/APIDevTools/swagger-cli

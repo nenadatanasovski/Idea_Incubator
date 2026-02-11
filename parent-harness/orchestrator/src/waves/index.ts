@@ -1,22 +1,22 @@
 /**
  * Wave Execution System
- * 
+ *
  * Manages parallel execution of tasks in waves.
  * Each wave contains independent tasks that can run concurrently.
  * Tasks depend on previous waves being complete.
  */
 
-import { query, run, getOne } from '../db/index.js';
-import * as tasks from '../db/tasks.js';
-import { events } from '../db/events.js';
-import { ws } from '../websocket.js';
-import { v4 as uuidv4 } from 'uuid';
+import { query, run, getOne } from "../db/index.js";
+import * as tasks from "../db/tasks.js";
+import { events } from "../db/events.js";
+import { ws } from "../websocket.js";
+import { v4 as uuidv4 } from "uuid";
 
 export interface Wave {
   id: string;
   run_id: string;
   wave_number: number;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: "pending" | "running" | "completed" | "failed";
   task_ids: string[];
   started_at: string | null;
   completed_at: string | null;
@@ -26,7 +26,7 @@ export interface Wave {
 export interface WaveRun {
   id: string;
   task_list_id: string;
-  status: 'planning' | 'running' | 'completed' | 'failed' | 'cancelled';
+  status: "planning" | "running" | "completed" | "failed" | "cancelled";
   total_waves: number;
   current_wave: number;
   started_at: string;
@@ -36,7 +36,8 @@ export interface WaveRun {
 
 // Ensure wave tables exist
 function ensureWaveTables(): void {
-  run(`
+  run(
+    `
     CREATE TABLE IF NOT EXISTS wave_runs (
       id TEXT PRIMARY KEY,
       task_list_id TEXT NOT NULL,
@@ -47,9 +48,12 @@ function ensureWaveTables(): void {
       completed_at TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     )
-  `, []);
+  `,
+    [],
+  );
 
-  run(`
+  run(
+    `
     CREATE TABLE IF NOT EXISTS waves (
       id TEXT PRIMARY KEY,
       run_id TEXT NOT NULL,
@@ -61,7 +65,9 @@ function ensureWaveTables(): void {
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (run_id) REFERENCES wave_runs(id)
     )
-  `, []);
+  `,
+    [],
+  );
 
   run(`CREATE INDEX IF NOT EXISTS idx_waves_run ON waves(run_id)`, []);
 }
@@ -73,14 +79,17 @@ ensureWaveTables();
  */
 export function planWaves(taskListId: string): WaveRun {
   const allTasks = tasks.getTasks({ taskListId });
-  
+
   // Get task dependencies
-  const dependencies = query<{ source_task_id: string; target_task_id: string }>(
+  const dependencies = query<{
+    source_task_id: string;
+    target_task_id: string;
+  }>(
     `SELECT source_task_id, target_task_id 
      FROM task_relationships 
      WHERE relationship_type = 'depends_on'
      AND source_task_id IN (SELECT id FROM tasks WHERE task_list_id = ?)`,
-    [taskListId]
+    [taskListId],
   );
 
   // Build dependency map
@@ -143,17 +152,23 @@ export function planWaves(taskListId: string): WaveRun {
   const runId = uuidv4();
   const totalWaves = Math.max(...Array.from(waveGroups.keys())) + 1;
 
-  run(`
+  run(
+    `
     INSERT INTO wave_runs (id, task_list_id, status, total_waves, current_wave)
     VALUES (?, ?, 'planning', ?, 0)
-  `, [runId, taskListId, totalWaves]);
+  `,
+    [runId, taskListId, totalWaves],
+  );
 
   // Create wave records
   for (const [waveNum, taskIds] of waveGroups.entries()) {
-    run(`
+    run(
+      `
       INSERT INTO waves (id, run_id, wave_number, status, task_ids)
       VALUES (?, ?, ?, 'pending', ?)
-    `, [uuidv4(), runId, waveNum, JSON.stringify(taskIds)]);
+    `,
+      [uuidv4(), runId, waveNum, JSON.stringify(taskIds)],
+    );
 
     // Update tasks with wave number
     for (const taskId of taskIds) {
@@ -191,27 +206,38 @@ export function startNextWave(runId: string): Wave | null {
   // Find next pending wave
   const nextWave = getOne<Wave & { task_ids: string }>(
     `SELECT * FROM waves WHERE run_id = ? AND status = 'pending' ORDER BY wave_number ASC LIMIT 1`,
-    [runId]
+    [runId],
   );
 
   if (!nextWave) {
     // All waves complete
-    run(`UPDATE wave_runs SET status = 'completed', completed_at = datetime('now') WHERE id = ?`, [runId]);
+    run(
+      `UPDATE wave_runs SET status = 'completed', completed_at = datetime('now') WHERE id = ?`,
+      [runId],
+    );
     console.log(`✅ Wave run ${runId} completed`);
     return null;
   }
 
   // Start the wave
-  run(`UPDATE waves SET status = 'running', started_at = datetime('now') WHERE id = ?`, [nextWave.id]);
-  run(`UPDATE wave_runs SET current_wave = ? WHERE id = ?`, [nextWave.wave_number, runId]);
+  run(
+    `UPDATE waves SET status = 'running', started_at = datetime('now') WHERE id = ?`,
+    [nextWave.id],
+  );
+  run(`UPDATE wave_runs SET current_wave = ? WHERE id = ?`, [
+    nextWave.wave_number,
+    runId,
+  ]);
 
   // Set tasks in wave to pending (ready for assignment)
   const taskIds = JSON.parse(nextWave.task_ids) as string[];
   for (const taskId of taskIds) {
-    tasks.updateTask(taskId, { status: 'pending' });
+    tasks.updateTask(taskId, { status: "pending" });
   }
 
-  console.log(`🌊 Started wave ${nextWave.wave_number} with ${taskIds.length} tasks`);
+  console.log(
+    `🌊 Started wave ${nextWave.wave_number} with ${taskIds.length} tasks`,
+  );
 
   return {
     ...nextWave,
@@ -228,7 +254,7 @@ export function checkWaveCompletion(runId: string): boolean {
 
   const currentWave = getOne<Wave & { task_ids: string }>(
     `SELECT * FROM waves WHERE run_id = ? AND status = 'running'`,
-    [runId]
+    [runId],
   );
 
   if (!currentWave) return false;
@@ -236,19 +262,22 @@ export function checkWaveCompletion(runId: string): boolean {
   const taskIds = JSON.parse(currentWave.task_ids) as string[];
 
   // Check if all tasks in wave are complete or failed
-  const taskStatuses = tasks.getTasks({}).filter(t => taskIds.includes(t.id));
-  const allDone = taskStatuses.every(t => 
-    t.status === 'completed' || t.status === 'failed'
+  const taskStatuses = tasks.getTasks({}).filter((t) => taskIds.includes(t.id));
+  const allDone = taskStatuses.every(
+    (t) => t.status === "completed" || t.status === "failed",
   );
 
   if (allDone) {
     // Mark wave as complete
-    const anyFailed = taskStatuses.some(t => t.status === 'failed');
-    run(`
+    const anyFailed = taskStatuses.some((t) => t.status === "failed");
+    run(
+      `
       UPDATE waves 
       SET status = ?, completed_at = datetime('now') 
       WHERE id = ?
-    `, [anyFailed ? 'failed' : 'completed', currentWave.id]);
+    `,
+      [anyFailed ? "failed" : "completed", currentWave.id],
+    );
 
     if (anyFailed) {
       console.log(`⚠️ Wave ${currentWave.wave_number} completed with failures`);
@@ -268,7 +297,9 @@ export function checkWaveCompletion(runId: string): boolean {
  * Get wave run details
  */
 export function getWaveRun(runId: string): WaveRun | null {
-  return getOne<WaveRun>('SELECT * FROM wave_runs WHERE id = ?', [runId]) ?? null;
+  return (
+    getOne<WaveRun>("SELECT * FROM wave_runs WHERE id = ?", [runId]) ?? null
+  );
 }
 
 /**
@@ -276,11 +307,11 @@ export function getWaveRun(runId: string): WaveRun | null {
  */
 export function getWaves(runId: string): Wave[] {
   const rows = query<Wave & { task_ids: string }>(
-    'SELECT * FROM waves WHERE run_id = ? ORDER BY wave_number ASC',
-    [runId]
+    "SELECT * FROM waves WHERE run_id = ? ORDER BY wave_number ASC",
+    [runId],
   );
 
-  return rows.map(row => ({
+  return rows.map((row) => ({
     ...row,
     task_ids: JSON.parse(row.task_ids),
   }));
@@ -290,7 +321,7 @@ export function getWaves(runId: string): Wave[] {
  * Get all wave runs
  */
 export function getWaveRuns(): WaveRun[] {
-  return query<WaveRun>('SELECT * FROM wave_runs ORDER BY created_at DESC');
+  return query<WaveRun>("SELECT * FROM wave_runs ORDER BY created_at DESC");
 }
 
 export default {

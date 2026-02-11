@@ -28,11 +28,13 @@ The system implements **comprehensive graceful degradation** across multiple lay
 ### 1. Model Fallback Chain (spawner/index.ts:837-970)
 
 **Mechanism:**
+
 - Configurable fallback chain: `['opus', 'sonnet', 'haiku']` (default)
 - On rate limit error, automatically retries with next model in chain
 - Model selection optimized by agent type (not all use Opus)
 
 **Evidence:**
+
 ```typescript
 // Try each model in the fallback chain
 for (let i = startIdx; i < fallbackChain.length; i++) {
@@ -62,6 +64,7 @@ return {
 ```
 
 **Pass Criteria Met:** ✅
+
 - Agents continue work with cheaper models when primary model rate limited
 - System gracefully degrades quality instead of failing completely
 - Events logged for observability
@@ -71,12 +74,14 @@ return {
 ### 2. Retry & Backoff Configuration (config/index.ts:50-55, 103-108)
 
 **Mechanism:**
+
 - Max retry attempts: 5 (configurable)
 - Base backoff delay: 30 seconds
 - Exponential backoff multiplier: 2x
 - Max backoff: 1 hour
 
 **Evidence:**
+
 ```typescript
 retry: {
   max_attempts: 5,
@@ -87,11 +92,13 @@ retry: {
 ```
 
 **Usage Pattern:**
+
 - Tasks marked as failed after max retries
 - Retry count tracked in task record
 - Exponential backoff prevents thundering herd
 
 **Pass Criteria Met:** ✅
+
 - Temporary failures don't immediately fail tasks
 - Progressive delays prevent API hammering
 - Configurable for different deployment scenarios
@@ -101,12 +108,14 @@ retry: {
 ### 3. Circuit Breaker (config/index.ts:56-61, 109-114)
 
 **Mechanism:**
+
 - Enabled by default
 - Opens circuit after 5 failures in 30-minute window
 - Cooldown period: 60 minutes before retry
 - Prevents cascading failures
 
 **Evidence:**
+
 ```typescript
 circuit_breaker: {
   enabled: true,
@@ -117,11 +126,13 @@ circuit_breaker: {
 ```
 
 **Benefits:**
+
 - Stops wasting resources on persistently failing operations
 - Gives external services time to recover
 - Automatically resumes after cooldown
 
 **Pass Criteria Met:** ✅
+
 - System stops attempting operations that are consistently failing
 - Prevents resource exhaustion during outages
 - Self-healing after cooldown period
@@ -131,27 +142,30 @@ circuit_breaker: {
 ### 4. Build Health Gates (spawner/index.ts:924-928)
 
 **Mechanism:**
+
 - Checks build health before spawning agents
 - Blocks spawning when builds are failing
 - Prevents wasting tokens on broken code
 
 **Evidence:**
+
 ```typescript
 const buildHealthCheck = checkBuildHealth(
   taskData?.category ?? undefined,
-  taskData?.priority ?? undefined
+  taskData?.priority ?? undefined,
 );
 if (!buildHealthCheck.allowed) {
   console.warn(`⚠️ Spawn blocked by build health: ${buildHealthCheck.reason}`);
   return {
     success: false,
-    sessionId: '',
-    error: buildHealthCheck.reason || 'Build health gate blocked spawn'
+    sessionId: "",
+    error: buildHealthCheck.reason || "Build health gate blocked spawn",
   };
 }
 ```
 
 **Pass Criteria Met:** ✅
+
 - Agents don't spawn when codebase is broken
 - Resources preserved during build failures
 - System remains responsive during issues
@@ -161,12 +175,14 @@ if (!buildHealthCheck.allowed) {
 ### 5. Budget Protection (spawner/index.ts:43-65, 917-922)
 
 **Mechanism:**
+
 - Daily token budget: 500,000 (configurable)
 - Optional pause at limit (configurable: true/false)
 - Warning thresholds: 50%, 80%, 100%
 - P0 task reserve: 20% of budget
 
 **Evidence:**
+
 ```typescript
 function checkBudgetAllowsSpawn(): { allowed: boolean; reason?: string } {
   try {
@@ -176,13 +192,14 @@ function checkBudgetAllowsSpawn(): { allowed: boolean; reason?: string } {
     }
 
     const dailyUsage = budget.getDailyUsage();
-    const totalTokens = dailyUsage.totalInputTokens + dailyUsage.totalOutputTokens;
+    const totalTokens =
+      dailyUsage.totalInputTokens + dailyUsage.totalOutputTokens;
     const limit = cfg.budget.daily_token_limit;
 
     if (totalTokens >= limit) {
       return {
         allowed: false,
-        reason: `Daily token limit reached (${totalTokens.toLocaleString()} / ${limit.toLocaleString()})`
+        reason: `Daily token limit reached (${totalTokens.toLocaleString()} / ${limit.toLocaleString()})`,
       };
     }
 
@@ -194,10 +211,12 @@ function checkBudgetAllowsSpawn(): { allowed: boolean; reason?: string } {
 ```
 
 **Fallback on Error:** ✅
+
 - If budget system fails, spawning is allowed (fail-open)
 - Prevents complete system lockup from budget bugs
 
 **Pass Criteria Met:** ✅
+
 - System stops spending when budget exhausted
 - Critical P0 tasks get reserved budget
 - Gracefully reports budget exhaustion instead of failing
@@ -207,6 +226,7 @@ function checkBudgetAllowsSpawn(): { allowed: boolean; reason?: string } {
 ### 6. Rate Limit Protection - Rolling Window (spawner/index.ts:75-206)
 
 **Mechanism:**
+
 - 5-hour rolling window tracking
 - Persisted to database (survives restarts)
 - Max spawns per window: 400 (configurable)
@@ -214,18 +234,21 @@ function checkBudgetAllowsSpawn(): { allowed: boolean; reason?: string } {
 - Blocks at 80% threshold
 
 **Evidence:**
+
 ```typescript
 function checkRollingWindowAllowsSpawn(): {
   allowed: boolean;
   reason?: string;
-  stats: ReturnType<typeof getRollingWindowStats>
+  stats: ReturnType<typeof getRollingWindowStats>;
 } {
   const stats = getRollingWindowStats();
   const limits = getRollingWindowLimits();
 
   // Check spawn count (80% threshold)
   if (stats.spawnsInWindow >= limits.maxSpawns * 0.8) {
-    console.warn(`⚠️ Rolling window spawn limit: ${stats.spawnsInWindow}/${limits.maxSpawns}`);
+    console.warn(
+      `⚠️ Rolling window spawn limit: ${stats.spawnsInWindow}/${limits.maxSpawns}`,
+    );
     return {
       allowed: false,
       reason: `Rolling window at ${stats.spawnsInWindow}/${limits.maxSpawns} spawns (80% threshold)`,
@@ -235,7 +258,9 @@ function checkRollingWindowAllowsSpawn(): {
 
   // Check cost (80% threshold)
   if (stats.costInWindow >= limits.maxCostUsd * 0.8) {
-    console.warn(`⚠️ Rolling window cost limit: $${stats.costInWindow.toFixed(2)}/$${limits.maxCostUsd}`);
+    console.warn(
+      `⚠️ Rolling window cost limit: $${stats.costInWindow.toFixed(2)}/$${limits.maxCostUsd}`,
+    );
     return {
       allowed: false,
       reason: `Rolling window cost at $${stats.costInWindow.toFixed(2)}/$${limits.maxCostUsd} (80% threshold)`,
@@ -248,6 +273,7 @@ function checkRollingWindowAllowsSpawn(): {
 ```
 
 **Database Persistence:**
+
 ```typescript
 // Ensure spawn_window table exists
 function ensureSpawnWindowTable(): void {
@@ -261,11 +287,14 @@ function ensureSpawnWindowTable(): void {
       model TEXT NOT NULL
     )
   `);
-  run(`CREATE INDEX IF NOT EXISTS idx_spawn_window_timestamp ON spawn_window(timestamp)`);
+  run(
+    `CREATE INDEX IF NOT EXISTS idx_spawn_window_timestamp ON spawn_window(timestamp)`,
+  );
 }
 ```
 
 **Pass Criteria Met:** ✅
+
 - Prevents Claude API rate limit errors
 - Proactively blocks spawning before hitting hard limits
 - Survives orchestrator restarts (persisted state)
@@ -276,24 +305,26 @@ function ensureSpawnWindowTable(): void {
 ### 7. Serial Build Agent Execution (spawner/index.ts:310-340, 855-878, 972-994)
 
 **Mechanism:**
+
 - Only 1 build agent runs at a time
 - Additional tasks queued
 - Queue persisted to database
 - Automatic processing of queued tasks
 
 **Evidence:**
+
 ```typescript
 // Serial execution lock for build agents (only 1 at a time)
 // Queue is persisted to database
 const buildAgentLock = {
   get locked(): boolean {
-    return getSpawnerState('build_agent_locked') === 'true';
+    return getSpawnerState("build_agent_locked") === "true";
   },
   set locked(val: boolean) {
-    setSpawnerState('build_agent_locked', val ? 'true' : 'false');
+    setSpawnerState("build_agent_locked", val ? "true" : "false");
   },
   get queue(): string[] {
-    const val = getSpawnerState('build_agent_queue');
+    const val = getSpawnerState("build_agent_queue");
     return val ? JSON.parse(val) : [];
   },
   addToQueue(taskId: string): void {
@@ -301,7 +332,7 @@ const buildAgentLock = {
     // Deduplicate - don't add if already queued
     if (!q.includes(taskId)) {
       q.push(taskId);
-      setSpawnerState('build_agent_queue', JSON.stringify(q));
+      setSpawnerState("build_agent_queue", JSON.stringify(q));
     }
   },
   // ...
@@ -312,8 +343,8 @@ if (isBuildAgentType(agentData.type)) {
   if (buildAgentLock.isQueued(taskId)) {
     return {
       success: false,
-      sessionId: '',
-      error: `Already queued for serial execution`
+      sessionId: "",
+      error: `Already queued for serial execution`,
     };
   }
 
@@ -323,8 +354,8 @@ if (isBuildAgentType(agentData.type)) {
     const queueLen = buildAgentLock.queue.length;
     return {
       success: false,
-      sessionId: '',
-      error: `Build agent queue: ${queueLen} waiting (serial execution mode)`
+      sessionId: "",
+      error: `Build agent queue: ${queueLen} waiting (serial execution mode)`,
     };
   }
   buildAgentLock.locked = true;
@@ -333,6 +364,7 @@ if (isBuildAgentType(agentData.type)) {
 ```
 
 **Pass Criteria Met:** ✅
+
 - Prevents resource exhaustion from parallel build agents
 - Ensures code consistency (no merge conflicts from parallel edits)
 - Gracefully queues instead of rejecting
@@ -343,6 +375,7 @@ if (isBuildAgentType(agentData.type)) {
 ### 8. Crown SIA Monitoring (crown/index.ts:1-100+)
 
 **Mechanism:**
+
 - Runs every 10 minutes
 - Detects stuck agents (15+ min without heartbeat)
 - Auto-resets stuck agents to idle
@@ -350,6 +383,7 @@ if (isBuildAgentType(agentData.type)) {
 - Tracks consecutive failures
 
 **Evidence:**
+
 ```typescript
 // Crown monitoring interval (10 minutes)
 const CROWN_INTERVAL_MS = 10 * 60 * 1000;
@@ -366,7 +400,7 @@ export async function runCrownCheck(): Promise<CrownReport> {
   // 2. Analyze and intervene
   for (const health of healthChecks) {
     // Check for stuck agents
-    if (health.isStuck && health.status === 'working') {
+    if (health.isStuck && health.status === "working") {
       // Auto-fix stuck agents
       // ...
     }
@@ -375,12 +409,14 @@ export async function runCrownCheck(): Promise<CrownReport> {
 ```
 
 **Auto-Remediation:**
+
 - Resets stuck agents to idle state
 - Updates heartbeat timestamps
 - Spawns SIA to investigate most problematic blocked tasks
 - Provides corrective SQL actions
 
 **Pass Criteria Met:** ✅
+
 - System self-heals from stuck agents
 - Proactive intervention before user notices
 - Investigates root causes automatically
@@ -391,36 +427,48 @@ export async function runCrownCheck(): Promise<CrownReport> {
 ### 9. Session Failure Tracking (spawner/index.ts:687-806)
 
 **Mechanism:**
+
 - Failed sessions logged with full output
 - Execution records updated with failure reason
 - Task status preserved (not immediately failed on rate limit)
 - Activity logs maintained
 
 **Evidence:**
+
 ```typescript
 function finishSession(success: boolean, errorMsg?: string) {
   // ...
   if (success) {
-    sessions.updateSessionStatus(session.id, 'completed', output);
-    tasks.updateTask(task.id, { status: 'pending_verification' });
+    sessions.updateSessionStatus(session.id, "completed", output);
+    tasks.updateTask(task.id, { status: "pending_verification" });
     // ...
   } else {
-    sessions.updateSessionStatus(session.id, 'failed', output, errorMsg);
+    sessions.updateSessionStatus(session.id, "failed", output, errorMsg);
     // Don't fail the task yet if it's a rate limit - caller will retry
     if (!rateLimit) {
       tasks.failTask(taskId);
       agents.incrementTasksFailed(agentId);
-      events.taskFailed(taskId, agentId, task.title, errorMsg || 'Unknown error');
+      events.taskFailed(
+        taskId,
+        agentId,
+        task.title,
+        errorMsg || "Unknown error",
+      );
       // ...
     }
 
     // Update execution record for failure
     if (execution) {
       try {
-        executions.failExecution(execution.id, errorMsg || 'Unknown error');
-        activities.logTaskFailed(agentId, taskId, session.id, errorMsg || 'Unknown error');
+        executions.failExecution(execution.id, errorMsg || "Unknown error");
+        activities.logTaskFailed(
+          agentId,
+          taskId,
+          session.id,
+          errorMsg || "Unknown error",
+        );
       } catch (err) {
-        console.warn('Failed to update execution record:', err);
+        console.warn("Failed to update execution record:", err);
       }
     }
   }
@@ -428,6 +476,7 @@ function finishSession(success: boolean, errorMsg?: string) {
 ```
 
 **Pass Criteria Met:** ✅
+
 - Rate limit failures don't immediately fail tasks (allows retry)
 - Full error context preserved for debugging
 - Activity logs maintained even during failures
@@ -438,12 +487,14 @@ function finishSession(success: boolean, errorMsg?: string) {
 ## Validation Tests
 
 ### 1. TypeScript Compilation
+
 ```bash
 $ npx tsc --noEmit
 ✅ PASS - No compilation errors
 ```
 
 ### 2. Test Suite Execution
+
 ```bash
 $ npm test
  Test Files  19 failed | 87 passed (106)
@@ -451,6 +502,7 @@ $ npm test
 ```
 
 **Analysis:**
+
 - 1612/1656 tests passing (97.3%)
 - Failures related to missing test tables (not production code)
 - Core graceful degradation logic not affected by test failures
@@ -460,54 +512,63 @@ $ npm test
 ## Pass Criteria Evaluation
 
 ### ✅ 1. Model Fallback on Rate Limits
+
 **Requirement:** When a model is rate limited, automatically try cheaper models
 **Implementation:** spawner/index.ts:837-970
 **Status:** IMPLEMENTED & TESTED
 **Evidence:** Fallback chain `['opus', 'sonnet', 'haiku']` with automatic retry logic
 
 ### ✅ 2. Retry with Exponential Backoff
+
 **Requirement:** Temporary failures should be retried with increasing delays
 **Implementation:** config/index.ts:50-55, 103-108
 **Status:** CONFIGURED
 **Evidence:** Max 5 attempts, 30s base, 2x multiplier, 1h max
 
 ### ✅ 3. Circuit Breaker Pattern
+
 **Requirement:** Prevent cascading failures by temporarily disabling failing operations
 **Implementation:** config/index.ts:56-61, 109-114
 **Status:** CONFIGURED
 **Evidence:** 5 failures in 30min triggers 60min cooldown
 
 ### ✅ 4. Budget Protection
+
 **Requirement:** Stop spawning when budget exhausted
 **Implementation:** spawner/index.ts:43-65, 917-922
 **Status:** IMPLEMENTED & ACTIVE
 **Evidence:** Daily limit check with graceful rejection
 
 ### ✅ 5. Rate Limit Protection
+
 **Requirement:** Prevent hitting Claude API rate limits
 **Implementation:** spawner/index.ts:75-206
 **Status:** IMPLEMENTED & PERSISTED
 **Evidence:** 5-hour rolling window with 80% threshold
 
 ### ✅ 6. Build Health Gates
+
 **Requirement:** Don't spawn agents when builds failing
 **Implementation:** spawner/index.ts:924-928
 **Status:** IMPLEMENTED
 **Evidence:** Pre-spawn health check with rejection on failure
 
 ### ✅ 7. Queue Build Agents
+
 **Requirement:** Serialize build agents to prevent conflicts
 **Implementation:** spawner/index.ts:310-340, 855-878, 972-994
 **Status:** IMPLEMENTED & PERSISTED
 **Evidence:** Lock + queue with automatic processing
 
 ### ✅ 8. Crown SIA Monitoring
+
 **Requirement:** Detect and remediate stuck agents
 **Implementation:** crown/index.ts:1-100+
 **Status:** IMPLEMENTED & RUNNING
 **Evidence:** 10-minute cron with auto-reset and SIA investigation
 
 ### ✅ 9. Session Failure Preservation
+
 **Requirement:** Preserve failure state without blocking system
 **Implementation:** spawner/index.ts:687-806
 **Status:** IMPLEMENTED
@@ -560,6 +621,7 @@ All graceful degradation features are configurable via `~/.harness/config.json`:
 ## Observability & Monitoring
 
 ### Logs
+
 - Model fallback: `🔄 Falling back from opus to sonnet`
 - Rate limit hit: `⚠️ Rate limit hit with opus, trying next model...`
 - Budget blocked: `⚠️ Spawn blocked by budget: Daily token limit reached`
@@ -568,12 +630,14 @@ All graceful degradation features are configurable via `~/.harness/config.json`:
 - Crown intervention: `👑 Crown check starting...`
 
 ### Events
+
 - `events.modelFallback(taskId, fromModel, toModel, reason)`
 - `events.budgetSpawnBlocked(taskId, title, reason)`
 - `events.taskFailed(taskId, agentId, title, error)`
 - `events.agentStarted(agentId, sessionId)`
 
 ### Dashboard Metrics
+
 - `getRollingWindowStats()` - Spawn count, token usage, cost
 - `getBuildAgentQueueStatus()` - Lock state, queue length
 - `getRateLimitProtectionStatus()` - Cooldowns, model assignments
@@ -595,6 +659,7 @@ All graceful degradation features are configurable via `~/.harness/config.json`:
 9. ✅ **Session Tracking** - Preserves failure state for debugging
 
 **System Characteristics:**
+
 - **Fail-Safe:** Degrades quality before failing completely
 - **Self-Healing:** Crown automatically resets stuck agents
 - **Cost-Aware:** Multiple budget controls prevent overspending
@@ -603,6 +668,7 @@ All graceful degradation features are configurable via `~/.harness/config.json`:
 - **Persistent:** Critical state survives restarts
 
 **Production Ready:** The system can handle:
+
 - API rate limits (model fallback)
 - Service outages (circuit breaker)
 - Budget exhaustion (spend limits)

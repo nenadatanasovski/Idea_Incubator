@@ -16,12 +16,14 @@ This specification defines a comprehensive user satisfaction measurement system 
 ### Context
 
 The Vibe platform is a complex multi-agent orchestration system where users:
+
 1. **Submit tasks** to autonomous agents via dashboard, CLI, or Telegram
 2. **Monitor progress** through real-time WebSocket updates and dashboard views
 3. **Receive deliverables** from Spec, Build, QA, and other agents
 4. **Intervene when needed** through the SIA (Self-Improvement Agent) system
 
 Understanding user satisfaction at each interaction point is critical for:
+
 - **Product Improvement**: Identifying pain points in agent execution, UI/UX, and task workflows
 - **Retention**: Detecting at-risk users before churn
 - **Agent Optimization**: Correlating satisfaction with agent performance metrics
@@ -31,6 +33,7 @@ Understanding user satisfaction at each interaction point is critical for:
 ### Current State
 
 **Existing Infrastructure**:
+
 - ✅ Task completion tracking (`task_state_history`, `task_test_results`)
 - ✅ WebSocket event system for real-time notifications
 - ✅ Dashboard UI with widget system (React 19 + Tailwind CSS 4)
@@ -39,6 +42,7 @@ Understanding user satisfaction at each interaction point is critical for:
 - ✅ Feedback loop integration tests (VIBE-P16-010)
 
 **Missing Components** (this task):
+
 - ❌ User satisfaction survey system (NPS, CSAT)
 - ❌ In-app feedback collection widget
 - ❌ Satisfaction trend analysis and visualization
@@ -54,6 +58,7 @@ Understanding user satisfaction at each interaction point is critical for:
 ### Functional Requirements
 
 **FR-1: NPS Survey System**
+
 - NPS survey component displays at configurable intervals (default: 30 days)
 - Survey question: "On a scale of 0-10, how likely are you to recommend Vibe to a colleague?"
 - Survey triggered based on:
@@ -70,6 +75,7 @@ Understanding user satisfaction at each interaction point is critical for:
 - Survey responses stored with timestamp, score, comment, user context
 
 **FR-2: CSAT Micro-Surveys**
+
 - CSAT survey triggered after key interactions:
   - Task completion (Build Agent delivers code)
   - Support ticket resolution (SIA intervention completed)
@@ -83,6 +89,7 @@ Understanding user satisfaction at each interaction point is critical for:
 - Optional comment field for negative scores (<3)
 
 **FR-3: In-App Feedback Button**
+
 - Global feedback button accessible from all dashboard pages
 - Fixed position (bottom-right corner)
 - Feedback form includes:
@@ -97,6 +104,7 @@ Understanding user satisfaction at each interaction point is critical for:
 - WebSocket event: `feedback:submitted`
 
 **FR-4: Satisfaction Trend Analysis**
+
 - Trend chart showing satisfaction over time (weekly/monthly granularity)
 - Metrics visualized:
   - NPS score (line chart)
@@ -109,6 +117,7 @@ Understanding user satisfaction at each interaction point is critical for:
 - Export to CSV/PNG for reporting
 
 **FR-5: Cohort Analysis**
+
 - Satisfaction segmented by:
   - **User tier**: Free, Pro, Enterprise
   - **Tenure**: <1 month, 1-3 months, 3-6 months, >6 months
@@ -125,6 +134,7 @@ Understanding user satisfaction at each interaction point is critical for:
 - Export cohort data for external analysis
 
 **FR-6: Automated Satisfaction Alerts**
+
 - Alert triggered when satisfaction drops >10% week-over-week
 - Alert includes:
   - Metric affected (NPS or CSAT)
@@ -142,6 +152,7 @@ Understanding user satisfaction at each interaction point is critical for:
 - Alert history log in database
 
 **FR-7: Survey Response Linkage**
+
 - Survey responses linked to user profile (anonymized for analytics)
 - User profile enrichment:
   - Task history (completed, failed, blocked)
@@ -154,6 +165,7 @@ Understanding user satisfaction at each interaction point is critical for:
 - Aggregated analytics exclude personally identifiable information
 
 **FR-8: Response Rate Tracking**
+
 - Track survey presentation vs. completion rate
 - Metrics:
   - Survey shown count
@@ -167,6 +179,7 @@ Understanding user satisfaction at each interaction point is critical for:
 - Export response rate data for optimization
 
 **FR-9: Feedback Integration with Planning Agent**
+
 - Satisfaction data exported to Planning Agent feed
 - Satisfaction signals:
   - Low NPS score (<6) creates `type: improvement` task
@@ -178,6 +191,7 @@ Understanding user satisfaction at each interaction point is critical for:
 - Dashboard shows "Driven by User Feedback" badge on related tasks
 
 **FR-10: Export and Analytics API**
+
 - API endpoint: `GET /api/satisfaction/export`
 - Export formats: CSV, JSON, Excel
 - Filterable by:
@@ -193,6 +207,7 @@ Understanding user satisfaction at each interaction point is critical for:
 ### Non-Functional Requirements
 
 **NFR-1: Privacy and Security**
+
 - Survey responses encrypted at rest
 - PII (email, name) stored separately from satisfaction scores
 - Anonymized data for aggregate analytics
@@ -202,6 +217,7 @@ Understanding user satisfaction at each interaction point is critical for:
 - Data deletion API for user requests
 
 **NFR-2: Performance**
+
 - Survey modal loads in <500ms
 - Satisfaction trend chart renders in <1 second
 - Cohort analysis completes in <3 seconds for 10k responses
@@ -210,6 +226,7 @@ Understanding user satisfaction at each interaction point is critical for:
 - No performance impact on core task execution
 
 **NFR-3: Reliability**
+
 - Survey system failure does not block task workflows
 - Graceful degradation: surveys disabled if backend unavailable
 - Survey responses queued locally if network fails
@@ -218,6 +235,7 @@ Understanding user satisfaction at each interaction point is critical for:
 - No data loss during high-load periods
 
 **NFR-4: Usability**
+
 - Survey completion time <30 seconds average
 - Clear, non-technical language in survey questions
 - Mobile-responsive design (works on phone, tablet)
@@ -226,6 +244,7 @@ Understanding user satisfaction at each interaction point is critical for:
 - Multi-language support (future: i18n ready)
 
 **NFR-5: Observability**
+
 - All survey interactions logged (shown, dismissed, completed)
 - Satisfaction metrics exported to Prometheus
 - Dashboard health check includes survey system status
@@ -409,12 +428,12 @@ CREATE INDEX idx_metrics_cache_expires ON satisfaction_metrics_cache(expires_at)
 **File**: `parent-harness/orchestrator/src/satisfaction/manager.ts`
 
 ```typescript
-import { db } from '../db/index.js';
-import { events } from '../db/events.js';
-import * as telegram from '../telegram/index.js';
+import { db } from "../db/index.js";
+import { events } from "../db/events.js";
+import * as telegram from "../telegram/index.js";
 
 export interface SurveyTrigger {
-  type: 'time_based' | 'task_based' | 'manual';
+  type: "time_based" | "task_based" | "manual";
   context?: {
     taskId?: string;
     agentType?: string;
@@ -468,22 +487,25 @@ export class SatisfactionManager {
    */
   async triggerNPS(userId: string, trigger: SurveyTrigger): Promise<string> {
     // 1. Check if user is eligible (last survey >30 days ago)
-    const lastSurvey = await this.getLastSurvey(userId, 'nps');
+    const lastSurvey = await this.getLastSurvey(userId, "nps");
     if (lastSurvey && this.daysSince(lastSurvey.shown_at) < 30) {
       return null; // Skip if too soon
     }
 
     // 2. Create survey record
     const surveyId = this.generateId();
-    await db.run(`
+    await db.run(
+      `
       INSERT INTO user_satisfaction_surveys (
         id, user_id, survey_type, trigger_type, trigger_context,
         shown_at, response_status
       ) VALUES (?, ?, 'nps', ?, ?, datetime('now'), 'shown')
-    `, [surveyId, userId, trigger.type, JSON.stringify(trigger.context)]);
+    `,
+      [surveyId, userId, trigger.type, JSON.stringify(trigger.context)],
+    );
 
     // 3. Emit WebSocket event to show survey
-    events.surveyTriggered?.(surveyId, userId, 'nps');
+    events.surveyTriggered?.(surveyId, userId, "nps");
 
     return surveyId;
   }
@@ -491,22 +513,28 @@ export class SatisfactionManager {
   /**
    * Trigger CSAT micro-survey after interaction
    */
-  async triggerCSAT(userId: string, context: {
-    taskId?: string;
-    agentType?: string;
-    interactionType: string;
-  }): Promise<string> {
+  async triggerCSAT(
+    userId: string,
+    context: {
+      taskId?: string;
+      agentType?: string;
+      interactionType: string;
+    },
+  ): Promise<string> {
     // CSAT can be shown more frequently (no cooldown)
     const surveyId = this.generateId();
 
-    await db.run(`
+    await db.run(
+      `
       INSERT INTO user_satisfaction_surveys (
         id, user_id, survey_type, trigger_type, trigger_context,
         shown_at, response_status
       ) VALUES (?, ?, 'csat', 'task_based', ?, datetime('now'), 'shown')
-    `, [surveyId, userId, JSON.stringify(context)]);
+    `,
+      [surveyId, userId, JSON.stringify(context)],
+    );
 
-    events.surveyTriggered?.(surveyId, userId, 'csat');
+    events.surveyTriggered?.(surveyId, userId, "csat");
 
     return surveyId;
   }
@@ -515,7 +543,8 @@ export class SatisfactionManager {
    * Submit survey response
    */
   async submitResponse(response: SurveyResponse): Promise<void> {
-    await db.run(`
+    await db.run(
+      `
       UPDATE user_satisfaction_surveys
       SET response_status = 'completed',
           score = ?,
@@ -523,13 +552,19 @@ export class SatisfactionManager {
           time_to_complete_ms = ?,
           completed_at = datetime('now')
       WHERE id = ?
-    `, [response.score, response.comment, response.timeToCompleteMs, response.surveyId]);
+    `,
+      [
+        response.score,
+        response.comment,
+        response.timeToCompleteMs,
+        response.surveyId,
+      ],
+    );
 
     // Check if response is negative (detractor or dissatisfied)
     const survey = await this.getSurvey(response.surveyId);
-    const isNegative = survey.survey_type === 'nps'
-      ? response.score <= 6
-      : response.score <= 2;
+    const isNegative =
+      survey.survey_type === "nps" ? response.score <= 6 : response.score <= 2;
 
     if (isNegative) {
       // Create improvement task for Planning Agent
@@ -544,29 +579,35 @@ export class SatisfactionManager {
    */
   async calculateNPS(startDate: string, endDate: string): Promise<NPSResult> {
     // Check cache first
-    const cached = await this.getCachedMetric('nps', null, startDate, endDate);
+    const cached = await this.getCachedMetric("nps", null, startDate, endDate);
     if (cached && !this.isCacheExpired(cached.expires_at)) {
       return JSON.parse(cached.value);
     }
 
     // Calculate from raw data
-    const responses = await db.all(`
+    const responses = await db.all(
+      `
       SELECT score, response_status
       FROM user_satisfaction_surveys
       WHERE survey_type = 'nps'
         AND shown_at >= ?
         AND shown_at <= ?
-    `, [startDate, endDate]);
+    `,
+      [startDate, endDate],
+    );
 
-    const completed = responses.filter(r => r.response_status === 'completed');
-    const promoters = completed.filter(r => r.score >= 9).length;
-    const passives = completed.filter(r => r.score >= 7 && r.score <= 8).length;
-    const detractors = completed.filter(r => r.score <= 6).length;
+    const completed = responses.filter(
+      (r) => r.response_status === "completed",
+    );
+    const promoters = completed.filter((r) => r.score >= 9).length;
+    const passives = completed.filter(
+      (r) => r.score >= 7 && r.score <= 8,
+    ).length;
+    const detractors = completed.filter((r) => r.score <= 6).length;
     const total = completed.length;
 
-    const npsScore = total > 0
-      ? Math.round(((promoters - detractors) / total) * 100)
-      : 0;
+    const npsScore =
+      total > 0 ? Math.round(((promoters - detractors) / total) * 100) : 0;
 
     const result: NPSResult = {
       score: npsScore,
@@ -574,13 +615,12 @@ export class SatisfactionManager {
       passives,
       detractors,
       totalResponses: total,
-      responseRate: responses.length > 0
-        ? Math.round((total / responses.length) * 100)
-        : 0,
+      responseRate:
+        responses.length > 0 ? Math.round((total / responses.length) * 100) : 0,
     };
 
     // Cache result
-    await this.cacheMetric('nps', null, startDate, endDate, result, 3600); // 1 hour TTL
+    await this.cacheMetric("nps", null, startDate, endDate, result, 3600); // 1 hour TTL
 
     return result;
   }
@@ -589,9 +629,9 @@ export class SatisfactionManager {
    * Get satisfaction trend over time
    */
   async getTrend(
-    metric: 'nps' | 'csat',
-    granularity: 'daily' | 'weekly' | 'monthly',
-    range: number // days
+    metric: "nps" | "csat",
+    granularity: "daily" | "weekly" | "monthly",
+    range: number, // days
   ): Promise<TrendPoint[]> {
     const points: TrendPoint[] = [];
     const now = new Date();
@@ -600,9 +640,10 @@ export class SatisfactionManager {
     const buckets = this.generateDateBuckets(now, range, granularity);
 
     for (const bucket of buckets) {
-      const result = metric === 'nps'
-        ? await this.calculateNPS(bucket.start, bucket.end)
-        : await this.calculateCSAT(bucket.start, bucket.end);
+      const result =
+        metric === "nps"
+          ? await this.calculateNPS(bucket.start, bucket.end)
+          : await this.calculateCSAT(bucket.start, bucket.end);
 
       points.push({
         date: bucket.start,
@@ -617,7 +658,9 @@ export class SatisfactionManager {
   /**
    * Get cohort-based satisfaction analysis
    */
-  async getCohortAnalysis(cohortType: 'tier' | 'tenure' | 'usage'): Promise<CohortMetrics[]> {
+  async getCohortAnalysis(
+    cohortType: "tier" | "tenure" | "usage",
+  ): Promise<CohortMetrics[]> {
     const cohorts = await this.getCohorts(cohortType);
     const results: CohortMetrics[] = [];
 
@@ -645,7 +688,10 @@ export class SatisfactionManager {
     // Get current week NPS
     const currentWeekStart = this.getWeekStart(new Date());
     const currentWeekEnd = this.getWeekEnd(new Date());
-    const currentNPS = await this.calculateNPS(currentWeekStart, currentWeekEnd);
+    const currentNPS = await this.calculateNPS(
+      currentWeekStart,
+      currentWeekEnd,
+    );
 
     // Get previous week NPS
     const prevWeekStart = this.getWeekStart(this.addDays(new Date(), -7));
@@ -654,12 +700,13 @@ export class SatisfactionManager {
 
     // Check for >10% drop
     if (prevNPS.score > 0 && currentNPS.score > 0) {
-      const changePercent = ((currentNPS.score - prevNPS.score) / Math.abs(prevNPS.score)) * 100;
+      const changePercent =
+        ((currentNPS.score - prevNPS.score) / Math.abs(prevNPS.score)) * 100;
 
       if (changePercent <= -10) {
         await this.createAlert({
-          metric: 'nps',
-          alertType: 'drop',
+          metric: "nps",
+          alertType: "drop",
           previousValue: prevNPS.score,
           currentValue: currentNPS.score,
           changePercent,
@@ -671,16 +718,20 @@ export class SatisfactionManager {
     }
 
     // Repeat for CSAT
-    const currentCSAT = await this.calculateCSAT(currentWeekStart, currentWeekEnd);
+    const currentCSAT = await this.calculateCSAT(
+      currentWeekStart,
+      currentWeekEnd,
+    );
     const prevCSAT = await this.calculateCSAT(prevWeekStart, prevWeekEnd);
 
     if (prevCSAT.score > 0 && currentCSAT.score > 0) {
-      const changePercent = ((currentCSAT.score - prevCSAT.score) / prevCSAT.score) * 100;
+      const changePercent =
+        ((currentCSAT.score - prevCSAT.score) / prevCSAT.score) * 100;
 
       if (changePercent <= -10) {
         await this.createAlert({
-          metric: 'csat',
-          alertType: 'drop',
+          metric: "csat",
+          alertType: "drop",
           previousValue: prevCSAT.score,
           currentValue: currentCSAT.score,
           changePercent,
@@ -698,61 +749,70 @@ export class SatisfactionManager {
       alert.metric,
       alert.periodStart,
       alert.periodEnd,
-      3
+      3,
     );
 
     const alertId = this.generateId();
 
-    await db.run(`
+    await db.run(
+      `
       INSERT INTO satisfaction_alerts (
         id, metric, alert_type, previous_value, current_value,
         change_percent, sample_size, period_start, period_end,
         top_comments, recommended_actions, status
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-    `, [
-      alertId,
-      alert.metric,
-      alert.alertType,
-      alert.previousValue,
-      alert.currentValue,
-      alert.changePercent,
-      alert.sampleSize,
-      alert.periodStart,
-      alert.periodEnd,
-      JSON.stringify(topComments),
-      JSON.stringify(this.generateRecommendedActions(alert, topComments)),
-    ]);
+    `,
+      [
+        alertId,
+        alert.metric,
+        alert.alertType,
+        alert.previousValue,
+        alert.currentValue,
+        alert.changePercent,
+        alert.sampleSize,
+        alert.periodStart,
+        alert.periodEnd,
+        JSON.stringify(topComments),
+        JSON.stringify(this.generateRecommendedActions(alert, topComments)),
+      ],
+    );
 
     // Send Telegram notification
     telegram.send(
       `⚠️ Satisfaction Alert\n\n` +
-      `Metric: ${alert.metric.toUpperCase()}\n` +
-      `Change: ${alert.previousValue} → ${alert.currentValue} (${alert.changePercent.toFixed(1)}%)\n` +
-      `Sample: n=${alert.sampleSize}\n\n` +
-      `Top issues:\n${topComments.map((c, i) => `${i + 1}. ${c.slice(0, 100)}`).join('\n')}`
+        `Metric: ${alert.metric.toUpperCase()}\n` +
+        `Change: ${alert.previousValue} → ${alert.currentValue} (${alert.changePercent.toFixed(1)}%)\n` +
+        `Sample: n=${alert.sampleSize}\n\n` +
+        `Top issues:\n${topComments.map((c, i) => `${i + 1}. ${c.slice(0, 100)}`).join("\n")}`,
     );
 
     // Emit WebSocket event
     events.satisfactionAlert?.(alertId, alert.metric, alert.changePercent);
   }
 
-  private async createImprovementTask(survey: any, response: SurveyResponse): Promise<void> {
+  private async createImprovementTask(
+    survey: any,
+    response: SurveyResponse,
+  ): Promise<void> {
     // Create task for Planning Agent to address low satisfaction
-    const context = JSON.parse(survey.trigger_context || '{}');
+    const context = JSON.parse(survey.trigger_context || "{}");
 
-    await db.run(`
+    await db.run(
+      `
       INSERT INTO tasks (
         id, type, title, description, priority, status,
         agent_type, created_by
       ) VALUES (?, 'improvement', ?, ?, 'high', 'pending', 'planning', 'satisfaction_system')
-    `, [
-      this.generateId(),
-      `Low satisfaction score: ${response.score}`,
-      `User gave ${survey.survey_type.toUpperCase()} score of ${response.score}.\n` +
-      `Context: ${JSON.stringify(context)}\n` +
-      `Comment: ${response.comment || 'No comment provided'}\n\n` +
-      `Investigate root cause and propose improvements.`,
-    ]);
+    `,
+      [
+        this.generateId(),
+        `Low satisfaction score: ${response.score}`,
+        `User gave ${survey.survey_type.toUpperCase()} score of ${response.score}.\n` +
+          `Context: ${JSON.stringify(context)}\n` +
+          `Comment: ${response.comment || "No comment provided"}\n\n` +
+          `Investigate root cause and propose improvements.`,
+      ],
+    );
   }
 
   // Helper methods
@@ -767,21 +827,31 @@ export class SatisfactionManager {
   }
 
   private async getLastSurvey(userId: string, type: string): Promise<any> {
-    return await db.get(`
+    return await db.get(
+      `
       SELECT * FROM user_satisfaction_surveys
       WHERE user_id = ? AND survey_type = ?
       ORDER BY shown_at DESC
       LIMIT 1
-    `, [userId, type]);
+    `,
+      [userId, type],
+    );
   }
 
   private async getSurvey(surveyId: string): Promise<any> {
-    return await db.get(`
+    return await db.get(
+      `
       SELECT * FROM user_satisfaction_surveys WHERE id = ?
-    `, [surveyId]);
+    `,
+      [surveyId],
+    );
   }
 
-  private generateDateBuckets(end: Date, range: number, granularity: string): any[] {
+  private generateDateBuckets(
+    end: Date,
+    range: number,
+    granularity: string,
+  ): any[] {
     // Implementation for date bucketing
     return [];
   }
@@ -789,13 +859,13 @@ export class SatisfactionManager {
   private getWeekStart(date: Date): string {
     const d = new Date(date);
     d.setDate(d.getDate() - d.getDay());
-    return d.toISOString().split('T')[0];
+    return d.toISOString().split("T")[0];
   }
 
   private getWeekEnd(date: Date): string {
     const d = new Date(date);
     d.setDate(d.getDate() + (6 - d.getDay()));
-    return d.toISOString().split('T')[0];
+    return d.toISOString().split("T")[0];
   }
 
   private addDays(date: Date, days: number): Date {
@@ -804,40 +874,74 @@ export class SatisfactionManager {
     return d;
   }
 
-  private async getCachedMetric(type: string, cohort: any, start: string, end: string): Promise<any> {
-    return await db.get(`
+  private async getCachedMetric(
+    type: string,
+    cohort: any,
+    start: string,
+    end: string,
+  ): Promise<any> {
+    return await db.get(
+      `
       SELECT * FROM satisfaction_metrics_cache
       WHERE metric_type = ? AND period_start = ? AND period_end = ?
-    `, [type, start, end]);
+    `,
+      [type, start, end],
+    );
   }
 
   private isCacheExpired(expiresAt: string): boolean {
     return new Date(expiresAt) < new Date();
   }
 
-  private async cacheMetric(type: string, cohort: any, start: string, end: string, value: any, ttlSeconds: number): Promise<void> {
+  private async cacheMetric(
+    type: string,
+    cohort: any,
+    start: string,
+    end: string,
+    value: any,
+    ttlSeconds: number,
+  ): Promise<void> {
     const expires = new Date(Date.now() + ttlSeconds * 1000).toISOString();
-    await db.run(`
+    await db.run(
+      `
       INSERT INTO satisfaction_metrics_cache (
         id, metric_type, period_start, period_end, value,
         sample_size, calculated_at, expires_at
       ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?)
-    `, [this.generateId(), type, start, end, JSON.stringify(value), value.totalResponses, expires]);
+    `,
+      [
+        this.generateId(),
+        type,
+        start,
+        end,
+        JSON.stringify(value),
+        value.totalResponses,
+        expires,
+      ],
+    );
   }
 
-  private async calculateCSAT(startDate: string, endDate: string): Promise<CSATResult> {
-    const responses = await db.all(`
+  private async calculateCSAT(
+    startDate: string,
+    endDate: string,
+  ): Promise<CSATResult> {
+    const responses = await db.all(
+      `
       SELECT score, response_status
       FROM user_satisfaction_surveys
       WHERE survey_type = 'csat'
         AND shown_at >= ?
         AND shown_at <= ?
-    `, [startDate, endDate]);
+    `,
+      [startDate, endDate],
+    );
 
-    const completed = responses.filter(r => r.response_status === 'completed');
-    const satisfied = completed.filter(r => r.score >= 4).length;
-    const neutral = completed.filter(r => r.score === 3).length;
-    const dissatisfied = completed.filter(r => r.score <= 2).length;
+    const completed = responses.filter(
+      (r) => r.response_status === "completed",
+    );
+    const satisfied = completed.filter((r) => r.score >= 4).length;
+    const neutral = completed.filter((r) => r.score === 3).length;
+    const dissatisfied = completed.filter((r) => r.score <= 2).length;
     const total = completed.length;
 
     return {
@@ -846,7 +950,8 @@ export class SatisfactionManager {
       neutral,
       dissatisfied,
       totalResponses: total,
-      responseRate: responses.length > 0 ? Math.round((total / responses.length) * 100) : 0,
+      responseRate:
+        responses.length > 0 ? Math.round((total / responses.length) * 100) : 0,
     };
   }
 
@@ -865,8 +970,14 @@ export class SatisfactionManager {
     return null;
   }
 
-  private async getTopNegativeComments(metric: string, start: string, end: string, limit: number): Promise<string[]> {
-    const rows = await db.all(`
+  private async getTopNegativeComments(
+    metric: string,
+    start: string,
+    end: string,
+    limit: number,
+  ): Promise<string[]> {
+    const rows = await db.all(
+      `
       SELECT comment
       FROM user_satisfaction_surveys
       WHERE survey_type = ?
@@ -878,9 +989,11 @@ export class SatisfactionManager {
         AND comment != ''
       ORDER BY shown_at DESC
       LIMIT ?
-    `, [metric, start, end, metric === 'nps' ? 6 : 2, limit]);
+    `,
+      [metric, start, end, metric === "nps" ? 6 : 2, limit],
+    );
 
-    return rows.map(r => r.comment);
+    return rows.map((r) => r.comment);
   }
 
   private generateRecommendedActions(alert: any, comments: string[]): string[] {
@@ -889,21 +1002,23 @@ export class SatisfactionManager {
     // Analyze comments for common themes
     const themes = this.extractThemes(comments);
 
-    if (themes.includes('slow')) {
-      actions.push('Investigate performance bottlenecks in task execution');
+    if (themes.includes("slow")) {
+      actions.push("Investigate performance bottlenecks in task execution");
     }
-    if (themes.includes('confusing')) {
-      actions.push('Review UI/UX with Human Sim Agent personas');
+    if (themes.includes("confusing")) {
+      actions.push("Review UI/UX with Human Sim Agent personas");
     }
-    if (themes.includes('error') || themes.includes('bug')) {
-      actions.push('Audit recent error logs and create bug fix tasks');
+    if (themes.includes("error") || themes.includes("bug")) {
+      actions.push("Audit recent error logs and create bug fix tasks");
     }
-    if (themes.includes('missing')) {
-      actions.push('Review feature requests for commonly requested features');
+    if (themes.includes("missing")) {
+      actions.push("Review feature requests for commonly requested features");
     }
 
     if (actions.length === 0) {
-      actions.push('Review individual comments and create targeted improvement tasks');
+      actions.push(
+        "Review individual comments and create targeted improvement tasks",
+      );
     }
 
     return actions;
@@ -911,12 +1026,16 @@ export class SatisfactionManager {
 
   private extractThemes(comments: string[]): string[] {
     const themes = [];
-    const text = comments.join(' ').toLowerCase();
+    const text = comments.join(" ").toLowerCase();
 
-    if (text.includes('slow') || text.includes('performance')) themes.push('slow');
-    if (text.includes('confus') || text.includes('unclear')) themes.push('confusing');
-    if (text.includes('error') || text.includes('bug') || text.includes('fail')) themes.push('error');
-    if (text.includes('missing') || text.includes('need')) themes.push('missing');
+    if (text.includes("slow") || text.includes("performance"))
+      themes.push("slow");
+    if (text.includes("confus") || text.includes("unclear"))
+      themes.push("confusing");
+    if (text.includes("error") || text.includes("bug") || text.includes("fail"))
+      themes.push("error");
+    if (text.includes("missing") || text.includes("need"))
+      themes.push("missing");
 
     return themes;
   }
@@ -1068,8 +1187,8 @@ export function FeedbackButton() {
 **File**: `parent-harness/orchestrator/src/api/satisfaction.ts`
 
 ```typescript
-import { Router } from 'express';
-import { SatisfactionManager } from '../satisfaction/manager.js';
+import { Router } from "express";
+import { SatisfactionManager } from "../satisfaction/manager.js";
 
 export const satisfactionRouter = Router();
 const manager = new SatisfactionManager();
@@ -1078,7 +1197,7 @@ const manager = new SatisfactionManager();
  * POST /api/satisfaction/surveys/nps
  * Trigger NPS survey for user
  */
-satisfactionRouter.post('/surveys/nps', async (req, res) => {
+satisfactionRouter.post("/surveys/nps", async (req, res) => {
   const { userId, trigger } = req.body;
 
   try {
@@ -1087,7 +1206,7 @@ satisfactionRouter.post('/surveys/nps', async (req, res) => {
     if (!surveyId) {
       return res.status(429).json({
         success: false,
-        message: 'User surveyed too recently',
+        message: "User surveyed too recently",
       });
     }
 
@@ -1107,7 +1226,7 @@ satisfactionRouter.post('/surveys/nps', async (req, res) => {
  * POST /api/satisfaction/surveys/:surveyId/response
  * Submit survey response
  */
-satisfactionRouter.post('/surveys/:surveyId/response', async (req, res) => {
+satisfactionRouter.post("/surveys/:surveyId/response", async (req, res) => {
   const { surveyId } = req.params;
   const { score, comment, timeToCompleteMs } = req.body;
 
@@ -1121,7 +1240,7 @@ satisfactionRouter.post('/surveys/:surveyId/response', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Response recorded',
+      message: "Response recorded",
     });
   } catch (error) {
     res.status(500).json({
@@ -1135,7 +1254,7 @@ satisfactionRouter.post('/surveys/:surveyId/response', async (req, res) => {
  * POST /api/satisfaction/surveys/:surveyId/dismiss
  * Mark survey as dismissed
  */
-satisfactionRouter.post('/surveys/:surveyId/dismiss', async (req, res) => {
+satisfactionRouter.post("/surveys/:surveyId/dismiss", async (req, res) => {
   const { surveyId } = req.params;
 
   try {
@@ -1143,7 +1262,7 @@ satisfactionRouter.post('/surveys/:surveyId/dismiss', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Survey dismissed',
+      message: "Survey dismissed",
     });
   } catch (error) {
     res.status(500).json({
@@ -1157,13 +1276,13 @@ satisfactionRouter.post('/surveys/:surveyId/dismiss', async (req, res) => {
  * GET /api/satisfaction/metrics/nps
  * Get NPS metrics for date range
  */
-satisfactionRouter.get('/metrics/nps', async (req, res) => {
+satisfactionRouter.get("/metrics/nps", async (req, res) => {
   const { startDate, endDate } = req.query;
 
   try {
     const result = await manager.calculateNPS(
       startDate as string,
-      endDate as string
+      endDate as string,
     );
 
     res.json(result);
@@ -1179,14 +1298,14 @@ satisfactionRouter.get('/metrics/nps', async (req, res) => {
  * GET /api/satisfaction/trends
  * Get satisfaction trend data
  */
-satisfactionRouter.get('/trends', async (req, res) => {
+satisfactionRouter.get("/trends", async (req, res) => {
   const { metric, granularity, range } = req.query;
 
   try {
     const trend = await manager.getTrend(
-      metric as 'nps' | 'csat',
-      granularity as 'daily' | 'weekly' | 'monthly',
-      parseInt(range as string)
+      metric as "nps" | "csat",
+      granularity as "daily" | "weekly" | "monthly",
+      parseInt(range as string),
     );
 
     res.json({ trend });
@@ -1202,12 +1321,12 @@ satisfactionRouter.get('/trends', async (req, res) => {
  * GET /api/satisfaction/cohorts
  * Get cohort analysis
  */
-satisfactionRouter.get('/cohorts', async (req, res) => {
+satisfactionRouter.get("/cohorts", async (req, res) => {
   const { cohortType } = req.query;
 
   try {
     const cohorts = await manager.getCohortAnalysis(
-      cohortType as 'tier' | 'tenure' | 'usage'
+      cohortType as "tier" | "tenure" | "usage",
     );
 
     res.json({ cohorts });
@@ -1223,8 +1342,15 @@ satisfactionRouter.get('/cohorts', async (req, res) => {
  * POST /api/satisfaction/feedback
  * Submit general feedback
  */
-satisfactionRouter.post('/feedback', async (req, res) => {
-  const { userId, feedbackType, priority, description, pageContext, screenshotUrl } = req.body;
+satisfactionRouter.post("/feedback", async (req, res) => {
+  const {
+    userId,
+    feedbackType,
+    priority,
+    description,
+    pageContext,
+    screenshotUrl,
+  } = req.body;
 
   try {
     const feedbackId = await manager.submitFeedback({
@@ -1239,7 +1365,7 @@ satisfactionRouter.post('/feedback', async (req, res) => {
     res.json({
       success: true,
       feedbackId,
-      message: 'Feedback submitted successfully',
+      message: "Feedback submitted successfully",
     });
   } catch (error) {
     res.status(500).json({
@@ -1253,7 +1379,7 @@ satisfactionRouter.post('/feedback', async (req, res) => {
  * GET /api/satisfaction/alerts
  * Get active satisfaction alerts
  */
-satisfactionRouter.get('/alerts', async (req, res) => {
+satisfactionRouter.get("/alerts", async (req, res) => {
   const { status } = req.query;
 
   try {
@@ -1272,20 +1398,26 @@ satisfactionRouter.get('/alerts', async (req, res) => {
  * GET /api/satisfaction/export
  * Export satisfaction data
  */
-satisfactionRouter.get('/export', async (req, res) => {
+satisfactionRouter.get("/export", async (req, res) => {
   const { format, startDate, endDate, cohort } = req.query;
 
   try {
     // Requires admin authentication (implement in middleware)
     const data = await manager.exportData({
-      format: format as 'csv' | 'json' | 'excel',
+      format: format as "csv" | "json" | "excel",
       startDate: startDate as string,
       endDate: endDate as string,
       cohort: cohort as string,
     });
 
-    res.setHeader('Content-Type', format === 'json' ? 'application/json' : 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="satisfaction-${Date.now()}.${format}"`);
+    res.setHeader(
+      "Content-Type",
+      format === "json" ? "application/json" : "text/csv",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="satisfaction-${Date.now()}.${format}"`,
+    );
     res.send(data);
   } catch (error) {
     res.status(500).json({
@@ -1301,8 +1433,8 @@ satisfactionRouter.get('/export', async (req, res) => {
 **File**: `parent-harness/orchestrator/src/satisfaction/scheduler.ts`
 
 ```typescript
-import { CronJob } from 'cron';
-import { SatisfactionManager } from './manager.js';
+import { CronJob } from "cron";
+import { SatisfactionManager } from "./manager.js";
 
 export class SatisfactionScheduler {
   private manager: SatisfactionManager;
@@ -1314,11 +1446,11 @@ export class SatisfactionScheduler {
 
   start(): void {
     // Run daily at 9 AM to check for satisfaction drops
-    this.job = new CronJob('0 9 * * *', async () => {
+    this.job = new CronJob("0 9 * * *", async () => {
       await this.manager.checkAlerts();
     });
     this.job.start();
-    console.log('📊 Satisfaction alert scheduler started (daily at 9 AM)');
+    console.log("📊 Satisfaction alert scheduler started (daily at 9 AM)");
   }
 
   stop(): void {
@@ -1337,28 +1469,32 @@ export const events = {
 
   surveyTriggered: (surveyId: string, userId: string, type: string) => {
     broadcast({
-      type: 'satisfaction:survey_triggered',
+      type: "satisfaction:survey_triggered",
       data: { surveyId, userId, surveyType: type },
     });
   },
 
   surveyCompleted: (surveyId: string, score: number) => {
     broadcast({
-      type: 'satisfaction:survey_completed',
+      type: "satisfaction:survey_completed",
       data: { surveyId, score },
     });
   },
 
-  satisfactionAlert: (alertId: string, metric: string, changePercent: number) => {
+  satisfactionAlert: (
+    alertId: string,
+    metric: string,
+    changePercent: number,
+  ) => {
     broadcast({
-      type: 'satisfaction:alert',
+      type: "satisfaction:alert",
       data: { alertId, metric, changePercent },
     });
   },
 
   feedbackSubmitted: (feedbackId: string, type: string, priority: string) => {
     broadcast({
-      type: 'satisfaction:feedback_submitted',
+      type: "satisfaction:feedback_submitted",
       data: { feedbackId, type, priority },
     });
   },
@@ -1369,18 +1505,18 @@ export const events = {
 
 ## Pass Criteria
 
-| # | Criterion | Validation Method | Target |
-|---|-----------|-------------------|--------|
-| 1 | NPS survey modal appears at 30-day intervals | Trigger survey via API, verify modal shows | Modal visible in UI |
-| 2 | NPS score calculated correctly | Submit test responses (promoters, passives, detractors), verify calculation | Correct NPS formula |
-| 3 | CSAT micro-survey after task completion | Complete task, verify CSAT toast appears | Toast visible within 5s |
-| 4 | In-app feedback button accessible | Navigate to all pages, verify button present | Button on all pages |
-| 5 | Satisfaction trend chart renders | Load trends page, verify chart displays data | Chart shows 30-day trend |
-| 6 | Cohort analysis shows tier segmentation | Request cohort data, verify segmentation logic | Cohorts by tier exist |
-| 7 | Automated alert on >10% drop | Simulate satisfaction drop, verify alert triggers | Alert sent to Telegram |
-| 8 | Survey responses linked to user profile | Submit survey, verify user_id stored | Database record linked |
-| 9 | Response rate tracking works | Show/complete surveys, calculate rate | Accurate rate calculation |
-| 10 | Export satisfaction data to CSV | Request export, verify CSV format | Valid CSV file |
+| #   | Criterion                                    | Validation Method                                                           | Target                    |
+| --- | -------------------------------------------- | --------------------------------------------------------------------------- | ------------------------- |
+| 1   | NPS survey modal appears at 30-day intervals | Trigger survey via API, verify modal shows                                  | Modal visible in UI       |
+| 2   | NPS score calculated correctly               | Submit test responses (promoters, passives, detractors), verify calculation | Correct NPS formula       |
+| 3   | CSAT micro-survey after task completion      | Complete task, verify CSAT toast appears                                    | Toast visible within 5s   |
+| 4   | In-app feedback button accessible            | Navigate to all pages, verify button present                                | Button on all pages       |
+| 5   | Satisfaction trend chart renders             | Load trends page, verify chart displays data                                | Chart shows 30-day trend  |
+| 6   | Cohort analysis shows tier segmentation      | Request cohort data, verify segmentation logic                              | Cohorts by tier exist     |
+| 7   | Automated alert on >10% drop                 | Simulate satisfaction drop, verify alert triggers                           | Alert sent to Telegram    |
+| 8   | Survey responses linked to user profile      | Submit survey, verify user_id stored                                        | Database record linked    |
+| 9   | Response rate tracking works                 | Show/complete surveys, calculate rate                                       | Accurate rate calculation |
+| 10  | Export satisfaction data to CSV              | Request export, verify CSV format                                           | Valid CSV file            |
 
 ### Validation Commands
 
@@ -1422,40 +1558,40 @@ curl "http://localhost:3333/api/satisfaction/export?format=csv&startDate=2026-01
 
 ### External Dependencies
 
-| Dependency | Version | Purpose | Installation |
-|------------|---------|---------|--------------|
-| `cron` | ^3.0.0 | Alert scheduler | Already installed |
-| `recharts` | ^2.10.0 | Trend visualization (React) | `npm install recharts` |
-| `@tanstack/react-table` | ^8.11.0 | Cohort data grid | `npm install @tanstack/react-table` |
-| `csv-stringify` | ^6.4.0 | CSV export | `npm install csv-stringify` |
+| Dependency              | Version | Purpose                     | Installation                        |
+| ----------------------- | ------- | --------------------------- | ----------------------------------- |
+| `cron`                  | ^3.0.0  | Alert scheduler             | Already installed                   |
+| `recharts`              | ^2.10.0 | Trend visualization (React) | `npm install recharts`              |
+| `@tanstack/react-table` | ^8.11.0 | Cohort data grid            | `npm install @tanstack/react-table` |
+| `csv-stringify`         | ^6.4.0  | CSV export                  | `npm install csv-stringify`         |
 
 ### Internal Dependencies
 
-| Module | Purpose |
-|--------|---------|
-| `src/db/events.ts` | WebSocket event broadcasting |
-| `src/telegram/index.ts` | Alert notifications |
+| Module                                                | Purpose                        |
+| ----------------------------------------------------- | ------------------------------ |
+| `src/db/events.ts`                                    | WebSocket event broadcasting   |
+| `src/telegram/index.ts`                               | Alert notifications            |
 | `parent-harness/dashboard/src/hooks/useWebSocket.tsx` | Frontend WebSocket integration |
-| `parent-harness/orchestrator/src/db/index.ts` | Database operations |
+| `parent-harness/orchestrator/src/db/index.ts`         | Database operations            |
 
 ### Upstream Dependencies
 
-| Component | Description | Status |
-|-----------|-------------|--------|
-| User authentication | User ID for survey linking | ✅ Exists |
-| Task completion tracking | Trigger CSAT after tasks | ✅ Exists (`task_state_history`) |
-| WebSocket infrastructure | Real-time survey triggers | ✅ Exists |
-| Dashboard widget system | Survey modal integration | ✅ Exists |
-| Telegram bot | Alert notifications | ✅ Exists |
+| Component                | Description                | Status                           |
+| ------------------------ | -------------------------- | -------------------------------- |
+| User authentication      | User ID for survey linking | ✅ Exists                        |
+| Task completion tracking | Trigger CSAT after tasks   | ✅ Exists (`task_state_history`) |
+| WebSocket infrastructure | Real-time survey triggers  | ✅ Exists                        |
+| Dashboard widget system  | Survey modal integration   | ✅ Exists                        |
+| Telegram bot             | Alert notifications        | ✅ Exists                        |
 
 ### Downstream Dependencies
 
-| Component | How It Benefits |
-|-----------|----------------|
-| Planning Agent | Receives satisfaction-driven improvement tasks |
-| Intake Agent | Processes feedback for triage |
-| Dashboard Analytics | Shows satisfaction metrics |
-| Admin Reports | Exports satisfaction data |
+| Component           | How It Benefits                                |
+| ------------------- | ---------------------------------------------- |
+| Planning Agent      | Receives satisfaction-driven improvement tasks |
+| Intake Agent        | Processes feedback for triage                  |
+| Dashboard Analytics | Shows satisfaction metrics                     |
+| Admin Reports       | Exports satisfaction data                      |
 
 ---
 
@@ -1640,6 +1776,7 @@ This specification defines a comprehensive user satisfaction metrics system for 
 
 **Status:** Specification Complete - Ready for Implementation
 **Next Steps:**
+
 1. Create database migrations (Phase 1)
 2. Implement SatisfactionManager class (Phase 1)
 3. Build survey UI components (Phase 2)

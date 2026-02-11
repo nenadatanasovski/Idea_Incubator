@@ -9,10 +9,7 @@
  */
 
 import { query, run, getOne, saveDb } from "../../../database/db.js";
-import {
-  TaskIdentity,
-  FileOperation,
-} from "../../../types/task-agent.js";
+import { TaskIdentity, FileOperation } from "../../../types/task-agent.js";
 
 /**
  * Result of finding parallel opportunities

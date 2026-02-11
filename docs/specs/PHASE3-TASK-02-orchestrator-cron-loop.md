@@ -174,6 +174,7 @@ Dashboard Real-Time Updates
 ### Functional Requirements
 
 **FR-1: Tick Interval Optimization**
+
 - MUST run tick loop at 60-second intervals (change from 30 seconds)
 - MUST complete all tick phases within 10 seconds (leave 50s buffer)
 - MUST skip tick if previous tick still running (prevent overlap)
@@ -181,6 +182,7 @@ Dashboard Real-Time Updates
 - SHOULD adjust interval dynamically if system is overloaded (future enhancement)
 
 **FR-2: Phase Prioritization**
+
 - MUST execute phases in priority order:
   1. **Critical:** Rate limit check, agent health, task assignment
   2. **Important:** Wave progression, QA verification
@@ -190,6 +192,7 @@ Dashboard Real-Time Updates
 - SHOULD skip non-critical phases if tick is running long (>8s elapsed)
 
 **FR-3: Rate Limit Monitoring**
+
 - MUST check rate limits proactively every tick
 - MUST alert at 60%, 80%, 95% thresholds (existing behavior)
 - MUST reset alerts when rolling window expires
@@ -197,6 +200,7 @@ Dashboard Real-Time Updates
 - SHOULD track cost-per-tick for budget planning
 
 **FR-4: Agent Health Coordination**
+
 - MUST check all agent heartbeats every tick
 - MUST mark agents stuck after 15 minutes without heartbeat
 - MUST clean up stuck agents after 30 minutes
@@ -204,6 +208,7 @@ Dashboard Real-Time Updates
 - SHOULD expose agent health metrics via API
 
 **FR-5: Task Dispatch Coordination**
+
 - MUST atomically claim tasks before spawning agents
 - MUST respect task dependencies (via `getPendingTasks()`)
 - MUST apply retry cooldown (exponential backoff)
@@ -213,6 +218,7 @@ Dashboard Real-Time Updates
 - SHOULD track assignment metrics (tasks assigned per tick)
 
 **FR-6: Wave Progression Management**
+
 - MUST check active wave runs every tick
 - MUST advance wave when current wave completes
 - MUST notify via Telegram on wave completion
@@ -220,6 +226,7 @@ Dashboard Real-Time Updates
 - SHOULD detect stalled waves (no progress in 30min)
 
 **FR-7: Tick Performance Metrics**
+
 - MUST record tick duration for each tick
 - MUST record phase durations within tick
 - MUST expose tick metrics via API endpoint
@@ -227,6 +234,7 @@ Dashboard Real-Time Updates
 - SHOULD track average tick duration over 1-hour window
 
 **FR-8: Pause/Resume Control**
+
 - MUST respect pause state (via `/stop` command)
 - MUST skip all phases when paused (except status check)
 - MUST log paused status every 10th tick
@@ -234,12 +242,14 @@ Dashboard Real-Time Updates
 - SHOULD expose pause state via API
 
 **FR-9: Real-Time Observability**
+
 - MUST broadcast tick status via WebSocket
 - MUST emit events: `tick:started`, `tick:completed`, `tick:phase:completed`
 - MUST include tick metrics in events (duration, phase durations)
 - SHOULD batch events to prevent spam (one tick summary per tick)
 
 **FR-10: Graceful Failure Handling**
+
 - MUST continue tick execution if any phase fails
 - MUST log phase failures with stack traces
 - MUST track consecutive phase failures
@@ -249,6 +259,7 @@ Dashboard Real-Time Updates
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Tick duration MUST NOT exceed 10 seconds under normal load
 - Phase execution MUST be async (don't block)
 - Database queries MUST use indexes
@@ -256,6 +267,7 @@ Dashboard Real-Time Updates
 - Wave progression MUST complete in <1 second for 10 active runs
 
 **NFR-2: Reliability**
+
 - Tick loop MUST survive phase failures (crash protection)
 - Tick state MUST survive orchestrator restarts
 - Agent health recovery MUST NOT corrupt task state
@@ -263,6 +275,7 @@ Dashboard Real-Time Updates
 - No data loss during tick execution
 
 **NFR-3: Observability**
+
 - MUST log tick start/end with duration
 - MUST log phase execution times
 - MUST expose tick metrics via `/api/orchestrator/metrics`
@@ -270,6 +283,7 @@ Dashboard Real-Time Updates
 - SHOULD provide Prometheus-compatible metrics (future)
 
 **NFR-4: Resource Efficiency**
+
 - 60-second interval reduces CPU overhead by 50%
 - Phase skipping reduces unnecessary work
 - Atomic task claiming prevents duplicate spawns
@@ -277,6 +291,7 @@ Dashboard Real-Time Updates
 - Rate limit monitoring prevents overspend
 
 **NFR-5: Maintainability**
+
 - Tick phases clearly separated and documented
 - Each phase has single responsibility
 - Crash protection centralizes error handling
@@ -290,12 +305,14 @@ Dashboard Real-Time Updates
 ### Configuration Changes
 
 **Update tick interval in `orchestrator/index.ts`:**
+
 ```typescript
 // Change from 30 seconds to 60 seconds
 const TICK_INTERVAL_MS = 60_000; // 60 seconds (was 30_000)
 ```
 
 **New configuration constants:**
+
 ```typescript
 const MAX_TICK_DURATION_MS = 10_000; // 10 seconds
 const WARN_TICK_DURATION_MS = 8_000; // 8 seconds (80% threshold)
@@ -306,6 +323,7 @@ const ENABLE_TICK_METRICS = true; // Track performance
 ### Enhanced Tick Execution
 
 **New tick state tracking:**
+
 ```typescript
 interface TickState {
   tickNumber: number;
@@ -320,6 +338,7 @@ let currentTickState: TickState | null = null;
 ```
 
 **Enhanced tick function with metrics:**
+
 ```typescript
 async function tick(): Promise<void> {
   tickCount++;
@@ -343,7 +362,7 @@ async function tick(): Promise<void> {
 
   // Broadcast tick start
   ws.broadcast({
-    type: 'tick:started',
+    type: "tick:started",
     tickNumber: tickCount,
     timestamp: new Date(startTime).toISOString(),
   });
@@ -352,23 +371,25 @@ async function tick(): Promise<void> {
     // Check if paused
     if (isOrchestratorPaused()) {
       if (tickCount % 10 === 0) {
-        console.log(`⏸️ Orchestrator paused (tick #${tickCount}). Use /start to resume.`);
+        console.log(
+          `⏸️ Orchestrator paused (tick #${tickCount}). Use /start to resume.`,
+        );
       }
       return;
     }
 
     // Execute tick phases with timing
-    await executePhase('rate_limit_check', () => checkRateLimitsProactively());
-    await executePhase('approved_plan_check', () => checkForApprovedPlans());
-    await executePhase('agent_health', () => checkAgentHealth());
+    await executePhase("rate_limit_check", () => checkRateLimitsProactively());
+    await executePhase("approved_plan_check", () => checkForApprovedPlans());
+    await executePhase("agent_health", () => checkAgentHealth());
 
     // Periodic phases
     if (RUN_QA && tickCount % QA_EVERY_N_TICKS === 0) {
-      await executePhase('qa_verification', () => qa.runQACycle());
+      await executePhase("qa_verification", () => qa.runQACycle());
     }
 
     if (tickCount % 5 === 0) {
-      await executePhase('retry_processing', async () => {
+      await executePhase("retry_processing", async () => {
         const retried = await selfImprovement.processFailedTasks();
         if (retried && retried > 0) {
           console.log(`🔄 Queued ${retried} tasks for retry`);
@@ -377,8 +398,8 @@ async function tick(): Promise<void> {
     }
 
     // Critical path phases
-    await executePhase('wave_progression', () => checkWaveProgress());
-    await executePhase('task_assignment', () => assignTasks());
+    await executePhase("wave_progression", () => checkWaveProgress());
+    await executePhase("task_assignment", () => assignTasks());
 
     // Event logging
     const workingAgents = agents.getWorkingAgents();
@@ -393,7 +414,9 @@ async function tick(): Promise<void> {
 
     // Warn if tick took too long
     if (duration > WARN_TICK_DURATION_MS) {
-      console.warn(`⚠️ Tick #${tickCount} took ${duration}ms (threshold: ${WARN_TICK_DURATION_MS}ms)`);
+      console.warn(
+        `⚠️ Tick #${tickCount} took ${duration}ms (threshold: ${WARN_TICK_DURATION_MS}ms)`,
+      );
 
       // Log slow phases
       const slowPhases = Array.from(currentTickState.phaseDurations.entries())
@@ -401,15 +424,19 @@ async function tick(): Promise<void> {
         .sort((a, b) => b[1] - a[1]);
 
       if (slowPhases.length > 0) {
-        console.warn(`   Slow phases: ${slowPhases.map(([p, d]) => `${p}(${d}ms)`).join(', ')}`);
+        console.warn(
+          `   Slow phases: ${slowPhases.map(([p, d]) => `${p}(${d}ms)`).join(", ")}`,
+        );
       }
     }
 
-    console.log(`⏰ Tick #${tickCount}: ${workingAgents.length} working, ${idleAgents.length} idle (${duration}ms)`);
+    console.log(
+      `⏰ Tick #${tickCount}: ${workingAgents.length} working, ${idleAgents.length} idle (${duration}ms)`,
+    );
 
     // Broadcast tick completion with metrics
     ws.broadcast({
-      type: 'tick:completed',
+      type: "tick:completed",
       tickNumber: tickCount,
       duration,
       workingAgents: workingAgents.length,
@@ -418,14 +445,13 @@ async function tick(): Promise<void> {
       errors: currentTickState.errors,
       timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
-    console.error('❌ Tick error:', error);
+    console.error("❌ Tick error:", error);
     events.cronTick(tickCount, 0, 0);
 
     // Broadcast tick error
     ws.broadcast({
-      type: 'tick:failed',
+      type: "tick:failed",
       tickNumber: tickCount,
       error: error instanceof Error ? error.message : String(error),
       timestamp: new Date().toISOString(),
@@ -437,8 +463,12 @@ async function tick(): Promise<void> {
 ```
 
 **Phase execution wrapper with timing:**
+
 ```typescript
-async function executePhase(phaseName: string, phaseFunc: () => Promise<void> | void): Promise<void> {
+async function executePhase(
+  phaseName: string,
+  phaseFunc: () => Promise<void> | void,
+): Promise<void> {
   const phaseStart = Date.now();
   currentTickState!.currentPhase = phaseName;
 
@@ -452,7 +482,6 @@ async function executePhase(phaseName: string, phaseFunc: () => Promise<void> | 
     if (duration > 2000) {
       console.warn(`⚠️ Phase ${phaseName} took ${duration}ms`);
     }
-
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     currentTickState!.errors.push({ phase: phaseName, error: errorMsg });
@@ -466,9 +495,10 @@ async function executePhase(phaseName: string, phaseFunc: () => Promise<void> | 
 ### API Endpoint for Tick Metrics
 
 **New endpoint: `GET /api/orchestrator/tick-metrics`**
+
 ```typescript
 // In parent-harness/orchestrator/src/api/orchestrator.ts
-router.get('/tick-metrics', (req, res) => {
+router.get("/tick-metrics", (req, res) => {
   const metrics = getTickMetrics();
   res.json(metrics);
 });
@@ -479,7 +509,9 @@ function getTickMetrics(): TickMetrics {
     currentTick: tickCount,
     isRunning: isRunning,
     isPaused: isOrchestratorPaused(),
-    lastTickDuration: currentTickState ? Date.now() - currentTickState.startTime : null,
+    lastTickDuration: currentTickState
+      ? Date.now() - currentTickState.startTime
+      : null,
     recentTicks: getRecentTickHistory(20), // Last 20 ticks
     averageDuration: calculateAverageDuration(),
     slowestPhases: getSlowPhaseStats(),
@@ -491,16 +523,17 @@ function getTickMetrics(): TickMetrics {
 ### WebSocket Events
 
 **New event types:**
+
 ```typescript
 // Tick lifecycle events
 ws.broadcast({
-  type: 'tick:started',
+  type: "tick:started",
   tickNumber: number,
   timestamp: string,
 });
 
 ws.broadcast({
-  type: 'tick:completed',
+  type: "tick:completed",
   tickNumber: number,
   duration: number, // milliseconds
   workingAgents: number,
@@ -511,14 +544,14 @@ ws.broadcast({
 });
 
 ws.broadcast({
-  type: 'tick:failed',
+  type: "tick:failed",
   tickNumber: number,
   error: string,
   timestamp: string,
 });
 
 ws.broadcast({
-  type: 'tick:phase:completed',
+  type: "tick:phase:completed",
   tickNumber: number,
   phase: string,
   duration: number,
@@ -529,6 +562,7 @@ ws.broadcast({
 ### Tick Metrics Storage
 
 **New table: tick_history (optional, for analytics)**
+
 ```sql
 CREATE TABLE IF NOT EXISTS tick_history (
   id TEXT PRIMARY KEY,
@@ -548,17 +582,20 @@ CREATE INDEX IF NOT EXISTS idx_tick_history_started_at ON tick_history(started_a
 ```
 
 **Tick history persistence:**
+
 ```typescript
 function recordTickHistory(tickState: TickState, duration: number): void {
   if (!ENABLE_TICK_METRICS) return;
 
   const db = getDb();
-  db.prepare(`
+  db.prepare(
+    `
     INSERT INTO tick_history (
       id, tick_number, started_at, completed_at, duration_ms,
       working_agents, idle_agents, phases_executed, error_count
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
+  `,
+  ).run(
     uuidv4(),
     tickState.tickNumber,
     new Date(tickState.startTime).toISOString(),
@@ -566,25 +603,30 @@ function recordTickHistory(tickState: TickState, duration: number): void {
     duration,
     agents.getWorkingAgents().length,
     agents.getIdleAgents().length,
-    JSON.stringify(Array.from(tickState.phaseDurations.entries()).map(([phase, dur]) => ({
-      phase,
-      duration: dur,
-      error: tickState.errors.find(e => e.phase === phase)?.error,
-    }))),
-    tickState.errors.length
+    JSON.stringify(
+      Array.from(tickState.phaseDurations.entries()).map(([phase, dur]) => ({
+        phase,
+        duration: dur,
+        error: tickState.errors.find((e) => e.phase === phase)?.error,
+      })),
+    ),
+    tickState.errors.length,
   );
 
   // Clean up old history (keep last 1000 ticks)
-  db.prepare(`
+  db.prepare(
+    `
     DELETE FROM tick_history
     WHERE tick_number < (SELECT MAX(tick_number) - 1000 FROM tick_history)
-  `).run();
+  `,
+  ).run();
 }
 ```
 
 ### Migration Script
 
 **Add tick_history table in migration:**
+
 ```sql
 -- File: parent-harness/orchestrator/database/migrations/071_tick_history.sql
 CREATE TABLE IF NOT EXISTS tick_history (
@@ -660,17 +702,20 @@ CREATE INDEX IF NOT EXISTS idx_tick_history_started_at ON tick_history(started_a
 ## Dependencies
 
 **Upstream (Must Complete First):**
+
 - ✅ PHASE2-TASK-04: Task state machine with retry logic (COMPLETED)
 - ✅ Wave system (`waves/index.ts`) exists
 - ✅ Task assignment logic (`assignTasks()`) exists
 - ✅ Agent health monitoring (`checkAgentHealth()`) exists
 
 **Downstream (Depends on This):**
+
 - PHASE3-TASK-01: Queue persistence (benefits from tick metrics)
 - PHASE3-TASK-03: Session tracking (uses tick events)
 - PHASE3-TASK-05: Dashboard updates (displays tick metrics)
 
 **Parallel Work (Can Develop Concurrently):**
+
 - PHASE3-TASK-04: Agent logging
 - PHASE4-TASK-01: Knowledge base system
 
@@ -679,6 +724,7 @@ CREATE INDEX IF NOT EXISTS idx_tick_history_started_at ON tick_history(started_a
 ## Implementation Plan
 
 ### Phase 1: Tick Interval & State Tracking (1 hour)
+
 1. Update `TICK_INTERVAL_MS` from 30_000 to 60_000
 2. Add `TickState` interface and `currentTickState` variable
 3. Add overlap prevention check
@@ -686,6 +732,7 @@ CREATE INDEX IF NOT EXISTS idx_tick_history_started_at ON tick_history(started_a
 5. Test tick runs every 60 seconds
 
 ### Phase 2: Phase Timing & Metrics (1.5 hours)
+
 6. Implement `executePhase()` wrapper with timing
 7. Track phase durations in `TickState.phaseDurations`
 8. Log slow phases (>2 seconds)
@@ -693,6 +740,7 @@ CREATE INDEX IF NOT EXISTS idx_tick_history_started_at ON tick_history(started_a
 10. Test phase timing accuracy
 
 ### Phase 3: WebSocket Events (1 hour)
+
 11. Add `tick:started`, `tick:completed`, `tick:failed` event types
 12. Broadcast tick events with metrics
 13. Include phase durations in tick:completed
@@ -700,6 +748,7 @@ CREATE INDEX IF NOT EXISTS idx_tick_history_started_at ON tick_history(started_a
 15. Verify event payload structure
 
 ### Phase 4: Metrics API (1.5 hours)
+
 16. Create `/api/orchestrator/tick-metrics` endpoint
 17. Implement `getTickMetrics()` function
 18. Add recent tick history (in-memory, last 20 ticks)
@@ -707,6 +756,7 @@ CREATE INDEX IF NOT EXISTS idx_tick_history_started_at ON tick_history(started_a
 20. Test API returns accurate data
 
 ### Phase 5: Optional Persistence (1 hour)
+
 21. Create migration `071_tick_history.sql`
 22. Implement `recordTickHistory()` function
 23. Add cleanup logic (keep last 1000 ticks)
@@ -714,6 +764,7 @@ CREATE INDEX IF NOT EXISTS idx_tick_history_started_at ON tick_history(started_a
 25. Test history table population
 
 ### Phase 6: Testing & Documentation (1 hour)
+
 26. Write unit tests for phase timing
 27. Write integration test for full tick cycle
 28. Write performance test (100 ticks)
@@ -760,21 +811,21 @@ describe('Orchestrator Tick Loop', () => {
 
 ```typescript
 // orchestrator/tick-integration.test.ts
-describe('Tick Integration', () => {
-  test('full tick cycle completes all phases', async () => {
+describe("Tick Integration", () => {
+  test("full tick cycle completes all phases", async () => {
     const events: string[] = [];
-    ws.on('broadcast', (event) => events.push(event.type));
+    ws.on("broadcast", (event) => events.push(event.type));
 
     await tick();
 
-    expect(events).toContain('tick:started');
-    expect(events).toContain('tick:completed');
+    expect(events).toContain("tick:started");
+    expect(events).toContain("tick:completed");
     // Verify all critical phases executed
   });
 
-  test('tick metrics API returns accurate data', async () => {
+  test("tick metrics API returns accurate data", async () => {
     await tick();
-    const response = await fetch('/api/orchestrator/tick-metrics');
+    const response = await fetch("/api/orchestrator/tick-metrics");
     const metrics = await response.json();
 
     expect(metrics.currentTick).toBeGreaterThan(0);
@@ -788,8 +839,8 @@ describe('Tick Integration', () => {
 
 ```typescript
 // orchestrator/tick-performance.test.ts
-describe('Tick Performance', () => {
-  test('100 ticks complete without degradation', async () => {
+describe("Tick Performance", () => {
+  test("100 ticks complete without degradation", async () => {
     const durations: number[] = [];
 
     for (let i = 0; i < 100; i++) {
@@ -805,7 +856,7 @@ describe('Tick Performance', () => {
     expect(maxDuration).toBeLessThan(15000); // <15s max
   });
 
-  test('no memory leaks over 1000 ticks', async () => {
+  test("no memory leaks over 1000 ticks", async () => {
     const initialMemory = process.memoryUsage().heapUsed;
 
     for (let i = 0; i < 1000; i++) {
@@ -873,6 +924,7 @@ If tick optimization causes instability:
 ## Success Metrics
 
 **Operational Metrics:**
+
 - Average tick duration: <5 seconds
 - P95 tick duration: <10 seconds
 - P99 tick duration: <15 seconds
@@ -880,18 +932,21 @@ If tick optimization causes instability:
 - Phase failure rate: <1%
 
 **Resource Efficiency:**
+
 - CPU reduction: ~50% (vs 30-second interval)
 - Database query count: Same per tick
 - Memory growth: <10% per 1000 ticks
 - Network bandwidth: Same (WebSocket events)
 
 **Observability Metrics:**
+
 - Tick metrics API latency: <100ms
 - WebSocket event delivery: <500ms
 - Dashboard update latency: <1 second
 - Metric accuracy: 100% (no missing ticks)
 
 **Quality Metrics:**
+
 - Zero tick skips (except when paused)
 - 100% phase execution (crash-protected)
 - Zero data corruption

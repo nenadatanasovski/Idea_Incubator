@@ -485,7 +485,6 @@ export const GraphTabPanel = memo(function GraphTabPanel({
     setShowUpdateConfirmation(false);
   }, []);
 
-
   // State for tracking analysis progress and pending proposed changes
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [pendingProposedChanges, setPendingProposedChanges] = useState<
@@ -816,27 +815,39 @@ export const GraphTabPanel = memo(function GraphTabPanel({
           <button
             onClick={() => setShowNeo4jView(!showNeo4jView)}
             className={`text-sm px-3 py-1 rounded-lg transition-colors ${
-              showNeo4jView ? 'bg-teal-200 text-teal-800' : 'bg-teal-100 text-teal-700 hover:bg-teal-200'
+              showNeo4jView
+                ? "bg-teal-200 text-teal-800"
+                : "bg-teal-100 text-teal-700 hover:bg-teal-200"
             }`}
             title="Toggle Neo4j Memory Graph visualization"
           >
-            {showNeo4jView ? '📊 SQLite View' : '🧠 Neo4j View'}
+            {showNeo4jView ? "📊 SQLite View" : "🧠 Neo4j View"}
           </button>
           <button
-            onClick={() => { setShowSearch(!showSearch); setShowCreateBlock(false); }}
+            onClick={() => {
+              setShowSearch(!showSearch);
+              setShowCreateBlock(false);
+            }}
             className={`text-sm px-3 py-1 rounded-lg transition-colors ${
-              showSearch ? 'bg-purple-200 text-purple-800' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+              showSearch
+                ? "bg-purple-200 text-purple-800"
+                : "bg-purple-100 text-purple-700 hover:bg-purple-200"
             }`}
           >
-            {showSearch ? '✕ Close Search' : '🔍 Search'}
+            {showSearch ? "✕ Close Search" : "🔍 Search"}
           </button>
           <button
-            onClick={() => { setShowCreateBlock(!showCreateBlock); setShowSearch(false); }}
+            onClick={() => {
+              setShowCreateBlock(!showCreateBlock);
+              setShowSearch(false);
+            }}
             className={`text-sm px-3 py-1 rounded-lg transition-colors ${
-              showCreateBlock ? 'bg-blue-200 text-blue-800' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+              showCreateBlock
+                ? "bg-blue-200 text-blue-800"
+                : "bg-blue-100 text-blue-700 hover:bg-blue-200"
             }`}
           >
-            {showCreateBlock ? '✕ Close' : '+ Add Block'}
+            {showCreateBlock ? "✕ Close" : "+ Add Block"}
           </button>
         </div>
       </div>
@@ -877,81 +888,81 @@ export const GraphTabPanel = memo(function GraphTabPanel({
             sessionId={sessionId}
             onSelectBlock={(block) => {
               // Could sync with the main node selection
-              console.log('[GraphTabPanel] Neo4j block selected:', block.id);
+              console.log("[GraphTabPanel] Neo4j block selected:", block.id);
             }}
             className="h-full"
           />
         ) : (
-        <GraphErrorBoundary>
-          <Suspense fallback={<GraphLoadingSkeleton />}>
-            <GraphContainer
-              nodes={filteredData.nodes.map((node) => ({
-                ...node,
-                isHighlighted: combinedHighlightedNodeIds.has(node.id),
-                isSelected: selectedNode?.id === node.id,
-              }))}
-              edges={filteredData.edges.map((edge) => ({
-                ...edge,
-                isHighlighted: recentlyAddedEdgeIds.has(edge.id),
-              }))}
-              isLoading={isLoading}
-              error={error}
-              onNodeSelect={handleNodeSelect}
-              onRefresh={refetch}
-              lastUpdated={lastUpdated}
-              showFilters={true}
-              showLegend={true}
-              showControls={true}
-              isConnected={isConnected}
-              isReconnecting={isReconnecting}
-              isStale={isStale}
-              recentlyAddedNodeIds={recentlyAddedNodeIds}
-              recentlyAddedEdgeIds={recentlyAddedEdgeIds}
-              onUpdateMemoryGraph={onUpdateMemoryGraph}
-              onAnalyzeWithSources={handleAnalyzeWithSources}
-              isAnalyzingGraph={isAnalyzingGraph || isAnalyzing}
-              isApplyingChanges={isApplyingChanges}
-              pendingGraphChanges={pendingGraphChanges}
-              sessionId={sessionId}
-              ideaSlug={ideaSlug}
-              onPromptHighlight={handlePromptHighlight}
-              onPromptFilterChange={handlePromptFilterChange}
-              onNavigateToChatMessage={onNavigateToChatMessage}
-              onNavigateToArtifact={onNavigateToArtifact}
-              onNavigateToMemoryDB={onNavigateToMemoryDB}
-              onNavigateToExternal={onNavigateToExternal}
-              onNavigateToInsight={onNavigateToInsight}
-              onLinkNode={onLinkNode}
-              onGroupIntoSynthesis={onGroupIntoSynthesis}
-              onDeleteNode={onDeleteNode}
-              onDeleteNodeGroup={onDeleteNodeGroup}
-              resetFiltersTrigger={resetFiltersTrigger}
-              successNotification={successNotification}
-              onClearNotification={onClearNotification}
-              // Snapshot/Versioning
-              snapshots={snapshots}
-              onSaveSnapshot={handleSaveSnapshot}
-              onRestoreSnapshot={handleRestoreSnapshot}
-              onDeleteSnapshot={handleDeleteSnapshot}
-              onLoadSnapshots={handleLoadSnapshots}
-              isLoadingSnapshots={isLoadingSnapshots}
-              isSavingSnapshot={isSavingSnapshot}
-              isRestoringSnapshot={isRestoringSnapshot}
-              reportRefreshTrigger={reportRefreshTrigger}
-              // Report synthesis status (moved to GraphControls toolbar)
-              reportSynthesisStatus={reportSynthesisStatus}
-              onCancelReportSynthesis={cancelReportSynthesis}
-              onDismissReportSynthesisStatus={dismissReportSynthesisStatus}
-              // Source mapping status (moved to GraphControls toolbar)
-              sourceMappingStatus={sourceMappingStatus}
-              onCancelSourceMapping={cancelSourceMapping}
-              onDismissSourceMappingStatus={dismissSourceMappingStatus}
-              // Existing insights for source selection
-              existingInsights={existingInsights}
-              className="h-full"
-            />
-          </Suspense>
-        </GraphErrorBoundary>
+          <GraphErrorBoundary>
+            <Suspense fallback={<GraphLoadingSkeleton />}>
+              <GraphContainer
+                nodes={filteredData.nodes.map((node) => ({
+                  ...node,
+                  isHighlighted: combinedHighlightedNodeIds.has(node.id),
+                  isSelected: selectedNode?.id === node.id,
+                }))}
+                edges={filteredData.edges.map((edge) => ({
+                  ...edge,
+                  isHighlighted: recentlyAddedEdgeIds.has(edge.id),
+                }))}
+                isLoading={isLoading}
+                error={error}
+                onNodeSelect={handleNodeSelect}
+                onRefresh={refetch}
+                lastUpdated={lastUpdated}
+                showFilters={true}
+                showLegend={true}
+                showControls={true}
+                isConnected={isConnected}
+                isReconnecting={isReconnecting}
+                isStale={isStale}
+                recentlyAddedNodeIds={recentlyAddedNodeIds}
+                recentlyAddedEdgeIds={recentlyAddedEdgeIds}
+                onUpdateMemoryGraph={onUpdateMemoryGraph}
+                onAnalyzeWithSources={handleAnalyzeWithSources}
+                isAnalyzingGraph={isAnalyzingGraph || isAnalyzing}
+                isApplyingChanges={isApplyingChanges}
+                pendingGraphChanges={pendingGraphChanges}
+                sessionId={sessionId}
+                ideaSlug={ideaSlug}
+                onPromptHighlight={handlePromptHighlight}
+                onPromptFilterChange={handlePromptFilterChange}
+                onNavigateToChatMessage={onNavigateToChatMessage}
+                onNavigateToArtifact={onNavigateToArtifact}
+                onNavigateToMemoryDB={onNavigateToMemoryDB}
+                onNavigateToExternal={onNavigateToExternal}
+                onNavigateToInsight={onNavigateToInsight}
+                onLinkNode={onLinkNode}
+                onGroupIntoSynthesis={onGroupIntoSynthesis}
+                onDeleteNode={onDeleteNode}
+                onDeleteNodeGroup={onDeleteNodeGroup}
+                resetFiltersTrigger={resetFiltersTrigger}
+                successNotification={successNotification}
+                onClearNotification={onClearNotification}
+                // Snapshot/Versioning
+                snapshots={snapshots}
+                onSaveSnapshot={handleSaveSnapshot}
+                onRestoreSnapshot={handleRestoreSnapshot}
+                onDeleteSnapshot={handleDeleteSnapshot}
+                onLoadSnapshots={handleLoadSnapshots}
+                isLoadingSnapshots={isLoadingSnapshots}
+                isSavingSnapshot={isSavingSnapshot}
+                isRestoringSnapshot={isRestoringSnapshot}
+                reportRefreshTrigger={reportRefreshTrigger}
+                // Report synthesis status (moved to GraphControls toolbar)
+                reportSynthesisStatus={reportSynthesisStatus}
+                onCancelReportSynthesis={cancelReportSynthesis}
+                onDismissReportSynthesisStatus={dismissReportSynthesisStatus}
+                // Source mapping status (moved to GraphControls toolbar)
+                sourceMappingStatus={sourceMappingStatus}
+                onCancelSourceMapping={cancelSourceMapping}
+                onDismissSourceMappingStatus={dismissSourceMappingStatus}
+                // Existing insights for source selection
+                existingInsights={existingInsights}
+                className="h-full"
+              />
+            </Suspense>
+          </GraphErrorBoundary>
         )}
       </div>
 

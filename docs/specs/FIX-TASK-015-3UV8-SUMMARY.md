@@ -1,6 +1,7 @@
 # Task Completion Summary: FIX-TASK-015-3UV8
 
 ## Task Details
+
 - **Task ID**: FIX-TASK-015-3UV8
 - **Title**: Fix: Fix TaskStateHistoryService Missing Method
 - **Original Description**: Add hasBeenInStatus() method to TaskStateHistoryService (tested but not implemented)
@@ -17,11 +18,11 @@ The `hasBeenInStatus()` method was **already fully implemented and functional**.
 
 ## Pass Criteria Results
 
-| Criterion | Status | Evidence |
-|-----------|--------|----------|
-| All tests pass | ✅ PASS | 13/13 tests passing in TaskStateHistoryService suite |
-| Build succeeds | ✅ PASS | TypeScript compilation: 0 errors |
-| TypeScript compiles | ✅ PASS | `npx tsc --noEmit`: 0 errors |
+| Criterion           | Status  | Evidence                                             |
+| ------------------- | ------- | ---------------------------------------------------- |
+| All tests pass      | ✅ PASS | 13/13 tests passing in TaskStateHistoryService suite |
+| Build succeeds      | ✅ PASS | TypeScript compilation: 0 errors                     |
+| TypeScript compiles | ✅ PASS | `npx tsc --noEmit`: 0 errors                         |
 
 ---
 
@@ -47,14 +48,17 @@ The `hasBeenInStatus()` method was **already fully implemented and functional**.
 ## Implementation Details
 
 ### Method Location
+
 `server/services/task-agent/task-state-history-service.ts:226-233`
 
 ### Method Signature
+
 ```typescript
 async hasBeenInStatus(taskId: string, status: TaskStatus): Promise<boolean>
 ```
 
 ### Test Coverage
+
 - Positive case: Returns `true` when task has been in status
 - Negative case: Returns `false` when task has never been in status
 - Both tests passing

@@ -14,6 +14,7 @@
 Enhance the existing Parent Harness agent memory system with persistent database storage, lifecycle management, and long-term knowledge retention. This task builds upon the existing in-memory `agent_memory` table to create a comprehensive memory persistence layer that enables agents to learn from past attempts, retain knowledge across sessions, and improve autonomous decision-making over time.
 
 **Problem:** The current agent memory system (`parent-harness/orchestrator/src/memory/index.ts`) provides basic in-memory storage with an SQLite-backed `agent_memory` table. However, it lacks:
+
 1. **Migration-based schema management** - Memory table created via runtime SQL, not versioned migrations
 2. **Memory lifecycle management** - No expiration cleanup, archival, or pruning mechanisms
 3. **Cross-session persistence** - Memories expire but don't migrate to long-term storage
@@ -22,6 +23,7 @@ Enhance the existing Parent Harness agent memory system with persistent database
 6. **Analytics & observability** - No metrics on memory usage, access patterns, retention
 
 **Solution:** Create a robust memory persistence infrastructure that:
+
 1. Migrates existing `agent_memory` table to versioned schema
 2. Implements memory lifecycle (creation → active → archived → purged)
 3. Adds automatic importance decay based on access patterns
@@ -85,6 +87,7 @@ Enhance the existing Parent Harness agent memory system with persistent database
 ### Functional Requirements
 
 **FR-1: Migration-Based Schema Management**
+
 - MUST create migration `002_memory_persistence.sql` with:
   - `agent_memory` table (migrate from runtime creation)
   - `archived_memories` table for retention
@@ -94,6 +97,7 @@ Enhance the existing Parent Harness agent memory system with persistent database
 - MUST add new columns: `archived_at`, `importance_decay_rate`, `last_decay_at`
 
 **FR-2: Memory Lifecycle Management**
+
 - MUST implement expiration cleanup service (runs every 15 minutes)
   - Find memories where `expires_at < NOW()`
   - Archive to `archived_memories` table
@@ -108,6 +112,7 @@ Enhance the existing Parent Harness agent memory system with persistent database
 - MUST log all lifecycle actions (archived, decayed, pruned)
 
 **FR-3: Memory Archival**
+
 - MUST archive memories before deletion (audit trail)
 - MUST preserve all memory fields in archive:
   - Original memory data (id, agent_id, type, key, value, metadata)
@@ -117,6 +122,7 @@ Enhance the existing Parent Harness agent memory system with persistent database
 - MUST support restoring archived memories to active state
 
 **FR-4: Importance Decay**
+
 - MUST calculate decay based on access patterns:
   - No access for 30 days: decay rate = 0.2/day
   - No access for 7 days: decay rate = 0.1/day
@@ -127,6 +133,7 @@ Enhance the existing Parent Harness agent memory system with persistent database
 - MUST record last decay timestamp for auditing
 
 **FR-5: Memory Analytics**
+
 - MUST track daily metrics:
   - Total memories per agent (by type)
   - Average importance per agent
@@ -139,6 +146,7 @@ Enhance the existing Parent Harness agent memory system with persistent database
 - SHOULD generate weekly memory health reports
 
 **FR-6: Memory Promotion to Knowledge Base**
+
 - MUST identify promotion candidates:
   - importance >= 8
   - access_count >= 5
@@ -150,6 +158,7 @@ Enhance the existing Parent Harness agent memory system with persistent database
 - SHOULD emit event: `memory:promoted` with memory ID
 
 **FR-7: Memory Export/Import**
+
 - MUST support exporting agent memories to JSON
   - Include all active + archived memories
   - Include metadata, importance, access stats
@@ -158,6 +167,7 @@ Enhance the existing Parent Harness agent memory system with persistent database
 - MUST handle conflicts (existing memories with same key)
 
 **FR-8: API Enhancements**
+
 - MUST add `GET /api/memory/:agentId/archived` - Query archived memories
 - MUST add `POST /api/memory/:agentId/restore/:memoryId` - Restore from archive
 - MUST add `GET /api/memory/metrics` - Memory analytics
@@ -168,6 +178,7 @@ Enhance the existing Parent Harness agent memory system with persistent database
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Expiration cleanup MUST complete in <5 seconds for 1000+ memories
 - Importance decay MUST process 10,000+ memories in <30 seconds
 - Memory queries MUST respond in <50ms (indexed lookups)
@@ -175,6 +186,7 @@ Enhance the existing Parent Harness agent memory system with persistent database
 - MUST NOT block agent operations during cleanup/decay
 
 **NFR-2: Data Integrity**
+
 - Memory lifecycle operations MUST be atomic (transaction-based)
 - Archival MUST preserve all original data (no data loss)
 - Importance decay MUST never go below minimum threshold
@@ -182,6 +194,7 @@ Enhance the existing Parent Harness agent memory system with persistent database
 - MUST enforce agent_id isolation (agents can't access others' memories)
 
 **NFR-3: Observability**
+
 - MUST log all lifecycle events (archived, decayed, pruned) with counts
 - MUST emit events: `memory:expired`, `memory:archived`, `memory:pruned`, `memory:promoted`
 - MUST track service execution times (cleanup, decay, prune)
@@ -189,12 +202,14 @@ Enhance the existing Parent Harness agent memory system with persistent database
 - SHOULD alert if memory growth exceeds threshold (10,000+ per agent)
 
 **NFR-4: Backward Compatibility**
+
 - MUST NOT change existing memory API signatures
 - MUST preserve all existing memory data during migration
 - New lifecycle features MUST be opt-in (configurable)
 - Default configuration MUST match current behavior (no breaking changes)
 
 **NFR-5: Scalability**
+
 - MUST support 100,000+ total memories across all agents
 - MUST support 10,000+ memories per agent
 - MUST handle 1000+ daily memory operations
@@ -257,15 +272,18 @@ Enhance the existing Parent Harness agent memory system with persistent database
 ## Dependencies
 
 **Upstream (Must Complete First):**
+
 - ✅ PHASE2-TASK-01: Database schema foundation (COMPLETE)
 - ✅ PHASE3-TASK-01: Task queue persistence (COMPLETE)
 - ✅ Agent memory system exists (`parent-harness/orchestrator/src/memory/index.ts`)
 
 **Downstream (Depends on This):**
+
 - PHASE4-TASK-01: Knowledge Base system (memory promotion integration)
 - PHASE6-TASK-01: Self-improvement loop (uses memory analytics)
 
 **Parallel Work (Can Develop Concurrently):**
+
 - PHASE4-TASK-02: Agent introspection (complementary, uses memory data)
 
 ---
@@ -273,12 +291,14 @@ Enhance the existing Parent Harness agent memory system with persistent database
 ## Implementation Plan
 
 ### Phase 1: Database Migration (1.5 hours)
+
 1. Create `002_memory_persistence.sql` migration
 2. Add rollback script `002_memory_persistence_down.sql`
 3. Test migration on dev database
 4. Verify data preservation from existing runtime-created table
 
 ### Phase 2: Lifecycle Service (3 hours)
+
 5. Create `memory/lifecycle.ts`
 6. Implement `cleanupExpiredMemories()`
 7. Implement `decayMemoryImportance()`
@@ -288,6 +308,7 @@ Enhance the existing Parent Harness agent memory system with persistent database
 11. Unit test all lifecycle functions
 
 ### Phase 3: Analytics Service (2 hours)
+
 12. Create `memory/analytics.ts`
 13. Implement `calculateMetrics()`
 14. Implement `recordDailyMetrics()`
@@ -295,6 +316,7 @@ Enhance the existing Parent Harness agent memory system with persistent database
 16. Test metrics calculation accuracy
 
 ### Phase 4: API Enhancements (1.5 hours)
+
 17. Extend `api/memory.ts` with new endpoints
 18. Add archived query endpoint
 19. Add restore endpoint
@@ -302,12 +324,14 @@ Enhance the existing Parent Harness agent memory system with persistent database
 21. Add manual prune trigger
 
 ### Phase 5: Integration (1 hour)
+
 22. Modify `server.ts` to start lifecycle services
 23. Wire daily metrics recording
 24. Add event emission for lifecycle actions
 25. Test server startup/shutdown
 
 ### Phase 6: Testing & Documentation (2 hours)
+
 26. Write unit tests for lifecycle functions
 27. Write unit tests for analytics
 28. Write integration test: expire → archive → prune flow
@@ -321,18 +345,21 @@ Enhance the existing Parent Harness agent memory system with persistent database
 ## Success Metrics
 
 **Operational:**
+
 - Cleanup service runs every 15 minutes without errors
 - Decay service processes 10,000+ memories in <30s
 - Pruning service removes old archives weekly
 - Daily metrics recorded at midnight every day
 
 **Data Quality:**
+
 - 100% of expired memories archived before deletion
 - Importance decay follows configured rates
 - High-importance archived memories (>=8) never pruned
 - Lifecycle log captures all state transitions
 
 **Performance:**
+
 - Memory queries respond in <50ms
 - Lifecycle operations don't block agent spawns
 - Analytics calculation completes in <10s
@@ -383,6 +410,7 @@ If memory persistence causes issues:
 This specification is ready for implementation. All dependencies are satisfied (memory system exists, migration framework exists), design is detailed with implementation guidance, and pass criteria are testable.
 
 **Next Steps:**
+
 1. Assign to build_agent for implementation
 2. Estimated delivery: 11 hours (1.5 days)
 3. Verification by qa_agent after implementation

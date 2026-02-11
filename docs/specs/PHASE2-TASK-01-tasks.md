@@ -19,6 +19,7 @@ Wave 6: SPEC-012 (documentation - depends on all)
 ```
 
 **Parallelization Opportunities:**
+
 - Wave 1: Both tasks can run in parallel (independent modules)
 - Wave 2: Three API-related tasks can run in parallel
 - Wave 3: Orchestrator integration depends on APIs, sequential
@@ -26,6 +27,7 @@ Wave 6: SPEC-012 (documentation - depends on all)
 - Wave 5: Testing tasks can run in parallel
 
 **Estimated Timeline:**
+
 - Serial execution: ~12 hours
 - Parallel execution (2 agents): ~7 hours
 - With review/iteration: ~10 hours total
@@ -490,6 +492,7 @@ Wave 6: SPEC-012 (documentation - depends on all)
 **Critical Path:** SPEC-001 → SPEC-002 → SPEC-003 → SPEC-004 → SPEC-006 → SPEC-007 → SPEC-008 → SPEC-009 → SPEC-011 → SPEC-012
 
 **Estimated Effort:**
+
 - Wave 1: 2 hours (parallel: 1 hour with 2 agents)
 - Wave 2: 3 hours (parallel: 1.5 hours with 2 agents)
 - Wave 3: 3 hours (sequential)
@@ -505,28 +508,34 @@ Wave 6: SPEC-012 (documentation - depends on all)
 ## Completion Checklist
 
 ### Phase 1: Prepare ✓
+
 - [ ] SPEC-001: Database migration created and applied
 - [ ] SPEC-002: Brief database module implemented with type safety
 
 ### Phase 2: Implement ✓
+
 - [ ] SPEC-003: Brief API endpoints functional (POST, GET)
 - [ ] SPEC-004: API routes registered in server
 - [ ] SPEC-005: Spec Agent spawner implemented
 - [ ] SPEC-006: Spec Agent CLI accepts flags and generates specs
 
 ### Phase 3: Integrate ✓
+
 - [ ] SPEC-007: Orchestrator detects pending_spec briefs and spawns Spec Agent
 - [ ] SPEC-008: Specifications persisted to database
 - [ ] SPEC-009: Tasks persisted to database with dependencies
 
 ### Phase 4: Validate ✓
+
 - [ ] SPEC-010: QA spec validator implemented
 - [ ] SPEC-011: Integration test passes (brief → spec → tasks → assignment)
 
 ### Phase 5: Document ✓
+
 - [ ] SPEC-012: README updated with Spec Agent workflow
 
 ### Final Validation ✓
+
 - [ ] All 12 tasks completed
 - [ ] TypeScript compilation passes (npx tsc --noEmit)
 - [ ] Integration test passes (npm test -- spec-agent-pipeline)
@@ -538,12 +547,12 @@ Wave 6: SPEC-012 (documentation - depends on all)
 
 ## Risk Mitigation
 
-| Risk | Task | Mitigation |
-|------|------|------------|
-| Spec generation timeout | SPEC-006 | Add timeout handling, fail gracefully with spec_failed status |
-| Database locking | SPEC-008, SPEC-009 | Use WAL mode (already enabled), batch inserts in transactions |
-| Build Agent can't parse specs | SPEC-011 | Integration test validates Build Agent consumption |
-| Token costs exceed budget | SPEC-006 | Mock Anthropic API in tests, monitor production usage |
+| Risk                          | Task               | Mitigation                                                    |
+| ----------------------------- | ------------------ | ------------------------------------------------------------- |
+| Spec generation timeout       | SPEC-006           | Add timeout handling, fail gracefully with spec_failed status |
+| Database locking              | SPEC-008, SPEC-009 | Use WAL mode (already enabled), batch inserts in transactions |
+| Build Agent can't parse specs | SPEC-011           | Integration test validates Build Agent consumption            |
+| Token costs exceed budget     | SPEC-006           | Mock Anthropic API in tests, monitor production usage         |
 
 ---
 

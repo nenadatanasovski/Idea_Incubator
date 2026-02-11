@@ -261,7 +261,12 @@ describe("FileConflictDetector", () => {
         await run(
           `INSERT INTO tasks (id, display_id, title, status, category, priority, effort, task_list_id, created_at, updated_at)
            VALUES (?, ?, ?, 'pending', 'feature', 'P2', 'medium', ?, datetime('now'), datetime('now'))`,
-          [id, `${TEST_PREFIX}${(id as string).slice(0, 8)}`, `${TEST_PREFIX}Task ${name}`, taskListId],
+          [
+            id,
+            `${TEST_PREFIX}${(id as string).slice(0, 8)}`,
+            `${TEST_PREFIX}Task ${name}`,
+            taskListId,
+          ],
         );
       }
       await saveDb();

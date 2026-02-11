@@ -17,6 +17,7 @@ Implement comprehensive logging and error reporting infrastructure for all speci
 ### Problem Statement
 
 **Current State:**
+
 - Agents log to console only (stdout/stderr)
 - No centralized error tracking across agents
 - Parent Harness cannot monitor agent health or progress
@@ -27,6 +28,7 @@ Implement comprehensive logging and error reporting infrastructure for all speci
 - No structured phase tracking or progress reporting
 
 **Desired State:**
+
 - Agents emit structured events to Parent Harness via existing WebSocket infrastructure
 - Centralized event database tracks all agent activity
 - Parent Harness monitors agent health and execution state
@@ -63,10 +65,10 @@ interface AgentLogEvent {
   taskId?: string;
   data: {
     message: string;
-    severity: 'debug' | 'info' | 'warning' | 'error';
-    phase?: string;        // Agent execution phase
-    progress?: number;     // 0-100 percentage
-    metadata?: object;     // Additional context
+    severity: "debug" | "info" | "warning" | "error";
+    phase?: string; // Agent execution phase
+    progress?: number; // 0-100 percentage
+    metadata?: object; // Additional context
     error?: {
       name: string;
       message: string;
@@ -78,13 +80,13 @@ interface AgentLogEvent {
 }
 
 type AgentEventType =
-  | 'agent:started'       // Agent began task execution
-  | 'agent:phase'         // Agent entered new execution phase
-  | 'agent:progress'      // Progress update (e.g., "2/5 tests completed")
-  | 'agent:tool_use'      // Tool invoked (Read, Write, Edit, Bash)
-  | 'agent:completed'     // Agent completed task successfully
-  | 'agent:error'         // Agent encountered error
-  | 'agent:halted';       // Agent halted (timeout/fatal error)
+  | "agent:started" // Agent began task execution
+  | "agent:phase" // Agent entered new execution phase
+  | "agent:progress" // Progress update (e.g., "2/5 tests completed")
+  | "agent:tool_use" // Tool invoked (Read, Write, Edit, Bash)
+  | "agent:completed" // Agent completed task successfully
+  | "agent:error" // Agent encountered error
+  | "agent:halted"; // Agent halted (timeout/fatal error)
 ```
 
 #### 2. Error Classification
@@ -93,15 +95,16 @@ Errors must be classified for intelligent recovery:
 
 ```typescript
 interface ErrorClassification {
-  recoverable: boolean;    // Can retry fix the issue?
-  category: string;        // network | resource | logic | configuration | timeout
-  severity: string;        // debug | info | warning | error | critical
-  retryable: boolean;      // Should orchestrator retry?
+  recoverable: boolean; // Can retry fix the issue?
+  category: string; // network | resource | logic | configuration | timeout
+  severity: string; // debug | info | warning | error | critical
+  retryable: boolean; // Should orchestrator retry?
   suggestedAction?: string; // human_intervention | retry | decompose | research
 }
 ```
 
 **Error Categories:**
+
 - **network**: API failures, rate limits, connection errors
 - **resource**: File not found, permission denied, disk full
 - **logic**: Compilation errors, test failures, validation errors
@@ -109,6 +112,7 @@ interface ErrorClassification {
 - **timeout**: Task exceeded execution time limit
 
 **Recovery Actions:**
+
 - **retry**: Transient error (network, rate limit) - retry with backoff
 - **decompose**: Task too complex - break into subtasks
 - **research**: Unknown problem - research agent investigates
@@ -119,6 +123,7 @@ interface ErrorClassification {
 Agents must report their current execution phase:
 
 **Build Agent Phases:**
+
 1. `analyzing` - Reading task requirements and existing code
 2. `planning` - Creating implementation plan
 3. `implementing` - Writing/editing code
@@ -127,6 +132,7 @@ Agents must report their current execution phase:
 6. `completed` - Task finished successfully
 
 **QA Agent Phases:**
+
 1. `analyzing` - Reading task and spec
 2. `validating` - Running validation checks
 3. `testing` - Running test suite
@@ -134,6 +140,7 @@ Agents must report their current execution phase:
 5. `completed` - Validation finished
 
 **Spec Agent Phases:**
+
 1. `parsing` - Parsing task brief
 2. `context` - Loading context and gotchas
 3. `analyzing` - Analyzing requirements
@@ -147,9 +154,9 @@ Long-running operations must report progress:
 ```typescript
 // Example: QA Agent running 15 test files
 emitAgentProgress(agentId, taskId, {
-  phase: 'testing',
-  progress: 47,  // 7/15 = 47%
-  message: 'Running test suite: 7/15 files completed',
+  phase: "testing",
+  progress: 47, // 7/15 = 47%
+  message: "Running test suite: 7/15 files completed",
 });
 ```
 
@@ -159,11 +166,11 @@ Track all tool invocations for observability:
 
 ```typescript
 interface ToolUseEvent {
-  tool: string;      // Read | Write | Edit | Bash | Glob | Grep
-  args: object;      // Tool-specific arguments
+  tool: string; // Read | Write | Edit | Bash | Glob | Grep
+  args: object; // Tool-specific arguments
   duration?: number; // Execution time (ms)
-  success: boolean;  // Did tool succeed?
-  error?: string;    // Error message if failed
+  success: boolean; // Did tool succeed?
+  error?: string; // Error message if failed
 }
 ```
 
@@ -270,7 +277,12 @@ export class AgentLogger {
   // Core logging methods
   started(): void;
   phase(phase: string, message?: string): void;
-  progress(phase: string, current: number, total: number, message?: string): void;
+  progress(
+    phase: string,
+    current: number,
+    total: number,
+    message?: string,
+  ): void;
   toolUse(tool: string, args: object): void;
   info(message: string, metadata?: object): void;
   warning(message: string, metadata?: object): void;
@@ -289,6 +301,7 @@ export class AgentLogger {
 ```
 
 **Implementation Notes:**
+
 - WebSocket connection managed internally
 - Events queued if WebSocket disconnected (max 100 events)
 - Automatic reconnection with exponential backoff (5s, 10s, 20s, 40s)
@@ -302,11 +315,14 @@ export class AgentLogger {
 Analyzes errors and suggests recovery actions:
 
 ```typescript
-export function classifyError(error: Error, context?: {
-  agentType: string;
-  phase: string;
-  taskId: string;
-}): ErrorClassification {
+export function classifyError(
+  error: Error,
+  context?: {
+    agentType: string;
+    phase: string;
+    taskId: string;
+  },
+): ErrorClassification {
   // Analyze error type, message, stack
   // Return classification with recovery suggestion
 }
@@ -318,15 +334,15 @@ export function getSuggestedAction(classification: ErrorClassification): string;
 
 **Classification Logic:**
 
-| Error Pattern | Category | Recoverable | Action |
-|---------------|----------|-------------|--------|
-| `ECONNREFUSED`, `ETIMEDOUT` | network | ✅ Yes | retry (30s cooldown) |
-| `429 Too Many Requests` | network | ✅ Yes | retry (60s cooldown) |
-| `ENOENT`, `EACCES` | resource | ❌ No | human_intervention |
-| `SyntaxError`, `TypeError` | logic | ⚠️ Maybe | retry (Build Agent may self-fix) |
-| `Test suite failed` | logic | ⚠️ Maybe | retry (QA Agent re-runs) |
-| `Timeout exceeded` | timeout | ✅ Yes | decompose (task too large) |
-| Missing env var | configuration | ❌ No | human_intervention |
+| Error Pattern               | Category      | Recoverable | Action                           |
+| --------------------------- | ------------- | ----------- | -------------------------------- |
+| `ECONNREFUSED`, `ETIMEDOUT` | network       | ✅ Yes      | retry (30s cooldown)             |
+| `429 Too Many Requests`     | network       | ✅ Yes      | retry (60s cooldown)             |
+| `ENOENT`, `EACCES`          | resource      | ❌ No       | human_intervention               |
+| `SyntaxError`, `TypeError`  | logic         | ⚠️ Maybe    | retry (Build Agent may self-fix) |
+| `Test suite failed`         | logic         | ⚠️ Maybe    | retry (QA Agent re-runs)         |
+| `Timeout exceeded`          | timeout       | ✅ Yes      | decompose (task too large)       |
+| Missing env var             | configuration | ❌ No       | human_intervention               |
 
 #### 3. Event Persistence
 
@@ -342,60 +358,75 @@ export const events = {
   // Agent lifecycle events
   agentStarted: (agentId: string, agentType: string, taskId: string) =>
     createEvent({
-      type: 'agent:started',
+      type: "agent:started",
       message: `${agentType} started task ${taskId}`,
       agentId,
       taskId,
-      severity: 'info',
+      severity: "info",
     }),
 
-  agentPhase: (agentId: string, phase: string, taskId: string, message?: string) =>
+  agentPhase: (
+    agentId: string,
+    phase: string,
+    taskId: string,
+    message?: string,
+  ) =>
     createEvent({
-      type: 'agent:phase',
+      type: "agent:phase",
       message: message || `Entered phase: ${phase}`,
       agentId,
       taskId,
-      severity: 'info',
+      severity: "info",
       metadata: { phase },
     }),
 
-  agentProgress: (agentId: string, phase: string, progress: number, taskId: string, message?: string) =>
+  agentProgress: (
+    agentId: string,
+    phase: string,
+    progress: number,
+    taskId: string,
+    message?: string,
+  ) =>
     createEvent({
-      type: 'agent:progress',
+      type: "agent:progress",
       message: message || `Progress: ${progress}%`,
       agentId,
       taskId,
-      severity: 'info',
+      severity: "info",
       metadata: { phase, progress },
     }),
 
   agentToolUse: (agentId: string, tool: string, args: object, taskId: string) =>
     createEvent({
-      type: 'agent:tool_use',
+      type: "agent:tool_use",
       message: `🔧 ${tool}`,
       agentId,
       taskId,
-      severity: 'debug',
+      severity: "debug",
       metadata: { tool, args },
     }),
 
-  agentErrorClassified: (agentId: string, error: ErrorClassification, taskId: string) =>
+  agentErrorClassified: (
+    agentId: string,
+    error: ErrorClassification,
+    taskId: string,
+  ) =>
     createEvent({
-      type: 'agent:error',
+      type: "agent:error",
       message: `Error: ${error.category} - ${error.suggestedAction}`,
       agentId,
       taskId,
-      severity: 'error',
+      severity: "error",
       metadata: error,
     }),
 
   agentCompletedTask: (agentId: string, taskId: string, duration: number) =>
     createEvent({
-      type: 'agent:completed',
+      type: "agent:completed",
       message: `Task completed in ${duration}ms`,
       agentId,
       taskId,
-      severity: 'info',
+      severity: "info",
       metadata: { duration },
     }),
 };
@@ -409,13 +440,13 @@ Use existing infrastructure:
 
 ```typescript
 // Already implemented - reuse existing functions:
-import { broadcast } from './websocket.js';
+import { broadcast } from "./websocket.js";
 
 // AgentLogger calls this internally:
-broadcast('agent:phase', {
-  agentId: 'build-123',
-  phase: 'implementing',
-  message: 'Writing code',
+broadcast("agent:phase", {
+  agentId: "build-123",
+  phase: "implementing",
+  message: "Writing code",
 });
 ```
 
@@ -427,12 +458,12 @@ broadcast('agent:phase', {
 
 ```typescript
 // Example: Build Agent
-import { AgentLogger } from '../logging/agent-logger.js';
+import { AgentLogger } from "../logging/agent-logger.js";
 
 export async function executeBuildTask(task: Task): Promise<void> {
   const logger = new AgentLogger({
     agentId: `build-${task.id}`,
-    agentType: 'build',
+    agentType: "build",
     taskId: task.id,
     sessionId: task.session_id,
   });
@@ -440,17 +471,17 @@ export async function executeBuildTask(task: Task): Promise<void> {
   logger.started();
 
   try {
-    logger.phase('analyzing', 'Reading task requirements');
+    logger.phase("analyzing", "Reading task requirements");
     const spec = await readTaskSpec(task);
 
-    logger.phase('implementing', 'Writing code');
+    logger.phase("implementing", "Writing code");
     await implementCode(spec);
 
-    logger.phase('testing', 'Running tests');
-    logger.progress('testing', 3, 5, 'Running test suite');
+    logger.phase("testing", "Running tests");
+    logger.progress("testing", 3, 5, "Running test suite");
     await runTests();
 
-    logger.completed('Task implemented successfully');
+    logger.completed("Task implemented successfully");
   } catch (error) {
     logger.error(error as Error, true);
     throw error;
@@ -462,34 +493,34 @@ export async function executeBuildTask(task: Task): Promise<void> {
 
 ```typescript
 // Replace basic event logging with AgentLogger
-import { AgentLogger } from '../logging/agent-logger.js';
+import { AgentLogger } from "../logging/agent-logger.js";
 
 export async function validateTask(task: Task): Promise<ValidationResult> {
   const logger = new AgentLogger({
     agentId: `qa-${task.id}`,
-    agentType: 'qa',
+    agentType: "qa",
     taskId: task.id,
   });
 
   logger.started();
 
   try {
-    logger.phase('analyzing', 'Loading specification');
+    logger.phase("analyzing", "Loading specification");
     const spec = await loadSpec(task);
 
-    logger.phase('validating', 'Running validation checks');
+    logger.phase("validating", "Running validation checks");
     const compilationResult = await runCompileCheck();
 
-    logger.phase('testing', 'Running test suite');
-    logger.progress('testing', 0, 100, 'Starting tests');
+    logger.phase("testing", "Running test suite");
+    logger.progress("testing", 0, 100, "Starting tests");
     const testResult = await runTests((progress) => {
-      logger.progress('testing', progress, 100);
+      logger.progress("testing", progress, 100);
     });
 
-    logger.phase('reporting', 'Creating validation report');
+    logger.phase("reporting", "Creating validation report");
     const report = createReport(compilationResult, testResult);
 
-    logger.completed('Validation complete');
+    logger.completed("Validation complete");
     return report;
   } catch (error) {
     logger.error(error as Error);
@@ -623,6 +654,7 @@ export async function validateTask(task: Task): Promise<ValidationResult> {
 ### Phase 1: Core Infrastructure (3-4 hours)
 
 **1.1 Create AgentLogger Class:**
+
 - Create `parent-harness/orchestrator/src/logging/` directory
 - Create `agent-logger.ts`
 - Implement constructor with WebSocket connection
@@ -632,6 +664,7 @@ export async function validateTask(task: Task): Promise<ValidationResult> {
 - Add TypeScript types for all events
 
 **1.2 Create Error Classifier:**
+
 - Create `error-classifier.ts`
 - Implement `classifyError()` function
 - Add error pattern matching (network, resource, logic, etc.)
@@ -639,6 +672,7 @@ export async function validateTask(task: Task): Promise<ValidationResult> {
 - Add retryable/cooldown calculations
 
 **1.3 Add Unit Tests:**
+
 - Test AgentLogger event emission
 - Test error classification logic
 - Test queue buffering
@@ -647,6 +681,7 @@ export async function validateTask(task: Task): Promise<ValidationResult> {
 ### Phase 2: Database Integration (1 hour)
 
 **2.1 Extend Events Module:**
+
 - Update `parent-harness/orchestrator/src/db/events.ts`
 - Add agent event creators (`agentStarted`, `agentPhase`, `agentProgress`, etc.)
 - Test database persistence
@@ -654,6 +689,7 @@ export async function validateTask(task: Task): Promise<ValidationResult> {
 ### Phase 3: Agent Integration (2-3 hours)
 
 **3.1 Integrate QA Agent:**
+
 - Import AgentLogger in `parent-harness/orchestrator/src/qa/index.ts`
 - Replace basic `events.*` calls with AgentLogger
 - Add validation phase logging
@@ -661,6 +697,7 @@ export async function validateTask(task: Task): Promise<ValidationResult> {
 - Add validation failure reporting
 
 **3.2 Test QA Integration:**
+
 - Run QA agent on sample task
 - Verify events in database
 - Verify dashboard displays events
@@ -668,6 +705,7 @@ export async function validateTask(task: Task): Promise<ValidationResult> {
 ### Phase 4: Testing (1-2 hours)
 
 **4.1 Create Integration Test:**
+
 - Create `tests/integration/agent-logging.test.ts`
 - Test end-to-end flow: Agent → WebSocket → Database
 - Test error classification and recovery
@@ -675,6 +713,7 @@ export async function validateTask(task: Task): Promise<ValidationResult> {
 - Test WebSocket reconnection
 
 **4.2 Manual Testing:**
+
 - Run QA Agent on real task
 - Verify events in database
 - Verify dashboard displays events
@@ -684,6 +723,7 @@ export async function validateTask(task: Task): Promise<ValidationResult> {
 ### Phase 5: Documentation (1 hour)
 
 **5.1 Update Documentation:**
+
 - Add usage guide to `parent-harness/orchestrator/CLAUDE.md`
 - Document AgentLogger API
 - Document error classification system
@@ -697,38 +737,40 @@ export async function validateTask(task: Task): Promise<ValidationResult> {
 ### Unit Tests
 
 1. **AgentLogger Unit Tests** (`tests/unit/logging/agent-logger.test.ts`)
+
    ```typescript
-   describe('AgentLogger', () => {
-     it('should emit started event', () => {});
-     it('should track phase transitions', () => {});
-     it('should queue events when disconnected', () => {});
-     it('should reconnect on disconnect', () => {});
-     it('should sanitize metadata', () => {});
+   describe("AgentLogger", () => {
+     it("should emit started event", () => {});
+     it("should track phase transitions", () => {});
+     it("should queue events when disconnected", () => {});
+     it("should reconnect on disconnect", () => {});
+     it("should sanitize metadata", () => {});
    });
    ```
 
 2. **Error Classifier Unit Tests** (`tests/unit/logging/error-classifier.test.ts`)
    ```typescript
-   describe('ErrorClassifier', () => {
-     it('should classify network errors as retryable', () => {});
-     it('should classify resource errors as non-retryable', () => {});
-     it('should suggest correct recovery action', () => {});
-     it('should calculate retry cooldown', () => {});
+   describe("ErrorClassifier", () => {
+     it("should classify network errors as retryable", () => {});
+     it("should classify resource errors as non-retryable", () => {});
+     it("should suggest correct recovery action", () => {});
+     it("should calculate retry cooldown", () => {});
    });
    ```
 
 ### Integration Tests
 
 1. **End-to-End Agent Logging** (`tests/integration/agent-logging.test.ts`)
+
    ```typescript
-   describe('Agent Logging E2E', () => {
-     it('should log QA agent execution to database', async () => {
+   describe("Agent Logging E2E", () => {
+     it("should log QA agent execution to database", async () => {
        // Run QA agent
        // Verify events in observability_events table
        // Verify WebSocket broadcast
      });
 
-     it('should classify errors and trigger recovery', async () => {
+     it("should classify errors and trigger recovery", async () => {
        // Simulate network error
        // Verify error classified as retryable
        // Verify retry scheduled with cooldown
@@ -811,9 +853,9 @@ export async function validateTask(task: Task): Promise<ValidationResult> {
 
 ## Revision History
 
-| Date | Version | Changes | Author |
-|------|---------|---------|--------|
-| 2026-02-08 | 1.0 | Initial specification | Spec Agent |
+| Date       | Version | Changes               | Author     |
+| ---------- | ------- | --------------------- | ---------- |
+| 2026-02-08 | 1.0     | Initial specification | Spec Agent |
 
 ---
 
@@ -822,6 +864,7 @@ export async function validateTask(task: Task): Promise<ValidationResult> {
 This specification is ready for implementation by the Build Agent.
 
 **Next Steps:**
+
 1. Build Agent creates AgentLogger class
 2. Build Agent creates Error Classifier
 3. Build Agent extends events database

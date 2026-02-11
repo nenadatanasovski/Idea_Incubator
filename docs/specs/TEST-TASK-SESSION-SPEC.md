@@ -21,15 +21,15 @@ This is a foundational integration test pattern that exercises the core task →
 
 ## Metadata
 
-| Field          | Value                          |
-| -------------- | ------------------------------ |
-| **Display ID** | `test_task_session_[TIMESTAMP]`|
-| **Phase**      | 1-Database / 5-Tests           |
-| **Category**   | `test`                         |
-| **Status**     | `pending`                      |
-| **Priority**   | P2-Important                   |
-| **Effort**     | small                          |
-| **Owner**      | Build Agent                    |
+| Field          | Value                           |
+| -------------- | ------------------------------- |
+| **Display ID** | `test_task_session_[TIMESTAMP]` |
+| **Phase**      | 1-Database / 5-Tests            |
+| **Category**   | `test`                          |
+| **Status**     | `pending`                       |
+| **Priority**   | P2-Important                    |
+| **Effort**     | small                           |
+| **Owner**      | Build Agent                     |
 
 ---
 
@@ -57,13 +57,13 @@ This is a foundational integration test pattern that exercises the core task →
 
 The session must support transitions through these states (defined in `parent-harness/database/schema.sql:243`):
 
-| From State   | To State     | Trigger                    |
-|-------------|-------------|----------------------------|
-| `running`   | `completed` | All work finished          |
-| `running`   | `failed`    | Unrecoverable error        |
-| `running`   | `paused`    | Human intervention needed  |
-| `running`   | `terminated`| Manual or timeout kill     |
-| `paused`    | `running`   | Resumed                    |
+| From State | To State     | Trigger                   |
+| ---------- | ------------ | ------------------------- |
+| `running`  | `completed`  | All work finished         |
+| `running`  | `failed`     | Unrecoverable error       |
+| `running`  | `paused`     | Human intervention needed |
+| `running`  | `terminated` | Manual or timeout kill    |
+| `paused`   | `running`    | Resumed                   |
 
 Terminal states (`completed`, `failed`, `terminated`) set `completed_at` timestamp.
 
@@ -115,6 +115,7 @@ tasks (primary)
 ### Key Interfaces
 
 **Task** (`parent-harness/orchestrator/src/db/tasks.ts:4-27`):
+
 - `id: string` (UUID)
 - `display_id: string`
 - `title: string`
@@ -123,6 +124,7 @@ tasks (primary)
 - `priority: 'P0' | 'P1' | 'P2' | 'P3' | 'P4'`
 
 **AgentSession** (`parent-harness/orchestrator/src/db/sessions.ts:4-16`):
+
 - `id: string` (UUID)
 - `agent_id: string` (FK → agents)
 - `task_id: string | null` (FK → tasks)
@@ -131,6 +133,7 @@ tasks (primary)
 - `total_iterations: number`
 
 **IterationLog** (`parent-harness/orchestrator/src/db/sessions.ts:18-28`):
+
 - `id: string` (UUID)
 - `session_id: string` (FK → agent_sessions)
 - `iteration_number: number`
@@ -142,18 +145,18 @@ tasks (primary)
 
 **PASS** when ALL of the following are true:
 
-| #   | Criterion                                                  | How to Verify                                                                                   |
-| --- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| 1   | Task created with `test_task_session_*` display_id         | `getTaskByDisplayId('test_task_session_...')` returns a valid Task                               |
-| 2   | Task title is `"Test Task for Session"`                    | `task.title === 'Test Task for Session'`                                                        |
-| 3   | Task category is `"test"`                                  | `task.category === 'test'`                                                                      |
-| 4   | Session created and linked to task                         | `createSession(agentId, task.id)` returns AgentSession with matching `task_id`                  |
-| 5   | Session initial status is `"running"`                      | `session.status === 'running'`                                                                  |
-| 6   | Session retrieval by task works                            | `getSessionsByTask(task.id)` returns array containing the session                               |
-| 7   | Iteration logged under session                             | `logIteration(session.id, 1, {...})` returns IterationLog with `session_id === session.id`       |
-| 8   | Session iteration count updates                            | After logIteration, `getSession(session.id).total_iterations >= 1`                              |
-| 9   | Session completes with timestamp                           | `updateSessionStatus(id, 'completed')` → `session.completed_at` is non-null                    |
-| 10  | FK constraints enforced                                    | Creating session with invalid `agent_id` or `task_id` throws constraint error                   |
+| #   | Criterion                                          | How to Verify                                                                              |
+| --- | -------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| 1   | Task created with `test_task_session_*` display_id | `getTaskByDisplayId('test_task_session_...')` returns a valid Task                         |
+| 2   | Task title is `"Test Task for Session"`            | `task.title === 'Test Task for Session'`                                                   |
+| 3   | Task category is `"test"`                          | `task.category === 'test'`                                                                 |
+| 4   | Session created and linked to task                 | `createSession(agentId, task.id)` returns AgentSession with matching `task_id`             |
+| 5   | Session initial status is `"running"`              | `session.status === 'running'`                                                             |
+| 6   | Session retrieval by task works                    | `getSessionsByTask(task.id)` returns array containing the session                          |
+| 7   | Iteration logged under session                     | `logIteration(session.id, 1, {...})` returns IterationLog with `session_id === session.id` |
+| 8   | Session iteration count updates                    | After logIteration, `getSession(session.id).total_iterations >= 1`                         |
+| 9   | Session completes with timestamp                   | `updateSessionStatus(id, 'completed')` → `session.completed_at` is non-null                |
+| 10  | FK constraints enforced                            | Creating session with invalid `agent_id` or `task_id` throws constraint error              |
 
 **FAIL** if any criterion is not met.
 
@@ -162,12 +165,14 @@ tasks (primary)
 ## Dependencies
 
 ### Depends On
+
 - `agents` table must have at least one valid agent record (for session FK)
 - `tasks` table schema must be migrated
 - `agent_sessions` table schema must be migrated
 - `iteration_logs` table schema must be migrated
 
 ### Affects
+
 - E2E validation suite (`parent-harness/orchestrator/tests/e2e/honest-validation.test.ts`)
 - Recovery SQL fixtures (`parent-harness/data/recovery.sql`)
 - Dashboard Sessions page (`parent-harness/dashboard/src/pages/Sessions.tsx`)
@@ -176,12 +181,12 @@ tasks (primary)
 
 ## File Impacts
 
-| File Path                                          | Operation | Confidence | Source        |
-| -------------------------------------------------- | --------- | ---------- | ------------- |
-| `parent-harness/orchestrator/src/db/tasks.ts`      | READ      | 1.0        | validated     |
-| `parent-harness/orchestrator/src/db/sessions.ts`   | READ      | 1.0        | validated     |
-| `parent-harness/database/schema.sql`               | READ      | 1.0        | validated     |
-| `parent-harness/orchestrator/tests/e2e/honest-validation.test.ts` | READ | 0.95 | pattern_match |
+| File Path                                                         | Operation | Confidence | Source        |
+| ----------------------------------------------------------------- | --------- | ---------- | ------------- |
+| `parent-harness/orchestrator/src/db/tasks.ts`                     | READ      | 1.0        | validated     |
+| `parent-harness/orchestrator/src/db/sessions.ts`                  | READ      | 1.0        | validated     |
+| `parent-harness/database/schema.sql`                              | READ      | 1.0        | validated     |
+| `parent-harness/orchestrator/tests/e2e/honest-validation.test.ts` | READ      | 0.95       | pattern_match |
 
 ---
 

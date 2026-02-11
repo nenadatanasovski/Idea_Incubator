@@ -53,12 +53,14 @@ Add inline README content editing to the existing IdeaDetail workspace, eliminat
 ### 1.2 Scope
 
 **In Scope (This Specification)**:
+
 - Inline edit mode toggle in Overview tab
 - Markdown textarea editor with preview option
 - Save/Cancel actions with unsaved changes handling
 - Integration with existing workspace state management
 
 **Out of Scope (Deferred to Phase 7)**:
+
 - Dual-pane workspace layout (see PHASE6-TASK-04-idea-workspace.md)
 - Version history and diff viewer
 - Artifacts panel
@@ -72,6 +74,7 @@ Add inline README content editing to the existing IdeaDetail workspace, eliminat
 ### 2.1 Functional Requirements
 
 #### FR-1: Edit Mode Toggle
+
 - **FR-1.1**: Overview tab displays "Edit" button when in view mode
 - **FR-1.2**: Clicking "Edit" switches to edit mode inline (no navigation)
 - **FR-1.3**: Edit mode shows "Save" and "Cancel" buttons
@@ -79,6 +82,7 @@ Add inline README content editing to the existing IdeaDetail workspace, eliminat
 - **FR-1.5**: Unsaved changes indicator (visual badge) when content modified
 
 #### FR-2: Content Editor Component
+
 - **FR-2.1**: Controlled textarea for markdown input
 - **FR-2.2**: Optional side-by-side preview toggle (default: hidden)
 - **FR-2.3**: Preview pane renders ReactMarkdown when visible
@@ -86,6 +90,7 @@ Add inline README content editing to the existing IdeaDetail workspace, eliminat
 - **FR-2.5**: Placeholder text when content is empty
 
 #### FR-3: Save/Cancel Actions
+
 - **FR-3.1**: Save button calls `PUT /api/ideas/:slug` with `{ content, partial: true }`
 - **FR-3.2**: Save success: exit edit mode, refetch idea data, show success toast
 - **FR-3.3**: Save error: show error message, stay in edit mode
@@ -94,27 +99,32 @@ Add inline README content editing to the existing IdeaDetail workspace, eliminat
 - **FR-3.6**: Save/Cancel buttons disabled during save operation
 
 #### FR-4: Navigation Guards
+
 - **FR-4.1**: Tab switch with unsaved changes: show confirmation dialog
 - **FR-4.2**: Browser navigation with unsaved changes: trigger beforeunload warning
 - **FR-4.3**: Confirmation options: "Save & Continue", "Discard", "Cancel"
 
 #### FR-5: Keyboard Shortcuts
+
 - **FR-5.1**: `Ctrl+S` / `Cmd+S`: Save content (when in edit mode)
 - **FR-5.2**: `Escape`: Cancel edit (with confirmation if unsaved)
 
 ### 2.2 Non-Functional Requirements
 
 #### NFR-1: Performance
+
 - Edit mode toggle: < 100ms (instantaneous)
 - Save request: < 2 seconds (typical)
 - Preview render: < 300ms
 
 #### NFR-2: Usability
+
 - UI matches existing workspace design patterns
 - Clear visual distinction between view/edit modes
 - Accessible (keyboard navigation, screen reader support)
 
 #### NFR-3: Compatibility
+
 - Existing IdeaForm.tsx edit page remains functional
 - No breaking changes to existing API endpoints
 - All 1773+ tests continue to pass
@@ -277,8 +287,8 @@ const handleSaveContent = async () => {
   setIsSavingContent(true);
   try {
     await fetch(`/api/ideas/${slug}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: editedContent, partial: true }),
     });
 
@@ -288,8 +298,8 @@ const handleSaveContent = async () => {
 
     // Optional: show success toast
   } catch (err) {
-    console.error('Failed to save content:', err);
-    alert('Failed to save changes. Please try again.');
+    console.error("Failed to save content:", err);
+    alert("Failed to save changes. Please try again.");
   } finally {
     setIsSavingContent(false);
   }
@@ -298,7 +308,7 @@ const handleSaveContent = async () => {
 const handleCancelEdit = () => {
   if (hasUnsavedChanges) {
     const confirmed = confirm(
-      "You have unsaved changes. Are you sure you want to discard them?"
+      "You have unsaved changes. Are you sure you want to discard them?",
     );
     if (!confirmed) return;
   }
@@ -320,12 +330,12 @@ useEffect(() => {
   const handleBeforeUnload = (e: BeforeUnloadEvent) => {
     if (hasUnsavedChanges) {
       e.preventDefault();
-      e.returnValue = '';
+      e.returnValue = "";
     }
   };
 
-  window.addEventListener('beforeunload', handleBeforeUnload);
-  return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  return () => window.removeEventListener("beforeunload", handleBeforeUnload);
 }, [hasUnsavedChanges]);
 
 // Override tab change to check unsaved changes
@@ -333,7 +343,7 @@ const handleTabChange = (newTab: TabId) => {
   if (hasUnsavedChanges) {
     const choice = confirm(
       "You have unsaved changes. Do you want to save them?\n\n" +
-      "OK = Save & Switch | Cancel = Stay on current tab"
+        "OK = Save & Switch | Cancel = Stay on current tab",
     );
     if (choice) {
       handleSaveContent().then(() => setActiveTab(newTab));
@@ -414,7 +424,7 @@ The existing `PUT /api/ideas/:slug` endpoint should already support partial upda
 **If modification needed** (`server/routes/ideas.ts`):
 
 ```typescript
-router.put('/:slug', async (req, res) => {
+router.put("/:slug", async (req, res) => {
   const { slug } = req.params;
   const { content, partial } = req.body;
 
@@ -423,7 +433,7 @@ router.put('/:slug', async (req, res) => {
       // Partial update: only content field
       await db.run(
         `UPDATE ideas SET content = ?, updated_at = datetime('now') WHERE slug = ?`,
-        [content, slug]
+        [content, slug],
       );
     } else {
       // Full update (existing logic)
@@ -433,7 +443,7 @@ router.put('/:slug', async (req, res) => {
     const idea = await getIdea(slug);
     res.json({ success: true, data: idea });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to update idea' });
+    res.status(500).json({ error: "Failed to update idea" });
   }
 });
 ```
@@ -489,6 +499,7 @@ router.put('/:slug', async (req, res) => {
 ### Day 1 - Morning (2-3 hours)
 
 **Task 1.1**: Create ContentEditor Component
+
 - Create `frontend/src/components/ContentEditor.tsx`
 - Implement textarea with markdown input
 - Add preview toggle and ReactMarkdown preview
@@ -497,6 +508,7 @@ router.put('/:slug', async (req, res) => {
 - Style with Tailwind CSS
 
 **Task 1.2**: Unit Tests for ContentEditor
+
 - Create `frontend/src/components/ContentEditor.test.tsx`
 - Test: renders with initial value
 - Test: onChange callback fires
@@ -507,6 +519,7 @@ router.put('/:slug', async (req, res) => {
 ### Day 1 - Afternoon (3-4 hours)
 
 **Task 2.1**: Integrate into IdeaDetail.tsx
+
 - Add edit mode state variables
 - Implement handleStartEdit, handleSaveContent, handleCancelEdit
 - Add useEffect for unsaved changes tracking
@@ -514,6 +527,7 @@ router.put('/:slug', async (req, res) => {
 - Modify Overview tab JSX to use ContentEditor
 
 **Task 2.2**: Testing
+
 - Manual testing: edit flow, save, cancel
 - Verify unsaved changes warnings work
 - Test keyboard shortcuts in context
@@ -522,11 +536,13 @@ router.put('/:slug', async (req, res) => {
 ### Day 2 - Morning (2-3 hours)
 
 **Task 3.1**: API Verification
+
 - Verify `PUT /api/ideas/:slug` supports partial updates
 - Modify if needed (add partial flag support)
 - Test endpoint manually with curl/Postman
 
 **Task 3.2**: Integration Tests
+
 - Add test case for content editing flow
 - Test: start edit → modify → save → verify database
 - Test: start edit → modify → cancel → verify no changes
@@ -535,11 +551,13 @@ router.put('/:slug', async (req, res) => {
 ### Day 2 - Afternoon (2 hours)
 
 **Task 4.1**: Full Test Suite Run
+
 - Run all 1773+ tests, ensure no regressions
 - Fix any broken tests
 - Verify TypeScript compilation passes
 
 **Task 4.2**: Documentation & Cleanup
+
 - Update PHASE6-TASK-04-VALIDATION-REPORT.md to 100%
 - Add inline editing to user documentation (if exists)
 - Code review: clean up console.logs, comments
@@ -618,6 +636,7 @@ router.put('/:slug', async (req, res) => {
 ### 6.1 Unit Tests
 
 **ContentEditor.test.tsx** (new file):
+
 ```typescript
 describe('ContentEditor', () => {
   test('renders textarea with initial value', () => { ... });
@@ -633,6 +652,7 @@ describe('ContentEditor', () => {
 ```
 
 **IdeaDetail.test.tsx** (update existing):
+
 ```typescript
 describe('IdeaDetail - Inline Editing', () => {
   test('shows Edit button in Overview tab when not editing', () => { ... });
@@ -648,9 +668,10 @@ describe('IdeaDetail - Inline Editing', () => {
 ### 6.2 Integration Tests
 
 **idea-content-editing.test.ts** (new file):
+
 ```typescript
-describe('Idea Content Editing Flow', () => {
-  test('full edit flow: edit → modify → save → verify', async () => {
+describe("Idea Content Editing Flow", () => {
+  test("full edit flow: edit → modify → save → verify", async () => {
     // 1. Load idea detail page
     // 2. Click Edit button
     // 3. Modify content
@@ -659,11 +680,11 @@ describe('Idea Content Editing Flow', () => {
     // 6. Verify view mode shows new content
   });
 
-  test('cancel flow: edit → modify → cancel → verify no changes', async () => {
+  test("cancel flow: edit → modify → cancel → verify no changes", async () => {
     // ...
   });
 
-  test('unsaved changes warning on navigation', async () => {
+  test("unsaved changes warning on navigation", async () => {
     // ...
   });
 });
@@ -761,13 +782,13 @@ RESPONSIVE:
 
 ## 8. Risks & Mitigations
 
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| Concurrent edits overwrite changes | Low | Medium | Last-write-wins acceptable for v1.0; add optimistic locking in Phase 7 if needed |
-| Large content causes UI lag | Low | Low | Limit content to 50KB (validation on save); consider debouncing onChange in future |
-| Unsaved changes lost on crash | Low | Low | Accept for v1.0; auto-save to localStorage in Phase 7 |
-| Breaking existing edit page | Very Low | Medium | Keep IdeaForm.tsx untouched; parallel implementations coexist |
-| Test regressions | Low | High | Run full test suite before commit; fix any failures immediately |
+| Risk                               | Probability | Impact | Mitigation                                                                         |
+| ---------------------------------- | ----------- | ------ | ---------------------------------------------------------------------------------- |
+| Concurrent edits overwrite changes | Low         | Medium | Last-write-wins acceptable for v1.0; add optimistic locking in Phase 7 if needed   |
+| Large content causes UI lag        | Low         | Low    | Limit content to 50KB (validation on save); consider debouncing onChange in future |
+| Unsaved changes lost on crash      | Low         | Low    | Accept for v1.0; auto-save to localStorage in Phase 7                              |
+| Breaking existing edit page        | Very Low    | Medium | Keep IdeaForm.tsx untouched; parallel implementations coexist                      |
+| Test regressions                   | Low         | High   | Run full test suite before commit; fix any failures immediately                    |
 
 ---
 
@@ -805,10 +826,12 @@ The following enhancements are **out of scope** for PHASE6-TASK-04 completion bu
 ### 10.2 Implementation Files
 
 **Existing (Modify)**:
+
 - `frontend/src/pages/IdeaDetail.tsx` - Add edit mode state and handlers
 - `server/routes/ideas.ts` - Verify partial update support (may not need changes)
 
 **New (Create)**:
+
 - `frontend/src/components/ContentEditor.tsx` - Inline markdown editor component
 - `frontend/src/components/ContentEditor.test.tsx` - Unit tests
 - `tests/integration/idea-content-editing.test.ts` - Integration tests
@@ -854,6 +877,7 @@ The following enhancements are **out of scope** for PHASE6-TASK-04 completion bu
 **Specification Status**: ✅ **READY FOR IMPLEMENTATION**
 
 **Approvals Required**:
+
 - [ ] Development Lead - Implementation feasibility ✅ (auto-approved: reuses existing patterns)
 - [ ] QA Lead - Test coverage adequate ✅ (unit + integration tests defined)
 - [ ] Product Owner - Feature completeness ✅ (closes 15% gap, completes Phase 6)
@@ -861,6 +885,7 @@ The following enhancements are **out of scope** for PHASE6-TASK-04 completion bu
 **Implementation Authorization**: **APPROVED**
 
 **Next Steps**:
+
 1. Implement ContentEditor.tsx (Day 1 morning)
 2. Integrate into IdeaDetail.tsx (Day 1 afternoon)
 3. Test and polish (Day 2)

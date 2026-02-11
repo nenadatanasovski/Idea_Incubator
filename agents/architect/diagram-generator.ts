@@ -6,10 +6,7 @@
  * components from ArchitectureDoc specifications.
  */
 
-import {
-  ArchitectureDoc,
-  ComponentSpec,
-} from "./types.js";
+import { ArchitectureDoc, ComponentSpec } from "./types.js";
 
 /** C4 model abstraction levels */
 export type C4Level = "context" | "container" | "component";
@@ -75,7 +72,12 @@ export class ComponentDiagramGenerator {
     let content: string;
 
     if (options.format === "mermaid") {
-      content = this.generateMermaid(options.level, title, includeLegend, direction);
+      content = this.generateMermaid(
+        options.level,
+        title,
+        includeLegend,
+        direction,
+      );
     } else {
       content = this.generatePlantUML(options.level, title, includeLegend);
     }
@@ -96,7 +98,7 @@ export class ComponentDiagramGenerator {
     level: C4Level,
     title: string,
     includeLegend: boolean,
-    direction: string
+    direction: string,
   ): string {
     const lines: string[] = [];
 
@@ -121,7 +123,11 @@ export class ComponentDiagramGenerator {
   }
 
   /** C4 Context level - system and external actors */
-  private mermaidContextDiagram(lines: string[], title: string, direction: string): void {
+  private mermaidContextDiagram(
+    lines: string[],
+    title: string,
+    direction: string,
+  ): void {
     lines.push(`%% C4 Context Diagram: ${title}`);
     lines.push(`graph ${direction}`);
 
@@ -153,7 +159,11 @@ export class ComponentDiagramGenerator {
   }
 
   /** C4 Container level - deployable units inside the system */
-  private mermaidContainerDiagram(lines: string[], title: string, direction: string): void {
+  private mermaidContainerDiagram(
+    lines: string[],
+    title: string,
+    direction: string,
+  ): void {
     lines.push(`%% C4 Container Diagram: ${title}`);
     lines.push(`graph ${direction}`);
     lines.push(`  subgraph boundary["${title}"]`);
@@ -186,11 +196,17 @@ export class ComponentDiagramGenerator {
     lines.push("  classDef database fill:#2b7a0b,stroke:#1a5a06,color:#fff");
     lines.push("  classDef service fill:#a259ff,stroke:#7b3fcc,color:#fff");
     lines.push("  classDef library fill:#666,stroke:#444,color:#fff");
-    lines.push("  classDef infrastructure fill:#e07000,stroke:#a85300,color:#fff");
+    lines.push(
+      "  classDef infrastructure fill:#e07000,stroke:#a85300,color:#fff",
+    );
   }
 
   /** C4 Component level - internal structure of each container */
-  private mermaidComponentDiagram(lines: string[], title: string, direction: string): void {
+  private mermaidComponentDiagram(
+    lines: string[],
+    title: string,
+    direction: string,
+  ): void {
     lines.push(`%% C4 Component Diagram: ${title}`);
     lines.push(`graph ${direction}`);
 
@@ -238,7 +254,9 @@ export class ComponentDiagramGenerator {
     lines.push("  classDef database fill:#2b7a0b,stroke:#1a5a06,color:#fff");
     lines.push("  classDef service fill:#a259ff,stroke:#7b3fcc,color:#fff");
     lines.push("  classDef library fill:#666,stroke:#444,color:#fff");
-    lines.push("  classDef infrastructure fill:#e07000,stroke:#a85300,color:#fff");
+    lines.push(
+      "  classDef infrastructure fill:#e07000,stroke:#a85300,color:#fff",
+    );
     lines.push("  classDef iface fill:#fff,stroke:#333,color:#333");
   }
 
@@ -278,7 +296,7 @@ export class ComponentDiagramGenerator {
   private generatePlantUML(
     level: C4Level,
     title: string,
-    includeLegend: boolean
+    includeLegend: boolean,
   ): string {
     const lines: string[] = [];
 
@@ -428,19 +446,35 @@ export class ComponentDiagramGenerator {
     switch (level) {
       case "context":
         lines.push("  |= Symbol |= Meaning |");
-        lines.push("  | <back:#1168BD><color:#FFF> Rectangle </color></back> | System |");
-        lines.push("  | <back:#999><color:#FFF> Rectangle </color></back> | External System |");
+        lines.push(
+          "  | <back:#1168BD><color:#FFF> Rectangle </color></back> | System |",
+        );
+        lines.push(
+          "  | <back:#999><color:#FFF> Rectangle </color></back> | External System |",
+        );
         lines.push("  | Actor icon | Person / User |");
         lines.push("  | Solid arrow | Interaction |");
         break;
       case "container":
         lines.push("  |= Color |= Type |");
-        lines.push("  | <back:#438DD5><color:#FFF> Blue </color></back> | Frontend |");
-        lines.push("  | <back:#1168BD><color:#FFF> Dark Blue </color></back> | Backend |");
-        lines.push("  | <back:#2B7A0B><color:#FFF> Green </color></back> | Database |");
-        lines.push("  | <back:#A259FF><color:#FFF> Purple </color></back> | Service |");
-        lines.push("  | <back:#666><color:#FFF> Grey </color></back> | Library |");
-        lines.push("  | <back:#E07000><color:#FFF> Orange </color></back> | Infrastructure |");
+        lines.push(
+          "  | <back:#438DD5><color:#FFF> Blue </color></back> | Frontend |",
+        );
+        lines.push(
+          "  | <back:#1168BD><color:#FFF> Dark Blue </color></back> | Backend |",
+        );
+        lines.push(
+          "  | <back:#2B7A0B><color:#FFF> Green </color></back> | Database |",
+        );
+        lines.push(
+          "  | <back:#A259FF><color:#FFF> Purple </color></back> | Service |",
+        );
+        lines.push(
+          "  | <back:#666><color:#FFF> Grey </color></back> | Library |",
+        );
+        lines.push(
+          "  | <back:#E07000><color:#FFF> Orange </color></back> | Infrastructure |",
+        );
         break;
       case "component":
         lines.push("  |= Symbol |= Meaning |");
@@ -461,7 +495,7 @@ export class ComponentDiagramGenerator {
   /** Build edges from component dependency declarations */
   private buildEdges(components: ComponentSpec[]): DiagramEdge[] {
     const edges: DiagramEdge[] = [];
-    const idMap = new Map(components.map(c => [c.name.toLowerCase(), c.id]));
+    const idMap = new Map(components.map((c) => [c.name.toLowerCase(), c.id]));
 
     for (const comp of components) {
       for (const dep of comp.dependencies) {
@@ -478,10 +512,10 @@ export class ComponentDiagramGenerator {
       for (const iface of comp.interfaces) {
         if (iface.direction === "outbound") {
           // Find target component by interface contract or name
-          const target = components.find(c =>
+          const target = components.find((c) =>
             c.interfaces.some(
-              ci => ci.name === iface.name && ci.direction === "inbound"
-            )
+              (ci) => ci.name === iface.name && ci.direction === "inbound",
+            ),
           );
           if (target && target.id !== comp.id) {
             edges.push({
@@ -556,7 +590,9 @@ export class ComponentDiagramGenerator {
   }
 
   /** Group components by type for subgraph nesting */
-  private groupByType(components: ComponentSpec[]): Record<string, ComponentSpec[]> {
+  private groupByType(
+    components: ComponentSpec[],
+  ): Record<string, ComponentSpec[]> {
     const groups: Record<string, ComponentSpec[]> = {};
     for (const comp of components) {
       if (!groups[comp.type]) groups[comp.type] = [];
@@ -590,17 +626,18 @@ export class ComponentDiagramGenerator {
 
   /** Sanitize a string into a valid diagram node ID */
   private sanitizeId(input: string): string {
-    return input
-      .replace(/[^a-zA-Z0-9_]/g, "_")
-      .replace(/_{2,}/g, "_")
-      .replace(/^_|_$/g, "")
-      || "node";
+    return (
+      input
+        .replace(/[^a-zA-Z0-9_]/g, "_")
+        .replace(/_{2,}/g, "_")
+        .replace(/^_|_$/g, "") || "node"
+    );
   }
 
   /** Remove duplicate edges (same from+to) */
   private deduplicateEdges(edges: DiagramEdge[]): DiagramEdge[] {
     const seen = new Set<string>();
-    return edges.filter(e => {
+    return edges.filter((e) => {
       const key = `${e.from}->${e.to}`;
       if (seen.has(key)) return false;
       seen.add(key);

@@ -1,11 +1,11 @@
 /**
  * useBuildSession Hook
- * 
+ *
  * Manages build session state via API and WebSocket for real-time updates.
  * Part of: BUILD-005 - Build Frontend Integration
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from "react";
 
 // Types
 export interface TaskDefinition {
@@ -14,21 +14,26 @@ export interface TaskDefinition {
   featureId: string;
   name: string;
   description: string;
-  type: 'setup' | 'database' | 'api' | 'ui' | 'integration' | 'test';
+  type: "setup" | "database" | "api" | "ui" | "integration" | "test";
   dependencies: string[];
   estimatedMinutes: number;
   technicalDetails: string;
   testCriteria: string[];
 }
 
-export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+export type TaskStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "skipped";
 
 export interface BuildSession {
   sessionId: string;
   ideaId: string;
   specId: string;
-  status: 'active' | 'paused' | 'complete' | 'failed' | 'human_needed';
-  
+  status: "active" | "paused" | "complete" | "failed" | "human_needed";
+
   // Progress
   progress: {
     total: number;
@@ -37,21 +42,21 @@ export interface BuildSession {
     current: string | null;
     currentAttempt: number;
   };
-  
+
   // Tasks
   tasks: TaskDefinition[];
   completedTasks: string[];
   failedTasks: string[];
   currentTaskIndex: number;
-  
+
   // Execution state
   siaInterventions: number;
   lastError: string | null;
-  
+
   // Output
   generatedFiles: number;
   commits: number;
-  
+
   // Timestamps
   startedAt: string;
   lastActivityAt: string;
@@ -71,7 +76,7 @@ export interface BuildEvent {
 export interface UseBuildSessionOptions {
   ideaId: string;
   autoConnect?: boolean;
-  onStatusChange?: (status: BuildSession['status']) => void;
+  onStatusChange?: (status: BuildSession["status"]) => void;
   onTaskComplete?: (taskId: string) => void;
   onError?: (error: string) => void;
 }
@@ -83,7 +88,7 @@ export interface UseBuildSessionReturn {
   isLoading: boolean;
   isConnected: boolean;
   error: string | null;
-  
+
   // Actions
   startBuild: () => Promise<BuildSession | null>;
   fetchStatus: () => Promise<void>;
@@ -91,7 +96,7 @@ export interface UseBuildSessionReturn {
   resume: () => Promise<boolean>;
   skip: () => Promise<boolean>;
   resolve: (resolution: string) => Promise<boolean>;
-  
+
   // Derived state
   isActive: boolean;
   isPaused: boolean;
@@ -113,7 +118,7 @@ export function useBuildSession({
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -126,18 +131,18 @@ export function useBuildSession({
 
     try {
       const response = await fetch(`/api/build/${ideaId}/status`);
-      
+
       if (!response.ok) {
         if (response.status === 404) {
           setSession(null);
           return;
         }
-        throw new Error('Failed to fetch build status');
+        throw new Error("Failed to fetch build status");
       }
 
       const data = await response.json();
-      
-      if (data.status === 'not_started') {
+
+      if (data.status === "not_started") {
         setSession(null);
         return;
       }
@@ -151,8 +156,11 @@ export function useBuildSession({
         tasks: data.tasks || [],
         completedTasks: data.completedTasks || [],
         failedTasks: data.failedTasks || [],
-        currentTaskIndex: data.progress?.current ? 
-          data.tasks?.findIndex((t: TaskDefinition) => t.name === data.progress.current) ?? 0 : 0,
+        currentTaskIndex: data.progress?.current
+          ? (data.tasks?.findIndex(
+              (t: TaskDefinition) => t.name === data.progress.current,
+            ) ?? 0)
+          : 0,
         siaInterventions: data.siaInterventions || 0,
         lastError: data.lastError,
         generatedFiles: data.generatedFiles || 0,
@@ -161,14 +169,15 @@ export function useBuildSession({
         lastActivityAt: data.lastActivityAt,
       };
 
-      setSession(prev => {
+      setSession((prev) => {
         if (prev?.status !== newSession.status) {
           onStatusChange?.(newSession.status);
         }
         return newSession;
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to fetch build status';
+      const msg =
+        err instanceof Error ? err.message : "Failed to fetch build status";
       setError(msg);
       onError?.(msg);
     } finally {
@@ -180,7 +189,7 @@ export function useBuildSession({
   const connectWebSocket = useCallback(() => {
     if (!ideaId || wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/api/build/${ideaId}/stream`;
 
     try {
@@ -203,14 +212,23 @@ export function useBuildSession({
             timestamp: new Date(),
           };
 
-          setEvents(prev => [...prev, buildEvent].slice(-100)); // Keep last 100 events
+          setEvents((prev) => [...prev, buildEvent].slice(-100)); // Keep last 100 events
 
           // Update session based on event
-          if (['taskComplete', 'taskFailed', 'buildComplete', 'humanNeeded', 'paused', 'resumed'].includes(data.type)) {
+          if (
+            [
+              "taskComplete",
+              "taskFailed",
+              "buildComplete",
+              "humanNeeded",
+              "paused",
+              "resumed",
+            ].includes(data.type)
+          ) {
             fetchStatus();
           }
 
-          if (data.type === 'taskComplete') {
+          if (data.type === "taskComplete") {
             onTaskComplete?.(data.taskId);
           }
         } catch {
@@ -245,24 +263,24 @@ export function useBuildSession({
 
     try {
       const response = await fetch(`/api/build/${ideaId}/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to start build');
+        throw new Error(data.error || "Failed to start build");
       }
 
       // Fetch full status
       await fetchStatus();
-      
+
       // Connect WebSocket for updates
       connectWebSocket();
 
       return session;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to start build';
+      const msg = err instanceof Error ? err.message : "Failed to start build";
       setError(msg);
       onError?.(msg);
       return null;
@@ -277,7 +295,7 @@ export function useBuildSession({
 
     try {
       const response = await fetch(`/api/build/${session.sessionId}/pause`, {
-        method: 'POST',
+        method: "POST",
       });
 
       if (response.ok) {
@@ -296,7 +314,7 @@ export function useBuildSession({
 
     try {
       const response = await fetch(`/api/build/${session.sessionId}/resume`, {
-        method: 'POST',
+        method: "POST",
       });
 
       if (response.ok) {
@@ -315,7 +333,7 @@ export function useBuildSession({
 
     try {
       const response = await fetch(`/api/build/${session.sessionId}/skip`, {
-        method: 'POST',
+        method: "POST",
       });
 
       if (response.ok) {
@@ -329,25 +347,31 @@ export function useBuildSession({
   }, [session?.sessionId, fetchStatus]);
 
   // Resolve current task manually
-  const resolve = useCallback(async (resolution: string): Promise<boolean> => {
-    if (!session?.sessionId) return false;
+  const resolve = useCallback(
+    async (resolution: string): Promise<boolean> => {
+      if (!session?.sessionId) return false;
 
-    try {
-      const response = await fetch(`/api/build/${session.sessionId}/resolve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resolution }),
-      });
+      try {
+        const response = await fetch(
+          `/api/build/${session.sessionId}/resolve`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ resolution }),
+          },
+        );
 
-      if (response.ok) {
-        await fetchStatus();
-        return true;
+        if (response.ok) {
+          await fetchStatus();
+          return true;
+        }
+        return false;
+      } catch {
+        return false;
       }
-      return false;
-    } catch {
-      return false;
-    }
-  }, [session?.sessionId, fetchStatus]);
+    },
+    [session?.sessionId, fetchStatus],
+  );
 
   // Initial fetch and WebSocket connection
   useEffect(() => {
@@ -369,18 +393,22 @@ export function useBuildSession({
   }, [autoConnect, ideaId, fetchStatus, connectWebSocket]);
 
   // Derived state
-  const isActive = session?.status === 'active';
-  const isPaused = session?.status === 'paused';
-  const isComplete = session?.status === 'complete';
-  const needsHuman = session?.status === 'human_needed';
-  
-  const progressPercent = session?.progress 
-    ? Math.round((session.progress.completed / Math.max(session.progress.total, 1)) * 100)
+  const isActive = session?.status === "active";
+  const isPaused = session?.status === "paused";
+  const isComplete = session?.status === "complete";
+  const needsHuman = session?.status === "human_needed";
+
+  const progressPercent = session?.progress
+    ? Math.round(
+        (session.progress.completed / Math.max(session.progress.total, 1)) *
+          100,
+      )
     : 0;
-  
-  const currentTask = session?.tasks && session.currentTaskIndex >= 0
-    ? session.tasks[session.currentTaskIndex] ?? null
-    : null;
+
+  const currentTask =
+    session?.tasks && session.currentTaskIndex >= 0
+      ? (session.tasks[session.currentTaskIndex] ?? null)
+      : null;
 
   return {
     session,

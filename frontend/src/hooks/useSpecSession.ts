@@ -1,11 +1,11 @@
 /**
  * useSpecSession Hook
- * 
+ *
  * Manages specification session state via API.
  * Part of: SPEC-005 - Specification Frontend Integration
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 // Types
 export interface Specification {
@@ -27,14 +27,14 @@ export interface Feature {
   id: string;
   name: string;
   description: string;
-  priority: 'must-have' | 'should-have' | 'nice-to-have';
+  priority: "must-have" | "should-have" | "nice-to-have";
   acceptanceCriteria: string[];
   technicalNotes?: string;
-  estimatedComplexity: 'low' | 'medium' | 'high';
+  estimatedComplexity: "low" | "medium" | "high";
 }
 
 export interface Constraint {
-  type: 'technical' | 'business' | 'legal';
+  type: "technical" | "business" | "legal";
   description: string;
 }
 
@@ -42,8 +42,8 @@ export interface SpecQuestion {
   id: string;
   question: string;
   context?: string;
-  category: 'feature' | 'technical' | 'scope' | 'clarification';
-  priority: 'blocking' | 'important' | 'optional';
+  category: "feature" | "technical" | "scope" | "clarification";
+  priority: "blocking" | "important" | "optional";
   createdAt: string;
 }
 
@@ -58,7 +58,7 @@ export interface TaskDefinition {
   featureId: string;
   name: string;
   description: string;
-  type: 'setup' | 'database' | 'api' | 'ui' | 'integration' | 'test';
+  type: "setup" | "database" | "api" | "ui" | "integration" | "test";
   dependencies: string[];
   estimatedMinutes: number;
   technicalDetails: string;
@@ -68,7 +68,7 @@ export interface TaskDefinition {
 export interface SpecSession {
   sessionId: string;
   ideaId: string;
-  status: 'active' | 'pending_input' | 'complete' | 'failed';
+  status: "active" | "pending_input" | "complete" | "failed";
   draft: Specification | null;
   questions: SpecQuestion[];
   answeredQuestions: SpecAnswer[];
@@ -81,7 +81,7 @@ export interface SpecSession {
 export interface UseSpecSessionOptions {
   ideaId: string;
   autoFetch?: boolean;
-  onStatusChange?: (status: SpecSession['status']) => void;
+  onStatusChange?: (status: SpecSession["status"]) => void;
   onError?: (error: string) => void;
 }
 
@@ -90,14 +90,19 @@ export interface UseSpecSessionReturn {
   session: SpecSession | null;
   isLoading: boolean;
   error: string | null;
-  
+
   // Actions
   startSession: () => Promise<SpecSession | null>;
   fetchSession: () => Promise<void>;
   answerQuestion: (questionId: string, answer: string) => Promise<boolean>;
-  chat: (message: string) => Promise<{ response: string; updatedSpec: boolean } | null>;
-  finalizeSpec: () => Promise<{ spec: Specification; tasks: TaskDefinition[] } | null>;
-  
+  chat: (
+    message: string,
+  ) => Promise<{ response: string; updatedSpec: boolean } | null>;
+  finalizeSpec: () => Promise<{
+    spec: Specification;
+    tasks: TaskDefinition[];
+  } | null>;
+
   // Derived state
   hasQuestions: boolean;
   isComplete: boolean;
@@ -123,7 +128,7 @@ export function useSpecSession({
 
     try {
       const response = await fetch(`/api/specification/${ideaId}/session`);
-      
+
       if (response.status === 404) {
         // No session exists yet
         setSession(null);
@@ -131,11 +136,11 @@ export function useSpecSession({
       }
 
       if (!response.ok) {
-        throw new Error('Failed to fetch session');
+        throw new Error("Failed to fetch session");
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         const newSession: SpecSession = {
           sessionId: data.sessionId,
@@ -150,7 +155,7 @@ export function useSpecSession({
           updatedAt: data.updatedAt,
         };
 
-        setSession(prev => {
+        setSession((prev) => {
           if (prev?.status !== newSession.status) {
             onStatusChange?.(newSession.status);
           }
@@ -158,7 +163,8 @@ export function useSpecSession({
         });
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to fetch session';
+      const msg =
+        err instanceof Error ? err.message : "Failed to fetch session";
       setError(msg);
       onError?.(msg);
     } finally {
@@ -175,13 +181,13 @@ export function useSpecSession({
 
     try {
       const response = await fetch(`/api/specification/${ideaId}/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to start session');
+        throw new Error(data.error || "Failed to start session");
       }
 
       const data = await response.json();
@@ -207,7 +213,8 @@ export function useSpecSession({
 
       return null;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to start session';
+      const msg =
+        err instanceof Error ? err.message : "Failed to start session";
       setError(msg);
       onError?.(msg);
       return null;
@@ -217,119 +224,142 @@ export function useSpecSession({
   }, [ideaId, onStatusChange, onError]);
 
   // Answer a question
-  const answerQuestion = useCallback(async (
-    questionId: string,
-    answer: string
-  ): Promise<boolean> => {
-    if (!session?.sessionId) return false;
+  const answerQuestion = useCallback(
+    async (questionId: string, answer: string): Promise<boolean> => {
+      if (!session?.sessionId) return false;
 
-    setIsLoading(true);
-    setError(null);
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const response = await fetch(`/api/specification/${session.sessionId}/answer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionId, answer }),
-      });
+      try {
+        const response = await fetch(
+          `/api/specification/${session.sessionId}/answer`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ questionId, answer }),
+          },
+        );
 
-      if (!response.ok) {
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || "Failed to answer question");
+        }
+
         const data = await response.json();
-        throw new Error(data.error || 'Failed to answer question');
+
+        if (data.success) {
+          // Update session state
+          setSession((prev) => {
+            if (!prev) return null;
+
+            const answeredQ = prev.questions.find((q) => q.id === questionId);
+            const newAnswered = answeredQ
+              ? [
+                  ...prev.answeredQuestions,
+                  {
+                    ...answeredQ,
+                    answer,
+                    answeredAt: new Date().toISOString(),
+                  } as SpecAnswer,
+                ]
+              : prev.answeredQuestions;
+
+            const newStatus =
+              data.remainingQuestions === 0 ? "active" : "pending_input";
+
+            if (prev.status !== newStatus) {
+              onStatusChange?.(newStatus);
+            }
+
+            return {
+              ...prev,
+              draft: data.updatedDraft || prev.draft,
+              questions:
+                data.pendingQuestions ||
+                prev.questions.filter((q) => q.id !== questionId),
+              answeredQuestions: newAnswered,
+              status: newStatus,
+              updatedAt: new Date().toISOString(),
+            };
+          });
+
+          return true;
+        }
+
+        return false;
+      } catch (err) {
+        const msg =
+          err instanceof Error ? err.message : "Failed to answer question";
+        setError(msg);
+        onError?.(msg);
+        return false;
+      } finally {
+        setIsLoading(false);
       }
+    },
+    [session?.sessionId, onStatusChange, onError],
+  );
 
-      const data = await response.json();
+  // Chat with the spec agent
+  const chat = useCallback(
+    async (
+      message: string,
+    ): Promise<{ response: string; updatedSpec: boolean } | null> => {
+      if (!session?.sessionId) return null;
 
-      if (data.success) {
-        // Update session state
-        setSession(prev => {
-          if (!prev) return null;
+      setIsLoading(true);
+      setError(null);
 
-          const answeredQ = prev.questions.find(q => q.id === questionId);
-          const newAnswered = answeredQ ? [
-            ...prev.answeredQuestions,
-            { ...answeredQ, answer, answeredAt: new Date().toISOString() } as SpecAnswer,
-          ] : prev.answeredQuestions;
+      try {
+        const response = await fetch(
+          `/api/specification/${session.sessionId}/chat`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message }),
+          },
+        );
 
-          const newStatus = data.remainingQuestions === 0 ? 'active' : 'pending_input';
-          
-          if (prev.status !== newStatus) {
-            onStatusChange?.(newStatus);
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || "Chat failed");
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          if (data.updatedSpec && data.currentDraft) {
+            setSession((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    draft: data.currentDraft,
+                    questions: data.pendingQuestions || prev.questions,
+                    updatedAt: new Date().toISOString(),
+                  }
+                : null,
+            );
           }
 
           return {
-            ...prev,
-            draft: data.updatedDraft || prev.draft,
-            questions: data.pendingQuestions || prev.questions.filter(q => q.id !== questionId),
-            answeredQuestions: newAnswered,
-            status: newStatus,
-            updatedAt: new Date().toISOString(),
+            response: data.response,
+            updatedSpec: data.updatedSpec,
           };
-        });
-
-        return true;
-      }
-
-      return false;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to answer question';
-      setError(msg);
-      onError?.(msg);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [session?.sessionId, onStatusChange, onError]);
-
-  // Chat with the spec agent
-  const chat = useCallback(async (
-    message: string
-  ): Promise<{ response: string; updatedSpec: boolean } | null> => {
-    if (!session?.sessionId) return null;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/specification/${session.sessionId}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Chat failed');
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        if (data.updatedSpec && data.currentDraft) {
-          setSession(prev => prev ? {
-            ...prev,
-            draft: data.currentDraft,
-            questions: data.pendingQuestions || prev.questions,
-            updatedAt: new Date().toISOString(),
-          } : null);
         }
 
-        return {
-          response: data.response,
-          updatedSpec: data.updatedSpec,
-        };
+        return null;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Chat failed";
+        setError(msg);
+        onError?.(msg);
+        return null;
+      } finally {
+        setIsLoading(false);
       }
-
-      return null;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Chat failed';
-      setError(msg);
-      onError?.(msg);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [session?.sessionId, onError]);
+    },
+    [session?.sessionId, onError],
+  );
 
   // Finalize the specification
   const finalizeSpec = useCallback(async (): Promise<{
@@ -342,28 +372,35 @@ export function useSpecSession({
     setError(null);
 
     try {
-      const response = await fetch(`/api/specification/${session.sessionId}/finalize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const response = await fetch(
+        `/api/specification/${session.sessionId}/finalize`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to finalize specification');
+        throw new Error(data.error || "Failed to finalize specification");
       }
 
       const data = await response.json();
 
       if (data.success) {
-        setSession(prev => prev ? {
-          ...prev,
-          draft: data.spec,
-          tasks: data.tasks,
-          status: 'complete',
-          updatedAt: new Date().toISOString(),
-        } : null);
+        setSession((prev) =>
+          prev
+            ? {
+                ...prev,
+                draft: data.spec,
+                tasks: data.tasks,
+                status: "complete",
+                updatedAt: new Date().toISOString(),
+              }
+            : null,
+        );
 
-        onStatusChange?.('complete');
+        onStatusChange?.("complete");
 
         return {
           spec: data.spec,
@@ -373,7 +410,8 @@ export function useSpecSession({
 
       return null;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to finalize specification';
+      const msg =
+        err instanceof Error ? err.message : "Failed to finalize specification";
       setError(msg);
       onError?.(msg);
       return null;
@@ -391,8 +429,9 @@ export function useSpecSession({
 
   // Derived state
   const hasQuestions = (session?.questions?.length ?? 0) > 0;
-  const isComplete = session?.status === 'complete';
-  const canFinalize = session?.status === 'active' && !hasQuestions && session?.draft !== null;
+  const isComplete = session?.status === "complete";
+  const canFinalize =
+    session?.status === "active" && !hasQuestions && session?.draft !== null;
 
   return {
     session,

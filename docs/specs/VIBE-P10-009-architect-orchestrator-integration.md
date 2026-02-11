@@ -87,36 +87,43 @@ The Architect Agent has been implemented with full metadata registration (see `p
 **File**: `parent-harness/orchestrator/src/orchestrator/index.ts`
 
 **Change 1**: Update `TASK_WORKER_AGENTS` constant (line 755)
+
 ```typescript
 const TASK_WORKER_AGENTS = [
-  'build_agent', 'build',
-  'qa_agent', 'qa',
-  'spec_agent', 'spec',
-  'architect_agent', 'architect',  // ADD THIS
+  "build_agent",
+  "build",
+  "qa_agent",
+  "qa",
+  "spec_agent",
+  "spec",
+  "architect_agent",
+  "architect", // ADD THIS
 ];
 ```
 
 **Change 2**: Update `categoryAgentMap` (line 772)
+
 ```typescript
 const categoryAgentMap: Record<string, string[]> = {
-  feature: ['build_agent', 'build'],
-  bug: ['build_agent', 'build'],
-  test: ['qa_agent', 'qa'],
-  documentation: ['spec_agent', 'spec'],
-  architecture: ['architect_agent', 'architect'],  // ADD THIS
-  design: ['architect_agent', 'architect'],         // ADD THIS
+  feature: ["build_agent", "build"],
+  bug: ["build_agent", "build"],
+  test: ["qa_agent", "qa"],
+  documentation: ["spec_agent", "spec"],
+  architecture: ["architect_agent", "architect"], // ADD THIS
+  design: ["architect_agent", "architect"], // ADD THIS
 };
 ```
 
 **File**: `parent-harness/orchestrator/src/types.ts` (create if doesn't exist)
 
 **Change 3**: Add ArchitectTaskPayload type
+
 ```typescript
 export interface ArchitectTaskPayload {
   requirements: string;
   constraints: string[];
   existingArchitecture?: string;
-  outputFormat: 'full' | 'incremental';
+  outputFormat: "full" | "incremental";
 }
 
 export interface ArchitectOutput {
@@ -130,7 +137,7 @@ export interface ArchitectOutput {
 
 export interface Component {
   name: string;
-  type: 'frontend' | 'backend' | 'database' | 'infrastructure';
+  type: "frontend" | "backend" | "database" | "infrastructure";
   description: string;
   dependencies: string[];
 }
@@ -144,7 +151,7 @@ export interface TechStack {
 
 export interface APIContract {
   endpoint: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   request?: Schema;
   response?: Schema;
 }
@@ -157,16 +164,17 @@ export interface Schema {
 **File**: `parent-harness/orchestrator/src/spawner/index.ts`
 
 **Change 4**: Add architecture output persistence (if not already handled)
+
 ```typescript
 // After architect agent completes
-if (agentType === 'architect' || agentType === 'architect_agent') {
-  const artifactDir = path.join(process.cwd(), 'artifacts', 'architecture');
+if (agentType === "architect" || agentType === "architect_agent") {
+  const artifactDir = path.join(process.cwd(), "artifacts", "architecture");
   await fs.promises.mkdir(artifactDir, { recursive: true });
 
   const outputPath = path.join(artifactDir, `${taskId}.json`);
   await fs.promises.writeFile(
     outputPath,
-    JSON.stringify(architectOutput, null, 2)
+    JSON.stringify(architectOutput, null, 2),
   );
 
   console.log(`📦 Saved architecture output: ${outputPath}`);
@@ -204,15 +212,20 @@ No changes needed - existing `tasks` table supports all required fields.
 
 ```typescript
 // parent-harness/orchestrator/src/api/artifacts.ts
-router.get('/architecture/:taskId', async (req, res) => {
+router.get("/architecture/:taskId", async (req, res) => {
   const { taskId } = req.params;
-  const artifactPath = path.join(process.cwd(), 'artifacts', 'architecture', `${taskId}.json`);
+  const artifactPath = path.join(
+    process.cwd(),
+    "artifacts",
+    "architecture",
+    `${taskId}.json`,
+  );
 
   if (!fs.existsSync(artifactPath)) {
-    return res.status(404).json({ error: 'Architecture not found' });
+    return res.status(404).json({ error: "Architecture not found" });
   }
 
-  const architecture = JSON.parse(fs.readFileSync(artifactPath, 'utf-8'));
+  const architecture = JSON.parse(fs.readFileSync(artifactPath, "utf-8"));
   res.json(architecture);
 });
 ```

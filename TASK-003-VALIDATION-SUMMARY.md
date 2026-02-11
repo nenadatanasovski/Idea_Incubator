@@ -17,13 +17,13 @@
 
 ## Pass Criteria Verification
 
-| # | Criterion | Status | Evidence Location |
-|---|-----------|--------|-------------------|
-| 1 | recordResult() method implemented | ✅ ALREADY EXISTS | server/services/task-agent/task-test-service.ts:69-96 |
-| 2 | TaskTestConfig has expectedExitCode | ✅ ALREADY EXISTS | types/task-test.ts:111 |
-| 3 | TaskTestConfig has description | ✅ ALREADY EXISTS | types/task-test.ts:113 |
-| 4 | AcceptanceCriteriaResult is complete | ✅ ALREADY EXISTS | types/task-test.ts:225-232 |
-| 5 | Tests pass | ✅ VERIFIED | All 9 tests pass in 226ms |
+| #   | Criterion                            | Status            | Evidence Location                                     |
+| --- | ------------------------------------ | ----------------- | ----------------------------------------------------- |
+| 1   | recordResult() method implemented    | ✅ ALREADY EXISTS | server/services/task-agent/task-test-service.ts:69-96 |
+| 2   | TaskTestConfig has expectedExitCode  | ✅ ALREADY EXISTS | types/task-test.ts:111                                |
+| 3   | TaskTestConfig has description       | ✅ ALREADY EXISTS | types/task-test.ts:113                                |
+| 4   | AcceptanceCriteriaResult is complete | ✅ ALREADY EXISTS | types/task-test.ts:225-232                            |
+| 5   | Tests pass                           | ✅ VERIFIED       | All 9 tests pass in 226ms                             |
 
 ---
 
@@ -39,6 +39,7 @@
 ## Specification Contents
 
 ### Core Sections
+
 - ✅ Executive Summary
 - ✅ Overview
 - ✅ Investigation Findings (4 subsections)
@@ -53,6 +54,7 @@
 - ✅ References (comprehensive)
 
 ### Detailed Coverage
+
 - Method signatures and implementations
 - Type definitions with line numbers
 - Database schema (migrations 083, 106)

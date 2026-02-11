@@ -160,14 +160,18 @@ describe("TaskTestService", () => {
       await run(
         `INSERT INTO tasks (id, display_id, title, status, category, priority, effort, created_at, updated_at)
          VALUES (?, ?, ?, 'pending', 'feature', 'P2', 'medium', datetime('now'), datetime('now'))`,
-        [freshTaskId, `${TEST_PREFIX}fresh-${freshTaskId.slice(0, 8)}`, `${TEST_PREFIX}Fresh Task`],
+        [
+          freshTaskId,
+          `${TEST_PREFIX}fresh-${freshTaskId.slice(0, 8)}`,
+          `${TEST_PREFIX}Fresh Task`,
+        ],
       );
       await saveDb();
 
       const config = await taskTestService.getTestConfig(freshTaskId);
       // Returns default configs for levels 1, 2, 3 when no custom config is set
       expect(config.length).toBe(3);
-      expect(config.map(c => c.level)).toEqual([1, 2, 3]);
+      expect(config.map((c) => c.level)).toEqual([1, 2, 3]);
     });
   });
 

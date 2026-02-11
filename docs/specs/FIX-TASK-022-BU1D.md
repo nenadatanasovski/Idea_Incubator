@@ -5,6 +5,7 @@
 **Verified**: 2026-02-08 15:24
 **Agent**: Spec Agent
 **Related Tasks**:
+
 - TASK-014 (original task where fix was implemented, completed 2026-02-07)
 - TASK-022 (duplicate report)
 - FIX-TASK-022-9IRY (first retry - verified already complete)
@@ -22,9 +23,11 @@ This specification documents the investigation and verification of **FIX-TASK-02
 ## Problem Statement (As Reported)
 
 The task description states:
+
 > QA verification failed for TASK-022.
 >
 > Failed checks:
+>
 > - Tests: Command failed: npm test -- --pool=forks --poolOptions.forks.maxForks=1 2>&1 || echo "No test script"
 >
 > Original task: In tests/task-agent/task-version-service.test.ts, lines 205-206 attempt to call diff.from() and diff.to() as functions, but the diff property is typed as `{ from: unknown; to: unknown; }` (an object, not a callable). This causes TS2349 "This expression is not callable" errors. The version service needs proper diff formatting or tests need correction.
@@ -34,6 +37,7 @@ The task description states:
 ### Historical Context
 
 The original issue (reported in TASK-014/TASK-022) was a type mismatch where:
+
 - `VersionDiff.changes` was typed as `Record<string, { from: unknown; to: unknown }>` (an object)
 - But the implementation in `task-version-service.ts` was building an array
 - Tests were calling array methods like `.some()` on what TypeScript thought was a Record
@@ -71,6 +75,7 @@ export interface VersionDiff {
 ### Current Implementation State
 
 **types/task-version.ts:35-40**
+
 ```typescript
 export interface VersionDiff {
   fromVersion: number;
@@ -80,6 +85,7 @@ export interface VersionDiff {
 ```
 
 **server/services/task-agent/task-version-service.ts:225-254**
+
 ```typescript
 async diff(
   taskId: string,
@@ -114,6 +120,7 @@ async diff(
 ```
 
 **tests/task-agent/task-version-service.test.ts:188-208**
+
 ```typescript
 describe("diff", () => {
   it("should calculate diff between versions", async () => {
@@ -173,6 +180,7 @@ describe("diff", () => {
 ### Type Safety
 
 The current implementation provides full type safety with proper alignment between:
+
 - Type definition (VersionDiff interface)
 - Implementation (diff method building array)
 - Tests (using array methods)
@@ -184,6 +192,7 @@ All three pass criteria specified in the task are **fully met**:
 ### ✅ Pass Criterion 1: All tests pass
 
 **Command**:
+
 ```bash
 npm test -- --pool=forks --poolOptions.forks.maxForks=1
 ```
@@ -191,6 +200,7 @@ npm test -- --pool=forks --poolOptions.forks.maxForks=1
 **Result**: ✅ **1773 tests pass, 4 skipped (out of 1777 total)**
 
 Specifically for task-version-service:
+
 ```bash
 npm test -- tests/task-agent/task-version-service.test.ts --pool=forks --poolOptions.forks.maxForks=1
 ```
@@ -207,6 +217,7 @@ Test Files  1 passed (1)
 ```
 
 All 11 tests passing:
+
 1. ✅ createVersion: should create initial version (v1)
 2. ✅ createVersion: should increment version numbers
 3. ✅ createVersion: should capture task snapshot
@@ -222,6 +233,7 @@ All 11 tests passing:
 ### ✅ Pass Criterion 2: Build succeeds
 
 **Command**:
+
 ```bash
 npm run build
 ```
@@ -229,6 +241,7 @@ npm run build
 **Result**: ✅ **TypeScript compilation successful with zero errors**
 
 Output:
+
 ```
 > idea-incubator@0.1.0 build
 > tsc
@@ -241,6 +254,7 @@ Clean exit with no errors, warnings, or type issues.
 **Result**: ✅ **No TypeScript errors in any files**
 
 The TypeScript compiler successfully processes:
+
 - `types/task-version.ts` - Type definitions with correct `VersionDiff` interface
 - `server/services/task-agent/task-version-service.ts` - Service implementation
 - `tests/task-agent/task-version-service.test.ts` - Test suite
@@ -267,6 +281,7 @@ ecfaf59 fix: Exclude integration and e2e tests from default test run
 ```
 
 Timeline:
+
 - **2026-02-07 18:44:41** - Commit `6ce2bc1` fixes the issue (TASK-014)
 - **2026-02-08 15:08** - First verification shows TASK-022 already complete
 - **2026-02-08 15:08** - FIX-TASK-022-9IRY created (first retry)
@@ -282,17 +297,18 @@ Timeline:
 
 ## Verification Summary
 
-| Criterion | Status | Evidence |
-|-----------|--------|----------|
-| All tests pass | ✅ PASS | 11/11 tests pass in task-version-service.test.ts; 1773/1777 total tests pass |
-| Build succeeds | ✅ PASS | `npm run build` exits cleanly with no errors |
-| TypeScript compiles | ✅ PASS | tsc produces no type errors |
+| Criterion           | Status  | Evidence                                                                     |
+| ------------------- | ------- | ---------------------------------------------------------------------------- |
+| All tests pass      | ✅ PASS | 11/11 tests pass in task-version-service.test.ts; 1773/1777 total tests pass |
+| Build succeeds      | ✅ PASS | `npm run build` exits cleanly with no errors                                 |
+| TypeScript compiles | ✅ PASS | tsc produces no type errors                                                  |
 
 ## Conclusion
 
 **This task is a false positive - it is the third retry of an already-completed fix.**
 
 The issue described in the task description **does not exist** in the current codebase:
+
 - The reported code at lines 205-206 does NOT call `diff.from()` or `diff.to()` as functions
 - The actual code correctly uses array methods: `diff.changes.some((c) => c.field === "title")`
 - The VersionDiff type is correctly defined with `changes` as an Array
@@ -300,12 +316,14 @@ The issue described in the task description **does not exist** in the current co
 - All tests pass without errors
 
 The original issue was fixed in commit `6ce2bc1` on 2026-02-07 as part of TASK-014, which:
+
 1. ✅ Changed `VersionDiff.changes` from `Record` to `Array` type
 2. ✅ Updated the service implementation to build an array
 3. ✅ Ensured tests use array methods
 4. ✅ Verified all tests pass and TypeScript compiles cleanly
 
 **All three pass criteria are verified as passing**:
+
 - ✅ Tests: 11/11 pass in task-version-service.test.ts (354ms)
 - ✅ Build: TypeScript compilation clean
 - ✅ TypeScript: No type errors

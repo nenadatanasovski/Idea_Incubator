@@ -355,13 +355,13 @@ export function formatComponentAsMarkdown(component: {
 **Description:** ${component.description}
 
 **Responsibilities:**
-${component.responsibilities.map(r => `- ${r}`).join('\n')}
+${component.responsibilities.map((r) => `- ${r}`).join("\n")}
 
 **Technology:** ${component.technology}
 
-**Dependencies:** ${component.dependencies.join(', ') || 'None'}
+**Dependencies:** ${component.dependencies.join(", ") || "None"}
 
-**Design Patterns:** ${component.designPatterns.join(', ') || 'None'}
+**Design Patterns:** ${component.designPatterns.join(", ") || "None"}
 `;
 }
 
@@ -370,15 +370,20 @@ ${component.responsibilities.map(r => `- ${r}`).join('\n')}
  */
 export function formatTechChoiceAsMarkdown(
   category: string,
-  choice: { name: string; rationale: string; alternatives: string[]; tradeoffs: string[] }
+  choice: {
+    name: string;
+    rationale: string;
+    alternatives: string[];
+    tradeoffs: string[];
+  },
 ): string {
   return `### ${category}: ${choice.name}
 
 **Rationale:** ${choice.rationale}
 
-**Alternatives Considered:** ${choice.alternatives.join(', ')}
+**Alternatives Considered:** ${choice.alternatives.join(", ")}
 
 **Trade-offs:**
-${choice.tradeoffs.map(t => `- ${t}`).join('\n')}
+${choice.tradeoffs.map((t) => `- ${t}`).join("\n")}
 `;
 }

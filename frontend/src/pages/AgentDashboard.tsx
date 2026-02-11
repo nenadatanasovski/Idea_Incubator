@@ -170,7 +170,10 @@ export default function AgentDashboard(): JSX.Element {
     }
   }
 
-  async function handleAnswerQuestion(questionId: string, answer: string): Promise<void> {
+  async function handleAnswerQuestion(
+    questionId: string,
+    answer: string,
+  ): Promise<void> {
     try {
       const response = await fetch(`/api/questions/${questionId}/answer`, {
         method: "POST",
@@ -179,7 +182,9 @@ export default function AgentDashboard(): JSX.Element {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: "Failed to submit answer" }));
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to submit answer" }));
         console.error("Failed to answer question:", error);
         return;
       }

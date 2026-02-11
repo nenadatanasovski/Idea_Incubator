@@ -1,38 +1,38 @@
 /**
  * Task State Machine
- * 
+ *
  * Validates state transitions and emits events.
  * Ensures tasks can only move through valid state progressions.
- * 
+ *
  * Valid transitions:
  * pending -> in_progress -> pending_verification -> completed
  *                       \-> failed -> pending (retry)
  *                       \-> blocked (manual intervention needed)
  */
 
-import { bus } from './bus.js';
-import * as tasks from '../db/tasks.js';
-import type { Task } from '../db/tasks.js';
-import * as stateHistory from '../db/state-history.js';
-import { events as dbEvents } from '../db/events.js';
+import { bus } from "./bus.js";
+import * as tasks from "../db/tasks.js";
+import type { Task } from "../db/tasks.js";
+import * as stateHistory from "../db/state-history.js";
+import { events as dbEvents } from "../db/events.js";
 
 // Valid task states
-export type TaskState = 
-  | 'pending'
-  | 'in_progress'
-  | 'pending_verification'
-  | 'completed'
-  | 'failed'
-  | 'blocked';
+export type TaskState =
+  | "pending"
+  | "in_progress"
+  | "pending_verification"
+  | "completed"
+  | "failed"
+  | "blocked";
 
 // Valid state transitions
 const VALID_TRANSITIONS: Record<TaskState, TaskState[]> = {
-  pending: ['in_progress', 'blocked'],
-  in_progress: ['pending_verification', 'failed', 'blocked'],
-  pending_verification: ['completed', 'failed'],
+  pending: ["in_progress", "blocked"],
+  in_progress: ["pending_verification", "failed", "blocked"],
+  pending_verification: ["completed", "failed"],
   completed: [], // Terminal state
-  failed: ['pending', 'blocked'], // Can retry or block
-  blocked: ['pending'], // Can unblock
+  failed: ["pending", "blocked"], // Can retry or block
+  blocked: ["pending"], // Can unblock
 };
 
 export interface TransitionResult {
@@ -66,15 +66,15 @@ export function isValidTransition(from: TaskState, to: TaskState): boolean {
 export function transitionTask(
   taskId: string,
   toState: TaskState,
-  context: TransitionContext = {}
+  context: TransitionContext = {},
 ): TransitionResult {
   const task = tasks.getTask(taskId);
   if (!task) {
     return {
       success: false,
-      previousState: 'pending',
+      previousState: "pending",
       newState: toState,
-      error: 'Task not found',
+      error: "Task not found",
     };
   }
 
@@ -82,7 +82,9 @@ export function transitionTask(
 
   // Validate transition
   if (!isValidTransition(fromState, toState)) {
-    console.warn(`⚠️ Invalid transition: ${fromState} -> ${toState} for task ${task.display_id}`);
+    console.warn(
+      `⚠️ Invalid transition: ${fromState} -> ${toState} for task ${task.display_id}`,
+    );
     return {
       success: false,
       previousState: fromState,
@@ -93,19 +95,19 @@ export function transitionTask(
 
   // Perform the transition.
   let updatedTask: Task;
-  if (toState === 'failed') {
+  if (toState === "failed") {
     const failed = tasks.failTaskWithContext(taskId, {
       error: context.error,
       agentId: context.agentId,
       sessionId: context.sessionId,
-      source: context.source || 'event_state_machine',
+      source: context.source || "event_state_machine",
     });
     if (!failed) {
       return {
         success: false,
         previousState: fromState,
         newState: toState,
-        error: 'Failed to transition task',
+        error: "Failed to transition task",
       };
     }
     updatedTask = failed;
@@ -122,9 +124,9 @@ export function transitionTask(
 
   // Log the state transition to history
   try {
-    const actorType = context.agentId ? 'agent' : 'system';
-    const changedBy = context.agentId || 'system';
-    
+    const actorType = context.agentId ? "agent" : "system";
+    const changedBy = context.agentId || "system";
+
     stateHistory.logStateTransition({
       task_id: taskId,
       from_status: fromState,
@@ -134,12 +136,12 @@ export function transitionTask(
       reason: context.reason || context.error,
       metadata: {
         sessionId: context.sessionId,
-        output: context.output?.slice(0, 500),  // Truncate for storage
+        output: context.output?.slice(0, 500), // Truncate for storage
         failures: context.failures,
       },
     });
   } catch (err) {
-    console.warn('Failed to log state transition:', err);
+    console.warn("Failed to log state transition:", err);
   }
 
   // Emit appropriate events
@@ -161,94 +163,94 @@ function emitTransitionEvents(
   task: Task,
   fromState: TaskState,
   toState: TaskState,
-  context: TransitionContext
+  context: TransitionContext,
 ): void {
   // Always emit the generic update event
-  bus.emit('task:updated', { 
-    task, 
-    changes: { status: toState } 
+  bus.emit("task:updated", {
+    task,
+    changes: { status: toState },
   });
 
   // Emit specific state events
   switch (toState) {
-    case 'pending':
-      bus.emit('task:pending', { task });
+    case "pending":
+      bus.emit("task:pending", { task });
       break;
 
-    case 'in_progress':
+    case "in_progress":
       if (context.agentId && context.sessionId) {
-        bus.emit('task:started', {
+        bus.emit("task:started", {
           task,
           agentId: context.agentId,
           sessionId: context.sessionId,
         });
       } else if (context.agentId) {
-        bus.emit('task:assigned', {
+        bus.emit("task:assigned", {
           task,
           agentId: context.agentId,
         });
       }
       if (context.agentId) {
         dbEvents.taskAssigned(task.id, context.agentId, task.title, {
-          source: context.source || 'event_state_machine',
+          source: context.source || "event_state_machine",
           taskDisplayId: task.display_id,
           sessionId: context.sessionId || null,
         });
       }
       break;
 
-    case 'pending_verification':
+    case "pending_verification":
       // This is the key event that triggers QA
-      bus.emit('task:ready_for_qa', { task });
+      bus.emit("task:ready_for_qa", { task });
       break;
 
-    case 'completed':
-      bus.emit('task:completed', { 
-        task, 
-        output: context.output 
+    case "completed":
+      bus.emit("task:completed", {
+        task,
+        output: context.output,
       });
-      dbEvents.taskCompleted(task.id, context.agentId || 'system', task.title, {
-        source: context.source || 'event_state_machine',
+      dbEvents.taskCompleted(task.id, context.agentId || "system", task.title, {
+        source: context.source || "event_state_machine",
         taskDisplayId: task.display_id,
         sessionId: context.sessionId || null,
       });
-      
+
       // Also emit QA passed if coming from verification
-      if (fromState === 'pending_verification') {
-        bus.emit('task:qa_passed', { task });
+      if (fromState === "pending_verification") {
+        bus.emit("task:qa_passed", { task });
       }
       break;
 
-    case 'failed':
-      bus.emit('task:failed', {
-        task, 
-        error: context.error || 'Unclassified failure',
+    case "failed":
+      bus.emit("task:failed", {
+        task,
+        error: context.error || "Unclassified failure",
       });
       dbEvents.taskFailed(
         task.id,
-        context.agentId || 'system',
+        context.agentId || "system",
         task.title,
-        context.error || 'Unclassified failure',
+        context.error || "Unclassified failure",
         {
-          source: context.source || 'event_state_machine',
+          source: context.source || "event_state_machine",
           taskDisplayId: task.display_id,
           sessionId: context.sessionId || null,
-        }
+        },
       );
-      
+
       // If coming from QA, emit QA failed
-      if (fromState === 'pending_verification') {
-        bus.emit('task:qa_failed', { 
-          task, 
-          failures: context.failures || [context.error || 'QA failed'],
+      if (fromState === "pending_verification") {
+        bus.emit("task:qa_failed", {
+          task,
+          failures: context.failures || [context.error || "QA failed"],
         });
       }
       break;
 
-    case 'blocked':
-      bus.emit('task:blocked', { 
-        task, 
-        reason: context.reason || 'Task blocked' 
+    case "blocked":
+      bus.emit("task:blocked", {
+        task,
+        reason: context.reason || "Task blocked",
       });
       break;
   }
@@ -259,50 +261,54 @@ function emitTransitionEvents(
 /**
  * Start a task (pending -> in_progress)
  */
-export function startTask(taskId: string, agentId: string, sessionId: string): TransitionResult {
-  return transitionTask(taskId, 'in_progress', { agentId, sessionId });
+export function startTask(
+  taskId: string,
+  agentId: string,
+  sessionId: string,
+): TransitionResult {
+  return transitionTask(taskId, "in_progress", { agentId, sessionId });
 }
 
 /**
  * Complete agent work (in_progress -> pending_verification)
  */
 export function submitForQA(taskId: string, output?: string): TransitionResult {
-  return transitionTask(taskId, 'pending_verification', { output });
+  return transitionTask(taskId, "pending_verification", { output });
 }
 
 /**
  * QA passed (pending_verification -> completed)
  */
 export function completeTask(taskId: string): TransitionResult {
-  return transitionTask(taskId, 'completed', {});
+  return transitionTask(taskId, "completed", {});
 }
 
 /**
  * Task failed
  */
 export function failTask(taskId: string, error: string): TransitionResult {
-  return transitionTask(taskId, 'failed', { error });
+  return transitionTask(taskId, "failed", { error });
 }
 
 /**
  * Task blocked (needs human intervention)
  */
 export function blockTask(taskId: string, reason: string): TransitionResult {
-  return transitionTask(taskId, 'blocked', { reason });
+  return transitionTask(taskId, "blocked", { reason });
 }
 
 /**
  * Retry a failed task (failed -> pending)
  */
 export function retryTask(taskId: string): TransitionResult {
-  return transitionTask(taskId, 'pending', {});
+  return transitionTask(taskId, "pending", {});
 }
 
 /**
  * Unblock a task (blocked -> pending)
  */
 export function unblockTask(taskId: string): TransitionResult {
-  return transitionTask(taskId, 'pending', {});
+  return transitionTask(taskId, "pending", {});
 }
 
 export default {

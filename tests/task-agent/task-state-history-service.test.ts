@@ -27,7 +27,11 @@ async function recordTransition(input: {
     (input.fromStatus as any) || null,
     input.toStatus as any,
     input.agentId || input.triggeredBy || "test-user",
-    input.agentId ? "agent" : (input.triggeredBy === "system" ? "system" : "user"),
+    input.agentId
+      ? "agent"
+      : input.triggeredBy === "system"
+        ? "system"
+        : "user",
     input.reason,
     input.metadata,
   );

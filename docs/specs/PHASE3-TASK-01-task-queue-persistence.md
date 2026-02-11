@@ -86,6 +86,7 @@ Dashboard Updates in Real-Time
 ### Functional Requirements
 
 **FR-1: Automatic Wave Generation**
+
 - MUST generate wave assignments when tasks are created or dependencies change
 - MUST use topological sort to respect task dependencies (existing `planWaves()` logic)
 - MUST assign wave numbers based on priority + dependencies:
@@ -96,6 +97,7 @@ Dashboard Updates in Real-Time
 - MUST handle circular dependencies gracefully (log warning, break cycle)
 
 **FR-2: Automatic Lane Assignment**
+
 - MUST assign lane based on task category:
   - feature → "api"
   - bug → "types"
@@ -108,6 +110,7 @@ Dashboard Updates in Real-Time
 - MUST include lane in wave generation for visualization
 
 **FR-3: Conflict Detection**
+
 - MUST detect file conflicts between tasks in same wave
 - MUST use file impact analyzer to predict file modifications
 - MUST prevent parallel execution if tasks modify same file
@@ -116,6 +119,7 @@ Dashboard Updates in Real-Time
 - SHOULD update conflict metadata in database
 
 **FR-4: Queue Persistence**
+
 - MUST persist task queue state to survive orchestrator restarts
 - MUST maintain wave run state (planning/running/completed/failed/cancelled)
 - MUST restore queue on orchestrator startup
@@ -123,6 +127,7 @@ Dashboard Updates in Real-Time
 - SHOULD expose queue status via API endpoint
 
 **FR-5: Real-Time Updates**
+
 - MUST broadcast wave updates via WebSocket
 - MUST emit events: `wave:planned`, `wave:started`, `wave:completed`, `task:wave_assigned`
 - MUST include wave/lane data in task events
@@ -131,24 +136,28 @@ Dashboard Updates in Real-Time
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Wave generation MUST complete within 500ms for 100 tasks
 - Dependency analysis MUST use efficient topological sort (O(V+E))
 - Database queries MUST use indexes on wave_number, lane, priority
 - File conflict detection SHOULD be async (don't block task creation)
 
 **NFR-2: Reliability**
+
 - Wave generation MUST be idempotent (same input → same output)
 - Failed wave generation MUST NOT corrupt task state
 - Partial failures MUST rollback transaction
 - Queue state MUST survive orchestrator crashes
 
 **NFR-3: Observability**
+
 - MUST log wave generation events with task count, wave count, duration
 - MUST track wave progress metrics (total/completed/running/blocked)
 - SHOULD expose metrics: avg wave size, parallelism factor, conflict rate
 - MUST emit structured logs for debugging
 
 **NFR-4: Maintainability**
+
 - MUST reuse existing `waves/index.ts` logic (don't duplicate)
 - MUST integrate cleanly with orchestrator tick loop
 - SHOULD separate concerns: generation, persistence, broadcasting
@@ -161,6 +170,7 @@ Dashboard Updates in Real-Time
 ### Database Schema Changes
 
 **Extend tasks table:**
+
 ```sql
 ALTER TABLE tasks ADD COLUMN lane TEXT DEFAULT NULL;
 CREATE INDEX IF NOT EXISTS idx_tasks_lane ON tasks(lane);
@@ -168,6 +178,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_wave_lane ON tasks(wave_number, lane);
 ```
 
 **New table: task_conflicts (optional, for conflict tracking)**
+
 ```sql
 CREATE TABLE IF NOT EXISTS task_conflicts (
   id TEXT PRIMARY KEY,
@@ -212,29 +223,29 @@ export interface QueueState {
 }
 
 // Initialize queue system
-export function initQueue(config: QueueConfig): void
+export function initQueue(config: QueueConfig): void;
 
 // Generate waves for task list or individual task
-export function generateWaves(taskListId: string): WaveRun
-export function assignTaskWave(taskId: string): void
+export function generateWaves(taskListId: string): WaveRun;
+export function assignTaskWave(taskId: string): void;
 
 // Assign lane based on category
-export function assignTaskLane(taskId: string): void
+export function assignTaskLane(taskId: string): void;
 
 // Detect conflicts in wave
-export function detectConflicts(waveId: string): TaskConflict[]
+export function detectConflicts(waveId: string): TaskConflict[];
 
 // Get queue state
-export function getQueueState(taskListId?: string): QueueState
+export function getQueueState(taskListId?: string): QueueState;
 
 // Restore queue on startup
-export function restoreQueue(): void
+export function restoreQueue(): void;
 ```
 
 **Integration: `parent-harness/orchestrator/src/orchestrator/index.ts`**
 
 ```typescript
-import * as queue from '../queue/index.js';
+import * as queue from "../queue/index.js";
 
 async function tick(): Promise<void> {
   // ... existing logic ...
@@ -244,15 +255,16 @@ async function tick(): Promise<void> {
     const pendingTasks = tasks.getPendingTasks();
     if (pendingTasks.length > 0) {
       // Check if we need to regenerate waves
-      const needsRegeneration = await queue.needsWaveRegeneration('default-task-list');
+      const needsRegeneration =
+        await queue.needsWaveRegeneration("default-task-list");
       if (needsRegeneration) {
-        await queue.generateWaves('default-task-list');
+        await queue.generateWaves("default-task-list");
       }
     }
   }
 
   // Check wave completion and advance
-  const activeRun = await queue.getActiveWaveRun('default-task-list');
+  const activeRun = await queue.getActiveWaveRun("default-task-list");
   if (activeRun) {
     waves.checkWaveCompletion(activeRun.id);
   }
@@ -299,7 +311,7 @@ ws.broadcast({
 ### File Impact Integration
 
 ```typescript
-import * as fileImpact from '../../../server/services/task-agent/file-impact-analyzer.js';
+import * as fileImpact from "../../../server/services/task-agent/file-impact-analyzer.js";
 
 async function detectFileConflicts(waveId: string): Promise<TaskConflict[]> {
   const wave = waves.getWave(waveId);
@@ -313,7 +325,10 @@ async function detectFileConflicts(waveId: string): Promise<TaskConflict[]> {
       // Estimate if not yet analyzed
       const task = tasks.getTask(taskId);
       impacts = await fileImpact.estimateFileImpacts(
-        taskId, task.title, task.description, task.category
+        taskId,
+        task.title,
+        task.description,
+        task.category,
       );
     }
     impactsByTask.set(taskId, impacts);
@@ -325,7 +340,7 @@ async function detectFileConflicts(waveId: string): Promise<TaskConflict[]> {
 
   for (const [taskId, impacts] of impactsByTask) {
     for (const impact of impacts) {
-      if (impact.operation === 'UPDATE' || impact.operation === 'DELETE') {
+      if (impact.operation === "UPDATE" || impact.operation === "DELETE") {
         if (!fileToTasks.has(impact.filePath)) {
           fileToTasks.set(impact.filePath, []);
         }
@@ -340,7 +355,7 @@ async function detectFileConflicts(waveId: string): Promise<TaskConflict[]> {
         id: uuidv4(),
         waveId,
         taskIds,
-        conflictType: 'file_overlap',
+        conflictType: "file_overlap",
         conflictDetails: JSON.stringify({ file, taskIds }),
       });
     }
@@ -363,7 +378,7 @@ async function enhancedPlanWaves(taskListId: string): Promise<WaveRun> {
   // 2. Assign lanes based on category
   const allTasks = tasks.getTasks({ taskListId });
   for (const task of allTasks) {
-    const lane = CATEGORY_TO_LANE[task.category] || 'api';
+    const lane = CATEGORY_TO_LANE[task.category] || "api";
     tasks.updateTask(task.id, { lane } as any);
   }
 
@@ -384,7 +399,10 @@ async function enhancedPlanWaves(taskListId: string): Promise<WaveRun> {
           }
 
           // Log conflict
-          console.warn(`⚠️ File conflict detected in wave ${wave.wave_number}:`, conflict);
+          console.warn(
+            `⚠️ File conflict detected in wave ${wave.wave_number}:`,
+            conflict,
+          );
           await recordConflict(waveRun.id, conflict);
         }
       }
@@ -398,7 +416,7 @@ async function enhancedPlanWaves(taskListId: string): Promise<WaveRun> {
 
   // 4. Broadcast wave plan
   ws.broadcast({
-    type: 'wave:planned',
+    type: "wave:planned",
     runId: waveRun.id,
     taskListId,
     totalWaves: waveRun.total_waves,
@@ -416,37 +434,41 @@ async function enhancedPlanWaves(taskListId: string): Promise<WaveRun> {
  * Restore queue state on orchestrator startup
  */
 async function restoreQueue(): Promise<void> {
-  console.log('📋 Restoring task queue...');
+  console.log("📋 Restoring task queue...");
 
   // Find active wave runs
   const activeRuns = db.query<WaveRun>(
     `SELECT * FROM wave_runs
      WHERE status IN ('planning', 'running')
-     ORDER BY created_at ASC`
+     ORDER BY created_at ASC`,
   );
 
   for (const run of activeRuns) {
     const currentWave = waves.getOne<Wave>(
       `SELECT * FROM waves
        WHERE run_id = ? AND status = 'running'`,
-      [run.id]
+      [run.id],
     );
 
     if (currentWave) {
-      console.log(`   ↳ Resuming wave run ${run.id}, wave ${currentWave.wave_number}`);
+      console.log(
+        `   ↳ Resuming wave run ${run.id}, wave ${currentWave.wave_number}`,
+      );
 
       // Check if wave tasks are still active
       const taskIds = JSON.parse(currentWave.task_ids);
-      const taskStatuses = tasks.getTasks({}).filter(t => taskIds.includes(t.id));
-      const allDone = taskStatuses.every(t =>
-        t.status === 'completed' || t.status === 'failed'
+      const taskStatuses = tasks
+        .getTasks({})
+        .filter((t) => taskIds.includes(t.id));
+      const allDone = taskStatuses.every(
+        (t) => t.status === "completed" || t.status === "failed",
       );
 
       if (allDone) {
         // Advance to next wave
         waves.checkWaveCompletion(run.id);
       }
-    } else if (run.status === 'planning') {
+    } else if (run.status === "planning") {
       // Complete planning
       console.log(`   ↳ Resuming wave planning for ${run.id}`);
       waves.startWaveRun(run.id);
@@ -509,16 +531,19 @@ export async function startOrchestrator(): Promise<void> {
 ## Dependencies
 
 **Upstream (Must Complete First):**
+
 - ✅ PHASE2-TASK-01: Spec Agent v0.1 (COMPLETED)
 - ✅ Wave system (`waves/index.ts`) exists
 - ✅ Task database with wave_number field exists
 
 **Downstream (Depends on This):**
+
 - PHASE3-TASK-02: Dashboard wave/lane visualization
 - PHASE3-TASK-03: Real-time task assignment coordination
 - PHASE5-TASK-01: Parallel execution engine
 
 **Parallel Work (Can Develop Concurrently):**
+
 - PHASE3-TASK-04: Session state tracking
 - PHASE3-TASK-05: Agent health monitoring
 
@@ -527,6 +552,7 @@ export async function startOrchestrator(): Promise<void> {
 ## Implementation Plan
 
 ### Phase 1: Core Queue Module (2 hours)
+
 1. Create `queue/index.ts` with TypeScript types
 2. Implement `generateWaves()` wrapper around existing `planWaves()`
 3. Implement `assignTaskLane()` using category mapping
@@ -534,6 +560,7 @@ export async function startOrchestrator(): Promise<void> {
 5. Write unit tests for queue module
 
 ### Phase 2: Conflict Detection (2 hours)
+
 6. Implement `detectFileConflicts()` using file-impact-analyzer
 7. Add logic to move conflicting tasks to next wave
 8. Create `task_conflicts` table (optional)
@@ -541,6 +568,7 @@ export async function startOrchestrator(): Promise<void> {
 10. Write tests for conflict detection
 
 ### Phase 3: Orchestrator Integration (1.5 hours)
+
 11. Add queue initialization to `startOrchestrator()`
 12. Implement `restoreQueue()` for startup restoration
 13. Add wave generation check to tick loop
@@ -548,6 +576,7 @@ export async function startOrchestrator(): Promise<void> {
 15. Test orchestrator integration end-to-end
 
 ### Phase 4: WebSocket Events (1 hour)
+
 16. Define new event types in websocket.ts
 17. Emit wave:planned when waves generated
 18. Emit wave:started when wave begins
@@ -555,6 +584,7 @@ export async function startOrchestrator(): Promise<void> {
 20. Test dashboard receives events
 
 ### Phase 5: Testing & Documentation (1.5 hours)
+
 21. Write integration tests (create tasks → verify waves)
 22. Write restart test (start → kill → restart → verify)
 23. Update CLAUDE.md with queue usage
@@ -571,18 +601,18 @@ export async function startOrchestrator(): Promise<void> {
 
 ```typescript
 // queue/index.test.ts
-describe('Queue Management', () => {
-  test('generateWaves respects dependencies', () => {
+describe("Queue Management", () => {
+  test("generateWaves respects dependencies", () => {
     // Create 3 tasks: A, B→A, C→B
     // Verify: A=wave 1, B=wave 2, C=wave 3
   });
 
-  test('assignTaskLane maps categories correctly', () => {
+  test("assignTaskLane maps categories correctly", () => {
     // Create tasks with different categories
     // Verify lane assignments match mapping
   });
 
-  test('detectConflicts finds file overlaps', () => {
+  test("detectConflicts finds file overlaps", () => {
     // Create 2 tasks modifying same file
     // Verify conflict detected
   });
@@ -593,20 +623,20 @@ describe('Queue Management', () => {
 
 ```typescript
 // orchestrator/queue-integration.test.ts
-describe('Queue Integration', () => {
-  test('new tasks auto-generate waves', async () => {
+describe("Queue Integration", () => {
+  test("new tasks auto-generate waves", async () => {
     // Create 5 tasks with varying priorities
     // Wait for orchestrator tick
     // Verify wave_number and lane assigned
   });
 
-  test('conflicts move tasks to next wave', async () => {
+  test("conflicts move tasks to next wave", async () => {
     // Create 2 P0 tasks modifying database/schema.ts
     // Trigger wave generation
     // Verify one task in wave 1, other in wave 2
   });
 
-  test('queue restores after restart', async () => {
+  test("queue restores after restart", async () => {
     // Start wave run
     // Stop orchestrator
     // Restart orchestrator
@@ -625,7 +655,7 @@ describe('Queue Integration', () => {
 
 2. **Conflict Prevention:**
    - Create tasks: "Update schema" (modifies db/schema.sql)
-   - Create task: "Add migration" (modifies db/migrations/*.sql)
+   - Create task: "Add migration" (modifies db/migrations/\*.sql)
    - Verify both don't run in parallel
 
 3. **Restart Resilience:**
@@ -660,18 +690,21 @@ If implementation fails or causes instability:
 ## Success Metrics
 
 **Operational Metrics:**
+
 - Queue restoration time: <1 second
 - Wave generation time: <500ms for 100 tasks
 - Conflict detection accuracy: >90%
 - False positive rate: <5%
 
 **Usage Metrics:**
+
 - % of tasks with wave assignment: >95%
 - % of waves with conflicts: <10%
 - Avg parallelism factor: >3 tasks per wave
 - Queue uptime: >99%
 
 **Quality Metrics:**
+
 - Zero data loss during restarts
 - Zero invalid state transitions
 - 100% test pass rate

@@ -8,10 +8,7 @@
  */
 
 import { query, run, getOne, saveDb } from "../../../database/db.js";
-import {
-  TaskListV2,
-  FileOperation,
-} from "../../../types/task-agent.js";
+import { TaskListV2, FileOperation } from "../../../types/task-agent.js";
 import {
   getActiveAgents,
   startExecution,

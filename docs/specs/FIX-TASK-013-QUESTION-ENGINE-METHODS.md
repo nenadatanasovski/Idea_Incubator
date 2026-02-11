@@ -33,14 +33,14 @@ The QuestionEngine class (`server/services/task-agent/question-engine.ts`) must 
 
 All methods exist in `server/services/task-agent/question-engine.ts`:
 
-| Method | Line | Implementation |
-|--------|------|----------------|
-| `answerQuestion()` | 513 | UPDATE task_questions SET answer, answered_at |
-| `areRequiredQuestionsAnswered()` | 561 | COUNT(*) WHERE importance='required' AND answer IS NULL |
-| `getQuestions()` | 531 | SELECT FROM task_questions WHERE skipped=0 |
-| `skipQuestion()` | 573 | UPDATE task_questions SET skipped=1 |
-| `getCompletionStatus()` | 585 | Aggregates answered/required counts from task_questions |
-| `generateQuestions()` | 194 | Gap analysis + template-based generation + INSERT |
+| Method                           | Line | Implementation                                           |
+| -------------------------------- | ---- | -------------------------------------------------------- |
+| `answerQuestion()`               | 513  | UPDATE task_questions SET answer, answered_at            |
+| `areRequiredQuestionsAnswered()` | 561  | COUNT(\*) WHERE importance='required' AND answer IS NULL |
+| `getQuestions()`                 | 531  | SELECT FROM task_questions WHERE skipped=0               |
+| `skipQuestion()`                 | 573  | UPDATE task_questions SET skipped=1                      |
+| `getCompletionStatus()`          | 585  | Aggregates answered/required counts from task_questions  |
+| `generateQuestions()`            | 194  | Gap analysis + template-based generation + INSERT        |
 
 ### Database Schema
 
@@ -64,6 +64,7 @@ CREATE TABLE task_questions (
 ### Root Cause of Original Failure
 
 The verification harness produced:
+
 ```
 npm error Missing script: "typecheck"
 ```

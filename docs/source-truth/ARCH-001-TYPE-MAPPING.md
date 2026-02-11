@@ -1,64 +1,64 @@
 # ARCH-001 Type Mapping
 
 > Canonical mapping from old block types to new 9 types.
-> 
+>
 > Use this for migration scripts and code updates.
 
 ---
 
 ## The 9 Target Types (ARCH-001)
 
-| Type | Purpose | Question Answered |
-|------|---------|-------------------|
-| `knowledge` | Verified facts, patterns, insights | "What do we know?" |
-| `decision` | Choices made with rationale | "What did we choose?" |
-| `assumption` | Unverified beliefs to test | "What do we assume?" |
-| `question` | Open unknowns to investigate | "What don't we know?" |
-| `requirement` | Constraints, must-haves | "What must be true?" |
-| `task` | Work items, actions | "What do we need to do?" |
-| `proposal` | Suggested changes awaiting approval | "What might we do?" |
-| `artifact` | Outputs (code, docs, specs) | "What did we produce?" |
-| `evidence` | Validation data, proof | "How do we verify?" |
+| Type          | Purpose                             | Question Answered        |
+| ------------- | ----------------------------------- | ------------------------ |
+| `knowledge`   | Verified facts, patterns, insights  | "What do we know?"       |
+| `decision`    | Choices made with rationale         | "What did we choose?"    |
+| `assumption`  | Unverified beliefs to test          | "What do we assume?"     |
+| `question`    | Open unknowns to investigate        | "What don't we know?"    |
+| `requirement` | Constraints, must-haves             | "What must be true?"     |
+| `task`        | Work items, actions                 | "What do we need to do?" |
+| `proposal`    | Suggested changes awaiting approval | "What might we do?"      |
+| `artifact`    | Outputs (code, docs, specs)         | "What did we produce?"   |
+| `evidence`    | Validation data, proof              | "How do we verify?"      |
 
 ---
 
 ## Mapping: Schema Types (15 → 9)
 
-| Old Type (Schema) | New Type | Rationale |
-|-------------------|----------|-----------|
-| `content` | `knowledge` | General content is knowledge |
-| `synthesis` | `knowledge` | Synthesized info is knowledge |
-| `pattern` | `knowledge` | Patterns are knowledge |
-| `derived` | `knowledge` | Derived info is knowledge |
-| `cycle` | `knowledge` | Cycle observations are knowledge |
-| `stakeholder_view` | `knowledge` | Stakeholder perspectives are knowledge |
-| `decision` | `decision` | Direct mapping |
-| `option` | `decision` | Options are candidate decisions (store original as `wasOption: true` in properties) |
-| `assumption` | `assumption` | Direct mapping |
-| `action` | `task` | Actions are tasks |
-| `external` | `evidence` | External data is evidence |
-| `placeholder` | `question` | Placeholders represent unknowns |
-| `link` | *REMOVE* | Use graph edges, not block type |
-| `meta` | *REMOVE* | Use block properties |
-| `topic` | *REMOVE* | Use `topic` dimension property |
+| Old Type (Schema)  | New Type     | Rationale                                                                           |
+| ------------------ | ------------ | ----------------------------------------------------------------------------------- |
+| `content`          | `knowledge`  | General content is knowledge                                                        |
+| `synthesis`        | `knowledge`  | Synthesized info is knowledge                                                       |
+| `pattern`          | `knowledge`  | Patterns are knowledge                                                              |
+| `derived`          | `knowledge`  | Derived info is knowledge                                                           |
+| `cycle`            | `knowledge`  | Cycle observations are knowledge                                                    |
+| `stakeholder_view` | `knowledge`  | Stakeholder perspectives are knowledge                                              |
+| `decision`         | `decision`   | Direct mapping                                                                      |
+| `option`           | `decision`   | Options are candidate decisions (store original as `wasOption: true` in properties) |
+| `assumption`       | `assumption` | Direct mapping                                                                      |
+| `action`           | `task`       | Actions are tasks                                                                   |
+| `external`         | `evidence`   | External data is evidence                                                           |
+| `placeholder`      | `question`   | Placeholders represent unknowns                                                     |
+| `link`             | _REMOVE_     | Use graph edges, not block type                                                     |
+| `meta`             | _REMOVE_     | Use block properties                                                                |
+| `topic`            | _REMOVE_     | Use `topic` dimension property                                                      |
 
 ---
 
 ## Mapping: Extractor Types (11 → 9)
 
-| Old Type (Extractor) | New Type | Rationale |
-|----------------------|----------|-----------|
-| `insight` | `knowledge` | Insights are knowledge |
-| `fact` | `knowledge` | Facts are knowledge (with higher confidence) |
-| `pattern` | `knowledge` | Patterns are knowledge |
-| `synthesis` | `knowledge` | Synthesis is knowledge |
-| `decision` | `decision` | Direct mapping |
-| `option` | `decision` | Options are candidate decisions |
-| `assumption` | `assumption` | Direct mapping |
-| `question` | `question` | Direct mapping |
-| `requirement` | `requirement` | Direct mapping |
-| `action` | `task` | Actions are tasks |
-| `meta` | *REMOVE* | Use block properties |
+| Old Type (Extractor) | New Type      | Rationale                                    |
+| -------------------- | ------------- | -------------------------------------------- |
+| `insight`            | `knowledge`   | Insights are knowledge                       |
+| `fact`               | `knowledge`   | Facts are knowledge (with higher confidence) |
+| `pattern`            | `knowledge`   | Patterns are knowledge                       |
+| `synthesis`          | `knowledge`   | Synthesis is knowledge                       |
+| `decision`           | `decision`    | Direct mapping                               |
+| `option`             | `decision`    | Options are candidate decisions              |
+| `assumption`         | `assumption`  | Direct mapping                               |
+| `question`           | `question`    | Direct mapping                               |
+| `requirement`        | `requirement` | Direct mapping                               |
+| `action`             | `task`        | Actions are tasks                            |
+| `meta`               | _REMOVE_      | Use block properties                         |
 
 ---
 
@@ -68,50 +68,50 @@
 function mapBlockType(oldType: string): string {
   const mapping: Record<string, string> = {
     // Schema types → new
-    'content': 'knowledge',
-    'synthesis': 'knowledge',
-    'pattern': 'knowledge',
-    'derived': 'knowledge',
-    'cycle': 'knowledge',
-    'stakeholder_view': 'knowledge',
-    'decision': 'decision',
-    'option': 'decision',
-    'assumption': 'assumption',
-    'action': 'task',
-    'external': 'evidence',
-    'placeholder': 'question',
-    
+    content: "knowledge",
+    synthesis: "knowledge",
+    pattern: "knowledge",
+    derived: "knowledge",
+    cycle: "knowledge",
+    stakeholder_view: "knowledge",
+    decision: "decision",
+    option: "decision",
+    assumption: "assumption",
+    action: "task",
+    external: "evidence",
+    placeholder: "question",
+
     // Extractor types → new
-    'insight': 'knowledge',
-    'fact': 'knowledge',
-    'requirement': 'requirement',
-    'question': 'question',
-    
+    insight: "knowledge",
+    fact: "knowledge",
+    requirement: "requirement",
+    question: "question",
+
     // Already correct
-    'knowledge': 'knowledge',
-    'task': 'task',
-    'proposal': 'proposal',
-    'artifact': 'artifact',
-    'evidence': 'evidence',
+    knowledge: "knowledge",
+    task: "task",
+    proposal: "proposal",
+    artifact: "artifact",
+    evidence: "evidence",
   };
-  
-  return mapping[oldType.toLowerCase()] || 'knowledge'; // Default to knowledge
+
+  return mapping[oldType.toLowerCase()] || "knowledge"; // Default to knowledge
 }
 
 function getPropertiesForMigration(oldType: string, existingProps: any): any {
   const props = { ...existingProps, migratedFrom: oldType };
-  
+
   // Preserve semantic info
-  if (oldType === 'option') {
+  if (oldType === "option") {
     props.wasOption = true;
   }
-  if (oldType === 'fact') {
+  if (oldType === "fact") {
     props.wasFactType = true; // May have higher confidence
   }
-  if (oldType === 'insight') {
+  if (oldType === "insight") {
     props.wasInsight = true;
   }
-  
+
   return props;
 }
 ```
@@ -120,28 +120,28 @@ function getPropertiesForMigration(oldType: string, existingProps: any): any {
 
 ## Types to REMOVE (not migrate)
 
-| Old Type | Reason | Action |
-|----------|--------|--------|
-| `link` | Graph edges, not blocks | Delete or convert to `REFERENCES` relationship |
-| `meta` | Metadata about process | Move content to properties of related blocks |
-| `topic` | Dimension, not type | Move to `topic` property on related blocks |
+| Old Type | Reason                  | Action                                         |
+| -------- | ----------------------- | ---------------------------------------------- |
+| `link`   | Graph edges, not blocks | Delete or convert to `REFERENCES` relationship |
+| `meta`   | Metadata about process  | Move content to properties of related blocks   |
+| `topic`  | Dimension, not type     | Move to `topic` property on related blocks     |
 
 ### Handling Removed Types
 
 ```typescript
 function handleRemovedType(block: OldBlock): void {
-  if (block.type === 'link') {
+  if (block.type === "link") {
     // Convert to relationship if it references two blocks
     // Otherwise delete
   }
-  
-  if (block.type === 'meta') {
+
+  if (block.type === "meta") {
     // Find parent block via extractedFromMessageId or context
     // Add content to parent's properties
     // Delete meta block
   }
-  
-  if (block.type === 'topic') {
+
+  if (block.type === "topic") {
     // This is a dimension tag
     // Add to related blocks' topic property
     // Delete topic block
@@ -174,10 +174,21 @@ Update `BLOCK_EXTRACTION_PROMPT` to use exactly these 9:
 ```typescript
 // Verify no old types remain
 const oldTypes = [
-  'content', 'link', 'meta', 'synthesis', 'pattern',
-  'option', 'derived', 'cycle', 'placeholder',
-  'stakeholder_view', 'topic', 'external', 'action',
-  'insight', 'fact'
+  "content",
+  "link",
+  "meta",
+  "synthesis",
+  "pattern",
+  "option",
+  "derived",
+  "cycle",
+  "placeholder",
+  "stakeholder_view",
+  "topic",
+  "external",
+  "action",
+  "insight",
+  "fact",
 ];
 
 async function validateMigration() {
@@ -187,13 +198,20 @@ async function validateMigration() {
       console.error(`❌ Found ${count} blocks with old type: ${oldType}`);
     }
   }
-  
+
   // Verify new types exist
   const newTypes = [
-    'knowledge', 'decision', 'assumption', 'question',
-    'requirement', 'task', 'proposal', 'artifact', 'evidence'
+    "knowledge",
+    "decision",
+    "assumption",
+    "question",
+    "requirement",
+    "task",
+    "proposal",
+    "artifact",
+    "evidence",
   ];
-  
+
   for (const newType of newTypes) {
     const count = await countBlocksWithType(newType);
     console.log(`✅ ${newType}: ${count} blocks`);
@@ -205,10 +223,10 @@ async function validateMigration() {
 
 ## Revision History
 
-| Date | Change | Author |
-|------|--------|--------|
+| Date       | Change           | Author         |
+| ---------- | ---------------- | -------------- |
 | 2026-02-05 | Initial creation | AI Agent (Kai) |
 
 ---
 
-*This is a source-truth document for ARCH-001 migration.*
+_This is a source-truth document for ARCH-001 migration._

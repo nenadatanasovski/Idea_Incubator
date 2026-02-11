@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
 export interface ApiError {
   error: string;
@@ -7,14 +7,14 @@ export interface ApiError {
 
 async function request<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
 
   const response = await fetch(url, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...options.headers,
     },
   });
@@ -33,19 +33,19 @@ export const api = {
 
   post: <T>(endpoint: string, body: unknown) =>
     request<T>(endpoint, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(body),
     }),
 
   patch: <T>(endpoint: string, body: unknown) =>
     request<T>(endpoint, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(body),
     }),
 
   delete: <T>(endpoint: string) =>
     request<T>(endpoint, {
-      method: 'DELETE',
+      method: "DELETE",
     }),
 };
 

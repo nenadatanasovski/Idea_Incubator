@@ -17,7 +17,7 @@ import {
 import clsx from "clsx";
 
 // Phase types aligned with pipeline orchestrator
-export type IdeaPhase = 
+export type IdeaPhase =
   | "ideation"
   | "ideation_ready"
   | "specification"
@@ -38,14 +38,45 @@ interface UnifiedLayoutProps {
 }
 
 // Phase display configuration
-const PHASE_CONFIG: Record<IdeaPhase, { label: string; color: string; bgColor: string }> = {
-  ideation: { label: "Ideation", color: "text-blue-700", bgColor: "bg-blue-50" },
-  ideation_ready: { label: "Ready for Spec", color: "text-blue-700", bgColor: "bg-blue-50" },
-  specification: { label: "Specification", color: "text-purple-700", bgColor: "bg-purple-50" },
-  spec_ready: { label: "Ready to Build", color: "text-purple-700", bgColor: "bg-purple-50" },
-  building: { label: "Building", color: "text-amber-700", bgColor: "bg-amber-50" },
-  build_review: { label: "Review", color: "text-amber-700", bgColor: "bg-amber-50" },
-  deployed: { label: "Deployed", color: "text-green-700", bgColor: "bg-green-50" },
+const PHASE_CONFIG: Record<
+  IdeaPhase,
+  { label: string; color: string; bgColor: string }
+> = {
+  ideation: {
+    label: "Ideation",
+    color: "text-blue-700",
+    bgColor: "bg-blue-50",
+  },
+  ideation_ready: {
+    label: "Ready for Spec",
+    color: "text-blue-700",
+    bgColor: "bg-blue-50",
+  },
+  specification: {
+    label: "Specification",
+    color: "text-purple-700",
+    bgColor: "bg-purple-50",
+  },
+  spec_ready: {
+    label: "Ready to Build",
+    color: "text-purple-700",
+    bgColor: "bg-purple-50",
+  },
+  building: {
+    label: "Building",
+    color: "text-amber-700",
+    bgColor: "bg-amber-50",
+  },
+  build_review: {
+    label: "Review",
+    color: "text-amber-700",
+    bgColor: "bg-amber-50",
+  },
+  deployed: {
+    label: "Deployed",
+    color: "text-green-700",
+    bgColor: "bg-green-50",
+  },
   paused: { label: "Paused", color: "text-gray-700", bgColor: "bg-gray-100" },
   failed: { label: "Failed", color: "text-red-700", bgColor: "bg-red-50" },
 };
@@ -93,7 +124,7 @@ export function UnifiedLayout({
             className={clsx(
               "ml-4 px-3 py-1 rounded-full text-xs font-medium",
               phaseConfig.bgColor,
-              phaseConfig.color
+              phaseConfig.color,
             )}
           >
             {phaseConfig.label}
@@ -129,7 +160,7 @@ export function UnifiedLayout({
           <aside
             className={clsx(
               "border-r bg-white transition-all duration-200 flex flex-col relative",
-              chatExpanded ? "w-80 min-w-[280px] max-w-[400px]" : "w-12"
+              chatExpanded ? "w-80 min-w-[280px] max-w-[400px]" : "w-12",
             )}
           >
             {/* Toggle Button */}
@@ -137,7 +168,7 @@ export function UnifiedLayout({
               onClick={() => setChatExpanded(!chatExpanded)}
               className={clsx(
                 "absolute top-3 -right-3 z-10 p-1 rounded-full bg-white border shadow-sm",
-                "hover:bg-gray-50 transition"
+                "hover:bg-gray-50 transition",
               )}
               title={chatExpanded ? "Collapse chat" : "Expand chat"}
             >
@@ -162,9 +193,7 @@ export function UnifiedLayout({
         )}
 
         {/* Main Content (Right) */}
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
+        <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>
   );

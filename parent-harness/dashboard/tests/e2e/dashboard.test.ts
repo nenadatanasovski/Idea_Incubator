@@ -1,30 +1,30 @@
 /**
  * E2E Browser Tests for Parent Harness Dashboard
- * 
+ *
  * Prerequisites:
  * 1. Backend running: cd orchestrator && npm run dev
  * 2. Frontend running: cd dashboard && npm run dev
- * 
+ *
  * Run: npm run test:e2e
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import puppeteer, { Browser, Page } from 'puppeteer';
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import puppeteer, { Browser, Page } from "puppeteer";
 
-const DASHBOARD_URL = 'http://localhost:5173';
-const API_URL = 'http://localhost:3333';
+const DASHBOARD_URL = "http://localhost:5173";
+const API_URL = "http://localhost:3333";
 
 // Helper to wait (since page.waitForTimeout is deprecated)
-const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-describe('Dashboard E2E Tests', () => {
+describe("Dashboard E2E Tests", () => {
   let browser: Browser;
   let page: Page;
 
   beforeAll(async () => {
     browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
     page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
@@ -34,253 +34,276 @@ describe('Dashboard E2E Tests', () => {
     await browser.close();
   });
 
-  describe('Health Checks', () => {
-    it('should have backend API running', async () => {
+  describe("Health Checks", () => {
+    it("should have backend API running", async () => {
       const response = await fetch(`${API_URL}/health`);
       const data = await response.json();
-      expect(data.status).toBe('ok');
+      expect(data.status).toBe("ok");
     });
 
-    it('should load dashboard homepage', async () => {
-      await page.goto(DASHBOARD_URL, { waitUntil: 'networkidle0' });
+    it("should load dashboard homepage", async () => {
+      await page.goto(DASHBOARD_URL, { waitUntil: "networkidle0" });
       // Check page loaded (title exists)
       const title = await page.title();
       expect(title).toBeTruthy();
     });
   });
 
-  describe('Layout Components', () => {
+  describe("Layout Components", () => {
     beforeAll(async () => {
-      await page.goto(DASHBOARD_URL, { waitUntil: 'networkidle0' });
+      await page.goto(DASHBOARD_URL, { waitUntil: "networkidle0" });
       // Wait for React to render
-      await page.waitForSelector('[data-testid="layout-header"]', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="layout-header"]', {
+        timeout: 10000,
+      });
     });
 
-    it('should have header with navigation', async () => {
+    it("should have header with navigation", async () => {
       const header = await page.$('[data-testid="layout-header"]');
       expect(header).not.toBeNull();
     });
 
-    it('should have left panel (agent status)', async () => {
+    it("should have left panel (agent status)", async () => {
       const leftPanel = await page.$('[data-testid="layout-left"]');
       expect(leftPanel).not.toBeNull();
     });
 
-    it('should have main panel (event stream)', async () => {
+    it("should have main panel (event stream)", async () => {
       const mainPanel = await page.$('[data-testid="layout-main"]');
       expect(mainPanel).not.toBeNull();
     });
 
-    it('should have right panel (task queue)', async () => {
+    it("should have right panel (task queue)", async () => {
       const rightPanel = await page.$('[data-testid="layout-right"]');
       expect(rightPanel).not.toBeNull();
     });
 
-    it('should have notification center', async () => {
-      const notificationCenter = await page.$('[data-testid="notification-center"]');
+    it("should have notification center", async () => {
+      const notificationCenter = await page.$(
+        '[data-testid="notification-center"]',
+      );
       expect(notificationCenter).not.toBeNull();
     });
   });
 
-  describe('Agent Status Cards', () => {
+  describe("Agent Status Cards", () => {
     beforeAll(async () => {
-      await page.goto(DASHBOARD_URL, { waitUntil: 'networkidle0' });
-      await page.waitForSelector('[data-testid="agent-card"]', { timeout: 5000 });
+      await page.goto(DASHBOARD_URL, { waitUntil: "networkidle0" });
+      await page.waitForSelector('[data-testid="agent-card"]', {
+        timeout: 5000,
+      });
     });
 
-    it('should display agent cards', async () => {
+    it("should display agent cards", async () => {
       const agentCards = await page.$$('[data-testid="agent-card"]');
       expect(agentCards.length).toBeGreaterThan(0);
     });
 
-    it('should show agent name and status', async () => {
+    it("should show agent name and status", async () => {
       const firstCard = await page.$('[data-testid="agent-card"]');
-      const text = await firstCard?.evaluate(el => el.textContent);
+      const text = await firstCard?.evaluate((el) => el.textContent);
       expect(text).toBeTruthy();
     });
   });
 
-  describe('Event Stream', () => {
+  describe("Event Stream", () => {
     beforeAll(async () => {
-      await page.goto(DASHBOARD_URL, { waitUntil: 'networkidle0' });
+      await page.goto(DASHBOARD_URL, { waitUntil: "networkidle0" });
     });
 
-    it('should have event stream component', async () => {
+    it("should have event stream component", async () => {
       const eventStream = await page.$('[data-testid="event-stream"]');
       expect(eventStream).not.toBeNull();
     });
 
-    it('should display events or placeholder', async () => {
+    it("should display events or placeholder", async () => {
       const events = await page.$$('[data-testid="event-item"]');
       // Either has events or shows placeholder
       expect(events.length >= 0).toBe(true);
     });
   });
 
-  describe('Task Cards', () => {
+  describe("Task Cards", () => {
     beforeAll(async () => {
-      await page.goto(DASHBOARD_URL, { waitUntil: 'networkidle0' });
-      await page.waitForSelector('[data-testid="task-card"]', { timeout: 5000 });
+      await page.goto(DASHBOARD_URL, { waitUntil: "networkidle0" });
+      await page.waitForSelector('[data-testid="task-card"]', {
+        timeout: 5000,
+      });
     });
 
-    it('should display task cards', async () => {
+    it("should display task cards", async () => {
       const taskCards = await page.$$('[data-testid="task-card"]');
       expect(taskCards.length).toBeGreaterThan(0);
     });
 
-    it('should show task priority badge', async () => {
+    it("should show task priority badge", async () => {
       const firstCard = await page.$('[data-testid="task-card"]');
-      const text = await firstCard?.evaluate(el => el.textContent);
+      const text = await firstCard?.evaluate((el) => el.textContent);
       // Should contain a priority like P0, P1, etc.
       expect(text).toMatch(/P[0-4]/);
     });
   });
 
-  describe('Navigation', () => {
-    it('should navigate to Tasks page', async () => {
-      await page.goto(DASHBOARD_URL, { waitUntil: 'networkidle0' });
-      
+  describe("Navigation", () => {
+    it("should navigate to Tasks page", async () => {
+      await page.goto(DASHBOARD_URL, { waitUntil: "networkidle0" });
+
       // Click on Tasks link
       await page.click('a[href="/tasks"]');
-      
+
       // Wait for URL to change (client-side routing)
-      await page.waitForFunction(() => window.location.pathname === '/tasks', { timeout: 5000 });
-      
+      await page.waitForFunction(() => window.location.pathname === "/tasks", {
+        timeout: 5000,
+      });
+
       // Wait for content to update
       await wait(500);
-      
+
       const url = page.url();
-      expect(url).toContain('/tasks');
-      
+      expect(url).toContain("/tasks");
+
       // Check that page contains Task Board text
       const bodyText = await page.evaluate(() => document.body.textContent);
-      expect(bodyText).toContain('Task Board');
+      expect(bodyText).toContain("Task Board");
     });
 
-    it('should navigate to Sessions page', async () => {
-      await page.goto(DASHBOARD_URL, { waitUntil: 'networkidle0' });
-      
+    it("should navigate to Sessions page", async () => {
+      await page.goto(DASHBOARD_URL, { waitUntil: "networkidle0" });
+
       // Click on Sessions link
       await page.click('a[href="/sessions"]');
-      
+
       // Wait for URL to change
-      await page.waitForFunction(() => window.location.pathname === '/sessions', { timeout: 5000 });
-      
+      await page.waitForFunction(
+        () => window.location.pathname === "/sessions",
+        { timeout: 5000 },
+      );
+
       // Wait for content to update
       await wait(500);
-      
+
       const url = page.url();
-      expect(url).toContain('/sessions');
-      
+      expect(url).toContain("/sessions");
+
       // Check that page contains Agent Sessions text
       const bodyText = await page.evaluate(() => document.body.textContent);
-      expect(bodyText).toContain('Agent Sessions');
+      expect(bodyText).toContain("Agent Sessions");
     });
 
-    it('should navigate back to Dashboard', async () => {
-      await page.goto(`${DASHBOARD_URL}/sessions`, { waitUntil: 'networkidle0' });
-      
+    it("should navigate back to Dashboard", async () => {
+      await page.goto(`${DASHBOARD_URL}/sessions`, {
+        waitUntil: "networkidle0",
+      });
+
       // Click on Dashboard link
       await page.click('a[href="/"]');
-      
+
       // Wait for URL to change
-      await page.waitForFunction(() => window.location.pathname === '/', { timeout: 5000 });
-      
+      await page.waitForFunction(() => window.location.pathname === "/", {
+        timeout: 5000,
+      });
+
       const url = page.url();
       expect(url).toBe(`${DASHBOARD_URL}/`);
     });
   });
 
-  describe('Notification Center', () => {
+  describe("Notification Center", () => {
     beforeAll(async () => {
-      await page.goto(DASHBOARD_URL, { waitUntil: 'networkidle0' });
+      await page.goto(DASHBOARD_URL, { waitUntil: "networkidle0" });
     });
 
-    it('should open notification dropdown on click', async () => {
-      const bellButton = await page.$('[data-testid="notification-center"] button');
+    it("should open notification dropdown on click", async () => {
+      const bellButton = await page.$(
+        '[data-testid="notification-center"] button',
+      );
       await bellButton?.click();
-      
+
       // Wait for dropdown to appear
       await wait(300);
-      
+
       // Check if dropdown content is visible (has notifications or empty state)
-      const notificationCenter = await page.$('[data-testid="notification-center"]');
-      const innerHTML = await notificationCenter?.evaluate(el => el.innerHTML);
-      expect(innerHTML).toContain('Notifications');
+      const notificationCenter = await page.$(
+        '[data-testid="notification-center"]',
+      );
+      const innerHTML = await notificationCenter?.evaluate(
+        (el) => el.innerHTML,
+      );
+      expect(innerHTML).toContain("Notifications");
     });
   });
 
-  describe('WebSocket Connection', () => {
-    it('should show connection status indicator', async () => {
-      await page.goto(DASHBOARD_URL, { waitUntil: 'networkidle0' });
-      
+  describe("WebSocket Connection", () => {
+    it("should show connection status indicator", async () => {
+      await page.goto(DASHBOARD_URL, { waitUntil: "networkidle0" });
+
       // Wait for WebSocket to connect
       await wait(1000);
-      
+
       // Look for the connection text
       const leftPanel = await page.$('[data-testid="layout-left"]');
-      const text = await leftPanel?.evaluate(el => el.textContent);
+      const text = await leftPanel?.evaluate((el) => el.textContent);
       // Should contain "Live" or "Connecting"
       expect(text).toMatch(/Live|Connecting/);
     });
   });
 });
 
-describe('API Integration Tests', () => {
-  describe('Agents API', () => {
-    it('should return list of agents', async () => {
+describe("API Integration Tests", () => {
+  describe("Agents API", () => {
+    it("should return list of agents", async () => {
       const response = await fetch(`${API_URL}/api/agents`);
       const agents = await response.json();
-      
+
       expect(Array.isArray(agents)).toBe(true);
       expect(agents.length).toBe(13);
     });
 
-    it('should return single agent by ID', async () => {
+    it("should return single agent by ID", async () => {
       const response = await fetch(`${API_URL}/api/agents/build_agent`);
       const agent = await response.json();
-      
-      expect(agent.id).toBe('build_agent');
-      expect(agent.name).toBe('Build Agent');
+
+      expect(agent.id).toBe("build_agent");
+      expect(agent.name).toBe("Build Agent");
     });
   });
 
-  describe('Tasks API', () => {
-    it('should return list of tasks', async () => {
+  describe("Tasks API", () => {
+    it("should return list of tasks", async () => {
       const response = await fetch(`${API_URL}/api/tasks`);
       const tasks = await response.json();
-      
+
       expect(Array.isArray(tasks)).toBe(true);
       expect(tasks.length).toBeGreaterThan(0);
     });
   });
 
-  describe('Test Suites API', () => {
-    it('should return 16 test suites', async () => {
+  describe("Test Suites API", () => {
+    it("should return 16 test suites", async () => {
       const response = await fetch(`${API_URL}/api/tests/suites`);
       const suites = await response.json();
-      
+
       expect(Array.isArray(suites)).toBe(true);
       expect(suites.length).toBe(16);
     });
   });
 
-  describe('Events API', () => {
-    it('should return events list', async () => {
+  describe("Events API", () => {
+    it("should return events list", async () => {
       const response = await fetch(`${API_URL}/api/events`);
       const events = await response.json();
-      
+
       expect(Array.isArray(events)).toBe(true);
     });
   });
 
-  describe('Config API', () => {
-    it('should return configuration', async () => {
+  describe("Config API", () => {
+    it("should return configuration", async () => {
       const response = await fetch(`${API_URL}/api/config`);
       const config = await response.json();
-      
-      expect(config).toHaveProperty('tick_interval_ms');
-      expect(config).toHaveProperty('max_parallel_agents');
+
+      expect(config).toHaveProperty("tick_interval_ms");
+      expect(config).toHaveProperty("max_parallel_agents");
     });
   });
 });

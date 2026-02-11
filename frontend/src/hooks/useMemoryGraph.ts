@@ -2,7 +2,7 @@
  * React hooks for Memory Graph API
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   memoryGraph,
   type MemoryBlock,
@@ -12,7 +12,7 @@ import {
   type MemoryLinkCreate,
   type GraphStats,
   type GraphQuery,
-} from '../api/memory-graph';
+} from "../api/memory-graph";
 
 interface UseMemoryBlocksResult {
   blocks: MemoryBlock[];
@@ -36,11 +36,18 @@ export function useMemoryBlocks(query: GraphQuery = {}): UseMemoryBlocksResult {
       const data = await memoryGraph.listBlocks(query);
       setBlocks(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch blocks');
+      setError(err instanceof Error ? err.message : "Failed to fetch blocks");
     } finally {
       setLoading(false);
     }
-  }, [query.session_id, query.block_type, query.status, query.search, query.limit, query.offset]);
+  }, [
+    query.session_id,
+    query.block_type,
+    query.status,
+    query.search,
+    query.limit,
+    query.offset,
+  ]);
 
   useEffect(() => {
     fetchBlocks();
@@ -48,19 +55,22 @@ export function useMemoryBlocks(query: GraphQuery = {}): UseMemoryBlocksResult {
 
   const createBlock = useCallback(async (data: MemoryBlockCreate) => {
     const block = await memoryGraph.createBlock(data);
-    setBlocks(prev => [block, ...prev]);
+    setBlocks((prev) => [block, ...prev]);
     return block;
   }, []);
 
-  const updateBlock = useCallback(async (id: string, data: MemoryBlockUpdate) => {
-    const block = await memoryGraph.updateBlock(id, data);
-    setBlocks(prev => prev.map(b => b.id === id ? block : b));
-    return block;
-  }, []);
+  const updateBlock = useCallback(
+    async (id: string, data: MemoryBlockUpdate) => {
+      const block = await memoryGraph.updateBlock(id, data);
+      setBlocks((prev) => prev.map((b) => (b.id === id ? block : b)));
+      return block;
+    },
+    [],
+  );
 
   const deleteBlock = useCallback(async (id: string) => {
     await memoryGraph.deleteBlock(id);
-    setBlocks(prev => prev.filter(b => b.id !== id));
+    setBlocks((prev) => prev.filter((b) => b.id !== id));
   }, []);
 
   return {
@@ -93,7 +103,7 @@ export function useMemoryStats(sessionId?: string): UseMemoryStatsResult {
       const data = await memoryGraph.getStats(sessionId);
       setStats(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch stats');
+      setError(err instanceof Error ? err.message : "Failed to fetch stats");
     } finally {
       setLoading(false);
     }
@@ -117,7 +127,7 @@ interface UseBlockLinksResult {
 
 export function useBlockLinks(
   blockId: string,
-  direction: 'both' | 'incoming' | 'outgoing' = 'both',
+  direction: "both" | "incoming" | "outgoing" = "both",
 ): UseBlockLinksResult {
   const [links, setLinks] = useState<MemoryLink[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,7 +141,7 @@ export function useBlockLinks(
       const data = await memoryGraph.getBlockLinks(blockId, direction);
       setLinks(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch links');
+      setError(err instanceof Error ? err.message : "Failed to fetch links");
     } finally {
       setLoading(false);
     }
@@ -143,13 +153,13 @@ export function useBlockLinks(
 
   const createLink = useCallback(async (data: MemoryLinkCreate) => {
     const link = await memoryGraph.createLink(data);
-    setLinks(prev => [...prev, link]);
+    setLinks((prev) => [...prev, link]);
     return link;
   }, []);
 
   const deleteLink = useCallback(async (id: string) => {
     await memoryGraph.deleteLink(id);
-    setLinks(prev => prev.filter(l => l.id !== id));
+    setLinks((prev) => prev.filter((l) => l.id !== id));
   }, []);
 
   return {
@@ -168,9 +178,10 @@ export function useMemoryGraphHealth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    memoryGraph.checkHealth()
-      .then(result => {
-        setHealthy(result.status === 'healthy');
+    memoryGraph
+      .checkHealth()
+      .then((result) => {
+        setHealthy(result.status === "healthy");
         setLoading(false);
       })
       .catch(() => {

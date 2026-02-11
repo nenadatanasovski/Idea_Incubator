@@ -13,7 +13,7 @@ export interface ApiSpec {
   /** Endpoint path (e.g., "/api/ideas/:slug") */
   path: string;
   /** HTTP method */
-  method: 'get' | 'post' | 'put' | 'patch' | 'delete';
+  method: "get" | "post" | "put" | "patch" | "delete";
   /** Route description for documentation */
   description?: string;
   /** Request body schema (for POST/PUT/PATCH) */
@@ -49,13 +49,21 @@ export interface FieldDefinition {
 }
 
 export interface ParamDefinition {
-  type: 'string' | 'number' | 'boolean';
+  type: "string" | "number" | "boolean";
   required: boolean;
   description?: string;
 }
 
 export interface ValidationRule {
-  type: 'minLength' | 'maxLength' | 'pattern' | 'min' | 'max' | 'email' | 'url' | 'custom';
+  type:
+    | "minLength"
+    | "maxLength"
+    | "pattern"
+    | "min"
+    | "max"
+    | "email"
+    | "url"
+    | "custom";
   value?: any;
   message?: string;
 }
@@ -99,13 +107,12 @@ function generateRouteHandler(spec: ApiSpec): string {
   // Build middleware chain
   const middlewares: string[] = [];
   if (requiresAuth) {
-    middlewares.push('authMiddleware');
+    middlewares.push("authMiddleware");
   }
   middlewares.push(validationMiddlewareName);
 
-  const middlewareChain = middlewares.length > 0
-    ? middlewares.map(m => `  ${m},\n`).join('')
-    : '';
+  const middlewareChain =
+    middlewares.length > 0 ? middlewares.map((m) => `  ${m},\n`).join("") : "";
 
   // Generate handler body based on method
   const handlerBody = generateHandlerBody(spec);
@@ -125,24 +132,24 @@ ${handlerBody}
 function generateHandlerBody(spec: ApiSpec): string {
   const { method, requestBody, queryParams, pathParams, responseBody } = spec;
 
-  let body = '';
+  let body = "";
 
   // Extract parameters
   if (pathParams) {
     const paramNames = Object.keys(pathParams);
-    body += `    const { ${paramNames.join(', ')} } = req.params;\n`;
+    body += `    const { ${paramNames.join(", ")} } = req.params;\n`;
   }
 
   if (queryParams) {
     const queryNames = Object.keys(queryParams);
-    body += `    const { ${queryNames.join(', ')} } = req.query;\n`;
+    body += `    const { ${queryNames.join(", ")} } = req.query;\n`;
   }
 
-  if (requestBody && ['post', 'put', 'patch'].includes(method)) {
+  if (requestBody && ["post", "put", "patch"].includes(method)) {
     body += `    const data: ${requestBody.typeName} = req.body;\n`;
   }
 
-  body += '\n';
+  body += "\n";
 
   // Add database operation placeholder
   body += `    // TODO: Implement ${method.toUpperCase()} logic\n`;
@@ -156,9 +163,9 @@ function generateHandlerBody(spec: ApiSpec): string {
 
 function generateHandlerName(path: string, method: string): string {
   // Convert /api/ideas/:slug to getIdeasBySlug
-  const parts = path.split('/').filter(p => p && p !== 'api');
-  const resource = parts[0] || 'resource';
-  const hasParam = path.includes(':');
+  const parts = path.split("/").filter((p) => p && p !== "api");
+  const resource = parts[0] || "resource";
+  const hasParam = path.includes(":");
 
   if (hasParam) {
     return `${method}${capitalize(resource)}ByParam`;
@@ -191,7 +198,7 @@ function generateTypeDefinitions(spec: ApiSpec): string {
     types.push(generateQueryParamsType(spec.queryParams));
   }
 
-  return types.join('\n\n');
+  return types.join("\n\n");
 }
 
 function generateInterfaceDefinition(schema: SchemaDefinition): string {
@@ -203,27 +210,29 @@ function generateInterfaceDefinition(schema: SchemaDefinition): string {
     if (fieldDef.description) {
       code += `  /** ${fieldDef.description} */\n`;
     }
-    const optional = fieldDef.required ? '' : '?';
+    const optional = fieldDef.required ? "" : "?";
     code += `  ${fieldName}${optional}: ${fieldDef.type};\n`;
   }
 
-  code += '}';
+  code += "}";
 
   return code;
 }
 
-function generateQueryParamsType(params: Record<string, ParamDefinition>): string {
+function generateQueryParamsType(
+  params: Record<string, ParamDefinition>,
+): string {
   let code = `export interface QueryParams {\n`;
 
   for (const [paramName, paramDef] of Object.entries(params)) {
     if (paramDef.description) {
       code += `  /** ${paramDef.description} */\n`;
     }
-    const optional = paramDef.required ? '' : '?';
+    const optional = paramDef.required ? "" : "?";
     code += `  ${paramName}${optional}: ${paramDef.type};\n`;
   }
 
-  code += '}';
+  code += "}";
 
   return code;
 }
@@ -241,14 +250,14 @@ function generateValidationMiddleware(spec: ApiSpec): string {
   // Path params validation
   if (spec.pathParams) {
     for (const [name, def] of Object.entries(spec.pathParams)) {
-      validators.push(generateParamValidator(name, def, 'params'));
+      validators.push(generateParamValidator(name, def, "params"));
     }
   }
 
   // Query params validation
   if (spec.queryParams) {
     for (const [name, def] of Object.entries(spec.queryParams)) {
-      validators.push(generateParamValidator(name, def, 'query'));
+      validators.push(generateParamValidator(name, def, "query"));
     }
   }
 
@@ -267,7 +276,7 @@ function generateValidationMiddleware(spec: ApiSpec): string {
 export const ${middlewareName} = (req: Request, res: Response, next: NextFunction) => {
   const errors: string[] = [];
 
-${validators.map(v => `  ${v}`).join('\n\n')}
+${validators.map((v) => `  ${v}`).join("\n\n")}
 
   if (errors.length > 0) {
     res.status(400).json({ success: false, error: errors.join('; ') });
@@ -282,7 +291,7 @@ ${validators.map(v => `  ${v}`).join('\n\n')}
 function generateParamValidator(
   name: string,
   def: ParamDefinition,
-  location: 'params' | 'query'
+  location: "params" | "query",
 ): string {
   let code = `// Validate ${location}.${name}\n`;
 
@@ -293,11 +302,11 @@ function generateParamValidator(
   }
 
   // Type validation
-  if (def.type === 'number') {
+  if (def.type === "number") {
     code += `  if (req.${location}.${name} && isNaN(Number(req.${location}.${name}))) {\n`;
     code += `    errors.push('${name} must be a number');\n`;
     code += `  }\n`;
-  } else if (def.type === 'boolean') {
+  } else if (def.type === "boolean") {
     code += `  if (req.${location}.${name} && !['true', 'false'].includes(String(req.${location}.${name}))) {\n`;
     code += `    errors.push('${name} must be a boolean');\n`;
     code += `  }\n`;
@@ -331,41 +340,44 @@ function generateBodyValidator(schema: SchemaDefinition): string {
   return code;
 }
 
-function generateValidationRule(fieldName: string, rule: ValidationRule): string {
-  let code = '';
+function generateValidationRule(
+  fieldName: string,
+  rule: ValidationRule,
+): string {
+  let code = "";
 
   switch (rule.type) {
-    case 'minLength':
+    case "minLength":
       code += `  if (req.body.${fieldName} && req.body.${fieldName}.length < ${rule.value}) {\n`;
       code += `    errors.push('${rule.message || `${fieldName} must be at least ${rule.value} characters`}');\n`;
       code += `  }\n`;
       break;
 
-    case 'maxLength':
+    case "maxLength":
       code += `  if (req.body.${fieldName} && req.body.${fieldName}.length > ${rule.value}) {\n`;
       code += `    errors.push('${rule.message || `${fieldName} must be at most ${rule.value} characters`}');\n`;
       code += `  }\n`;
       break;
 
-    case 'pattern':
+    case "pattern":
       code += `  if (req.body.${fieldName} && !/${rule.value}/.test(req.body.${fieldName})) {\n`;
       code += `    errors.push('${rule.message || `${fieldName} format is invalid`}');\n`;
       code += `  }\n`;
       break;
 
-    case 'email':
+    case "email":
       code += `  if (req.body.${fieldName} && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(req.body.${fieldName})) {\n`;
       code += `    errors.push('${rule.message || `${fieldName} must be a valid email`}');\n`;
       code += `  }\n`;
       break;
 
-    case 'min':
+    case "min":
       code += `  if (req.body.${fieldName} !== undefined && req.body.${fieldName} < ${rule.value}) {\n`;
       code += `    errors.push('${rule.message || `${fieldName} must be at least ${rule.value}`}');\n`;
       code += `  }\n`;
       break;
 
-    case 'max':
+    case "max":
       code += `  if (req.body.${fieldName} !== undefined && req.body.${fieldName} > ${rule.value}) {\n`;
       code += `    errors.push('${rule.message || `${fieldName} must be at most ${rule.value}`}');\n`;
       code += `  }\n`;
@@ -380,7 +392,8 @@ function generateValidationRule(fieldName: string, rule: ValidationRule): string
 // ============================================================================
 
 function generateOpenApiDoc(spec: ApiSpec): string {
-  const { path, method, description, requestBody, responseBody, statusCodes } = spec;
+  const { path, method, description, requestBody, responseBody, statusCodes } =
+    spec;
 
   const doc: any = {
     summary: description || `${method.toUpperCase()} ${path}`,
@@ -394,7 +407,7 @@ function generateOpenApiDoc(spec: ApiSpec): string {
     for (const [name, def] of Object.entries(spec.pathParams)) {
       doc.parameters.push({
         name,
-        in: 'path',
+        in: "path",
         required: def.required,
         description: def.description,
         schema: { type: def.type },
@@ -407,7 +420,7 @@ function generateOpenApiDoc(spec: ApiSpec): string {
     for (const [name, def] of Object.entries(spec.queryParams)) {
       doc.parameters.push({
         name,
-        in: 'query',
+        in: "query",
         required: def.required,
         description: def.description,
         schema: { type: def.type },
@@ -416,11 +429,11 @@ function generateOpenApiDoc(spec: ApiSpec): string {
   }
 
   // Add request body
-  if (requestBody && ['post', 'put', 'patch'].includes(method)) {
+  if (requestBody && ["post", "put", "patch"].includes(method)) {
     doc.requestBody = {
       required: true,
       content: {
-        'application/json': {
+        "application/json": {
           schema: {
             $ref: `#/components/schemas/${requestBody.typeName}`,
           },
@@ -430,15 +443,15 @@ function generateOpenApiDoc(spec: ApiSpec): string {
   }
 
   // Add responses
-  const successCode = method === 'post' ? 201 : 200;
+  const successCode = method === "post" ? 201 : 200;
   doc.responses[successCode] = {
-    description: statusCodes?.[successCode] || 'Success',
+    description: statusCodes?.[successCode] || "Success",
     content: {
-      'application/json': {
+      "application/json": {
         schema: {
-          type: 'object',
+          type: "object",
           properties: {
-            success: { type: 'boolean', example: true },
+            success: { type: "boolean", example: true },
             data: { $ref: `#/components/schemas/${responseBody.typeName}` },
           },
         },
@@ -454,12 +467,12 @@ function generateOpenApiDoc(spec: ApiSpec): string {
         doc.responses[statusCode] = {
           description: message,
           content: {
-            'application/json': {
+            "application/json": {
               schema: {
-                type: 'object',
+                type: "object",
                 properties: {
-                  success: { type: 'boolean', example: false },
-                  error: { type: 'string' },
+                  success: { type: "boolean", example: false },
+                  error: { type: "string" },
                 },
               },
             },
@@ -473,7 +486,10 @@ function generateOpenApiDoc(spec: ApiSpec): string {
  * @openapi
  * ${path}:
  *   ${method}:
-${JSON.stringify(doc, null, 4).split('\n').map(line => ` *     ${line}`).join('\n')}
+${JSON.stringify(doc, null, 4)
+  .split("\n")
+  .map((line) => ` *     ${line}`)
+  .join("\n")}
  */`;
 }
 
@@ -487,46 +503,48 @@ ${JSON.stringify(doc, null, 4).split('\n').map(line => ` *     ${line}`).join('\
 export function integrateRoute(
   existingRouterCode: string,
   generatedCode: GeneratedCode,
-  _spec: ApiSpec
+  _spec: ApiSpec,
 ): string {
   // Find the end of imports section
   const importEndIndex = findImportSectionEnd(existingRouterCode);
 
   // Insert type definitions after imports
   let code = existingRouterCode.slice(0, importEndIndex);
-  code += '\n// ============ Generated Types ============\n\n';
+  code += "\n// ============ Generated Types ============\n\n";
   code += generatedCode.typeDefinitions;
-  code += '\n\n';
+  code += "\n\n";
 
   // Find validation middleware section or create it
   const middlewareIndex = findOrCreateMiddlewareSection(existingRouterCode);
   code += existingRouterCode.slice(importEndIndex, middlewareIndex);
-  code += '\n// ============ Generated Validation ============\n\n';
+  code += "\n// ============ Generated Validation ============\n\n";
   code += generatedCode.validationMiddleware;
-  code += '\n\n';
+  code += "\n\n";
 
   // Find routes section and add route
   const routesEndIndex = findRouteSectionEnd(existingRouterCode);
   code += existingRouterCode.slice(middlewareIndex, routesEndIndex);
-  code += '\n// ============ Generated Route ============\n\n';
+  code += "\n// ============ Generated Route ============\n\n";
   code += generatedCode.openApiDoc;
-  code += '\n';
+  code += "\n";
   code += generatedCode.routeHandler;
-  code += '\n';
+  code += "\n";
   code += existingRouterCode.slice(routesEndIndex);
 
   return code;
 }
 
 function findImportSectionEnd(code: string): number {
-  const lines = code.split('\n');
+  const lines = code.split("\n");
   let lastImportIndex = 0;
 
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].trim().startsWith('import ')) {
+    if (lines[i].trim().startsWith("import ")) {
       lastImportIndex = i;
-    } else if (lastImportIndex > 0 && lines[i].trim() === '') {
-      return code.indexOf(lines[lastImportIndex]) + lines[lastImportIndex].length + 1;
+    } else if (lastImportIndex > 0 && lines[i].trim() === "") {
+      return (
+        code.indexOf(lines[lastImportIndex]) + lines[lastImportIndex].length + 1
+      );
     }
   }
 
@@ -534,12 +552,12 @@ function findImportSectionEnd(code: string): number {
 }
 
 function findOrCreateMiddlewareSection(code: string): number {
-  const middlewareMarker = '// Middleware';
+  const middlewareMarker = "// Middleware";
   const index = code.indexOf(middlewareMarker);
-  return index > 0 ? index : code.indexOf('const router');
+  return index > 0 ? index : code.indexOf("const router");
 }
 
 function findRouteSectionEnd(code: string): number {
-  const exportIndex = code.lastIndexOf('export default router');
+  const exportIndex = code.lastIndexOf("export default router");
   return exportIndex > 0 ? exportIndex : code.length;
 }

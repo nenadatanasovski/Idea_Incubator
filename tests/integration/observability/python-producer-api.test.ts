@@ -46,9 +46,10 @@ describe("Python Producer to API Integration", () => {
         pythonProducedLog,
       ]);
 
-      const result = await query("SELECT * FROM message_bus_log WHERE id = ?", [
-        pythonProducedLog.id,
-      ]) as any[];
+      const result = (await query(
+        "SELECT * FROM message_bus_log WHERE id = ?",
+        [pythonProducedLog.id],
+      )) as any[];
 
       expect(result).toHaveLength(1);
       expect(result[0].event_type).toBe("task.started");
@@ -70,7 +71,9 @@ describe("Python Producer to API Integration", () => {
 
       (query as ReturnType<typeof vi.fn>).mockResolvedValueOnce([pythonLog]);
 
-      const result = await query("SELECT * FROM message_bus_log LIMIT 1") as any[];
+      const result = (await query(
+        "SELECT * FROM message_bus_log LIMIT 1",
+      )) as any[];
 
       expect(result[0].timestamp).toBeDefined();
       // Should be parseable as a date
@@ -106,10 +109,10 @@ describe("Python Producer to API Integration", () => {
         pythonTranscriptEntry,
       ]);
 
-      const result = await query(
+      const result = (await query(
         "SELECT * FROM transcript_entries WHERE id = ?",
         [pythonTranscriptEntry.id],
-      ) as any[];
+      )) as any[];
 
       expect(result[0].entry_type).toBe("tool_use");
       expect(result[0].sequence).toBe(5);
@@ -136,7 +139,9 @@ describe("Python Producer to API Integration", () => {
 
       (query as ReturnType<typeof vi.fn>).mockResolvedValueOnce([waveEntry]);
 
-      const result = await query("SELECT * FROM transcript_entries LIMIT 1") as any[];
+      const result = (await query(
+        "SELECT * FROM transcript_entries LIMIT 1",
+      )) as any[];
 
       expect(result[0].entry_type).toBe("wave_start");
       expect(result[0].wave_number).toBe(1);
@@ -167,9 +172,9 @@ describe("Python Producer to API Integration", () => {
         pythonToolUse,
       ]);
 
-      const result = await query("SELECT * FROM tool_uses WHERE id = ?", [
+      const result = (await query("SELECT * FROM tool_uses WHERE id = ?", [
         pythonToolUse.id,
-      ]) as any[];
+      ])) as any[];
 
       expect(result[0].tool).toBe("Bash");
       expect(result[0].duration_ms).toBe(30000);
@@ -188,7 +193,9 @@ describe("Python Producer to API Integration", () => {
 
       (query as ReturnType<typeof vi.fn>).mockResolvedValueOnce([errorToolUse]);
 
-      const result = await query("SELECT * FROM tool_uses WHERE is_error = 1") as any[];
+      const result = (await query(
+        "SELECT * FROM tool_uses WHERE is_error = 1",
+      )) as any[];
 
       expect(result[0].is_error).toBe(1);
       expect(result[0].error_message).toBe("3 tests failed");
@@ -208,9 +215,9 @@ describe("Python Producer to API Integration", () => {
         blockedToolUse,
       ]);
 
-      const result = await query(
+      const result = (await query(
         "SELECT * FROM tool_uses WHERE is_blocked = 1",
-      ) as any[];
+      )) as any[];
 
       expect(result[0].is_blocked).toBe(1);
       expect(result[0].blocked_reason).toBe("Dangerous command detected");
@@ -240,10 +247,10 @@ describe("Python Producer to API Integration", () => {
         pythonAssertion,
       ]);
 
-      const result = await query(
+      const result = (await query(
         "SELECT * FROM assertion_results WHERE id = ?",
         [pythonAssertion.id],
-      ) as any[];
+      )) as any[];
 
       expect(result[0].result).toBe("pass");
       expect(result[0].category).toBe("syntax");
@@ -271,9 +278,9 @@ describe("Python Producer to API Integration", () => {
         failedAssertion,
       ]);
 
-      const result = await query(
+      const result = (await query(
         "SELECT * FROM assertion_results WHERE result = 'fail'",
-      ) as any[];
+      )) as any[];
 
       expect(result[0].result).toBe("fail");
       const evidence = JSON.parse(result[0].evidence);
@@ -303,9 +310,9 @@ describe("Python Producer to API Integration", () => {
         pythonSkillTrace,
       ]);
 
-      const result = await query("SELECT * FROM skill_traces WHERE id = ?", [
+      const result = (await query("SELECT * FROM skill_traces WHERE id = ?", [
         pythonSkillTrace.id,
-      ]) as any[];
+      ])) as any[];
 
       expect(result[0].skill_name).toBe("commit");
       expect(result[0].status).toBe("completed");
@@ -334,10 +341,10 @@ describe("Python Producer to API Integration", () => {
 
       (query as ReturnType<typeof vi.fn>).mockResolvedValueOnce([pythonAgent]);
 
-      const result = await query(
+      const result = (await query(
         "SELECT * FROM build_agent_instances WHERE id = ?",
         [pythonAgent.id],
-      ) as any[];
+      )) as any[];
 
       expect(result[0].status).toBe("active");
       expect(result[0].current_task_id).toBe("task-001");
@@ -366,14 +373,13 @@ describe("Python Producer to API Integration", () => {
           },
         ]);
 
-      await query(
-        "SELECT * FROM transcript_entries WHERE id = ?",
-        [transcriptEntryId],
-      );
-      const toolUseResult = await query(
+      await query("SELECT * FROM transcript_entries WHERE id = ?", [
+        transcriptEntryId,
+      ]);
+      const toolUseResult = (await query(
         "SELECT * FROM tool_uses WHERE transcript_entry_id = ?",
         [transcriptEntryId],
-      ) as any[];
+      )) as any[];
 
       expect(toolUseResult[0].transcript_entry_id).toBe(transcriptEntryId);
     });
@@ -386,10 +392,10 @@ describe("Python Producer to API Integration", () => {
         { id: waveId, execution_run_id: executionId, wave_number: 1 },
       ]);
 
-      const result = await query(
+      const result = (await query(
         "SELECT * FROM parallel_execution_waves WHERE execution_run_id = ?",
         [executionId],
-      ) as any[];
+      )) as any[];
 
       expect(result[0].execution_run_id).toBe(executionId);
     });

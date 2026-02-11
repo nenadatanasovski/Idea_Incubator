@@ -1,9 +1,9 @@
 #!/usr/bin/env tsx
 /**
  * Development Markdown Sync Service
- * 
+ *
  * FIXES CRITICAL GAP: development.md content not being picked up by evaluators
- * 
+ *
  * This script:
  * 1. Parses development.md files for each idea
  * 2. Extracts Q&A pairs
@@ -54,37 +54,44 @@ interface SyncResult {
 
 function parseQAPairs(content: string): QAPair[] {
   const pairs: QAPair[] = [];
-  
+
   // Pattern 1: Q: ... A: ... format
   const qaPattern = /Q:\s*(.+?)\nA:\s*(.+?)(?=\n\nQ:|\n##|\n---|\$)/gs;
   let match;
-  
+
   while ((match = qaPattern.exec(content)) !== null) {
     pairs.push({
       question: match[1].trim(),
       answer: match[2].trim(),
     });
   }
-  
+
   // Pattern 2: Table format | Question | Answer | ... |
   const lines = content.split("\n");
   let inTable = false;
   let isHeaderRow = true;
-  
+
   for (const line of lines) {
     if (line.includes("|") && !line.includes("---")) {
-      if (isHeaderRow && (line.toLowerCase().includes("question") || line.toLowerCase().includes("answer"))) {
+      if (
+        isHeaderRow &&
+        (line.toLowerCase().includes("question") ||
+          line.toLowerCase().includes("answer"))
+      ) {
         inTable = true;
         isHeaderRow = false;
         continue;
       }
-      
+
       if (inTable) {
-        const cells = line.split("|").map(c => c.trim()).filter(c => c);
+        const cells = line
+          .split("|")
+          .map((c) => c.trim())
+          .filter((c) => c);
         if (cells.length >= 2 && cells[0] && cells[1]) {
           // Skip header rows
           if (cells[0].toLowerCase() === "question") continue;
-          
+
           pairs.push({
             question: cells[0],
             answer: cells[1],
@@ -98,15 +105,18 @@ function parseQAPairs(content: string): QAPair[] {
       isHeaderRow = true;
     }
   }
-  
+
   return pairs;
 }
 
 function parseBulletList(content: string, sectionName: string): string[] {
   const items: string[] = [];
-  const sectionPattern = new RegExp(`##\\s*${sectionName}[\\s\\S]*?(?=\\n##|$)`, "i");
+  const sectionPattern = new RegExp(
+    `##\\s*${sectionName}[\\s\\S]*?(?=\\n##|$)`,
+    "i",
+  );
   const match = content.match(sectionPattern);
-  
+
   if (match) {
     const bulletPattern = /^[\-\*]\s*(?:\[.\])?\s*(.+)$/gm;
     let bulletMatch;
@@ -117,18 +127,21 @@ function parseBulletList(content: string, sectionName: string): string[] {
       }
     }
   }
-  
+
   return items;
 }
 
-function parseDevelopmentMd(filePath: string, ideaSlug: string): DevelopmentData {
+function parseDevelopmentMd(
+  filePath: string,
+  ideaSlug: string,
+): DevelopmentData {
   const content = fs.readFileSync(filePath, "utf-8");
-  
+
   // Extract frontmatter
   const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
   let lastUpdated: string | undefined;
   let ideaId: string | undefined;
-  
+
   if (frontmatterMatch) {
     const frontmatter = frontmatterMatch[1];
     const dateMatch = frontmatter.match(/last_updated:\s*(.+)/);
@@ -136,7 +149,7 @@ function parseDevelopmentMd(filePath: string, ideaSlug: string): DevelopmentData
     const idMatch = frontmatter.match(/id:\s*["']?(.+?)["']?$/m);
     if (idMatch) ideaId = idMatch[1].trim();
   }
-  
+
   return {
     ideaSlug,
     ideaId,
@@ -152,17 +165,21 @@ function parseDevelopmentMd(filePath: string, ideaSlug: string): DevelopmentData
 // Neo4j Sync
 // ============================================
 
-async function syncToNeo4j(driver: Driver, data: DevelopmentData): Promise<number> {
+async function syncToNeo4j(
+  driver: Driver,
+  data: DevelopmentData,
+): Promise<number> {
   const session = driver.session();
   let blocksCreated = 0;
-  
+
   try {
     const sessionId = `dev-sync-${data.ideaSlug}-${Date.now()}`;
-    
+
     // Create knowledge blocks for Q&A pairs
     for (const qa of data.qaPairs) {
       const blockId = randomUUID();
-      await session.run(`
+      await session.run(
+        `
         CREATE (b:Block {
           id: $id,
           type: 'knowledge',
@@ -175,20 +192,23 @@ async function syncToNeo4j(driver: Driver, data: DevelopmentData): Promise<numbe
           createdAt: datetime(),
           updatedAt: datetime()
         })
-      `, {
-        id: blockId,
-        title: qa.question.substring(0, 100),
-        content: `Q: ${qa.question}\nA: ${qa.answer}`,
-        sessionId,
-        ideaId: data.ideaId || data.ideaSlug,
-      });
+      `,
+        {
+          id: blockId,
+          title: qa.question.substring(0, 100),
+          content: `Q: ${qa.question}\nA: ${qa.answer}`,
+          sessionId,
+          ideaId: data.ideaId || data.ideaSlug,
+        },
+      );
       blocksCreated++;
     }
-    
+
     // Create assumption blocks for gaps
     for (const gap of data.gaps) {
       const blockId = randomUUID();
-      await session.run(`
+      await session.run(
+        `
         CREATE (b:Block {
           id: $id,
           type: 'question',
@@ -201,19 +221,22 @@ async function syncToNeo4j(driver: Driver, data: DevelopmentData): Promise<numbe
           createdAt: datetime(),
           updatedAt: datetime()
         })
-      `, {
-        id: blockId,
-        content: gap,
-        sessionId,
-        ideaId: data.ideaId || data.ideaSlug,
-      });
+      `,
+        {
+          id: blockId,
+          content: gap,
+          sessionId,
+          ideaId: data.ideaId || data.ideaSlug,
+        },
+      );
       blocksCreated++;
     }
-    
+
     // Create knowledge blocks for insights
     for (const insight of data.insights) {
       const blockId = randomUUID();
-      await session.run(`
+      await session.run(
+        `
         CREATE (b:Block {
           id: $id,
           type: 'knowledge',
@@ -226,19 +249,20 @@ async function syncToNeo4j(driver: Driver, data: DevelopmentData): Promise<numbe
           createdAt: datetime(),
           updatedAt: datetime()
         })
-      `, {
-        id: blockId,
-        content: insight,
-        sessionId,
-        ideaId: data.ideaId || data.ideaSlug,
-      });
+      `,
+        {
+          id: blockId,
+          content: insight,
+          sessionId,
+          ideaId: data.ideaId || data.ideaSlug,
+        },
+      );
       blocksCreated++;
     }
-    
   } finally {
     await session.close();
   }
-  
+
   return blocksCreated;
 }
 
@@ -248,23 +272,23 @@ async function syncToNeo4j(driver: Driver, data: DevelopmentData): Promise<numbe
 
 async function syncToSQLite(data: DevelopmentData): Promise<number> {
   let answersInserted = 0;
-  
+
   // Get idea ID from database if not in frontmatter
   let ideaId = data.ideaId;
   if (!ideaId) {
     const ideas = await query<{ id: string }>(
       "SELECT id FROM ideas WHERE slug = ?",
-      [data.ideaSlug]
+      [data.ideaSlug],
     );
     if (ideas.length > 0) {
       ideaId = ideas[0].id;
     }
   }
-  
+
   if (!ideaId) {
     return 0; // Can't sync without idea ID
   }
-  
+
   // Ensure idea_answers table exists
   run(`
     CREATE TABLE IF NOT EXISTS idea_answers (
@@ -279,23 +303,26 @@ async function syncToSQLite(data: DevelopmentData): Promise<number> {
       FOREIGN KEY (idea_id) REFERENCES ideas(id)
     )
   `);
-  
+
   // Clear existing answers from this source
   run(
     "DELETE FROM idea_answers WHERE idea_id = ? AND source = 'development.md'",
-    [ideaId]
+    [ideaId],
   );
-  
+
   // Insert Q&A pairs
   for (const qa of data.qaPairs) {
     const answerId = randomUUID();
-    run(`
+    run(
+      `
       INSERT INTO idea_answers (id, idea_id, question_text, answer_text, category, source)
       VALUES (?, ?, ?, ?, ?, 'development.md')
-    `, [answerId, ideaId, qa.question, qa.answer, qa.category || "general"]);
+    `,
+      [answerId, ideaId, qa.question, qa.answer, qa.category || "general"],
+    );
     answersInserted++;
   }
-  
+
   return answersInserted;
 }
 
@@ -303,39 +330,41 @@ async function syncToSQLite(data: DevelopmentData): Promise<number> {
 // Main
 // ============================================
 
-async function findDevelopmentFiles(): Promise<{ filePath: string; slug: string }[]> {
+async function findDevelopmentFiles(): Promise<
+  { filePath: string; slug: string }[]
+> {
   const ideasDir = path.join(process.cwd(), "ideas");
   const files: { filePath: string; slug: string }[] = [];
-  
+
   if (!fs.existsSync(ideasDir)) {
     logWarning("No ideas directory found");
     return files;
   }
-  
-  const slugs = fs.readdirSync(ideasDir).filter(f => 
-    fs.statSync(path.join(ideasDir, f)).isDirectory()
-  );
-  
+
+  const slugs = fs
+    .readdirSync(ideasDir)
+    .filter((f) => fs.statSync(path.join(ideasDir, f)).isDirectory());
+
   for (const slug of slugs) {
     const devFile = path.join(ideasDir, slug, "development.md");
     if (fs.existsSync(devFile)) {
       files.push({ filePath: devFile, slug });
     }
   }
-  
+
   return files;
 }
 
 async function main() {
   logInfo("Starting development.md sync...");
-  
+
   // Connect to Neo4j
   const neo4jUri = process.env.NEO4J_URI || "bolt://localhost:7687";
   const neo4jUser = process.env.NEO4J_USER || "neo4j";
   const neo4jPassword = process.env.NEO4J_PASSWORD || "vibedevpassword";
-  
+
   let driver: Driver | null = null;
-  
+
   try {
     driver = neo4j.driver(neo4jUri, neo4j.auth.basic(neo4jUser, neo4jPassword));
     await driver.verifyConnectivity();
@@ -344,13 +373,13 @@ async function main() {
     logWarning("Neo4j not available, will sync to SQLite only");
     driver = null;
   }
-  
+
   // Find all development.md files
   const files = await findDevelopmentFiles();
   logInfo(`Found ${files.length} development.md files`);
-  
+
   const results: SyncResult[] = [];
-  
+
   for (const { filePath, slug } of files) {
     const result: SyncResult = {
       ideaSlug: slug,
@@ -359,54 +388,55 @@ async function main() {
       answersInserted: 0,
       errors: [],
     };
-    
+
     try {
       // Parse the file
       const data = parseDevelopmentMd(filePath, slug);
       result.qaPairsFound = data.qaPairs.length;
-      
+
       if (data.qaPairs.length === 0) {
         logWarning(`${slug}: No Q&A pairs found`);
         continue;
       }
-      
+
       // Sync to Neo4j
       if (driver) {
         result.blocksCreated = await syncToNeo4j(driver, data);
       }
-      
+
       // Sync to SQLite
       result.answersInserted = await syncToSQLite(data);
-      
-      logSuccess(`${slug}: ${result.qaPairsFound} Q&A → ${result.blocksCreated} blocks, ${result.answersInserted} answers`);
-      
+
+      logSuccess(
+        `${slug}: ${result.qaPairsFound} Q&A → ${result.blocksCreated} blocks, ${result.answersInserted} answers`,
+      );
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       result.errors.push(msg);
       logError(`${slug}: ${msg}`);
     }
-    
+
     results.push(result);
   }
-  
+
   // Summary
   const totalQA = results.reduce((sum, r) => sum + r.qaPairsFound, 0);
   const totalBlocks = results.reduce((sum, r) => sum + r.blocksCreated, 0);
   const totalAnswers = results.reduce((sum, r) => sum + r.answersInserted, 0);
-  
+
   logInfo("\n=== Sync Summary ===");
   logInfo(`Ideas processed: ${results.length}`);
   logInfo(`Total Q&A pairs: ${totalQA}`);
   logInfo(`Neo4j blocks created: ${totalBlocks}`);
   logInfo(`SQLite answers inserted: ${totalAnswers}`);
-  
+
   // Cleanup
   saveDb();
   closeDb();
   if (driver) {
     await driver.close();
   }
-  
+
   process.exit(0);
 }
 

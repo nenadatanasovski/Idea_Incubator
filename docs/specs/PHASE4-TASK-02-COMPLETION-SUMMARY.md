@@ -23,6 +23,7 @@ Agent introspection capability has been **fully implemented and verified**. Agen
 Provides agent-optimized session queries with relevance scoring.
 
 **Features:**
+
 - Intelligent relevance scoring (task similarity + recency + success rate)
 - Configurable thresholds and limits
 - Optional iteration log inclusion
@@ -36,14 +37,16 @@ Provides agent-optimized session queries with relevance scoring.
 **Module:** `parent-harness/orchestrator/src/introspection/relevance.ts` (103 lines)
 
 **Algorithm:**
+
 ```
 relevance = 0.5 * task_match + 0.3 * recency + 0.2 * success
 ```
 
 **Features:**
+
 - Task signature generation (SHA-256 hash of title + category + files)
 - Exact and partial signature matching
-- Exponential decay for recency (e^(-0.1 * days))
+- Exponential decay for recency (e^(-0.1 \* days))
 - Success rate weighting (completed > running > failed)
 
 ### 3. Automatic Prompt Enhancement ✅
@@ -51,6 +54,7 @@ relevance = 0.5 * task_match + 0.3 * recency + 0.2 * success
 **Module:** `parent-harness/orchestrator/src/memory/prompt-builder.ts` (137 lines)
 
 **Injected Context:**
+
 - Top 5 relevant past sessions (relevance ≥ 0.3)
 - Top 3 error patterns from agent memory
 - Top 3 success patterns from agent memory
@@ -62,6 +66,7 @@ relevance = 0.5 * task_match + 0.3 * recency + 0.2 * success
 **Modified:** `parent-harness/orchestrator/src/spawner/index.ts` (+10 lines)
 
 **Behavior:**
+
 - Calls `buildIntrospectionContext()` for every task-based spawn
 - Appends context to system prompt
 - Non-blocking error handling
@@ -72,6 +77,7 @@ relevance = 0.5 * task_match + 0.3 * recency + 0.2 * success
 **File:** `parent-harness/orchestrator/src/agents/CLAUDE.md` (94 lines)
 
 **Contents:**
+
 - Overview of automatic introspection
 - API endpoint documentation with examples
 - When to use introspection guidance
@@ -84,6 +90,7 @@ relevance = 0.5 * task_match + 0.3 * recency + 0.2 * success
 ### Pass Criteria: 26/26 ✅
 
 **API Functionality:** 7/7 ✅
+
 - Endpoint exists and responds correctly
 - Agent filtering works
 - Relevance scoring accurate (0.0-1.0 range)
@@ -91,6 +98,7 @@ relevance = 0.5 * task_match + 0.3 * recency + 0.2 * success
 - Response format matches specification
 
 **Relevance Scoring:** 5/5 ✅
+
 - Task signature matching works (exact + partial)
 - Recency scoring works (exponential decay)
 - Success scoring works (completed > running > failed)
@@ -98,6 +106,7 @@ relevance = 0.5 * task_match + 0.3 * recency + 0.2 * success
 - Handles missing signatures gracefully
 
 **Prompt Integration:** 5/5 ✅
+
 - `buildIntrospectionContext()` function exists
 - Injects relevant sessions (top 5)
 - Injects error patterns (top 3)
@@ -105,18 +114,21 @@ relevance = 0.5 * task_match + 0.3 * recency + 0.2 * success
 - Spawner integration works
 
 **Documentation:** 4/4 ✅
+
 - CLAUDE.md exists
 - API documented with examples
 - Usage guidance provided
 - Response format shown
 
 **Observability:** 4/4 ✅
+
 - Introspection queries logged
 - Events emitted (`introspection:query`)
 - Spawner logs when context injected
 - Error handling with warnings
 
 **Performance:** 1/1 ✅
+
 - API responds in <200ms (actual: ~50ms)
 - Relevance scoring completes in <100ms per session
 - Prompt building adds 10-50ms overhead (acceptable)
@@ -133,12 +145,14 @@ No compilation errors. All type definitions correct.
 ### Manual Testing ✅
 
 **API Query Test:**
+
 ```bash
 $ curl http://localhost:3333/api/introspection/build_agent?limit=5
 # Returns: JSON with sessions, relevance scores, summaries
 ```
 
 **Spawner Integration Test:**
+
 - Agent spawned with task
 - Console shows: "🔍 Introspection: injected historical context for build_agent"
 - System prompt includes "Agent Introspection Context" section
@@ -198,17 +212,20 @@ Manual Query
 ## Metrics
 
 **Code Added:**
+
 - Core implementation: ~430 lines (3 new modules)
 - Integration: ~12 lines (spawner + server)
 - Documentation: ~94 lines (CLAUDE.md)
 - **Total:** ~550 lines
 
 **Files Modified:**
+
 - Created: 3 new modules + 1 documentation file
 - Modified: 2 integration points (spawner, server)
 - Database changes: 0 (uses existing tables)
 
 **Performance:**
+
 - API response time: ~50ms (target: <200ms) ✅
 - Relevance scoring: <10ms per session ✅
 - Spawn overhead: 10-50ms (acceptable) ✅
@@ -218,12 +235,14 @@ Manual Query
 ## Dependencies Satisfied
 
 **Upstream (All Complete):**
+
 - ✅ PHASE3-TASK-03: Agent session tracking
 - ✅ PHASE2-TASK-01: Database schema foundation
 - ✅ Agent memory system
 - ✅ Sessions API
 
 **Downstream (Now Unblocked):**
+
 - PHASE4-TASK-03: Spec Agent learning (can use introspection)
 - PHASE4-TASK-04: Build-QA feedback loop (can use introspection)
 - PHASE6-TASK-01: Self-improvement system (can use introspection)
@@ -255,6 +274,7 @@ Manual Query
 ## References
 
 **Implementation:**
+
 - `parent-harness/orchestrator/src/api/introspection.ts`
 - `parent-harness/orchestrator/src/introspection/relevance.ts`
 - `parent-harness/orchestrator/src/memory/prompt-builder.ts`
@@ -262,11 +282,13 @@ Manual Query
 - `parent-harness/orchestrator/src/agents/CLAUDE.md`
 
 **Specifications:**
+
 - `docs/specs/PHASE4-TASK-02-agent-introspection.md` (Original spec)
 - `docs/specs/PHASE4-TASK-02-agent-introspection-updated.md` (Completion spec)
 - `docs/specs/PHASE4-TASK-02-VERIFICATION.md` (Pre-completion QA report)
 
 **Strategic Context:**
+
 - `STRATEGIC_PLAN.md` - Phase 4: Agent Learning and Memory
 
 ---

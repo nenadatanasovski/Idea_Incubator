@@ -3,9 +3,21 @@
  * Ported from Vibe Platform with adaptations for parent-harness
  */
 
-export type WaveStatus = 'pending' | 'active' | 'complete';
-export type TaskStatus = 'pending' | 'running' | 'complete' | 'failed' | 'blocked' | 'skipped';
-export type LaneCategory = 'database' | 'types' | 'api' | 'ui' | 'tests' | 'infrastructure';
+export type WaveStatus = "pending" | "active" | "complete";
+export type TaskStatus =
+  | "pending"
+  | "running"
+  | "complete"
+  | "failed"
+  | "blocked"
+  | "skipped";
+export type LaneCategory =
+  | "database"
+  | "types"
+  | "api"
+  | "ui"
+  | "tests"
+  | "infrastructure";
 
 export interface Wave {
   id: string;
@@ -35,7 +47,7 @@ export interface Lane {
   id: string;
   name: string;
   category: LaneCategory;
-  status: 'pending' | 'active' | 'complete' | 'blocked';
+  status: "pending" | "active" | "complete" | "blocked";
   tasksTotal: number;
   tasksCompleted: number;
   tasks: LaneTask[];
@@ -103,32 +115,70 @@ export interface StateHistoryItem {
 }
 
 // Config objects
-export const WAVE_STATUS_CONFIG: Record<WaveStatus, { color: string; bgColor: string }> = {
-  pending: { color: 'text-gray-500', bgColor: 'bg-gray-300' },
-  active: { color: 'text-blue-600', bgColor: 'bg-blue-500' },
-  complete: { color: 'text-green-600', bgColor: 'bg-green-500' },
+export const WAVE_STATUS_CONFIG: Record<
+  WaveStatus,
+  { color: string; bgColor: string }
+> = {
+  pending: { color: "text-gray-500", bgColor: "bg-gray-300" },
+  active: { color: "text-blue-600", bgColor: "bg-blue-500" },
+  complete: { color: "text-green-600", bgColor: "bg-green-500" },
 };
 
-export const TASK_STATUS_CONFIG: Record<TaskStatus, { color: string; bgColor: string; borderColor: string }> = {
-  pending: { color: 'text-gray-500', bgColor: 'bg-gray-100', borderColor: 'border-gray-200' },
-  running: { color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-300' },
-  complete: { color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-300' },
-  failed: { color: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-300' },
-  blocked: { color: 'text-amber-600', bgColor: 'bg-amber-50', borderColor: 'border-amber-300' },
-  skipped: { color: 'text-gray-400', bgColor: 'bg-gray-50', borderColor: 'border-gray-200' },
+export const TASK_STATUS_CONFIG: Record<
+  TaskStatus,
+  { color: string; bgColor: string; borderColor: string }
+> = {
+  pending: {
+    color: "text-gray-500",
+    bgColor: "bg-gray-100",
+    borderColor: "border-gray-200",
+  },
+  running: {
+    color: "text-blue-600",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-300",
+  },
+  complete: {
+    color: "text-green-600",
+    bgColor: "bg-green-50",
+    borderColor: "border-green-300",
+  },
+  failed: {
+    color: "text-red-600",
+    bgColor: "bg-red-50",
+    borderColor: "border-red-300",
+  },
+  blocked: {
+    color: "text-amber-600",
+    bgColor: "bg-amber-50",
+    borderColor: "border-amber-300",
+  },
+  skipped: {
+    color: "text-gray-400",
+    bgColor: "bg-gray-50",
+    borderColor: "border-gray-200",
+  },
 };
 
-export const LANE_CATEGORY_CONFIG: Record<LaneCategory, { color: string; bgColor: string }> = {
-  database: { color: 'text-purple-600', bgColor: 'bg-purple-50' },
-  types: { color: 'text-blue-600', bgColor: 'bg-blue-50' },
-  api: { color: 'text-green-600', bgColor: 'bg-green-50' },
-  ui: { color: 'text-pink-600', bgColor: 'bg-pink-50' },
-  tests: { color: 'text-orange-600', bgColor: 'bg-orange-50' },
-  infrastructure: { color: 'text-gray-600', bgColor: 'bg-gray-50' },
+export const LANE_CATEGORY_CONFIG: Record<
+  LaneCategory,
+  { color: string; bgColor: string }
+> = {
+  database: { color: "text-purple-600", bgColor: "bg-purple-50" },
+  types: { color: "text-blue-600", bgColor: "bg-blue-50" },
+  api: { color: "text-green-600", bgColor: "bg-green-50" },
+  ui: { color: "text-pink-600", bgColor: "bg-pink-50" },
+  tests: { color: "text-orange-600", bgColor: "bg-orange-50" },
+  infrastructure: { color: "text-gray-600", bgColor: "bg-gray-50" },
 };
 
 // Session types for agent observability
-export type AgentSessionStatus = 'running' | 'completed' | 'failed' | 'paused' | 'cancelled';
+export type AgentSessionStatus =
+  | "running"
+  | "completed"
+  | "failed"
+  | "paused"
+  | "cancelled";
 
 export interface LoopIteration {
   iteration: number;

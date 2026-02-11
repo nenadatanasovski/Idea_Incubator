@@ -153,11 +153,15 @@ export class TelegramReceiver extends EventEmitter {
     const offset = this.offsets.get(bot.agentType) || 0;
     const url = `https://api.telegram.org/bot${bot.token}/getUpdates`;
 
-    const data = await httpsPostIPv4(url, {
-      offset,
-      timeout: 30, // Long polling timeout in seconds
-      allowed_updates: ["message", "callback_query"],
-    }, 35000); // 35s timeout to account for 30s long poll
+    const data = await httpsPostIPv4(
+      url,
+      {
+        offset,
+        timeout: 30, // Long polling timeout in seconds
+        allowed_updates: ["message", "callback_query"],
+      },
+      35000,
+    ); // 35s timeout to account for 30s long poll
 
     if (data.ok) {
       return data.result as TelegramUpdate[];

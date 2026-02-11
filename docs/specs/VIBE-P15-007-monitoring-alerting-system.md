@@ -24,12 +24,14 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 5. **Deployment Status Dashboard** - Real-time visibility into monitoring health and alert status
 
 **Key Distinction from PHASE7-TASK-02**:
+
 - **Internal Monitoring** (PHASE7-TASK-02): Crown Agent, Monitoring Agent, agent heartbeats, task success rates, database-driven health checks
 - **External Monitoring** (This Task): Third-party service integration, HTTP/TCP uptime checks, Sentry error tracking, Datadog/Better Stack metrics, external alerting channels
 
 ### Current State
 
 **Existing Infrastructure** (from PHASE7-TASK-02):
+
 - ✅ Internal health endpoint `/health` with system metrics
 - ✅ Crown Agent monitoring loop (10-minute intervals)
 - ✅ Monitoring Agent with heartbeat tracking
@@ -38,6 +40,7 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 - ✅ `detected_issues` and `agent_heartbeats` tables
 
 **Missing Components** (this task):
+
 - ❌ HealthCheckManager class for external endpoint monitoring
 - ❌ HTTP/TCP health check protocols
 - ❌ Uptime Robot, Better Stack, or Datadog integration
@@ -53,6 +56,7 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 ### Functional Requirements
 
 **FR-1: HealthCheckManager Class**
+
 - Centralized management for external health check endpoints
 - Register health check targets: `registerEndpoint(name, url, protocol, interval, timeout)`
 - Support HTTP/HTTPS health checks (GET requests with status code validation)
@@ -64,6 +68,7 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 - Database persistence in `health_check_endpoints` table
 
 **FR-2: HTTP/HTTPS Health Check Protocol**
+
 - Execute periodic GET requests to registered endpoints
 - Validate HTTP status codes (200-299 = healthy, 400-499 = degraded, 500+ = down)
 - Support custom status code expectations (e.g., 201 for specific APIs)
@@ -74,6 +79,7 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 - Support custom headers (e.g., Authorization, API keys)
 
 **FR-3: TCP Health Check Protocol**
+
 - Open socket connection to host:port
 - Validate successful connection within timeout (default 5s)
 - Optionally send protocol-specific handshake (e.g., PostgreSQL startup message)
@@ -82,6 +88,7 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 - Support TLS socket connections (e.g., `postgres://` with SSL)
 
 **FR-4: Uptime Monitoring Service Integration**
+
 - **Provider Support**: Uptime Robot, Better Stack (formerly Better Uptime), Datadog Synthetics
 - **Configuration**: Environment variables for API keys and monitor IDs
 - **Monitor Creation**: Auto-create monitors via API on first deployment
@@ -91,6 +98,7 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 - **Dashboard Display**: Show external monitor status in dashboard
 
 **FR-5: Sentry Error Tracking Integration**
+
 - **SDK Setup**: Initialize `@sentry/node` in orchestrator and dashboard
 - **Auto-Configuration**: Environment variable `SENTRY_DSN` for project connection
 - **Error Capture**: Automatic exception capture with stack traces
@@ -102,6 +110,7 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 - **Custom Events**: Manual error reporting via `Sentry.captureException()`
 
 **FR-6: Performance Metrics Collection**
+
 - **Response Time Tracking**: Measure and log API endpoint latency (p50, p95, p99)
 - **Error Rate Calculation**: Track 4xx and 5xx error rates per endpoint
 - **Database Query Performance**: Log slow queries (>500ms) with query text
@@ -112,6 +121,7 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 - **Aggregation**: Calculate hourly/daily averages for trending
 
 **FR-7: Multi-Channel Alert Configuration**
+
 - **Slack Webhooks**: Send alert messages to Slack channels via incoming webhooks
 - **Email Alerts**: SMTP-based email notifications with HTML templates
 - **PagerDuty Integration**: Create incidents via Events API v2
@@ -122,6 +132,7 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 - **Escalation Policies**: Auto-escalate unacknowledged critical alerts after 15 minutes
 
 **FR-8: Deployment Status Dashboard Data Provider**
+
 - **API Endpoint**: `GET /api/monitoring/status` - returns comprehensive monitoring health
 - **Response Data**:
   - Health check endpoint statuses (name, URL, status, last check, response time)
@@ -136,6 +147,7 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 ### Non-Functional Requirements
 
 **NFR-1: Reliability**
+
 - Health check failures don't crash the orchestrator
 - Retry logic with exponential backoff (3 attempts: 0s, 5s, 15s)
 - Graceful degradation if external services unavailable
@@ -144,6 +156,7 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 - Timeout handling for all network requests (max 30s)
 
 **NFR-2: Performance**
+
 - Health checks execute in parallel (Promise.all)
 - Maximum 100 concurrent health checks
 - Webhook processing completes in <100ms (defer heavy work to queue)
@@ -152,6 +165,7 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 - Database queries use indexes for time-range lookups
 
 **NFR-3: Security**
+
 - API keys stored in environment variables (never hardcoded)
 - Webhook endpoints validate signatures (Slack, PagerDuty, Uptime Robot)
 - HTTPS-only for external API calls
@@ -160,6 +174,7 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 - Access control: Admin-only API endpoints for monitor configuration
 
 **NFR-4: Observability**
+
 - All health checks logged with timestamp, duration, and result
 - Failed health checks logged with error details
 - Alert delivery success/failure logged
@@ -168,6 +183,7 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 - Health check metrics exposed via Prometheus (if enabled)
 
 **NFR-5: Maintainability**
+
 - HealthCheckManager supports pluggable check types (easy to add new protocols)
 - Alert channels defined declaratively in configuration
 - Monitor definitions stored in database for runtime updates
@@ -274,19 +290,20 @@ The Parent Harness orchestrates 12+ autonomous AI agents executing complex softw
 **Location**: `parent-harness/orchestrator/src/monitoring/health-check-manager.ts`
 
 **Class Interface**:
+
 ```typescript
 export interface HealthCheckEndpoint {
   id: string;
   name: string;
   url: string;
-  protocol: 'http' | 'https' | 'tcp' | 'custom';
-  method?: 'GET' | 'POST' | 'HEAD';
+  protocol: "http" | "https" | "tcp" | "custom";
+  method?: "GET" | "POST" | "HEAD";
   interval_ms: number;
   timeout_ms: number;
   expected_status?: number;
   expected_body?: string; // regex pattern
   headers?: Record<string, string>;
-  status: 'healthy' | 'degraded' | 'down' | 'unknown';
+  status: "healthy" | "degraded" | "down" | "unknown";
   last_check: string | null;
   last_response_time_ms: number | null;
   consecutive_failures: number;
@@ -297,7 +314,7 @@ export interface HealthCheckEndpoint {
 export interface HealthCheckResult {
   endpoint_id: string;
   checked_at: string;
-  status: 'success' | 'failure';
+  status: "success" | "failure";
   response_time_ms: number;
   http_status?: number;
   error_message?: string;
@@ -308,11 +325,19 @@ export class HealthCheckManager {
   constructor(db: Database, config?: HealthCheckConfig);
 
   // Endpoint management
-  registerEndpoint(endpoint: Omit<HealthCheckEndpoint, 'id' | 'status' | 'last_check' | 'created_at' | 'updated_at'>): Promise<HealthCheckEndpoint>;
+  registerEndpoint(
+    endpoint: Omit<
+      HealthCheckEndpoint,
+      "id" | "status" | "last_check" | "created_at" | "updated_at"
+    >,
+  ): Promise<HealthCheckEndpoint>;
   unregisterEndpoint(id: string): Promise<void>;
   getEndpoint(id: string): Promise<HealthCheckEndpoint | null>;
   listEndpoints(): Promise<HealthCheckEndpoint[]>;
-  updateEndpoint(id: string, updates: Partial<HealthCheckEndpoint>): Promise<void>;
+  updateEndpoint(
+    id: string,
+    updates: Partial<HealthCheckEndpoint>,
+  ): Promise<void>;
 
   // Health checks
   executeCheck(endpoint: HealthCheckEndpoint): Promise<HealthCheckResult>;
@@ -321,15 +346,23 @@ export class HealthCheckManager {
   stopPeriodicChecks(): void;
 
   // Status queries
-  getEndpointStatus(id: string): Promise<'healthy' | 'degraded' | 'down'>;
+  getEndpointStatus(id: string): Promise<"healthy" | "degraded" | "down">;
   getSystemUptime(windowMs: number): Promise<number>; // percentage
 
   // Event handlers
-  on(event: 'check:success' | 'check:failure' | 'endpoint:down' | 'endpoint:recovered', handler: (data: unknown) => void): void;
+  on(
+    event:
+      | "check:success"
+      | "check:failure"
+      | "endpoint:down"
+      | "endpoint:recovered",
+    handler: (data: unknown) => void,
+  ): void;
 }
 ```
 
 **HTTP/HTTPS Check Implementation**:
+
 ```typescript
 private async executeHttpCheck(endpoint: HealthCheckEndpoint): Promise<HealthCheckResult> {
   const startTime = Date.now();
@@ -379,6 +412,7 @@ private async executeHttpCheck(endpoint: HealthCheckEndpoint): Promise<HealthChe
 ```
 
 **TCP Check Implementation**:
+
 ```typescript
 private async executeTcpCheck(endpoint: HealthCheckEndpoint): Promise<HealthCheckResult> {
   const startTime = Date.now();
@@ -440,11 +474,12 @@ private async executeTcpCheck(endpoint: HealthCheckEndpoint): Promise<HealthChec
 **Location**: `parent-harness/orchestrator/src/monitoring/integrations/`
 
 **Uptime Robot Client**:
+
 ```typescript
 // integrations/uptime-robot.ts
 export class UptimeRobotClient {
   private apiKey: string;
-  private baseUrl = 'https://api.uptimerobot.com/v2';
+  private baseUrl = "https://api.uptimerobot.com/v2";
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -457,37 +492,39 @@ export class UptimeRobotClient {
     interval: number; // seconds
   }): Promise<{ id: string; status: number }> {
     const response = await fetch(`${this.baseUrl}/newMonitor`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         api_key: this.apiKey,
-        format: 'json',
+        format: "json",
         ...config,
       }),
     });
 
     const data = await response.json();
-    if (data.stat !== 'ok') {
+    if (data.stat !== "ok") {
       throw new Error(`Uptime Robot API error: ${data.error?.message}`);
     }
 
     return data.monitor;
   }
 
-  async getMonitors(): Promise<Array<{
-    id: string;
-    friendly_name: string;
-    url: string;
-    status: number; // 0=paused, 1=not checked, 2=up, 8=seems down, 9=down
-    response_time: number;
-    uptime_ratio: string;
-  }>> {
+  async getMonitors(): Promise<
+    Array<{
+      id: string;
+      friendly_name: string;
+      url: string;
+      status: number; // 0=paused, 1=not checked, 2=up, 8=seems down, 9=down
+      response_time: number;
+      uptime_ratio: string;
+    }>
+  > {
     const response = await fetch(`${this.baseUrl}/getMonitors`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         api_key: this.apiKey,
-        format: 'json',
+        format: "json",
         response_times: 1,
       }),
     });
@@ -498,11 +535,11 @@ export class UptimeRobotClient {
 
   async deleteMonitor(id: string): Promise<void> {
     await fetch(`${this.baseUrl}/deleteMonitor`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         api_key: this.apiKey,
-        format: 'json',
+        format: "json",
         id,
       }),
     });
@@ -511,11 +548,12 @@ export class UptimeRobotClient {
 ```
 
 **Better Stack Client** (similar pattern):
+
 ```typescript
 // integrations/better-stack.ts
 export class BetterStackClient {
   private apiKey: string;
-  private baseUrl = 'https://uptime.betterstack.com/api/v2';
+  private baseUrl = "https://uptime.betterstack.com/api/v2";
 
   // Similar methods: createMonitor, getMonitors, deleteMonitor
   // API docs: https://betterstack.com/docs/uptime/api/monitors/
@@ -523,12 +561,13 @@ export class BetterStackClient {
 ```
 
 **Datadog Client**:
+
 ```typescript
 // integrations/datadog.ts
 export class DatadogClient {
   private apiKey: string;
   private appKey: string;
-  private baseUrl = 'https://api.datadoghq.com/api/v1';
+  private baseUrl = "https://api.datadoghq.com/api/v1";
 
   // Methods: createSyntheticTest, getSyntheticTests, updateTest
   // API docs: https://docs.datadoghq.com/api/latest/synthetics/
@@ -540,25 +579,26 @@ export class DatadogClient {
 **Location**: `parent-harness/orchestrator/src/monitoring/sentry-setup.ts`
 
 **Initialization**:
+
 ```typescript
-import * as Sentry from '@sentry/node';
-import { ProfilingIntegration } from '@sentry/profiling-node';
+import * as Sentry from "@sentry/node";
+import { ProfilingIntegration } from "@sentry/profiling-node";
 
 export function initSentry(): void {
   const dsn = process.env.SENTRY_DSN;
 
   if (!dsn) {
-    console.log('[Sentry] DSN not configured, skipping initialization');
+    console.log("[Sentry] DSN not configured, skipping initialization");
     return;
   }
 
   Sentry.init({
     dsn,
-    environment: process.env.NODE_ENV || 'development',
-    release: process.env.GIT_COMMIT || 'unknown',
+    environment: process.env.NODE_ENV || "development",
+    release: process.env.GIT_COMMIT || "unknown",
 
     // Performance monitoring
-    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+    tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
     profilesSampleRate: 0.1,
 
     integrations: [
@@ -568,17 +608,16 @@ export function initSentry(): void {
     ],
 
     // Ignore expected errors
-    ignoreErrors: [
-      /ECONNRESET/,
-      /ENOTFOUND/,
-      /Task timeout/,
-    ],
+    ignoreErrors: [/ECONNRESET/, /ENOTFOUND/, /Task timeout/],
 
     // Enrich error context
     beforeSend(event, hint) {
       // Add custom context from agent execution
       if (hint.originalException) {
-        const error = hint.originalException as Error & { agentId?: string; taskId?: string };
+        const error = hint.originalException as Error & {
+          agentId?: string;
+          taskId?: string;
+        };
         if (error.agentId) {
           event.tags = { ...event.tags, agentId: error.agentId };
         }
@@ -590,7 +629,7 @@ export function initSentry(): void {
     },
   });
 
-  console.log('[Sentry] Initialized with release:', process.env.GIT_COMMIT);
+  console.log("[Sentry] Initialized with release:", process.env.GIT_COMMIT);
 }
 
 // Express middleware for request tracking
@@ -600,11 +639,12 @@ export const sentryErrorHandler = Sentry.Handlers.errorHandler();
 ```
 
 **Usage in Agent Code**:
+
 ```typescript
-import * as Sentry from '@sentry/node';
+import * as Sentry from "@sentry/node";
 
 // Enrich context during agent execution
-Sentry.setContext('agent', {
+Sentry.setContext("agent", {
   id: agent.id,
   type: agent.type,
   sessionId: session.id,
@@ -613,9 +653,9 @@ Sentry.setContext('agent', {
 
 // Add breadcrumbs for phase transitions
 Sentry.addBreadcrumb({
-  category: 'agent',
+  category: "agent",
   message: `Phase started: ${phaseName}`,
-  level: 'info',
+  level: "info",
   data: { phase: phaseName, agentId: agent.id },
 });
 
@@ -636,13 +676,14 @@ try {
 **Location**: `parent-harness/orchestrator/src/monitoring/performance-collector.ts`
 
 **Express Middleware**:
+
 ```typescript
 export function performanceTracking(db: Database) {
   return async (req: Request, res: Response, next: NextFunction) => {
     const startTime = Date.now();
 
     // Track response
-    res.on('finish', async () => {
+    res.on("finish", async () => {
       const duration = Date.now() - startTime;
 
       await db.run(
@@ -655,14 +696,16 @@ export function performanceTracking(db: Database) {
           JSON.stringify({
             method: req.method,
             status_code: res.statusCode,
-            user_agent: req.headers['user-agent'],
+            user_agent: req.headers["user-agent"],
           }),
-        ]
+        ],
       );
 
       // Flag slow requests
       if (duration > 2000) {
-        console.warn(`[Performance] Slow request: ${req.method} ${req.path} (${duration}ms)`);
+        console.warn(
+          `[Performance] Slow request: ${req.method} ${req.path} (${duration}ms)`,
+        );
       }
     });
 
@@ -672,26 +715,29 @@ export function performanceTracking(db: Database) {
 ```
 
 **Database Query Interceptor**:
+
 ```typescript
 export function wrapDatabaseWithMetrics(db: Database): Database {
   const originalRun = db.run.bind(db);
   const originalGet = db.get.bind(db);
   const originalAll = db.all.bind(db);
 
-  db.run = async function(sql: string, params?: unknown[]) {
+  db.run = async function (sql: string, params?: unknown[]) {
     const start = Date.now();
     try {
       return await originalRun(sql, params);
     } finally {
       const duration = Date.now() - start;
       if (duration > 500) {
-        console.warn(`[Database] Slow query (${duration}ms): ${sql.substring(0, 100)}`);
+        console.warn(
+          `[Database] Slow query (${duration}ms): ${sql.substring(0, 100)}`,
+        );
 
         // Log to performance_metrics table
         await originalRun(
           `INSERT INTO performance_metrics (id, metric_type, metric_key, value, recorded_at, metadata)
            VALUES (?, 'slow_query', 'database', ?, datetime('now'), ?)`,
-          [uuidv4(), duration, JSON.stringify({ sql: sql.substring(0, 200) })]
+          [uuidv4(), duration, JSON.stringify({ sql: sql.substring(0, 200) })],
         );
       }
     }
@@ -708,27 +754,28 @@ export function wrapDatabaseWithMetrics(db: Database): Database {
 **Location**: `parent-harness/orchestrator/src/monitoring/alert-manager.ts`
 
 **Alert Routing**:
+
 ```typescript
 export interface AlertRule {
-  severity: 'info' | 'warning' | 'error' | 'critical';
-  channels: Array<'slack' | 'email' | 'pagerduty' | 'telegram'>;
+  severity: "info" | "warning" | "error" | "critical";
+  channels: Array<"slack" | "email" | "pagerduty" | "telegram">;
   cooldown_ms: number;
 }
 
 const ALERT_ROUTING: Record<string, AlertRule> = {
-  'endpoint_down': {
-    severity: 'critical',
-    channels: ['pagerduty', 'slack', 'telegram'],
+  endpoint_down: {
+    severity: "critical",
+    channels: ["pagerduty", "slack", "telegram"],
     cooldown_ms: 15 * 60 * 1000, // 15 minutes
   },
-  'slow_response': {
-    severity: 'warning',
-    channels: ['slack'],
+  slow_response: {
+    severity: "warning",
+    channels: ["slack"],
     cooldown_ms: 60 * 60 * 1000, // 1 hour
   },
-  'high_error_rate': {
-    severity: 'error',
-    channels: ['slack', 'telegram'],
+  high_error_rate: {
+    severity: "error",
+    channels: ["slack", "telegram"],
     cooldown_ms: 30 * 60 * 1000, // 30 minutes
   },
 };
@@ -743,27 +790,36 @@ export class AlertManager {
 
   private registerNotifiers(): void {
     if (process.env.SLACK_WEBHOOK_URL) {
-      this.notifiers.set('slack', new SlackNotifier(process.env.SLACK_WEBHOOK_URL));
+      this.notifiers.set(
+        "slack",
+        new SlackNotifier(process.env.SLACK_WEBHOOK_URL),
+      );
     }
     if (process.env.PAGERDUTY_INTEGRATION_KEY) {
-      this.notifiers.set('pagerduty', new PagerDutyNotifier(process.env.PAGERDUTY_INTEGRATION_KEY));
+      this.notifiers.set(
+        "pagerduty",
+        new PagerDutyNotifier(process.env.PAGERDUTY_INTEGRATION_KEY),
+      );
     }
     if (process.env.SMTP_HOST) {
-      this.notifiers.set('email', new EmailNotifier({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || '587', 10),
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      }));
+      this.notifiers.set(
+        "email",
+        new EmailNotifier({
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || "587", 10),
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        }),
+      );
     }
     // Telegram already configured in existing system
-    this.notifiers.set('telegram', new TelegramNotifier());
+    this.notifiers.set("telegram", new TelegramNotifier());
   }
 
   async sendAlert(
     alertType: string,
     message: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): Promise<void> {
     const rule = ALERT_ROUTING[alertType];
     if (!rule) {
@@ -798,9 +854,9 @@ export class AlertManager {
         await this.db.run(
           `INSERT INTO alert_deliveries (id, alert_type, channel, status, delivered_at)
            VALUES (?, ?, ?, 'success', datetime('now'))`,
-          [uuidv4(), alertType, channel]
+          [uuidv4(), alertType, channel],
         );
-      })
+      }),
     );
 
     // Update last alert timestamp
@@ -808,8 +864,11 @@ export class AlertManager {
 
     // Log failures
     deliveries.forEach((result, idx) => {
-      if (result.status === 'rejected') {
-        console.error(`[AlertManager] Failed to send to ${rule.channels[idx]}:`, result.reason);
+      if (result.status === "rejected") {
+        console.error(
+          `[AlertManager] Failed to send to ${rule.channels[idx]}:`,
+          result.reason,
+        );
       }
     });
   }
@@ -817,34 +876,39 @@ export class AlertManager {
 ```
 
 **Slack Notifier**:
+
 ```typescript
 class SlackNotifier implements AlertNotifier {
   constructor(private webhookUrl: string) {}
 
   async send(alert: Alert): Promise<void> {
     const color = {
-      info: '#36a64f',
-      warning: '#ff9800',
-      error: '#f44336',
-      critical: '#9c27b0',
+      info: "#36a64f",
+      warning: "#ff9800",
+      error: "#f44336",
+      critical: "#9c27b0",
     }[alert.severity];
 
     await fetch(this.webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        attachments: [{
-          color,
-          title: alert.title,
-          text: alert.message,
-          fields: Object.entries(alert.metadata || {}).map(([key, value]) => ({
-            title: key,
-            value: String(value),
-            short: true,
-          })),
-          footer: 'Vibe Monitoring',
-          ts: Math.floor(Date.now() / 1000),
-        }],
+        attachments: [
+          {
+            color,
+            title: alert.title,
+            text: alert.message,
+            fields: Object.entries(alert.metadata || {}).map(
+              ([key, value]) => ({
+                title: key,
+                value: String(value),
+                short: true,
+              }),
+            ),
+            footer: "Vibe Monitoring",
+            ts: Math.floor(Date.now() / 1000),
+          },
+        ],
       }),
     });
   }
@@ -852,24 +916,30 @@ class SlackNotifier implements AlertNotifier {
 ```
 
 **PagerDuty Notifier**:
+
 ```typescript
 class PagerDutyNotifier implements AlertNotifier {
   constructor(private integrationKey: string) {}
 
   async send(alert: Alert): Promise<void> {
-    const severityMap = { info: 'info', warning: 'warning', error: 'error', critical: 'critical' };
+    const severityMap = {
+      info: "info",
+      warning: "warning",
+      error: "error",
+      critical: "critical",
+    };
 
-    await fetch('https://events.pagerduty.com/v2/enqueue', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    await fetch("https://events.pagerduty.com/v2/enqueue", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         routing_key: this.integrationKey,
-        event_action: 'trigger',
-        dedup_key: `vibe-${alert.title}-${new Date().toISOString().split('T')[0]}`,
+        event_action: "trigger",
+        dedup_key: `vibe-${alert.title}-${new Date().toISOString().split("T")[0]}`,
         payload: {
           summary: alert.title,
           severity: severityMap[alert.severity],
-          source: 'vibe-orchestrator',
+          source: "vibe-orchestrator",
           custom_details: alert.metadata,
         },
       }),
@@ -978,6 +1048,7 @@ CREATE INDEX idx_alert_deliveries_channel ON alert_deliveries(channel, delivered
 #### 7. API Endpoints
 
 **Monitoring Status Endpoint**:
+
 ```typescript
 // src/api/monitoring.ts
 export const monitoringRouter = Router();
@@ -986,18 +1057,18 @@ export const monitoringRouter = Router();
  * GET /api/monitoring/status
  * Returns comprehensive monitoring health
  */
-monitoringRouter.get('/status', async (req, res) => {
+monitoringRouter.get("/status", async (req, res) => {
   const db = getDb();
   const healthCheckManager = getHealthCheckManager();
 
   // Get health check endpoint statuses
   const endpoints = await db.all<HealthCheckEndpoint>(
-    `SELECT * FROM health_check_endpoints ORDER BY last_check DESC`
+    `SELECT * FROM health_check_endpoints ORDER BY last_check DESC`,
   );
 
   // Get external monitor statuses
   const externalMonitors = await db.all<ExternalMonitor>(
-    `SELECT * FROM external_monitors ORDER BY last_sync DESC`
+    `SELECT * FROM external_monitors ORDER BY last_sync DESC`,
   );
 
   // Get recent errors from Sentry (if configured)
@@ -1006,29 +1077,33 @@ monitoringRouter.get('/status', async (req, res) => {
   // Calculate performance metrics (last hour)
   const avgResponseTime = await db.get<{ avg: number }>(
     `SELECT AVG(value) as avg FROM performance_metrics
-     WHERE metric_type = 'response_time' AND recorded_at >= datetime('now', '-1 hour')`
+     WHERE metric_type = 'response_time' AND recorded_at >= datetime('now', '-1 hour')`,
   );
 
   const errorRate = await db.get<{ rate: number }>(
     `SELECT
        COUNT(CASE WHEN value >= 400 THEN 1 END) * 100.0 / COUNT(*) as rate
      FROM performance_metrics
-     WHERE metric_type = 'response_time' AND recorded_at >= datetime('now', '-1 hour')`
+     WHERE metric_type = 'response_time' AND recorded_at >= datetime('now', '-1 hour')`,
   );
 
   // Get active alerts
   const activeAlerts = await db.all(
-    `SELECT * FROM detected_issues WHERE resolved = 0 ORDER BY detected_at DESC LIMIT 10`
+    `SELECT * FROM detected_issues WHERE resolved = 0 ORDER BY detected_at DESC LIMIT 10`,
   );
 
   // Calculate uptime percentage
-  const uptime24h = await healthCheckManager.getSystemUptime(24 * 60 * 60 * 1000);
-  const uptime7d = await healthCheckManager.getSystemUptime(7 * 24 * 60 * 60 * 1000);
+  const uptime24h = await healthCheckManager.getSystemUptime(
+    24 * 60 * 60 * 1000,
+  );
+  const uptime7d = await healthCheckManager.getSystemUptime(
+    7 * 24 * 60 * 60 * 1000,
+  );
 
   res.json({
     success: true,
     data: {
-      health_checks: endpoints.map(e => ({
+      health_checks: endpoints.map((e) => ({
         id: e.id,
         name: e.name,
         url: e.url,
@@ -1036,7 +1111,7 @@ monitoringRouter.get('/status', async (req, res) => {
         last_check: e.last_check,
         response_time_ms: e.last_response_time_ms,
       })),
-      external_monitors: externalMonitors.map(m => ({
+      external_monitors: externalMonitors.map((m) => ({
         provider: m.provider,
         name: m.name,
         status: m.status,
@@ -1061,7 +1136,7 @@ monitoringRouter.get('/status', async (req, res) => {
  * POST /api/monitoring/endpoints
  * Register a new health check endpoint
  */
-monitoringRouter.post('/endpoints', async (req, res) => {
+monitoringRouter.post("/endpoints", async (req, res) => {
   const healthCheckManager = getHealthCheckManager();
 
   try {
@@ -1070,7 +1145,7 @@ monitoringRouter.post('/endpoints', async (req, res) => {
   } catch (error) {
     res.status(400).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Registration failed'
+      error: error instanceof Error ? error.message : "Registration failed",
     });
   }
 });
@@ -1079,7 +1154,7 @@ monitoringRouter.post('/endpoints', async (req, res) => {
  * DELETE /api/monitoring/endpoints/:id
  * Unregister a health check endpoint
  */
-monitoringRouter.delete('/endpoints/:id', async (req, res) => {
+monitoringRouter.delete("/endpoints/:id", async (req, res) => {
   const healthCheckManager = getHealthCheckManager();
 
   await healthCheckManager.unregisterEndpoint(req.params.id);
@@ -1088,6 +1163,7 @@ monitoringRouter.delete('/endpoints/:id', async (req, res) => {
 ```
 
 **Webhook Endpoints**:
+
 ```typescript
 // src/api/webhooks.ts
 export const webhooksRouter = Router();
@@ -1096,17 +1172,24 @@ export const webhooksRouter = Router();
  * POST /webhooks/uptime-robot
  * Uptime Robot incident webhook
  */
-webhooksRouter.post('/uptime-robot', async (req, res) => {
+webhooksRouter.post("/uptime-robot", async (req, res) => {
   // Verify webhook signature if configured
   // Process incident data
-  const { monitorID, monitorURL, monitorFriendlyName, alertType, alertDetails } = req.body;
+  const {
+    monitorID,
+    monitorURL,
+    monitorFriendlyName,
+    alertType,
+    alertDetails,
+  } = req.body;
 
   const alertManager = getAlertManager();
 
-  if (alertType === 'down') {
-    await alertManager.sendAlert('endpoint_down',
+  if (alertType === "down") {
+    await alertManager.sendAlert(
+      "endpoint_down",
       `Monitor ${monitorFriendlyName} is DOWN: ${alertDetails}`,
-      { monitorURL, monitorID }
+      { monitorURL, monitorID },
     );
   }
 
@@ -1117,7 +1200,7 @@ webhooksRouter.post('/uptime-robot', async (req, res) => {
  * POST /webhooks/better-stack
  * Better Stack alert webhook
  */
-webhooksRouter.post('/better-stack', async (req, res) => {
+webhooksRouter.post("/better-stack", async (req, res) => {
   // Similar to Uptime Robot
   res.status(200).json({ received: true });
 });
@@ -1126,7 +1209,7 @@ webhooksRouter.post('/better-stack', async (req, res) => {
  * POST /webhooks/datadog
  * Datadog monitor webhook
  */
-webhooksRouter.post('/datadog', async (req, res) => {
+webhooksRouter.post("/datadog", async (req, res) => {
   // Similar pattern
   res.status(200).json({ received: true });
 });
@@ -1137,15 +1220,15 @@ webhooksRouter.post('/datadog', async (req, res) => {
 **Location**: `parent-harness/dashboard/src/components/MonitoringStatusWidget.tsx`
 
 ```tsx
-import React, { useEffect, useState } from 'react';
-import { useWebSocket } from '../hooks/useWebSocket';
+import React, { useEffect, useState } from "react";
+import { useWebSocket } from "../hooks/useWebSocket";
 
 interface MonitoringStatus {
   health_checks: Array<{
     id: string;
     name: string;
     url: string;
-    status: 'healthy' | 'degraded' | 'down';
+    status: "healthy" | "degraded" | "down";
     last_check: string | null;
     response_time_ms: number | null;
   }>;
@@ -1177,23 +1260,23 @@ export function MonitoringStatusWidget() {
 
   useEffect(() => {
     // Fetch initial status
-    fetch('/api/monitoring/status')
-      .then(res => res.json())
-      .then(data => setStatus(data.data));
+    fetch("/api/monitoring/status")
+      .then((res) => res.json())
+      .then((data) => setStatus(data.data));
 
     // Subscribe to WebSocket updates
-    const ws = new WebSocket('ws://localhost:3333/ws');
+    const ws = new WebSocket("ws://localhost:3333/ws");
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      if (data.type === 'monitoring:status') {
+      if (data.type === "monitoring:status") {
         setStatus(data.payload);
       }
     };
 
     const interval = setInterval(() => {
-      fetch('/api/monitoring/status')
-        .then(res => res.json())
-        .then(data => setStatus(data.data));
+      fetch("/api/monitoring/status")
+        .then((res) => res.json())
+        .then((data) => setStatus(data.data));
     }, 30000); // Refresh every 30s
 
     return () => {
@@ -1237,7 +1320,7 @@ export function MonitoringStatusWidget() {
             </tr>
           </thead>
           <tbody>
-            {status.health_checks.map(check => (
+            {status.health_checks.map((check) => (
               <tr key={check.id}>
                 <td>{check.name}</td>
                 <td>{check.url}</td>
@@ -1246,8 +1329,14 @@ export function MonitoringStatusWidget() {
                     {check.status}
                   </span>
                 </td>
-                <td>{check.response_time_ms ? `${check.response_time_ms}ms` : '-'}</td>
-                <td>{check.last_check ? new Date(check.last_check).toLocaleString() : '-'}</td>
+                <td>
+                  {check.response_time_ms ? `${check.response_time_ms}ms` : "-"}
+                </td>
+                <td>
+                  {check.last_check
+                    ? new Date(check.last_check).toLocaleString()
+                    : "-"}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -1263,7 +1352,9 @@ export function MonitoringStatusWidget() {
               <div className="provider">{monitor.provider}</div>
               <div className="name">{monitor.name}</div>
               <div className={`status ${monitor.status}`}>{monitor.status}</div>
-              <div className="uptime">{monitor.uptime_percentage.toFixed(2)}% uptime</div>
+              <div className="uptime">
+                {monitor.uptime_percentage.toFixed(2)}% uptime
+              </div>
             </div>
           ))}
         </div>
@@ -1275,11 +1366,15 @@ export function MonitoringStatusWidget() {
         <div className="metrics-grid">
           <div className="metric-card">
             <span className="label">Avg Response Time</span>
-            <span className="value">{status.performance.avg_response_time_ms.toFixed(0)}ms</span>
+            <span className="value">
+              {status.performance.avg_response_time_ms.toFixed(0)}ms
+            </span>
           </div>
           <div className="metric-card">
             <span className="label">Error Rate</span>
-            <span className="value">{status.performance.error_rate_percentage.toFixed(2)}%</span>
+            <span className="value">
+              {status.performance.error_rate_percentage.toFixed(2)}%
+            </span>
           </div>
         </div>
       </div>
@@ -1289,11 +1384,13 @@ export function MonitoringStatusWidget() {
         <div className="recent-errors">
           <h3>Recent Errors (from Sentry)</h3>
           <ul>
-            {status.recent_errors.map(error => (
+            {status.recent_errors.map((error) => (
               <li key={error.id}>
                 <span className="message">{error.message}</span>
                 <span className="count">({error.count}x)</span>
-                <span className="time">{new Date(error.last_seen).toLocaleString()}</span>
+                <span className="time">
+                  {new Date(error.last_seen).toLocaleString()}
+                </span>
               </li>
             ))}
           </ul>
@@ -1311,6 +1408,7 @@ export function MonitoringStatusWidget() {
 ### Functional Validation
 
 **PC-1: HealthCheckManager Class Exists**
+
 - [ ] `HealthCheckManager` class exported from `src/monitoring/health-check-manager.ts`
 - [ ] Methods: `registerEndpoint`, `unregisterEndpoint`, `executeCheck`, `executeAllChecks`, `startPeriodicChecks`, `stopPeriodicChecks`
 - [ ] Event emitters: `check:success`, `check:failure`, `endpoint:down`, `endpoint:recovered`
@@ -1318,6 +1416,7 @@ export function MonitoringStatusWidget() {
 - [ ] Status calculation: healthy (0 failures), degraded (1-2 failures), down (3+ failures)
 
 **PC-2: HTTP and TCP Health Checks Implemented**
+
 - [ ] HTTP/HTTPS checks support GET, POST, HEAD methods
 - [ ] HTTP checks validate status codes (200-299 = success)
 - [ ] HTTP checks support custom expected status codes
@@ -1328,6 +1427,7 @@ export function MonitoringStatusWidget() {
 - [ ] Both protocols handle timeouts gracefully (no crashes)
 
 **PC-3: Uptime Monitoring Service Integration**
+
 - [ ] At least one provider client implemented (UptimeRobotClient or BetterStackClient)
 - [ ] `createMonitor()` method creates external monitors via API
 - [ ] `getMonitors()` method retrieves monitor status
@@ -1336,6 +1436,7 @@ export function MonitoringStatusWidget() {
 - [ ] Dashboard displays external monitor status
 
 **PC-4: Sentry Error Tracking Auto-Configuration**
+
 - [ ] `@sentry/node` SDK initialized in `src/monitoring/sentry-setup.ts`
 - [ ] Environment variable `SENTRY_DSN` configures Sentry project
 - [ ] Global error handlers capture unhandled exceptions
@@ -1345,6 +1446,7 @@ export function MonitoringStatusWidget() {
 - [ ] Performance transactions track API endpoint duration
 
 **PC-5: Performance Metrics Collection**
+
 - [ ] Express middleware tracks request response times
 - [ ] Response times stored in `performance_metrics` table
 - [ ] Database query interceptor logs slow queries (>500ms)
@@ -1353,6 +1455,7 @@ export function MonitoringStatusWidget() {
 - [ ] Metrics queryable via `/api/monitoring/status` endpoint
 
 **PC-6: Alert Webhook Configuration**
+
 - [ ] `AlertManager` class with `sendAlert()` method
 - [ ] Slack webhook integration via `SlackNotifier`
 - [ ] Email notifications via `EmailNotifier` (SMTP)
@@ -1363,6 +1466,7 @@ export function MonitoringStatusWidget() {
 - [ ] Alert delivery logged to `alert_deliveries` table
 
 **PC-7: Dashboard Data API for Deployment Status**
+
 - [ ] `GET /api/monitoring/status` endpoint returns monitoring overview
 - [ ] Response includes: health checks, external monitors, recent errors, performance, uptime
 - [ ] WebSocket event `monitoring:status` broadcasts status updates
@@ -1373,6 +1477,7 @@ export function MonitoringStatusWidget() {
 ### Non-Functional Validation
 
 **PC-8: Reliability**
+
 - [ ] Health check failures don't crash orchestrator (try/catch error handling)
 - [ ] Retry logic with exponential backoff (3 attempts: 0s, 5s, 15s)
 - [ ] Webhook endpoints respond 200 OK even if processing fails
@@ -1380,6 +1485,7 @@ export function MonitoringStatusWidget() {
 - [ ] Database write failures logged but don't block health checks
 
 **PC-9: Performance**
+
 - [ ] Health checks execute in parallel (Promise.all)
 - [ ] Dashboard status API responds in <500ms (p95)
 - [ ] Webhook processing completes in <100ms
@@ -1387,6 +1493,7 @@ export function MonitoringStatusWidget() {
 - [ ] Database queries use indexes (verify with `EXPLAIN QUERY PLAN`)
 
 **PC-10: Security**
+
 - [ ] API keys stored in environment variables (not hardcoded)
 - [ ] Webhook endpoints validate signatures (Slack, PagerDuty, Uptime Robot)
 - [ ] HTTPS-only for external API calls (no HTTP)
@@ -1394,6 +1501,7 @@ export function MonitoringStatusWidget() {
 - [ ] Rate limiting on webhook endpoints (100 req/min per IP)
 
 **PC-11: Observability**
+
 - [ ] All health checks logged with timestamp, duration, and result
 - [ ] Failed health checks logged with error details
 - [ ] Alert delivery success/failure logged to `alert_deliveries` table
@@ -1401,6 +1509,7 @@ export function MonitoringStatusWidget() {
 - [ ] Dashboard displays last sync time with external monitors
 
 **PC-12: Maintainability**
+
 - [ ] TypeScript compilation passes with no errors
 - [ ] Unit tests for health check logic (HTTP/TCP executors)
 - [ ] Integration tests for HealthCheckManager (mock HTTP server)
@@ -1533,6 +1642,7 @@ export function MonitoringStatusWidget() {
 ```
 
 ### Internal Dependencies
+
 - `orchestrator/src/db/index.ts` - Database connection
 - `orchestrator/src/alerts/index.ts` - Existing alert rules (extend with new types)
 - `server/communication/bot-registry.ts` - Telegram bot integration
@@ -1541,6 +1651,7 @@ export function MonitoringStatusWidget() {
 ### Configuration
 
 **Environment Variables** (`.env.example`):
+
 ```bash
 # Sentry Error Tracking
 SENTRY_DSN=https://abc123@o123456.ingest.sentry.io/7654321
@@ -1581,14 +1692,14 @@ HEALTH_CHECK_RETRY_ATTEMPTS=3
 
 ## Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| External service API rate limits | Medium | Medium | Cache results, respect rate limits, fallback to manual checks |
-| Webhook signature validation bypass | Low | High | Use cryptographic signature validation, log suspicious requests |
-| Alert fatigue from too many notifications | High | Medium | Implement cooldowns, severity-based routing, alert aggregation |
-| Sentry quota exhaustion | Medium | Low | Use sampling (10% for production), filter noisy errors |
-| Health check false positives during deployments | Medium | Low | Grace periods, maintenance mode flag, alert suppression |
-| External monitor misconfiguration | Low | Medium | Validate configuration on startup, test with dry-run mode |
+| Risk                                            | Likelihood | Impact | Mitigation                                                      |
+| ----------------------------------------------- | ---------- | ------ | --------------------------------------------------------------- |
+| External service API rate limits                | Medium     | Medium | Cache results, respect rate limits, fallback to manual checks   |
+| Webhook signature validation bypass             | Low        | High   | Use cryptographic signature validation, log suspicious requests |
+| Alert fatigue from too many notifications       | High       | Medium | Implement cooldowns, severity-based routing, alert aggregation  |
+| Sentry quota exhaustion                         | Medium     | Low    | Use sampling (10% for production), filter noisy errors          |
+| Health check false positives during deployments | Medium     | Low    | Grace periods, maintenance mode flag, alert suppression         |
+| External monitor misconfiguration               | Low        | Medium | Validate configuration on startup, test with dry-run mode       |
 
 ---
 
@@ -1608,57 +1719,62 @@ HEALTH_CHECK_RETRY_ATTEMPTS=3
 **Location**: `parent-harness/orchestrator/tests/integration/monitoring.test.ts`
 
 ```typescript
-describe('Monitoring System Integration', () => {
-  it('registers health check endpoint and executes check', async () => {
+describe("Monitoring System Integration", () => {
+  it("registers health check endpoint and executes check", async () => {
     const manager = new HealthCheckManager(db);
     const endpoint = await manager.registerEndpoint({
-      name: 'Test API',
-      url: 'http://localhost:3333/health',
-      protocol: 'http',
+      name: "Test API",
+      url: "http://localhost:3333/health",
+      protocol: "http",
       interval_ms: 60000,
       timeout_ms: 5000,
     });
 
     const result = await manager.executeCheck(endpoint);
-    expect(result.status).toBe('success');
+    expect(result.status).toBe("success");
     expect(result.response_time_ms).toBeLessThan(1000);
   });
 
-  it('sends alert via Slack when endpoint goes down', async () => {
+  it("sends alert via Slack when endpoint goes down", async () => {
     // Mock fetch for Slack webhook
     const slackCalls: unknown[] = [];
     global.fetch = vi.fn().mockImplementation((url, options) => {
-      if (url.includes('slack.com')) {
+      if (url.includes("slack.com")) {
         slackCalls.push(options.body);
         return Promise.resolve({ ok: true });
       }
     });
 
     const alertManager = new AlertManager(db);
-    await alertManager.sendAlert('endpoint_down', 'API is down', { url: 'http://api.example.com' });
+    await alertManager.sendAlert("endpoint_down", "API is down", {
+      url: "http://api.example.com",
+    });
 
     expect(slackCalls).toHaveLength(1);
     expect(JSON.parse(slackCalls[0] as string)).toMatchObject({
-      attachments: [{ title: expect.stringContaining('endpoint_down') }],
+      attachments: [{ title: expect.stringContaining("endpoint_down") }],
     });
   });
 
-  it('syncs external monitors from Uptime Robot', async () => {
+  it("syncs external monitors from Uptime Robot", async () => {
     // Mock Uptime Robot API
     global.fetch = vi.fn().mockResolvedValue({
-      json: () => Promise.resolve({
-        stat: 'ok',
-        monitors: [{
-          id: '12345',
-          friendly_name: 'Test Monitor',
-          url: 'http://example.com',
-          status: 2, // up
-          uptime_ratio: '99.95',
-        }],
-      }),
+      json: () =>
+        Promise.resolve({
+          stat: "ok",
+          monitors: [
+            {
+              id: "12345",
+              friendly_name: "Test Monitor",
+              url: "http://example.com",
+              status: 2, // up
+              uptime_ratio: "99.95",
+            },
+          ],
+        }),
     });
 
-    const client = new UptimeRobotClient('test-api-key');
+    const client = new UptimeRobotClient("test-api-key");
     const monitors = await client.getMonitors();
 
     expect(monitors).toHaveLength(1);

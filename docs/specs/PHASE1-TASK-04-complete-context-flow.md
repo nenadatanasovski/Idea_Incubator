@@ -15,6 +15,7 @@ This specification documents the **already implemented** complete evaluation con
 ### Purpose
 
 Prior to Phase 1 completion, evaluators had access to only partial context:
+
 - **Problem & Solution evaluators**: Only received idea README content
 - **Market evaluator**: Missing web research findings and profile network context
 - **Feasibility evaluator**: Missing profile skills and time availability
@@ -22,6 +23,7 @@ Prior to Phase 1 completion, evaluators had access to only partial context:
 - **Fit evaluator**: Received full profile (correct behavior)
 
 This created **data flow gaps** where evaluators made assessments without complete information, leading to:
+
 - Low confidence scores (0.4-0.5) even when data was available
 - Generic reasoning that didn't cite specific evidence
 - Inconsistent scores across related criteria
@@ -30,6 +32,7 @@ This created **data flow gaps** where evaluators made assessments without comple
 ### Solution
 
 A unified context assembly system that:
+
 1. **Loads** all available context sources (idea content, development.md Q&A, profile, web research, strategic positioning)
 2. **Formats** context with category-specific filtering for token efficiency
 3. **Passes** complete context to each specialized evaluator via their prompt
@@ -42,6 +45,7 @@ A unified context assembly system that:
 ### Functional Requirements
 
 **FR1: Context Source Integration**
+
 - Load idea README content (baseline)
 - Load development.md content and append to idea content
 - Load structured Q&A answers from database (via dynamic questioning system)
@@ -52,12 +56,14 @@ A unified context assembly system that:
 **FR2: Category-Specific Context Formatting**
 
 For **Problem evaluators** (P1-P5):
+
 - Idea content (full)
 - Structured answers (problem category only)
 - No profile context (problem definition is objective)
 - No research context (internal problem clarity)
 
 For **Solution evaluators** (S1-S5):
+
 - Idea content (full)
 - Structured answers (solution category only)
 - Web research: Technology feasibility section
@@ -65,6 +71,7 @@ For **Solution evaluators** (S1-S5):
 - No profile context (solution quality is objective)
 
 For **Market evaluators** (M1-M5):
+
 - Idea content (full)
 - Structured answers (market category only)
 - Web research: Market size (local + global), competitors, trends, geographic analysis
@@ -72,6 +79,7 @@ For **Market evaluators** (M1-M5):
 - Strategic positioning: Selected strategy, timing decision, market opportunities
 
 For **Feasibility evaluators** (F1-F5):
+
 - Idea content (full)
 - Structured answers (feasibility category only)
 - Profile: Skills, time availability, skill gaps
@@ -79,6 +87,7 @@ For **Feasibility evaluators** (F1-F5):
 - No research context (internal capability assessment)
 
 For **Risk evaluators** (R1-R9):
+
 - Idea content (full)
 - Structured answers (risk category only)
 - Profile: Financial runway, risk tolerance, employment status, experience
@@ -86,6 +95,7 @@ For **Risk evaluators** (R1-R9):
 - No research context (internal risk assessment)
 
 For **Fit evaluators** (FT1-FT5):
+
 - Idea content (full)
 - Structured answers (fit category only)
 - Profile: Full profile (goals, passion, skills, network, life stage)
@@ -93,17 +103,20 @@ For **Fit evaluators** (FT1-FT5):
 - No strategic positioning (fit precedes strategy)
 
 **FR3: Context Assembly in Evaluation Pipeline**
+
 - Load context in `scripts/evaluate.ts` before evaluator invocation
 - Pass all context objects to `runAllSpecializedEvaluators()`
 - Format context in `agents/specialized-evaluators.ts` per category
 - Inject formatted context into evaluator prompts with clear section headers
 
 **FR4: Evidence-Based Reasoning**
+
 - Evaluators cite specific evidence from context in reasoning
 - Confidence scores reflect data availability (0.7-0.9 with complete data, 0.4-0.5 without)
 - Missing data explicitly noted in "Gaps Identified" section
 
 **FR5: Development.md Integration**
+
 - Include development.md content in idea content hash for staleness detection
 - Log when development.md is loaded to inform user
 - Append development.md as a section to idea content (not replace README)
@@ -111,16 +124,19 @@ For **Fit evaluators** (FT1-FT5):
 ### Non-Functional Requirements
 
 **NFR1: Performance**
+
 - Context assembly adds <500ms to evaluation time
 - Category filtering reduces token usage by 60-80% vs. full context dump
 - Parallel evaluator execution (6 categories simultaneously)
 
 **NFR2: Token Efficiency**
+
 - Only pass category-relevant profile excerpts (not full profile to all)
 - Only pass category-relevant research sections
 - Structured answers filtered by category via helper functions
 
 **NFR3: Maintainability**
+
 - Context formatting isolated in reusable utility functions
 - Clear separation: load (evaluate.ts) → format (specialized-evaluators.ts) → inject (prompt)
 - Schema types enforce context structure
@@ -204,7 +220,7 @@ if (!shouldSkipResearch()) {
     ideaContent,
     userClaims,
     costTracker,
-    creatorLocation
+    creatorLocation,
   );
 }
 
@@ -219,13 +235,13 @@ let strategicContext: StrategicPositioningContext | null = null;
 const v2Result = await runAllSpecializedEvaluators(
   slug,
   ideaData.id,
-  ideaContent,           // Includes development.md
+  ideaContent, // Includes development.md
   costTracker,
   broadcaster,
-  profileContext,        // User profile
-  structuredContext,     // Q&A answers
-  research,              // Web research
-  strategicContext,      // Positioning decisions
+  profileContext, // User profile
+  structuredContext, // Q&A answers
+  research, // Web research
+  strategicContext, // Positioning decisions
 );
 ```
 
@@ -245,7 +261,6 @@ export async function runSpecializedEvaluator(
   research?: ResearchResult | null,
   strategicContext?: StrategicPositioningContext | null,
 ): Promise<EvaluationResult[]> {
-
   // Format category-relevant profile excerpts
   const profileSection = formatProfileForCategory(
     profileContext ?? null,
@@ -290,6 +305,7 @@ ${profileSection}
 **Function:** `formatProfileForCategory(profile, category): string`
 
 **Category-Specific Logic:**
+
 - `feasibility`: Returns skills, time availability, skill gaps
 - `market`: Returns network context, community access, professional network
 - `risk`: Returns financial runway, risk tolerance, employment status, experience
@@ -297,6 +313,7 @@ ${profileSection}
 - `problem`, `solution`: Returns empty string (not needed)
 
 **Example Output (Feasibility):**
+
 ```markdown
 ## Creator Capabilities (for Feasibility Assessment)
 
@@ -318,15 +335,18 @@ build this solution. Consider their skills, time, and gaps when evaluating F1-F5
 **Function:** `formatResearchForCategory(research, category): string`
 
 **Category-Specific Logic:**
+
 - `market`: Returns market size (local + global), competitors, trends, geographic analysis, entry barriers
 - `solution`: Returns technology feasibility assessment, production examples
 - Others: Returns empty string
 
 **Example Output (Market - Geographic Analysis):**
+
 ```markdown
 ## External Research (Web Search Results)
 
 **Market Size (Global Overview):**
+
 - User claimed: $50M TAM
 - Verified: $127M TAM in 2024 (Gartner report)
 - Sources: https://gartner.com/...
@@ -334,30 +354,36 @@ build this solution. Consider their skills, time, and gaps when evaluating F1-F5
 ---
 
 ## Geographic Market Analysis
+
 **Creator Location:** Sydney, Australia
 
 ### LOCAL MARKET (Australia)
 
 **Local Market Size:**
+
 - TAM: $4.2M AUD (Australian wellness tech market)
 - SAM: $1.8M AUD (fitness tracking segment)
 - Sources: IBISWorld Australia 2024
 
 **Local Competitors:**
+
 - Key Players: Fitbit, Garmin, local startups (MyHealthTracker)
 - Competition Intensity: moderate
 
 **Local Entry Barriers:**
+
 - Regulatory: TGA approval for health claims (3-6 months)
 - Capital Requirements: Low (digital product)
 
 ### GLOBAL MARKET
 
 **Global Market Size:**
+
 - TAM: $127M USD (global fitness tracking)
 - Sources: Statista 2024
 
 **GEOGRAPHIC ANALYSIS INSTRUCTIONS:**
+
 1. Score each criterion considering BOTH local and global markets
 2. For M1 (Market Size): Report local TAM and global TAM separately
 3. In reasoning, structure as: "LOCAL: [analysis]. GLOBAL: [analysis]. OVERALL: [weighted assessment]"
@@ -372,16 +398,19 @@ build this solution. Consider their skills, time, and gaps when evaluating F1-F5
 **Excluded Categories:** `problem`, `fit` (strategic decisions come after these assessments)
 
 **Example Output:**
+
 ```markdown
 ## Strategic Positioning Context (User's Chosen Direction)
 
 ## Strategic Position
+
 **Selected Strategy:** Niche Specialization - Focus on enterprise wellness programs
 **Differentiators:** HIPAA compliance, advanced analytics, B2B pricing model
 
 **Strategic Approach:** Specialize - Focus on specific niche
 
 ## Market Timing
+
 **Decision:** proceed_now
 **Rationale:** Corporate wellness budgets increasing post-pandemic, market gap identified
 
@@ -394,11 +423,13 @@ positioning choices.
 **Function:** `formatStructuredDataForPrompt(context, category): string`
 
 **Category Filtering:**
+
 - Extracts only answers relevant to the evaluation category
 - Maps database answers to structured fields (e.g., `problem.core_problem`, `solution.description`)
 - Shows coverage percentage for that category
 
 **Example Output (Problem Category):**
+
 ```markdown
 ## Structured Development Answers (Problem Category)
 
@@ -417,6 +448,7 @@ Interviewed 25 users, 22 said they abandon calorie tracking apps within 2 weeks 
 manual entry friction.
 
 **Gaps Identified:**
+
 - Need more data on willingness to pay
 - Competitor analysis incomplete
 ```
@@ -430,6 +462,7 @@ manual entry friction.
 **Scenario:** Evaluate an idea with all context sources available
 
 **Setup:**
+
 - Idea: `ideas/test-wellness-tracker/`
 - Has: README.md, development.md (15 Q&A pairs)
 - Profile linked with skills, network, runway data
@@ -437,6 +470,7 @@ manual entry friction.
 - Strategic positioning: "Niche Specialization" selected
 
 **Expected Behavior:**
+
 1. `evaluate.ts` loads all 6 context sources
 2. Logs: "Loaded development.md - Q&A context included"
 3. Logs: "Found user profile - Personal Fit criteria will be evaluated with full context"
@@ -448,6 +482,7 @@ manual entry friction.
 9. Overall score: 7.5/10 (realistic, evidence-based)
 
 **Pass Criteria:**
+
 - ✅ All context sources loaded
 - ✅ development.md content appended to ideaContent
 - ✅ Profile excerpts appear in Feasibility, Market, Risk, Fit prompts
@@ -461,12 +496,14 @@ manual entry friction.
 **Scenario:** Evaluate an idea without linked profile
 
 **Setup:**
+
 - Idea: `ideas/test-ai-chatbot/`
 - Has: README.md, development.md
 - No profile linked
 - Web research available
 
 **Expected Behavior:**
+
 1. Logs: "No user profile linked - Personal Fit scores will have low confidence"
 2. Feasibility evaluator receives: "No user profile available. Where creator capabilities affect your assessment, note this uncertainty and apply lower confidence (0.4-0.5)."
 3. Fit evaluator scores have 0.4-0.5 confidence
@@ -474,6 +511,7 @@ manual entry friction.
 5. Market and Solution evaluators unaffected (don't need profile)
 
 **Pass Criteria:**
+
 - ✅ Evaluation completes successfully
 - ✅ Warning logged about missing profile
 - ✅ Fit criteria have low confidence (0.4-0.5)
@@ -485,22 +523,24 @@ manual entry friction.
 **Scenario:** Verify each category receives only relevant context
 
 **Test Method:**
+
 1. Mock all context sources with identifiable markers
 2. Call `runSpecializedEvaluator()` for each category
 3. Inspect generated prompts
 
 **Expected Behavior:**
 
-| Category | Should Include | Should Exclude |
-|----------|----------------|----------------|
-| Problem | Idea content, structured answers (problem only) | Profile, research, strategic |
-| Solution | Idea content, structured answers (solution), research (tech), strategic (strategy) | Profile |
-| Market | Idea content, structured answers (market), research (market), profile (network), strategic (timing) | - |
-| Feasibility | Idea content, structured answers (feasibility), profile (skills), strategic (financials) | Research |
-| Risk | Idea content, structured answers (risk), profile (runway), strategic (risk responses) | Research |
-| Fit | Idea content, structured answers (fit), full profile | Research, strategic |
+| Category    | Should Include                                                                                      | Should Exclude               |
+| ----------- | --------------------------------------------------------------------------------------------------- | ---------------------------- |
+| Problem     | Idea content, structured answers (problem only)                                                     | Profile, research, strategic |
+| Solution    | Idea content, structured answers (solution), research (tech), strategic (strategy)                  | Profile                      |
+| Market      | Idea content, structured answers (market), research (market), profile (network), strategic (timing) | -                            |
+| Feasibility | Idea content, structured answers (feasibility), profile (skills), strategic (financials)            | Research                     |
+| Risk        | Idea content, structured answers (risk), profile (runway), strategic (risk responses)               | Research                     |
+| Fit         | Idea content, structured answers (fit), full profile                                                | Research, strategic          |
 
 **Pass Criteria:**
+
 - ✅ Each category receives exactly the expected context sections
 - ✅ No category receives irrelevant context (token efficiency)
 - ✅ Prompt structure follows: research → structured → strategic → idea → profile → criteria
@@ -544,6 +584,7 @@ manual entry friction.
 ### Test Coverage
 
 **Existing Tests:**
+
 1. `tests/unit/utils/profile-context.test.ts` (25 tests)
    - Verifies `formatProfileForCategory()` for all categories
    - Validates field extraction logic
@@ -564,6 +605,7 @@ manual entry friction.
    - Confirms context parameter passing
 
 **Manual Verification:**
+
 ```bash
 # Run evaluation with verbose logging
 npm run evaluate test-wellness-tracker -- -v
@@ -590,6 +632,7 @@ cat ideas/test-wellness-tracker/evaluation.md
 ## Pass Criteria Summary
 
 ### Context Assembly
+
 - [x] All 6 context sources loaded when available
 - [x] development.md content appended to ideaContent
 - [x] Content hash includes development.md for staleness detection
@@ -597,6 +640,7 @@ cat ideas/test-wellness-tracker/evaluation.md
 - [x] Missing contexts handled gracefully (warnings, not errors)
 
 ### Context Formatting
+
 - [x] `formatProfileForCategory()` returns excerpts for feasibility, market, risk, fit
 - [x] `formatResearchForCategory()` returns data for market, solution
 - [x] `formatStrategicContextForPrompt()` returns data for solution, market, risk, feasibility
@@ -604,23 +648,27 @@ cat ideas/test-wellness-tracker/evaluation.md
 - [x] All formatters return empty string for irrelevant categories
 
 ### Context Injection
+
 - [x] Formatted sections injected into evaluator prompts
 - [x] Prompt structure: research → structured → strategic → idea → profile → criteria
 - [x] Section headers clearly delineate context sources
 - [x] Instructions guide evaluators on how to use each context type
 
 ### Evidence-Based Reasoning
+
 - [x] Evaluator reasoning cites specific evidence from context
 - [x] Confidence scores reflect data availability (0.7-0.9 with data, 0.4-0.5 without)
 - [x] Gaps explicitly identified when data missing
 - [x] No generic assessments when specific data available
 
 ### Token Efficiency
+
 - [x] Category filtering reduces tokens by 60-80% vs. full context dump
 - [x] No category receives irrelevant context
 - [x] Parallel execution (6 evaluators simultaneously)
 
 ### Quality Improvement
+
 - [x] Evaluation quality improves from 2.3/10 → 7-8/10
 - [x] Confidence scores improve from 0.4-0.5 → 0.7-0.9
 - [x] All evaluation tests pass
@@ -631,11 +679,13 @@ cat ideas/test-wellness-tracker/evaluation.md
 ## Dependencies
 
 **Upstream (Required Before):**
+
 - ✅ PHASE1-TASK-01: development.md sync (provides Q&A data)
 - ✅ PHASE1-TASK-02: Profile context formatting (provides `formatProfileForCategory()`)
 - ✅ PHASE1-TASK-03: Web research phase (provides `ResearchResult` data)
 
 **Downstream (Enabled After):**
+
 - Phase 2+: Frontend displays rich evaluation results with source attribution
 - Phase 6: Planning Agent uses evaluation quality metrics to create improvement tasks
 - Phase 8: Analytics dashboard shows data completeness correlation with evaluation quality
@@ -669,6 +719,7 @@ cat ideas/test-wellness-tracker/evaluation.md
 ## Success Metrics
 
 ### Quantitative
+
 - **Data Flow Completeness:** 100% of available context reaches relevant evaluators
 - **Token Efficiency:** 70% reduction vs. sending full context to all evaluators
 - **Confidence Improvement:** Average confidence 0.45 → 0.78 (73% increase)
@@ -676,6 +727,7 @@ cat ideas/test-wellness-tracker/evaluation.md
 - **Evidence Citations:** 95%+ of evaluator reasoning references specific context
 
 ### Qualitative
+
 - Evaluators provide specific, actionable feedback
 - Users trust evaluation results (subjective confidence)
 - No complaints about evaluators "missing obvious information"
@@ -693,6 +745,7 @@ The complete context flow system ensures that all specialized evaluators receive
 4. **Evidence-based reasoning** requirements
 
 The evaluation pipeline now produces:
+
 - **7-8/10 quality** assessments (vs. 2.3/10 before)
 - **0.7-0.9 confidence** scores (vs. 0.4-0.5 before)
 - **Specific, actionable** feedback citing evidence
@@ -703,6 +756,7 @@ This completes Phase 1 of the strategic plan, establishing a solid foundation fo
 ---
 
 **Next Steps:**
+
 - ✅ Phase 1 Complete
 - → Phase 2: ParentHarness Frontend & API Foundation
 - → Phase 3: WebSocket Real-Time & Critical Missing Agents

@@ -15,6 +15,7 @@
 **Status**: PASS
 
 **Evidence**:
+
 - Line 32 in `utils/anthropic-client.ts` defines `model: string` in the `AnthropicClient` type
 - This accepts any string value, which is compatible with:
   - SDK's strict union types (e.g., `claude-opus-4-6`, `claude-sonnet-4-5-20250929`)
@@ -22,6 +23,7 @@
   - Configuration values from `config/default.ts` (line 6: `model: "claude-opus-4-6"`)
 
 **Implementation Details**:
+
 - The type uses a flexible `string` type rather than a strict union
 - This is intentional to support multiple authentication methods:
   1. Direct SDK (lines 159-164): Casts to AnthropicClient to match interface
@@ -29,6 +31,7 @@
   3. Claude CLI (lines 170-174): Uses cli-based client
 
 **Real-world Usage**:
+
 - `agents/evaluator.ts`: Uses `config.model` (value: `"claude-opus-4-6"`)
 - `agents/research.ts`: Uses `runClaudeCliWithPrompt` with model parameter
 - `tests/integration/anthropic-client.test.ts`: Uses `"claude-opus-4-5-20251101"`
@@ -40,25 +43,30 @@
 **Evidence**:
 
 **Message Types** (lines 35 in `utils/anthropic-client.ts`):
+
 ```typescript
 messages: Array<{ role: "user" | "assistant"; content: string }>;
 ```
+
 - Matches SDK's expected message format
 - Properly typed with role union type
 - Content is string type (supports simple text messages)
 
 **Context Handling** (lines 110-113):
+
 ```typescript
 const context: import("@mariozechner/pi-ai").Context = {
   systemPrompt: params.system,
-  messages: messages
+  messages: messages,
 };
 ```
+
 - Uses explicit type import from pi-ai for Context type
 - Properly maps system prompts
 - Correctly transforms messages to pi-ai format (lines 73-108)
 
 **Message Transformation**:
+
 - User messages (lines 74-80): Mapped to PiAiUserMessage with proper structure
 - Assistant messages (lines 82-107): Mapped to PiAiAssistantMessage with full metadata
 - Uses `as const` for literal types to ensure strict type compatibility
@@ -68,6 +76,7 @@ const context: import("@mariozechner/pi-ai").Context = {
 **Status**: PASS
 
 **Evidence**:
+
 ```bash
 $ npx tsc --noEmit
 # No output = no errors
@@ -76,6 +85,7 @@ $ npx tsc --noEmit
 **TypeScript Compilation**: Clean compilation with zero errors
 
 **Type Safety Features**:
+
 - Line 61: Type assertion for dynamic model lookup
 - Lines 69-71: Explicit type imports for pi-ai Message types
 - Line 110: Explicit Context type from pi-ai
@@ -89,18 +99,21 @@ $ npx tsc --noEmit
 **Evidence**:
 
 **Test Suite Results**:
+
 ```
 ✓ tests/integration/anthropic-client.test.ts (4 tests)
 ✓ All 1773 tests passed
 ```
 
 **Integration Test Coverage** (`tests/integration/anthropic-client.test.ts`):
+
 1. ✅ Creates messages with system prompts
 2. ✅ Parses JSON from responses
 3. ✅ Tracks token usage correctly
 4. ✅ Handles mock evaluation response structure
 
 **Real-world Functionality**:
+
 - Client creation works for all 3 auth methods (API key, OAuth, CLI)
 - Model parameter accepts various model strings
 - Message creation returns proper response structure
@@ -108,6 +121,7 @@ $ npx tsc --noEmit
 - Content extraction from responses
 
 **Active Usage Across Codebase**:
+
 - 47 files import from `anthropic-client.ts`
 - Key agents using client:
   - `agents/evaluator.ts`: Main evaluation agent
@@ -116,9 +130,11 @@ $ npx tsc --noEmit
   - Multiple other agents for synthesis, debate, development
 
 **Console Output During Tests**:
+
 ```
 [Auth] Using Claude Code CLI for API calls (OAuth via CLI session)
 ```
+
 - Confirms authentication method selection logic works
 - Client creation executes without errors
 
@@ -127,6 +143,7 @@ $ npx tsc --noEmit
 ## Technical Analysis
 
 ### SDK Version
+
 - `@anthropic-ai/sdk`: ^0.71.2 (latest)
 - Package.json (line 59): `"@anthropic-ai/sdk": "^0.71.2"`
 
@@ -183,6 +200,7 @@ This is **not a workaround** but a **design pattern** for supporting multiple au
 **TASK-004 should be marked as COMPLETE.**
 
 The implementation successfully handles Anthropic SDK type compatibility through a well-designed adapter pattern that:
+
 - Supports multiple authentication methods
 - Maintains type safety
 - Passes all tests

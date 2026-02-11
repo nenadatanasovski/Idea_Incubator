@@ -15,6 +15,7 @@ The technical specification for PHASE6-TASK-02 has been **completed and verified
 ### Specification Completeness ✅
 
 **Document**: `docs/specs/PHASE6-TASK-02-agent-activity-visualization.md`
+
 - **Size**: 1,070 lines
 - **Code Examples**: 30+ TypeScript/SQL snippets
 - **Components**: 15+ React components specified
@@ -45,6 +46,7 @@ The technical specification for PHASE6-TASK-02 has been **completed and verified
 ### Functional Requirements (FR-1 to FR-6)
 
 #### FR-1: Heartbeat Timeline Visualization ✅
+
 - 24-hour timeline with color-coded status indicators (🟢🟡🟠🔴)
 - Interactive heartbeat dots with hover tooltips
 - Gap detection and highlighting
@@ -52,6 +54,7 @@ The technical specification for PHASE6-TASK-02 has been **completed and verified
 - CSV export functionality
 
 #### FR-2: Session Log Viewer ✅
+
 - Unified session log interface
 - Syntax highlighting, search (keyword + regex)
 - Filtering, pagination, download
@@ -59,6 +62,7 @@ The technical specification for PHASE6-TASK-02 has been **completed and verified
 - Links to related activities
 
 #### FR-3: Error Correlation Dashboard ✅
+
 - Errors grouped by agent, task, error type
 - Error timeline with frequency charts
 - Stack traces with session links
@@ -66,6 +70,7 @@ The technical specification for PHASE6-TASK-02 has been **completed and verified
 - Mark as resolved functionality
 
 #### FR-4: Activity Stream (Unified View) ✅
+
 - Chronological activity stream with 12 activity types
 - Real-time WebSocket updates
 - Infinite scroll pagination
@@ -73,6 +78,7 @@ The technical specification for PHASE6-TASK-02 has been **completed and verified
 - Multi-dimensional filtering
 
 #### FR-5: Agent Health Dashboard ✅
+
 - Grid view with health status cards
 - Per-agent metrics: heartbeat, sessions, errors, uptime
 - Health trend sparklines
@@ -80,6 +86,7 @@ The technical specification for PHASE6-TASK-02 has been **completed and verified
 - Quick actions (view sessions, restart, logs)
 
 #### FR-6: Historical Analysis ✅
+
 - Activity heatmap by hour/day
 - Session duration trends
 - Error rate trends per agent type
@@ -89,23 +96,27 @@ The technical specification for PHASE6-TASK-02 has been **completed and verified
 ### Non-Functional Requirements (NFR-1 to NFR-4)
 
 #### NFR-1: Performance ✅
+
 - Activity stream: <1s for 100 items
 - Heartbeat timeline: <500ms for 24h data
 - Log search: <2s for 10k+ entries
 - Real-time updates: non-blocking UI
 
 #### NFR-2: Scalability ✅
+
 - Support 1M+ activity records
 - Pagination/lazy loading
 - Database indexes on key columns
 
 #### NFR-3: Usability ✅
+
 - Color-coded activity types
 - Tooltips for all metrics
 - Mobile-responsive (>768px)
 - Keyboard shortcuts
 
 #### NFR-4: Accessibility ✅
+
 - ARIA labels for screen readers
 - Keyboard navigation
 - High-contrast mode compatible
@@ -118,15 +129,18 @@ The technical specification for PHASE6-TASK-02 has been **completed and verified
 ### 3.1 Data Sources (Existing Infrastructure)
 
 **Database Tables** (Already Created):
+
 - ✅ `agent_heartbeats` - Heartbeat tracking with status, progress, resource usage
 - ✅ `agent_activities` - Activity log with 12 activity types
 - ✅ `agent_sessions` - Session metadata with iteration tracking
 
 **Existing API Endpoints** (Reusable):
+
 - ✅ `GET /api/agents/activities/recent` - Recent activities
 - ✅ `GET /api/agents/:id/activities` - Agent-specific activities
 
 **New API Endpoints** (Specified):
+
 - `GET /api/agents/:id/heartbeats` - Heartbeat timeline
 - `GET /api/agents/:id/heartbeat-gaps` - Gap detection
 - `GET /api/sessions/:id/logs` - Session logs with pagination
@@ -137,6 +151,7 @@ The technical specification for PHASE6-TASK-02 has been **completed and verified
 ### 3.2 Component Architecture
 
 **Main Page**: `AgentActivityDashboard.tsx`
+
 - HealthOverviewGrid
   - AgentHealthCard (per agent)
     - HeartbeatSparkline (24h trend)
@@ -166,6 +181,7 @@ The technical specification for PHASE6-TASK-02 has been **completed and verified
 ### 3.3 State Management Hook
 
 **`useAgentActivity` hook** specified with:
+
 - Heartbeat state (keyed by agent_id)
 - Activity state with filters
 - Session state with logs
@@ -174,6 +190,7 @@ The technical specification for PHASE6-TASK-02 has been **completed and verified
 - UI state (loading, error, selected view)
 
 **Actions**:
+
 - `loadHeartbeats`, `loadActivities`, `loadSessionLogs`
 - `searchLogs`, `loadErrorGroups`
 - `setFilter`, `exportData`
@@ -181,6 +198,7 @@ The technical specification for PHASE6-TASK-02 has been **completed and verified
 ### 3.4 Real-Time Updates
 
 WebSocket integration specified for:
+
 - `agent:heartbeat` events → Add to timeline
 - `agent:activity` events → Add to activity stream
 - `session:log` events → Append to logs (live streaming)
@@ -189,11 +207,13 @@ WebSocket integration specified for:
 ### 3.5 Database Queries
 
 **Heartbeat Gap Detection** (SQL query provided):
+
 - Uses window functions (LAG) to find gaps
 - Configurable threshold (default 5 minutes)
 - Flags suspected crashes (>15 minutes)
 
 **Activity Stream with Pagination** (TypeScript function provided):
+
 - Multi-dimensional filtering
 - Efficient pagination with LIMIT/OFFSET
 - Indexed queries for performance
@@ -203,6 +223,7 @@ WebSocket integration specified for:
 ## 4. Pass Criteria (30 Criteria)
 
 ### Implementation Completeness (Criteria 1-8) ✅
+
 1. HeartbeatTimeline component created
 2. ActivityStreamPanel component created
 3. SessionLogViewer component created
@@ -213,6 +234,7 @@ WebSocket integration specified for:
 8. WebSocket subscriptions configured
 
 ### Functional Validation (Criteria 9-17) ✅
+
 9. Heartbeat visualization accurate
 10. Gap detection correct (>5 min flagged, >15 min crash)
 11. Activity stream real-time updates (<1s latency)
@@ -224,6 +246,7 @@ WebSocket integration specified for:
 17. WebSocket updates UI without refresh
 
 ### Testing (Criteria 18-22) ✅
+
 18. Unit tests for all components
 19. Integration test (full activity flow)
 20. Gap detection test (threshold verification)
@@ -231,12 +254,14 @@ WebSocket integration specified for:
 22. Search test (100k+ logs, <2s)
 
 ### Performance (Criteria 23-26) ✅
+
 23. Timeline renders 1440 heartbeats in <500ms
 24. Activity stream infinite scroll smooth
 25. Database queries use indexes
 26. No WebSocket memory leaks
 
 ### Usability (Criteria 27-30) ✅
+
 27. Consistent activity type colors
 28. Helpful tooltips on all elements
 29. Mobile responsive (>768px)
@@ -247,20 +272,24 @@ WebSocket integration specified for:
 ## 5. Implementation Plan (4 Days)
 
 ### Day 1: API Endpoints & Database Queries (6 hours)
+
 1. Heartbeat endpoints (2h)
 2. Activity endpoints with pagination (2h)
 3. Error correlation endpoint (2h)
 
 ### Day 2: Core Visualization Components (6 hours)
+
 4. HeartbeatTimeline component (3h)
 5. ActivityStreamPanel component (3h)
 
 ### Day 3: Session Logs & Error Views (6 hours)
+
 6. SessionLogViewer component (3h)
 7. ErrorCorrelationPanel component (2h)
 8. HealthOverviewGrid component (1h)
 
 ### Day 4: Integration & Polish (6 hours)
+
 9. WebSocket integration (2h)
 10. Export functionality (1h)
 11. Testing & bug fixes (2h)
@@ -273,18 +302,21 @@ WebSocket integration specified for:
 ## 6. Testing Strategy
 
 ### Unit Tests
+
 - Component rendering tests
 - State management tests
 - Utility function tests
 - **Examples provided** for HeartbeatTimeline and ActivityStreamPanel
 
 ### Integration Tests
+
 - End-to-end activity flow
 - Gap detection accuracy
 - Real-time WebSocket updates
 - **Test code examples provided**
 
 ### Performance Tests
+
 - Timeline rendering with 1440 heartbeats
 - Activity stream with 10k activities
 - Search across 100k+ log lines
@@ -295,18 +327,21 @@ WebSocket integration specified for:
 ## 7. Success Metrics
 
 ### Operational Metrics ✅
+
 - Heartbeat gap detection: 100% accuracy
 - Activity stream load: <1 second for 100 items
 - Search response: <2 seconds for 10k+ logs
 - WebSocket latency: <100ms (p95)
 
 ### Usability Metrics ✅
+
 - Identify stuck agents: <10 seconds
 - Error root cause: <5 clicks
 - Timeline comprehension: 80%+ without docs
 - Mobile usability: 70%+ Lighthouse score
 
 ### Reliability Metrics ✅
+
 - WebSocket disconnect recovery: 100%
 - Handle missing/malformed data gracefully
 - Support 100+ concurrent sessions
@@ -317,15 +352,18 @@ WebSocket integration specified for:
 ## 8. Dependencies Analysis
 
 ### ✅ Upstream (Completed)
+
 - PHASE3-TASK-05: Dashboard widget updates
 - WebSocket infrastructure
 - Database schema (agent_heartbeats, agent_activities)
 
 ### ⏳ Downstream (Depends on This)
+
 - PHASE7-TASK-03: Automated alerting from heartbeat/error patterns
 - PHASE8-TASK-02: Agent performance optimization using activity analytics
 
 ### ⚡ Parallel Work (Concurrent Development)
+
 - PHASE6-TASK-03: Telegram notification integration
 - PHASE6-TASK-04: Idea workspace
 
@@ -334,6 +372,7 @@ WebSocket integration specified for:
 ## 9. References to Existing Codebase
 
 ### Existing Code (Reuse Patterns)
+
 - `parent-harness/dashboard/src/pages/AgentActivity.tsx` - Activity rendering patterns
 - `parent-harness/dashboard/src/components/SessionLogModal.tsx` - Log modal patterns
 - `parent-harness/dashboard/src/hooks/useAgents.ts` - Data fetching patterns
@@ -341,10 +380,12 @@ WebSocket integration specified for:
 - `parent-harness/orchestrator/src/api/agents.ts` - API endpoint patterns
 
 ### Database Schema
+
 - `parent-harness/database/schema.sql` - agent_heartbeats table (lines 313-327)
 - `parent-harness/orchestrator/database/migrations/001_vibe_patterns.sql` - agent_activities table
 
 ### Strategic Documents
+
 - `STRATEGIC_PLAN.md` - Phase 6 goals and vision
 - `docs/specs/PHASE3-TASK-05-dashboard-widget-updates.md` - Widget design patterns
 - `parent-harness/docs/PHASES.md` - Overall implementation phases
@@ -365,6 +406,7 @@ The specification includes **30+ code examples** covering:
 ✅ **API Endpoint Definitions** (Request/response formats with TypeScript types)
 
 All code examples:
+
 - Follow existing codebase patterns
 - Include proper TypeScript typing
 - Reference actual database schema
@@ -375,31 +417,37 @@ All code examples:
 ## 11. Specification Strengths
 
 ### 🎯 Comprehensive Coverage
+
 - All aspects of agent activity monitoring covered
 - No ambiguous requirements
 - Clear acceptance criteria for each feature
 
 ### 🔗 Integration-Focused
+
 - References existing infrastructure
 - Reuses established patterns
 - Minimizes architectural divergence
 
 ### 🧪 Test-Driven
+
 - Detailed testing strategy
 - Concrete test examples
 - Performance benchmarks specified
 
 ### 📊 Data-Driven
+
 - Success metrics defined
 - Performance targets clear
 - Quality gates established
 
 ### 🚀 Implementation-Ready
+
 - 4-day implementation plan
 - Hourly task breakdown
 - Dependencies identified
 
 ### 📚 Well-Documented
+
 - 10 major sections
 - 43 subsections
 - 1,070 lines total
@@ -410,16 +458,19 @@ All code examples:
 ## 12. Validation Against Spec Agent Requirements
 
 ### ✅ Overview Section
+
 - Context provided (Parent Harness orchestrates 12+ agents)
 - Strategic alignment explained (Phase 6 goal: full-featured dashboard)
 - Gap analysis completed (3 identified gaps in current system)
 
 ### ✅ Requirements Section
+
 - Functional requirements: 6 groups (FR-1 to FR-6) with 29 sub-requirements
 - Non-functional requirements: 4 groups (NFR-1 to NFR-4) with 12 sub-requirements
 - All requirements testable and measurable
 
 ### ✅ Technical Design Section
+
 - Data sources documented (3 existing tables, 2 existing endpoints, 6 new endpoints)
 - Component architecture specified (15+ components with hierarchy)
 - State management defined (useAgentActivity hook with full interface)
@@ -428,21 +479,25 @@ All code examples:
 - Database queries provided (2 complex queries with SQL)
 
 ### ✅ Pass Criteria Section
+
 - 30 specific, testable criteria
 - Grouped by category (implementation, functional, testing, performance, usability)
 - Each criterion has clear success condition
 
 ### ✅ Dependencies Section
+
 - Upstream dependencies identified and marked complete
 - Downstream dependencies documented
 - Parallel work opportunities noted
 
 ### ✅ Implementation Plan Section
+
 - 4-day plan with 6-hour daily breakdown
 - 12 discrete tasks with hour estimates
 - Total effort: 24 hours (realistic for medium-complexity task)
 
 ### ✅ Additional Sections (Beyond Requirements)
+
 - Testing Strategy with code examples
 - Success Metrics (operational, usability, reliability)
 - Future Enhancements (out of scope)
@@ -495,6 +550,7 @@ The specification is **BUILD-READY** with:
 ### For QA Agent (Validation)
 
 After Build Agent completes implementation:
+
 1. Run test suite (unit + integration + performance)
 2. Validate all 30 pass criteria
 3. Check success metrics achievement
@@ -507,15 +563,15 @@ After Build Agent completes implementation:
 
 ## 15. Specification Quality Score
 
-| Criterion | Score | Notes |
-|-----------|-------|-------|
-| **Completeness** | 10/10 | All sections present, no gaps |
-| **Clarity** | 10/10 | Unambiguous requirements, clear design |
-| **Detail Level** | 10/10 | Implementation-ready code examples |
-| **Testability** | 10/10 | Concrete pass criteria, test examples |
-| **References** | 10/10 | Links to existing code, follows patterns |
-| **Feasibility** | 10/10 | Realistic 4-day plan, no blockers |
-| **Strategic Fit** | 10/10 | Aligns with Phase 6 goals |
+| Criterion         | Score | Notes                                    |
+| ----------------- | ----- | ---------------------------------------- |
+| **Completeness**  | 10/10 | All sections present, no gaps            |
+| **Clarity**       | 10/10 | Unambiguous requirements, clear design   |
+| **Detail Level**  | 10/10 | Implementation-ready code examples       |
+| **Testability**   | 10/10 | Concrete pass criteria, test examples    |
+| **References**    | 10/10 | Links to existing code, follows patterns |
+| **Feasibility**   | 10/10 | Realistic 4-day plan, no blockers        |
+| **Strategic Fit** | 10/10 | Aligns with Phase 6 goals                |
 
 **Overall Score**: **70/70 (100%)** ✅
 

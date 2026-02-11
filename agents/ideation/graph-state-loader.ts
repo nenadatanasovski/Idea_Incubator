@@ -99,7 +99,9 @@ export class GraphStateLoader {
 
     // Find expertise blocks
     const expertise = blocks
-      .filter((b) => b.blockTypes.includes("knowledge") && b.properties?.skill_name)
+      .filter(
+        (b) => b.blockTypes.includes("knowledge") && b.properties?.skill_name,
+      )
       .map((b) => ({
         area: (b.properties?.skill_name as string) || b.title || "",
         depth:
@@ -109,8 +111,9 @@ export class GraphStateLoader {
       }));
 
     // Find constraint blocks (now stored as 'requirement' type with constraint properties)
-    const constraintBlocks = blocks.filter((b) =>
-      b.blockTypes.includes("requirement") && b.properties?.constraint_type,
+    const constraintBlocks = blocks.filter(
+      (b) =>
+        b.blockTypes.includes("requirement") && b.properties?.constraint_type,
     );
     const timeConstraint = constraintBlocks.find(
       (b) => b.properties?.constraint_type === "time",
@@ -210,7 +213,8 @@ export class GraphStateLoader {
       gaps: marketBlocks
         .filter(
           (b) =>
-            b.blockTypes.includes("knowledge") || b.blockTypes.includes("decision"),
+            b.blockTypes.includes("knowledge") ||
+            b.blockTypes.includes("decision"),
         )
         .map((b) => ({
           description: b.content,
@@ -472,7 +476,7 @@ export class GraphStateLoader {
 
   /**
    * Update idea type selection state (no-op in graph-based system)
-   * 
+   *
    * In graph-based architecture, state is reconstructed from graph queries.
    * The orchestrator extraction handles decision block creation.
    */

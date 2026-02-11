@@ -12,6 +12,7 @@ This specification documents the verification that the QuestionEngine class meth
 ### Problem Statement
 
 QA verification failed for TASK-013 with the following errors:
+
 - TypeScript Compilation: `npm error Missing script: "typecheck"`
 - Tests: Command failed
 
@@ -60,14 +61,14 @@ The QuestionEngine class must provide the following methods:
 
 All required methods exist in `server/services/task-agent/question-engine.ts`:
 
-| Method | Lines | Implementation Details |
-|--------|-------|------------------------|
-| `answerQuestion()` | 513-526 | `UPDATE task_questions SET answer = ?, answered_at = ?, updated_at = ? WHERE id = ? AND task_id = ?` |
+| Method                           | Lines   | Implementation Details                                                                                                 |
+| -------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `answerQuestion()`               | 513-526 | `UPDATE task_questions SET answer = ?, answered_at = ?, updated_at = ? WHERE id = ? AND task_id = ?`                   |
 | `areRequiredQuestionsAnswered()` | 561-568 | `SELECT COUNT(*) FROM task_questions WHERE task_id = ? AND importance = 'required' AND answer IS NULL AND skipped = 0` |
-| `getQuestions()` | 531-556 | `SELECT * FROM task_questions WHERE task_id = ? AND skipped = 0` with type mapping |
-| `skipQuestion()` | 573-580 | `UPDATE task_questions SET skipped = 1, updated_at = ? WHERE id = ? AND task_id = ?` |
-| `getCompletionStatus()` | 585-607 | Aggregates answered/required counts, returns CompletionStatus object |
-| `generateQuestions()` | 194-243 | Gap analysis + template-based generation + INSERT with persistence |
+| `getQuestions()`                 | 531-556 | `SELECT * FROM task_questions WHERE task_id = ? AND skipped = 0` with type mapping                                     |
+| `skipQuestion()`                 | 573-580 | `UPDATE task_questions SET skipped = 1, updated_at = ? WHERE id = ? AND task_id = ?`                                   |
+| `getCompletionStatus()`          | 585-607 | Aggregates answered/required counts, returns CompletionStatus object                                                   |
+| `generateQuestions()`            | 194-243 | Gap analysis + template-based generation + INSERT with persistence                                                     |
 
 ### Database Schema
 
@@ -98,8 +99,8 @@ export interface Question {
   id: string;
   category: QuestionCategory;
   text: string;
-  priority: number;                    // 1-10, higher = more important
-  importance: QuestionImportance;      // derived from priority (lines 97-101)
+  priority: number; // 1-10, higher = more important
+  importance: QuestionImportance; // derived from priority (lines 97-101)
   targetField?: string;
   answer?: string;
   answeredAt?: string;
@@ -110,7 +111,7 @@ export interface CompletionStatus {
   answeredQuestions: number;
   requiredAnswered: number;
   requiredTotal: number;
-  isComplete: boolean;                 // true if requiredAnswered >= requiredTotal
+  isComplete: boolean; // true if requiredAnswered >= requiredTotal
 }
 ```
 
@@ -136,6 +137,7 @@ async answerQuestion(
 ```
 
 **Key Features:**
+
 - Updates answer and timestamps atomically
 - Uses parameterized query for SQL injection safety
 - Persists immediately via `saveDb()`
@@ -155,6 +157,7 @@ async areRequiredQuestionsAnswered(taskId: string): Promise<boolean> {
 ```
 
 **Key Features:**
+
 - Single efficient COUNT query
 - Filters for `importance='required'`, `answer IS NULL`, `skipped=0`
 - Returns `true` if count is 0 (all required questions answered)
@@ -192,6 +195,7 @@ async getQuestions(taskId: string): Promise<Question[]> {
 ```
 
 **Key Features:**
+
 - Filters out skipped questions (`skipped=0`)
 - Maps database schema to TypeScript interface
 - Derives importance from priority if not set (backward compatibility)
@@ -200,11 +204,13 @@ async getQuestions(taskId: string): Promise<Question[]> {
 ### Root Cause Analysis
 
 The original QA failure reported:
+
 ```
 npm error Missing script: "typecheck"
 ```
 
 However, `package.json` line 41 contains `"typecheck": "tsc --noEmit"`. The failure was caused by:
+
 1. Verification harness running from incorrect working directory
 2. npm workspace resolution issue where child workspace doesn't inherit root scripts
 3. Possibly running from `parent-harness/` subdirectory instead of project root
@@ -220,6 +226,7 @@ npx vitest run tests/task-agent/question-engine.test.ts
 ```
 
 **Result**: 13/13 tests passing
+
 - `generateQuestions` (4 tests)
 - `question categories` (4 tests)
 - `answerQuestion` (1 test)
@@ -246,15 +253,18 @@ npm run dev  # Server starts without errors
 ## Dependencies
 
 ### Direct Dependencies
+
 - `database/db.ts` - Database operations (`query`, `run`, `getOne`, `saveDb`)
 - `types/task-agent.ts` - Task type definition
 - `uuid` - ID generation for questions
 
 ### Test Dependencies
+
 - `vitest` - Test framework
 - `tests/task-agent/question-engine.test.ts` - 13 unit tests
 
 ### Database Dependencies
+
 - Migration `133_task_questions.sql` - Creates task_questions table
 - Migration includes indexes for performance
 
@@ -263,6 +273,7 @@ npm run dev  # Server starts without errors
 ### Test File: `tests/task-agent/question-engine.test.ts`
 
 **Test Structure:**
+
 - Setup: Creates test tables, cleanup before/after each test
 - Test data prefix: `QUESTION-TEST-*` for isolation
 - Cleanup: Removes all test data after suite completion
@@ -315,6 +326,7 @@ npm run dev  # Server starts without errors
 ### FIX-TASK-013-HI8C (Feb 8, 2026)
 
 **Findings:**
+
 - QuestionEngine TypeScript errors: 0
 - QuestionEngine tests: 13/13 passing
 - All three methods implemented before task creation:

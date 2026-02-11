@@ -219,17 +219,18 @@ program
       }
 
       let ideaContent = fs.readFileSync(readmePath, "utf-8");
-      
+
       // CRITICAL FIX: Include development.md content if it exists
       // This ensures Q&A from /idea-develop sessions is visible to evaluators
       const developmentPath = path.join(ideaData.folder_path, "development.md");
       if (fs.existsSync(developmentPath)) {
         const developmentContent = fs.readFileSync(developmentPath, "utf-8");
         // Append development notes to idea content
-        ideaContent += "\n\n---\n\n# Development Notes\n\n" + developmentContent;
+        ideaContent +=
+          "\n\n---\n\n# Development Notes\n\n" + developmentContent;
         logInfo("Loaded development.md - Q&A context included in evaluation");
       }
-      
+
       const contentHash = createHash("md5").update(ideaContent).digest("hex");
 
       // Fetch user profile context for Personal Fit evaluation

@@ -26,20 +26,20 @@ All TypeScript compilation succeeds, and all 13 unit tests pass successfully.
 
 ### Functional Requirements
 
-| Req ID | Requirement | Status | Implementation |
-|--------|-------------|--------|----------------|
-| FR-1 | Store answers to questions in database | ✅ Complete | `answerQuestion()` lines 513-526 |
-| FR-2 | Check if all required questions are answered | ✅ Complete | `areRequiredQuestionsAnswered()` lines 561-568 |
-| FR-3 | Retrieve questions for a task | ✅ Complete | `getQuestions()` lines 531-556 |
-| FR-4 | Support question importance levels | ✅ Complete | `Question.importance` line 38 |
+| Req ID | Requirement                                  | Status      | Implementation                                 |
+| ------ | -------------------------------------------- | ----------- | ---------------------------------------------- |
+| FR-1   | Store answers to questions in database       | ✅ Complete | `answerQuestion()` lines 513-526               |
+| FR-2   | Check if all required questions are answered | ✅ Complete | `areRequiredQuestionsAnswered()` lines 561-568 |
+| FR-3   | Retrieve questions for a task                | ✅ Complete | `getQuestions()` lines 531-556                 |
+| FR-4   | Support question importance levels           | ✅ Complete | `Question.importance` line 38                  |
 
 ### Non-Functional Requirements
 
-| Req ID | Requirement | Status | Evidence |
-|--------|-------------|--------|----------|
-| NFR-1 | TypeScript type safety | ✅ Complete | No TS2339 errors |
-| NFR-2 | Database persistence | ✅ Complete | Uses `task_questions` table |
-| NFR-3 | Test coverage | ✅ Complete | 13/13 tests passing |
+| Req ID | Requirement            | Status      | Evidence                    |
+| ------ | ---------------------- | ----------- | --------------------------- |
+| NFR-1  | TypeScript type safety | ✅ Complete | No TS2339 errors            |
+| NFR-2  | Database persistence   | ✅ Complete | Uses `task_questions` table |
+| NFR-3  | Test coverage          | ✅ Complete | 13/13 tests passing         |
 
 ---
 
@@ -50,6 +50,7 @@ All TypeScript compilation succeeds, and all 13 unit tests pass successfully.
 **Location**: `server/services/task-agent/question-engine.ts:513-526`
 
 **Signature**:
+
 ```typescript
 async answerQuestion(
   taskId: string,
@@ -59,6 +60,7 @@ async answerQuestion(
 ```
 
 **Implementation**:
+
 ```typescript
 async answerQuestion(
   taskId: string,
@@ -77,6 +79,7 @@ async answerQuestion(
 ```
 
 **Behavior**:
+
 - Updates the `task_questions` table with the provided answer
 - Sets `answer`, `answered_at`, and `updated_at` fields
 - Uses both `questionId` and `taskId` for safety (prevents cross-task updates)
@@ -91,11 +94,13 @@ async answerQuestion(
 **Location**: `server/services/task-agent/question-engine.ts:561-568`
 
 **Signature**:
+
 ```typescript
 async areRequiredQuestionsAnswered(taskId: string): Promise<boolean>
 ```
 
 **Implementation**:
+
 ```typescript
 async areRequiredQuestionsAnswered(taskId: string): Promise<boolean> {
   const unansweredRequired = await query<{ count: number }>(
@@ -108,6 +113,7 @@ async areRequiredQuestionsAnswered(taskId: string): Promise<boolean> {
 ```
 
 **Behavior**:
+
 - Queries `task_questions` table for unanswered required questions
 - Filters by: `taskId`, `importance='required'`, `answer IS NULL`, `skipped=0`
 - Returns `true` if no unanswered required questions exist
@@ -122,11 +128,13 @@ async areRequiredQuestionsAnswered(taskId: string): Promise<boolean> {
 **Location**: `server/services/task-agent/question-engine.ts:531-556`
 
 **Signature**:
+
 ```typescript
 async getQuestions(taskId: string): Promise<Question[]>
 ```
 
 **Implementation**:
+
 ```typescript
 async getQuestions(taskId: string): Promise<Question[]> {
   const rows = await query<{
@@ -157,6 +165,7 @@ async getQuestions(taskId: string): Promise<Question[]> {
 ```
 
 **Behavior**:
+
 - Retrieves all non-skipped questions for a task
 - Maps database rows to `Question` objects
 - Handles optional fields (targetField, answer, answeredAt)
@@ -171,6 +180,7 @@ async getQuestions(taskId: string): Promise<Question[]> {
 **Location**: `server/services/task-agent/question-engine.ts:38`
 
 **Type Definition**:
+
 ```typescript
 export interface Question {
   id: string;
@@ -187,6 +197,7 @@ export type QuestionImportance = "required" | "important" | "optional";
 ```
 
 **Derivation Logic** (lines 97-101):
+
 ```typescript
 function importanceFromPriority(priority: number): QuestionImportance {
   if (priority >= 8) return "required";
@@ -196,6 +207,7 @@ function importanceFromPriority(priority: number): QuestionImportance {
 ```
 
 **Usage**:
+
 - `importance` property is part of the `Question` interface
 - Derived from `priority` value (1-10 scale)
 - Used throughout tests to filter required vs optional questions
@@ -224,6 +236,7 @@ CREATE TABLE task_questions (
 ```
 
 **Indexes**:
+
 - `idx_task_questions_task` on `task_id`
 - `idx_task_questions_task_status` on `(task_id, skipped)`
 
@@ -231,14 +244,14 @@ CREATE TABLE task_questions (
 
 ## Pass Criteria
 
-| # | Criteria | Status | Evidence |
-|---|----------|--------|----------|
-| 1 | answerQuestion(taskId, questionId, answer) method implemented | ✅ Pass | Lines 513-526 |
-| 2 | areRequiredQuestionsAnswered(taskId) method implemented | ✅ Pass | Lines 561-568 |
-| 3 | getQuestions(taskId) method implemented | ✅ Pass | Lines 531-556 |
-| 4 | Question interface includes importance property | ✅ Pass | Line 38 |
-| 5 | TypeScript compilation succeeds without TS2339 errors | ✅ Pass | Build succeeds |
-| 6 | Unit tests pass | ✅ Pass | 13/13 tests passing |
+| #   | Criteria                                                      | Status  | Evidence            |
+| --- | ------------------------------------------------------------- | ------- | ------------------- |
+| 1   | answerQuestion(taskId, questionId, answer) method implemented | ✅ Pass | Lines 513-526       |
+| 2   | areRequiredQuestionsAnswered(taskId) method implemented       | ✅ Pass | Lines 561-568       |
+| 3   | getQuestions(taskId) method implemented                       | ✅ Pass | Lines 531-556       |
+| 4   | Question interface includes importance property               | ✅ Pass | Line 38             |
+| 5   | TypeScript compilation succeeds without TS2339 errors         | ✅ Pass | Build succeeds      |
+| 6   | Unit tests pass                                               | ✅ Pass | 13/13 tests passing |
 
 ---
 
@@ -254,6 +267,7 @@ Test Files  1 passed (1)
 ```
 
 **Test Coverage**:
+
 - ✅ generateQuestions (3 tests)
 - ✅ question categories (4 tests)
 - ✅ answerQuestion (1 test)
@@ -266,11 +280,13 @@ Test Files  1 passed (1)
 ## Dependencies
 
 ### Internal Dependencies
+
 - `database/db.js` - Database query/run operations
 - `types/task-agent.js` - Task type definitions
 - `uuid` - Question ID generation
 
 ### Database Tables
+
 - `tasks` - Task entities
 - `task_questions` - Question storage
 - `task_relationships` - Task dependencies (used in gap analysis)

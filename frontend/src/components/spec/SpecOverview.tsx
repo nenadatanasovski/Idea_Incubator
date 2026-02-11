@@ -3,9 +3,9 @@
  * Displays the specification overview section
  */
 
-import { Users, Target, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import clsx from 'clsx';
-import type { Specification, Constraint } from '../../hooks/useSpecSession';
+import { Users, Target, AlertTriangle, CheckCircle2 } from "lucide-react";
+import clsx from "clsx";
+import type { Specification, Constraint } from "../../hooks/useSpecSession";
 
 interface SpecOverviewProps {
   spec: Specification;
@@ -39,7 +39,9 @@ export function SpecOverview({ spec }: SpecOverviewProps) {
 
       {/* Name and Description */}
       <div className="bg-white rounded-lg border p-4">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">{overview.name}</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          {overview.name}
+        </h2>
         <p className="text-gray-600">{overview.description}</p>
       </div>
 
@@ -49,7 +51,9 @@ export function SpecOverview({ spec }: SpecOverviewProps) {
           <Target className="w-5 h-5 text-primary-500" />
           <h3 className="font-medium text-gray-900">Problem Statement</h3>
         </div>
-        <p className="text-gray-700 leading-relaxed">{overview.problemStatement}</p>
+        <p className="text-gray-700 leading-relaxed">
+          {overview.problemStatement}
+        </p>
       </div>
 
       {/* Target Users */}
@@ -109,7 +113,8 @@ export function SpecOverview({ spec }: SpecOverviewProps) {
       {/* Version Info */}
       <div className="text-xs text-gray-400 text-right">
         Specification v{spec.version}
-        {spec.generatedFrom && ` • Generated from handoff ${spec.generatedFrom}`}
+        {spec.generatedFrom &&
+          ` • Generated from handoff ${spec.generatedFrom}`}
       </div>
     </div>
   );
@@ -117,9 +122,13 @@ export function SpecOverview({ spec }: SpecOverviewProps) {
 
 function ConstraintItem({ constraint }: { constraint: Constraint }) {
   const typeConfig = {
-    technical: { bg: 'bg-purple-50', text: 'text-purple-700', label: 'Technical' },
-    business: { bg: 'bg-blue-50', text: 'text-blue-700', label: 'Business' },
-    legal: { bg: 'bg-red-50', text: 'text-red-700', label: 'Legal' },
+    technical: {
+      bg: "bg-purple-50",
+      text: "text-purple-700",
+      label: "Technical",
+    },
+    business: { bg: "bg-blue-50", text: "text-blue-700", label: "Business" },
+    legal: { bg: "bg-red-50", text: "text-red-700", label: "Legal" },
   };
 
   const config = typeConfig[constraint.type] || typeConfig.technical;
@@ -128,9 +137,9 @@ function ConstraintItem({ constraint }: { constraint: Constraint }) {
     <div className="flex items-start gap-3 p-2 rounded-md bg-gray-50">
       <span
         className={clsx(
-          'text-xs px-2 py-0.5 rounded font-medium shrink-0',
+          "text-xs px-2 py-0.5 rounded font-medium shrink-0",
           config.bg,
-          config.text
+          config.text,
         )}
       >
         {config.label}

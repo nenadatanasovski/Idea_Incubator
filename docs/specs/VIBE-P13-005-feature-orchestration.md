@@ -16,6 +16,7 @@ Implement a feature orchestration layer that coordinates end-to-end feature impl
 ### Problem Statement
 
 **Current State:**
+
 - Individual layer generators exist (VIBE-P13-001 DB, VIBE-P13-002 API, VIBE-P13-003 UI, VIBE-P13-004 validators)
 - Each generator can create code for its layer independently
 - **BUT** no coordinated orchestration across layers
@@ -25,6 +26,7 @@ Implement a feature orchestration layer that coordinates end-to-end feature impl
 - Features requiring all three layers need manual coordination
 
 **Desired State:**
+
 - Single orchestrator coordinates full-stack feature implementation
 - Parses feature spec into layer-specific requirements (DB schema, API routes, UI components)
 - Executes generators in correct dependency order (migrations first, then API, then UI)
@@ -58,7 +60,9 @@ The Feature Orchestration Layer is the **"Full-Stack Implementation Coordinator"
 # Feature: User Authentication
 
 ## Database Layer
+
 ### Tables
+
 - users
   - id: UUID PRIMARY KEY
   - email: TEXT UNIQUE NOT NULL
@@ -66,10 +70,13 @@ The Feature Orchestration Layer is the **"Full-Stack Implementation Coordinator"
   - created_at: TIMESTAMP DEFAULT NOW()
 
 ### Indexes
+
 - idx_users_email ON users(email)
 
 ## API Layer
+
 ### Endpoints
+
 - POST /api/auth/register
   - Body: { email: string, password: string }
   - Response: { user: User, token: string }
@@ -81,19 +88,24 @@ The Feature Orchestration Layer is the **"Full-Stack Implementation Coordinator"
   - Status: 200 on success, 401 on invalid credentials
 
 ### Middleware
+
 - auth.ts: JWT verification middleware
 
 ## UI Layer
+
 ### Components
+
 - LoginForm.tsx: Email/password form with validation
 - RegisterForm.tsx: Registration form with password confirmation
 - AuthContext.tsx: React context for auth state
 
 ### Pages
+
 - /login: Login page with LoginForm
 - /register: Registration page with RegisterForm
 
 ## Integration Tests
+
 - User can register with valid email/password
 - User cannot register with duplicate email
 - User can login with correct credentials
@@ -102,6 +114,7 @@ The Feature Orchestration Layer is the **"Full-Stack Implementation Coordinator"
 ```
 
 **Processing:**
+
 - Extract database layer requirements (tables, columns, indexes, migrations)
 - Extract API layer requirements (endpoints, request/response schemas, middleware)
 - Extract UI layer requirements (components, pages, routing, state management)
@@ -113,33 +126,35 @@ The Feature Orchestration Layer is the **"Full-Stack Implementation Coordinator"
 The orchestrator must sequence layer generation respecting dependencies:
 
 **Dependency Rules:**
+
 ```typescript
 interface LayerDependency {
-  layer: 'database' | 'api' | 'ui';
-  dependsOn: Array<'database' | 'api' | 'ui'>;
+  layer: "database" | "api" | "ui";
+  dependsOn: Array<"database" | "api" | "ui">;
   canRunInParallel: boolean;
 }
 
 const DEPENDENCY_GRAPH: LayerDependency[] = [
   {
-    layer: 'database',
+    layer: "database",
     dependsOn: [],
     canRunInParallel: false, // DB migrations must run serially
   },
   {
-    layer: 'api',
-    dependsOn: ['database'], // API needs DB schema
+    layer: "api",
+    dependsOn: ["database"], // API needs DB schema
     canRunInParallel: true, // Multiple API generators can run parallel
   },
   {
-    layer: 'ui',
-    dependsOn: ['api'], // UI needs API contracts
+    layer: "ui",
+    dependsOn: ["api"], // UI needs API contracts
     canRunInParallel: true, // Multiple UI generators can run parallel
   },
 ];
 ```
 
 **Execution Sequence:**
+
 1. **Phase 1: Database Layer** (serial)
    - Generate migration SQL
    - Apply migration to development database
@@ -168,6 +183,7 @@ const DEPENDENCY_GRAPH: LayerDependency[] = [
 The orchestrator delegates to specialized generators:
 
 **Database Generator (VIBE-P13-001):**
+
 ```typescript
 interface DatabaseGeneratorInput {
   tables: Array<{
@@ -178,7 +194,7 @@ interface DatabaseGeneratorInput {
   relationships: Array<{
     from: { table: string; column: string };
     to: { table: string; column: string };
-    type: 'one-to-one' | 'one-to-many' | 'many-to-many';
+    type: "one-to-one" | "one-to-many" | "many-to-many";
   }>;
 }
 
@@ -192,20 +208,21 @@ interface DatabaseGeneratorOutput {
 ```
 
 **API Generator (VIBE-P13-002):**
+
 ```typescript
 interface APIGeneratorInput {
   endpoints: Array<{
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+    method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
     path: string;
     requestSchema?: object; // JSON schema for request body
     responseSchema: object; // JSON schema for response
-    authentication?: 'required' | 'optional' | 'none';
+    authentication?: "required" | "optional" | "none";
     authorization?: string[]; // Required permissions/roles
   }>;
   middleware: Array<{
     name: string;
     purpose: string;
-    applyTo: 'all' | string[]; // Apply to all routes or specific ones
+    applyTo: "all" | string[]; // Apply to all routes or specific ones
   }>;
   dbSchema: Record<string, TableDefinition>; // From DB generator output
 }
@@ -220,22 +237,23 @@ interface APIGeneratorOutput {
 ```
 
 **UI Generator (VIBE-P13-003):**
+
 ```typescript
 interface UIGeneratorInput {
   components: Array<{
     name: string;
-    type: 'form' | 'display' | 'layout' | 'page';
+    type: "form" | "display" | "layout" | "page";
     props?: Record<string, string>; // TypeScript type annotations
     apiCalls?: string[]; // Which API endpoints it uses
   }>;
   pages: Array<{
     route: string;
     component: string;
-    authentication?: 'required' | 'optional';
+    authentication?: "required" | "optional";
   }>;
   stateManagement: Array<{
     name: string; // e.g., 'AuthContext'
-    type: 'context' | 'hook' | 'store';
+    type: "context" | "hook" | "store";
     provides: string[]; // What state/functions it exposes
   }>;
   apiContracts: Record<string, EndpointContract>; // From API generator output
@@ -255,11 +273,12 @@ interface UIGeneratorOutput {
 After each layer is generated, validate types match across boundaries:
 
 **DB→API Type Consistency:**
+
 ```typescript
 interface TypeConsistencyCheck {
   checkDbToApiTypes(
     dbSchema: Record<string, TableDefinition>,
-    apiTypes: Record<string, TypeDefinition>
+    apiTypes: Record<string, TypeDefinition>,
   ): ValidationResult;
 }
 
@@ -270,11 +289,12 @@ interface TypeConsistencyCheck {
 ```
 
 **API→UI Type Consistency:**
+
 ```typescript
 interface ApiUiTypeCheck {
   checkApiToUiTypes(
     apiContracts: Record<string, EndpointContract>,
-    uiApiCalls: Array<{ endpoint: string; expectedResponse: TypeDefinition }>
+    uiApiCalls: Array<{ endpoint: string; expectedResponse: TypeDefinition }>,
   ): ValidationResult;
 }
 
@@ -285,18 +305,19 @@ interface ApiUiTypeCheck {
 ```
 
 **Cross-Layer Integration Check:**
+
 ```typescript
 interface IntegrationCheck {
   // Verify API routes exist for all UI API calls
   checkUiApiCallsExist(
     uiApiCalls: string[],
-    apiRoutes: string[]
+    apiRoutes: string[],
   ): ValidationResult;
 
   // Verify DB tables exist for all API data access
   checkApiDbAccessExists(
     apiQueries: Array<{ table: string; operation: string }>,
-    dbSchema: Record<string, TableDefinition>
+    dbSchema: Record<string, TableDefinition>,
   ): ValidationResult;
 }
 ```
@@ -306,39 +327,41 @@ interface IntegrationCheck {
 Run integration tests after all layers are generated:
 
 **Test Levels:**
+
 ```typescript
 interface IntegrationTestSuite {
   // Level 1: Type checking
   typeCheck: {
-    command: 'npx tsc --noEmit',
-    mustPass: true,
-    timeout: 60_000, // 60 seconds
+    command: "npx tsc --noEmit";
+    mustPass: true;
+    timeout: 60_000; // 60 seconds
   };
 
   // Level 2: Unit tests (each layer independently)
   unitTests: {
-    database: 'npm test -- tests/database/migrations/*.test.ts',
-    api: 'npm test -- tests/api/**/*.test.ts',
-    ui: 'npm test -- tests/ui/**/*.test.tsx',
+    database: "npm test -- tests/database/migrations/*.test.ts";
+    api: "npm test -- tests/api/**/*.test.ts";
+    ui: "npm test -- tests/ui/**/*.test.tsx";
   };
 
   // Level 3: Integration tests (cross-layer)
   integrationTests: {
-    command: 'npm run test:integration',
-    mustPass: true,
-    timeout: 120_000, // 2 minutes
+    command: "npm run test:integration";
+    mustPass: true;
+    timeout: 120_000; // 2 minutes
   };
 
   // Level 4: E2E tests (full user flow)
   e2eTests: {
-    command: 'npm run test:e2e',
-    mustPass: false, // Warning only (expensive to run)
-    timeout: 300_000, // 5 minutes
+    command: "npm run test:e2e";
+    mustPass: false; // Warning only (expensive to run)
+    timeout: 300_000; // 5 minutes
   };
 }
 ```
 
 **Test Execution Strategy:**
+
 - Run type check first (fastest, catches most issues)
 - Run unit tests in parallel (isolated, can run concurrently)
 - Run integration tests after units pass (requires all layers working)
@@ -349,23 +372,25 @@ interface IntegrationTestSuite {
 Handle failures gracefully with layer-specific rollback strategies:
 
 **Database Layer Failure:**
+
 ```typescript
 // If migration fails to apply:
 async function rollbackDatabase(migrationNumber: number): Promise<void> {
   // Run migration down() function
-  await runMigration('down', migrationNumber);
+  await runMigration("down", migrationNumber);
 
   // Verify rollback succeeded
   const schemaAfterRollback = await getSchemaSnapshot();
-  const schemaBeforeFeature = await getSnapshotFromGit('HEAD~1');
+  const schemaBeforeFeature = await getSnapshotFromGit("HEAD~1");
 
   if (!deepEqual(schemaAfterRollback, schemaBeforeFeature)) {
-    throw new RollbackError('Database rollback incomplete');
+    throw new RollbackError("Database rollback incomplete");
   }
 }
 ```
 
 **API Layer Failure:**
+
 ```typescript
 // If API generation fails:
 async function rollbackApi(generatedFiles: string[]): Promise<void> {
@@ -377,7 +402,7 @@ async function rollbackApi(generatedFiles: string[]): Promise<void> {
   }
 
   // Restore modified files from git
-  await exec('git checkout -- server/routes/ server/middleware/');
+  await exec("git checkout -- server/routes/ server/middleware/");
 
   // Verify no orphaned imports or references
   await checkForOrphanedReferences();
@@ -385,6 +410,7 @@ async function rollbackApi(generatedFiles: string[]): Promise<void> {
 ```
 
 **UI Layer Failure:**
+
 ```typescript
 // If UI generation fails:
 async function rollbackUi(generatedFiles: string[]): Promise<void> {
@@ -396,7 +422,7 @@ async function rollbackUi(generatedFiles: string[]): Promise<void> {
   }
 
   // Restore routing configuration
-  await exec('git checkout -- src/App.tsx src/routes/');
+  await exec("git checkout -- src/App.tsx src/routes/");
 
   // Remove unused imports
   await runESLintFix();
@@ -404,25 +430,27 @@ async function rollbackUi(generatedFiles: string[]): Promise<void> {
 ```
 
 **Rollback Decision Tree:**
+
 ```typescript
 interface RollbackStrategy {
-  onDatabaseFailure: 'rollback-db' | 'manual-intervention';
-  onApiFailure: 'rollback-api-and-db' | 'rollback-api-only' | 'continue';
-  onUiFailure: 'rollback-ui-only' | 'rollback-all' | 'continue';
-  onIntegrationTestFailure: 'rollback-all' | 'mark-needs-review';
+  onDatabaseFailure: "rollback-db" | "manual-intervention";
+  onApiFailure: "rollback-api-and-db" | "rollback-api-only" | "continue";
+  onUiFailure: "rollback-ui-only" | "rollback-all" | "continue";
+  onIntegrationTestFailure: "rollback-all" | "mark-needs-review";
 }
 
 const DEFAULT_ROLLBACK_STRATEGY: RollbackStrategy = {
-  onDatabaseFailure: 'manual-intervention', // DB changes are risky
-  onApiFailure: 'rollback-api-only', // Keep DB changes, rollback API
-  onUiFailure: 'rollback-ui-only', // Keep DB+API, rollback UI
-  onIntegrationTestFailure: 'mark-needs-review', // Don't auto-rollback, escalate
+  onDatabaseFailure: "manual-intervention", // DB changes are risky
+  onApiFailure: "rollback-api-only", // Keep DB changes, rollback API
+  onUiFailure: "rollback-ui-only", // Keep DB+API, rollback UI
+  onIntegrationTestFailure: "mark-needs-review", // Don't auto-rollback, escalate
 };
 ```
 
 ### Non-Functional Requirements
 
 #### Performance
+
 - Feature spec parsing: < 10 seconds
 - Layer generator coordination: < 5 seconds overhead per layer
 - Type consistency validation: < 30 seconds
@@ -430,18 +458,21 @@ const DEFAULT_ROLLBACK_STRATEGY: RollbackStrategy = {
 - Total feature implementation: < 15 minutes for typical 3-layer feature
 
 #### Quality
+
 - Generated code must compile (TypeScript validation)
 - Generated code must pass layer-specific tests
 - Cross-layer types must be consistent (no type mismatches)
 - Integration tests must pass (full stack working together)
 
 #### Reliability
+
 - Graceful handling of generator failures (rollback cleanly)
 - Graceful handling of partial successes (DB works, API fails → rollback API)
 - No orphaned code (all generated files tracked for cleanup)
 - No broken references (imports, API calls validated)
 
 #### Observability
+
 - Each layer generation logged with phase, duration, files created
 - Cross-layer validation results captured
 - Integration test results detailed (which tests passed/failed)
@@ -525,10 +556,12 @@ export class FeatureSpecParser {
     const sections = this.extractSections(specContent);
 
     return {
-      database: this.parseDatabaseLayer(sections['Database Layer']),
-      api: this.parseApiLayer(sections['API Layer']),
-      ui: this.parseUiLayer(sections['UI Layer']),
-      integrationTests: this.parseIntegrationTests(sections['Integration Tests']),
+      database: this.parseDatabaseLayer(sections["Database Layer"]),
+      api: this.parseApiLayer(sections["API Layer"]),
+      ui: this.parseUiLayer(sections["UI Layer"]),
+      integrationTests: this.parseIntegrationTests(
+        sections["Integration Tests"],
+      ),
       metadata: this.parseMetadata(sections),
     };
   }
@@ -599,10 +632,12 @@ export class FeatureExecutionCoordinator {
     private dbGenerator: DatabaseGenerator,
     private apiGenerator: ApiGenerator,
     private uiGenerator: UiGenerator,
-    private validator: CrossLayerValidator
+    private validator: CrossLayerValidator,
   ) {}
 
-  async executeFeature(spec: ParsedFeatureSpec): Promise<FeatureExecutionResult> {
+  async executeFeature(
+    spec: ParsedFeatureSpec,
+  ): Promise<FeatureExecutionResult> {
     const context: ExecutionContext = {
       spec,
       results: {},
@@ -611,7 +646,7 @@ export class FeatureExecutionCoordinator {
 
     try {
       // Phase 1: Database Layer (Serial)
-      await this.executePhase('database', async () => {
+      await this.executePhase("database", async () => {
         const dbResult = await this.dbGenerator.generate(spec.database);
         context.results.database = dbResult;
 
@@ -622,7 +657,7 @@ export class FeatureExecutionCoordinator {
       });
 
       // Phase 2: API Layer (Parallel-capable)
-      await this.executePhase('api', async () => {
+      await this.executePhase("api", async () => {
         const apiResult = await this.apiGenerator.generate({
           ...spec.api,
           dbSchema: context.results.database.schemaSnapshot,
@@ -636,21 +671,21 @@ export class FeatureExecutionCoordinator {
       });
 
       // Phase 3: Validate DB→API Types
-      await this.executePhase('validate-db-api', async () => {
+      await this.executePhase("validate-db-api", async () => {
         const validation = await this.validator.validateDbToApi(
           context.results.database.schemaSnapshot,
-          context.results.api.typeFiles
+          context.results.api.typeFiles,
         );
 
         if (!validation.passed) {
-          throw new ValidationError('DB→API type mismatch', validation.errors);
+          throw new ValidationError("DB→API type mismatch", validation.errors);
         }
 
         return validation;
       });
 
       // Phase 4: UI Layer (Parallel-capable)
-      await this.executePhase('ui', async () => {
+      await this.executePhase("ui", async () => {
         const uiResult = await this.uiGenerator.generate({
           ...spec.ui,
           apiContracts: context.results.api.apiContracts,
@@ -664,25 +699,27 @@ export class FeatureExecutionCoordinator {
       });
 
       // Phase 5: Validate API→UI Types
-      await this.executePhase('validate-api-ui', async () => {
+      await this.executePhase("validate-api-ui", async () => {
         const validation = await this.validator.validateApiToUi(
           context.results.api.apiContracts,
-          context.results.ui.componentFiles
+          context.results.ui.componentFiles,
         );
 
         if (!validation.passed) {
-          throw new ValidationError('API→UI type mismatch', validation.errors);
+          throw new ValidationError("API→UI type mismatch", validation.errors);
         }
 
         return validation;
       });
 
       // Phase 6: Integration Tests
-      await this.executePhase('integration-tests', async () => {
-        const testResult = await this.runIntegrationTests(spec.integrationTests);
+      await this.executePhase("integration-tests", async () => {
+        const testResult = await this.runIntegrationTests(
+          spec.integrationTests,
+        );
 
         if (!testResult.allPassed) {
-          throw new TestFailureError('Integration tests failed', testResult);
+          throw new TestFailureError("Integration tests failed", testResult);
         }
 
         return testResult;
@@ -692,9 +729,8 @@ export class FeatureExecutionCoordinator {
       return {
         success: true,
         filesGenerated: this.collectGeneratedFiles(context),
-        testResults: context.results['integration-tests'],
+        testResults: context.results["integration-tests"],
       };
-
     } catch (error) {
       // Failure - rollback
       await this.rollbackAll(context, error);
@@ -709,7 +745,7 @@ export class FeatureExecutionCoordinator {
 
   private async executePhase<T>(
     phaseName: string,
-    executor: () => Promise<T>
+    executor: () => Promise<T>,
   ): Promise<T> {
     console.log(`[FeatureOrchestrator] Starting phase: ${phaseName}`);
     const startTime = Date.now();
@@ -718,19 +754,24 @@ export class FeatureExecutionCoordinator {
       const result = await executor();
       const duration = Date.now() - startTime;
 
-      console.log(`[FeatureOrchestrator] ✅ ${phaseName} completed in ${duration}ms`);
+      console.log(
+        `[FeatureOrchestrator] ✅ ${phaseName} completed in ${duration}ms`,
+      );
 
       // Log to observability
-      await this.logPhase(phaseName, 'completed', duration);
+      await this.logPhase(phaseName, "completed", duration);
 
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
 
-      console.error(`[FeatureOrchestrator] ❌ ${phaseName} failed after ${duration}ms:`, error);
+      console.error(
+        `[FeatureOrchestrator] ❌ ${phaseName} failed after ${duration}ms:`,
+        error,
+      );
 
       // Log to observability
-      await this.logPhase(phaseName, 'failed', duration, error);
+      await this.logPhase(phaseName, "failed", duration, error);
 
       throw error;
     }
@@ -738,16 +779,22 @@ export class FeatureExecutionCoordinator {
 
   private async rollbackAll(
     context: ExecutionContext,
-    originalError: Error
+    originalError: Error,
   ): Promise<void> {
-    console.warn('[FeatureOrchestrator] Rolling back due to error:', originalError.message);
+    console.warn(
+      "[FeatureOrchestrator] Rolling back due to error:",
+      originalError.message,
+    );
 
     // Execute rollback actions in reverse order
     for (const action of context.rollbackActions.reverse()) {
       try {
         await action();
       } catch (rollbackError) {
-        console.error('[FeatureOrchestrator] Rollback action failed:', rollbackError);
+        console.error(
+          "[FeatureOrchestrator] Rollback action failed:",
+          rollbackError,
+        );
         // Continue with other rollbacks even if one fails
       }
     }
@@ -769,7 +816,7 @@ export class CrossLayerValidator {
    */
   async validateDbToApi(
     dbSchema: Record<string, TableDefinition>,
-    apiTypeFiles: Array<{ path: string; content: string }>
+    apiTypeFiles: Array<{ path: string; content: string }>,
   ): Promise<ValidationResult> {
     const errors: ValidationError[] = [];
 
@@ -783,7 +830,7 @@ export class CrossLayerValidator {
 
       if (!apiType) {
         errors.push({
-          level: 'error',
+          level: "error",
           message: `No API type found for DB table '${tableName}'`,
           suggestion: `Create interface ${typeName} in API types`,
         });
@@ -796,7 +843,7 @@ export class CrossLayerValidator {
 
         if (!field) {
           errors.push({
-            level: 'error',
+            level: "error",
             message: `API type ${typeName} missing field '${column.name}' from DB`,
             suggestion: `Add '${column.name}: ${this.sqlTypeToTsType(column.type)}' to ${typeName}`,
           });
@@ -807,7 +854,7 @@ export class CrossLayerValidator {
         const expectedTsType = this.sqlTypeToTsType(column.type);
         if (field.type !== expectedTsType) {
           errors.push({
-            level: 'error',
+            level: "error",
             message: `Type mismatch: DB column '${tableName}.${column.name}' is ${column.type}, API field is ${field.type}`,
             suggestion: `Change API field type to ${expectedTsType}`,
           });
@@ -827,7 +874,7 @@ export class CrossLayerValidator {
    */
   async validateApiToUi(
     apiContracts: Record<string, EndpointContract>,
-    uiComponentFiles: Array<{ path: string; content: string }>
+    uiComponentFiles: Array<{ path: string; content: string }>,
   ): Promise<ValidationResult> {
     const errors: ValidationError[] = [];
 
@@ -840,7 +887,7 @@ export class CrossLayerValidator {
 
       if (!endpoint) {
         errors.push({
-          level: 'error',
+          level: "error",
           message: `UI calls non-existent API endpoint: ${apiCall.endpoint}`,
           location: `${apiCall.file}:${apiCall.line}`,
           suggestion: `Either create API endpoint ${apiCall.endpoint} or remove this call`,
@@ -852,12 +899,12 @@ export class CrossLayerValidator {
       if (apiCall.requestBody && endpoint.requestSchema) {
         const typeMatch = this.compareTypes(
           apiCall.requestBody,
-          endpoint.requestSchema
+          endpoint.requestSchema,
         );
 
         if (!typeMatch.compatible) {
           errors.push({
-            level: 'error',
+            level: "error",
             message: `Request type mismatch for ${apiCall.endpoint}`,
             details: typeMatch.differences,
             location: `${apiCall.file}:${apiCall.line}`,
@@ -869,12 +916,12 @@ export class CrossLayerValidator {
       if (apiCall.expectedResponse && endpoint.responseSchema) {
         const typeMatch = this.compareTypes(
           apiCall.expectedResponse,
-          endpoint.responseSchema
+          endpoint.responseSchema,
         );
 
         if (!typeMatch.compatible) {
           errors.push({
-            level: 'error',
+            level: "error",
             message: `Response type mismatch for ${apiCall.endpoint}`,
             details: typeMatch.differences,
             location: `${apiCall.file}:${apiCall.line}`,
@@ -892,20 +939,20 @@ export class CrossLayerValidator {
 
   private sqlTypeToTsType(sqlType: string): string {
     const typeMap: Record<string, string> = {
-      'TEXT': 'string',
-      'VARCHAR': 'string',
-      'INTEGER': 'number',
-      'BIGINT': 'number',
-      'REAL': 'number',
-      'BOOLEAN': 'boolean',
-      'TIMESTAMP': 'Date',
-      'UUID': 'string',
-      'JSON': 'object',
-      'JSONB': 'object',
+      TEXT: "string",
+      VARCHAR: "string",
+      INTEGER: "number",
+      BIGINT: "number",
+      REAL: "number",
+      BOOLEAN: "boolean",
+      TIMESTAMP: "Date",
+      UUID: "string",
+      JSON: "object",
+      JSONB: "object",
     };
 
-    const upperType = sqlType.toUpperCase().split('(')[0]; // VARCHAR(255) → VARCHAR
-    return typeMap[upperType] || 'unknown';
+    const upperType = sqlType.toUpperCase().split("(")[0]; // VARCHAR(255) → VARCHAR
+    return typeMap[upperType] || "unknown";
   }
 }
 ```
@@ -925,8 +972,8 @@ export class IntegrationTestRunner {
 
     // Run type check first (fastest)
     const typeCheckResult = await this.runCommand({
-      name: 'TypeScript Compilation',
-      command: 'npx tsc --noEmit',
+      name: "TypeScript Compilation",
+      command: "npx tsc --noEmit",
       timeout: 60_000,
     });
     results.push(typeCheckResult);
@@ -940,33 +987,33 @@ export class IntegrationTestRunner {
     // Run unit tests (parallel)
     const unitTestResults = await Promise.all([
       this.runCommand({
-        name: 'Database Unit Tests',
-        command: 'npm test -- tests/database/**/*.test.ts',
+        name: "Database Unit Tests",
+        command: "npm test -- tests/database/**/*.test.ts",
         timeout: 60_000,
       }),
       this.runCommand({
-        name: 'API Unit Tests',
-        command: 'npm test -- tests/api/**/*.test.ts',
+        name: "API Unit Tests",
+        command: "npm test -- tests/api/**/*.test.ts",
         timeout: 60_000,
       }),
       this.runCommand({
-        name: 'UI Unit Tests',
-        command: 'npm test -- tests/ui/**/*.test.tsx',
+        name: "UI Unit Tests",
+        command: "npm test -- tests/ui/**/*.test.tsx",
         timeout: 60_000,
       }),
     ]);
 
     results.push(...unitTestResults);
 
-    if (unitTestResults.some(r => !r.passed)) {
+    if (unitTestResults.some((r) => !r.passed)) {
       allPassed = false;
       // Continue to integration tests anyway (for comprehensive report)
     }
 
     // Run integration tests (serial)
     const integrationResult = await this.runCommand({
-      name: 'Integration Tests',
-      command: 'npm run test:integration',
+      name: "Integration Tests",
+      command: "npm run test:integration",
       timeout: 120_000,
     });
     results.push(integrationResult);
@@ -1027,6 +1074,7 @@ export class IntegrationTestRunner {
 - `agent_heartbeats` - Health monitoring during long feature implementations
 
 **Potential Future Enhancement:**
+
 ```sql
 -- Table to track layer generation history (for rollback reference)
 CREATE TABLE IF NOT EXISTS feature_layer_history (
@@ -1050,14 +1098,14 @@ CREATE TABLE IF NOT EXISTS feature_layer_history (
 
 ```typescript
 // Add feature orchestrator to spawner exports
-import { FeatureOrchestrator } from './feature-orchestrator.js';
+import { FeatureOrchestrator } from "./feature-orchestrator.js";
 
 /**
  * Spawn feature implementation (all layers)
  */
 export async function spawnFeatureImplementation(
   taskId: string,
-  featureSpec: string
+  featureSpec: string,
 ): Promise<FeatureExecutionResult> {
   const orchestrator = new FeatureOrchestrator({
     dbGenerator: new DatabaseGenerator(config.dbGeneratorConfig),
@@ -1083,10 +1131,10 @@ if (task.spec_content) {
   const result = await spawnFeatureImplementation(taskId, task.spec_content);
 
   if (result.success) {
-    tasks.updateTask(taskId, { status: 'pending_verification' });
+    tasks.updateTask(taskId, { status: "pending_verification" });
   } else {
     tasks.updateTask(taskId, {
-      status: 'failed',
+      status: "failed",
       last_error_message: result.error,
     });
   }
@@ -1100,6 +1148,7 @@ if (task.spec_content) {
 ### 1. ✅ Feature Spec Parser Extracts All Layers
 
 **Test:**
+
 ```typescript
 const spec = `
 # Feature: User Profile
@@ -1123,11 +1172,11 @@ const spec = `
 const parsed = new FeatureSpecParser().parse(spec);
 
 assert(parsed.database.tables.length === 1);
-assert(parsed.database.tables[0].name === 'user_profiles');
+assert(parsed.database.tables[0].name === "user_profiles");
 assert(parsed.api.endpoints.length === 1);
-assert(parsed.api.endpoints[0].path === '/api/profiles/:id');
+assert(parsed.api.endpoints[0].path === "/api/profiles/:id");
 assert(parsed.ui.components.length === 1);
-assert(parsed.ui.components[0].name === 'ProfileCard.tsx');
+assert(parsed.ui.components[0].name === "ProfileCard.tsx");
 ```
 
 **Expected:** Parser correctly extracts DB tables, API endpoints, and UI components.
@@ -1135,33 +1184,34 @@ assert(parsed.ui.components[0].name === 'ProfileCard.tsx');
 ### 2. ✅ Execution Coordinator Sequences DB→API→UI
 
 **Test:**
+
 ```typescript
 const executionOrder: string[] = [];
 
 const mockCoordinator = new FeatureExecutionCoordinator({
   dbGenerator: {
     generate: async () => {
-      executionOrder.push('db');
+      executionOrder.push("db");
       return mockDbResult;
-    }
+    },
   },
   apiGenerator: {
     generate: async () => {
-      executionOrder.push('api');
+      executionOrder.push("api");
       return mockApiResult;
-    }
+    },
   },
   uiGenerator: {
     generate: async () => {
-      executionOrder.push('ui');
+      executionOrder.push("ui");
       return mockUiResult;
-    }
+    },
   },
 });
 
 await mockCoordinator.executeFeature(mockSpec);
 
-assert.deepEqual(executionOrder, ['db', 'api', 'ui']);
+assert.deepEqual(executionOrder, ["db", "api", "ui"]);
 ```
 
 **Expected:** Layers execute in correct dependency order.
@@ -1169,13 +1219,14 @@ assert.deepEqual(executionOrder, ['db', 'api', 'ui']);
 ### 3. ✅ Cross-Layer Type Validation Catches Mismatches
 
 **Test:**
+
 ```typescript
 const dbSchema = {
   users: {
     columns: [
-      { name: 'id', type: 'UUID' },
-      { name: 'email', type: 'TEXT' },
-      { name: 'created_at', type: 'TIMESTAMP' },
+      { name: "id", type: "UUID" },
+      { name: "email", type: "TEXT" },
+      { name: "created_at", type: "TIMESTAMP" },
     ],
   },
 };
@@ -1183,8 +1234,8 @@ const dbSchema = {
 const apiTypes = {
   User: {
     fields: {
-      id: { type: 'string' },
-      email: { type: 'string' },
+      id: { type: "string" },
+      email: { type: "string" },
       // Missing created_at field
     },
   },
@@ -1194,7 +1245,9 @@ const validator = new CrossLayerValidator();
 const result = await validator.validateDbToApi(dbSchema, apiTypes);
 
 assert(!result.passed);
-assert(result.errors.some(e => e.message.includes('missing field \'created_at\'')));
+assert(
+  result.errors.some((e) => e.message.includes("missing field 'created_at'")),
+);
 ```
 
 **Expected:** Validator detects missing field in API type.
@@ -1202,17 +1255,18 @@ assert(result.errors.some(e => e.message.includes('missing field \'created_at\''
 ### 4. ✅ Integration Tests Run After All Layers Generated
 
 **Test:**
+
 ```typescript
 const testRunner = new IntegrationTestRunner();
 const result = await testRunner.runTests([
-  { name: 'Type Check', command: 'npx tsc --noEmit' },
-  { name: 'Unit Tests', command: 'npm test' },
-  { name: 'Integration Tests', command: 'npm run test:integration' },
+  { name: "Type Check", command: "npx tsc --noEmit" },
+  { name: "Unit Tests", command: "npm test" },
+  { name: "Integration Tests", command: "npm run test:integration" },
 ]);
 
 assert(result.results.length === 3);
-assert(result.results[0].name === 'Type Check');
-assert(result.results.every(r => r.duration > 0));
+assert(result.results[0].name === "Type Check");
+assert(result.results.every((r) => r.duration > 0));
 ```
 
 **Expected:** All test types executed and results captured.
@@ -1220,10 +1274,11 @@ assert(result.results.every(r => r.duration > 0));
 ### 5. ✅ Database Layer Failure Triggers Rollback
 
 **Test:**
+
 ```typescript
 const mockDbGenerator = {
   generate: async () => {
-    throw new Error('Migration failed to apply');
+    throw new Error("Migration failed to apply");
   },
 };
 
@@ -1236,7 +1291,7 @@ const coordinator = new FeatureExecutionCoordinator({
 const result = await coordinator.executeFeature(mockSpec);
 
 assert(!result.success);
-assert(result.error.includes('Migration failed'));
+assert(result.error.includes("Migration failed"));
 // Verify API and UI generators were NOT called
 assert(apiGeneratorCallCount === 0);
 assert(uiGeneratorCallCount === 0);
@@ -1247,10 +1302,11 @@ assert(uiGeneratorCallCount === 0);
 ### 6. ✅ API Layer Failure Rolls Back API Only (Keeps DB)
 
 **Test:**
+
 ```typescript
 const mockApiGenerator = {
   generate: async () => {
-    throw new Error('API generation failed');
+    throw new Error("API generation failed");
   },
 };
 
@@ -1267,7 +1323,7 @@ assert(result.partialResults.database); // DB succeeded
 assert(!result.partialResults.api); // API failed
 // Verify DB migration NOT rolled back
 const currentSchema = await getDbSchema();
-assert(currentSchema.tables.includes('new_table_from_feature'));
+assert(currentSchema.tables.includes("new_table_from_feature"));
 ```
 
 **Expected:** DB changes preserved, API rollback executed, UI not attempted.
@@ -1275,10 +1331,11 @@ assert(currentSchema.tables.includes('new_table_from_feature'));
 ### 7. ✅ UI Layer Failure Rolls Back UI Only (Keeps DB+API)
 
 **Test:**
+
 ```typescript
 const mockUiGenerator = {
   generate: async () => {
-    throw new Error('UI generation failed');
+    throw new Error("UI generation failed");
   },
 };
 
@@ -1295,7 +1352,7 @@ assert(result.partialResults.database); // DB succeeded
 assert(result.partialResults.api); // API succeeded
 assert(!result.partialResults.ui); // UI failed
 // Verify API files still exist
-assert(fs.existsSync('server/routes/new-route.ts'));
+assert(fs.existsSync("server/routes/new-route.ts"));
 ```
 
 **Expected:** DB and API changes preserved, UI rollback executed.
@@ -1303,14 +1360,19 @@ assert(fs.existsSync('server/routes/new-route.ts'));
 ### 8. ✅ Integration Test Failure Marks Task for Review
 
 **Test:**
+
 ```typescript
 const mockTestRunner = {
   runTests: async () => ({
     allPassed: false,
     results: [
-      { name: 'Type Check', passed: true },
-      { name: 'Unit Tests', passed: true },
-      { name: 'Integration Tests', passed: false, output: 'Expected 200, got 500' },
+      { name: "Type Check", passed: true },
+      { name: "Unit Tests", passed: true },
+      {
+        name: "Integration Tests",
+        passed: false,
+        output: "Expected 200, got 500",
+      },
     ],
   }),
 };
@@ -1323,10 +1385,10 @@ const coordinator = new FeatureExecutionCoordinator({
 const result = await coordinator.executeFeature(mockSpec);
 
 assert(!result.success);
-assert(result.error.includes('Integration tests failed'));
+assert(result.error.includes("Integration tests failed"));
 // Verify code NOT rolled back (marked for review instead)
-assert(fs.existsSync('server/routes/new-route.ts'));
-assert(fs.existsSync('src/components/NewComponent.tsx'));
+assert(fs.existsSync("server/routes/new-route.ts"));
+assert(fs.existsSync("src/components/NewComponent.tsx"));
 ```
 
 **Expected:** All code preserved, task status set to 'needs_review', test output captured.
@@ -1334,6 +1396,7 @@ assert(fs.existsSync('src/components/NewComponent.tsx'));
 ### 9. ✅ Success Path Generates All Layers + Passes Tests
 
 **Test:**
+
 ```typescript
 const coordinator = new FeatureExecutionCoordinator({
   dbGenerator: successfulDbGenerator,
@@ -1349,9 +1412,9 @@ assert(result.success);
 assert(result.filesGenerated.length > 0);
 assert(result.testResults.allPassed);
 // Verify all layers generated
-assert(fs.existsSync('database/migrations/134_add_feature.sql'));
-assert(fs.existsSync('server/routes/feature.ts'));
-assert(fs.existsSync('src/components/FeatureComponent.tsx'));
+assert(fs.existsSync("database/migrations/134_add_feature.sql"));
+assert(fs.existsSync("server/routes/feature.ts"));
+assert(fs.existsSync("src/components/FeatureComponent.tsx"));
 ```
 
 **Expected:** All layers generated, all tests pass, task marked completed.
@@ -1359,6 +1422,7 @@ assert(fs.existsSync('src/components/FeatureComponent.tsx'));
 ### 10. ✅ Observability Logs Each Phase
 
 **Test:**
+
 ```sql
 -- After feature execution
 SELECT phase, status, duration_ms
@@ -1410,6 +1474,7 @@ ORDER BY created_at;
 ### Phase 1: Feature Spec Parser (3-4 hours)
 
 **Tasks:**
+
 1. Create `feature-orchestrator.ts` in spawner directory
 2. Implement `FeatureSpecParser` class
 3. Add markdown section extraction (DB Layer, API Layer, UI Layer)
@@ -1419,6 +1484,7 @@ ORDER BY created_at;
 7. Write unit tests for parser
 
 **Deliverables:**
+
 - `FeatureSpecParser.parse()` returns `ParsedFeatureSpec`
 - Handles all three layers correctly
 - Graceful error handling for malformed specs
@@ -1426,6 +1492,7 @@ ORDER BY created_at;
 ### Phase 2: Execution Coordinator (5-6 hours)
 
 **Tasks:**
+
 1. Implement `FeatureExecutionCoordinator` class
 2. Add phase execution framework (`executePhase()`)
 3. Add DB layer execution with schema capture
@@ -1435,6 +1502,7 @@ ORDER BY created_at;
 7. Add error handling and rollback orchestration
 
 **Deliverables:**
+
 - `FeatureExecutionCoordinator.executeFeature()` orchestrates all layers
 - Executes in correct dependency order (DB→API→UI)
 - Registers and executes rollback actions on failure
@@ -1442,6 +1510,7 @@ ORDER BY created_at;
 ### Phase 3: Cross-Layer Type Validator (4-5 hours)
 
 **Tasks:**
+
 1. Create `cross-layer-validator.ts`
 2. Implement `CrossLayerValidator` class
 3. Add DB→API type validation (schema to TypeScript types)
@@ -1451,6 +1520,7 @@ ORDER BY created_at;
 7. Write unit tests for validator
 
 **Deliverables:**
+
 - `CrossLayerValidator.validateDbToApi()` catches DB/API mismatches
 - `CrossLayerValidator.validateApiToUi()` catches API/UI mismatches
 - Detailed error messages with suggestions
@@ -1458,6 +1528,7 @@ ORDER BY created_at;
 ### Phase 4: Integration Test Runner (3-4 hours)
 
 **Tasks:**
+
 1. Create `integration-test-runner.ts`
 2. Implement `IntegrationTestRunner` class
 3. Add command execution utility (with timeout)
@@ -1467,6 +1538,7 @@ ORDER BY created_at;
 7. Add result aggregation and summary generation
 
 **Deliverables:**
+
 - `IntegrationTestRunner.runTests()` executes all test levels
 - Captures exit codes, stdout, stderr
 - Generates comprehensive test report
@@ -1474,6 +1546,7 @@ ORDER BY created_at;
 ### Phase 5: Rollback Strategies (3-4 hours)
 
 **Tasks:**
+
 1. Implement database rollback (migration down)
 2. Implement API rollback (delete generated files, restore from git)
 3. Implement UI rollback (delete components, restore routing)
@@ -1482,6 +1555,7 @@ ORDER BY created_at;
 6. Write integration tests for rollback
 
 **Deliverables:**
+
 - Rollback functions for each layer
 - Verification that rollback restores original state
 - Audit logging of all rollback actions
@@ -1489,6 +1563,7 @@ ORDER BY created_at;
 ### Phase 6: Spawner Integration (2-3 hours)
 
 **Tasks:**
+
 1. Export `FeatureOrchestrator` from spawner index
 2. Add `spawnFeatureImplementation()` function
 3. Integrate with task system (detect feature tasks)
@@ -1496,6 +1571,7 @@ ORDER BY created_at;
 5. Add observability logging (phase logs to database)
 
 **Deliverables:**
+
 - Feature orchestrator callable from main orchestrator
 - Task system recognizes and routes feature implementation tasks
 - Observability integrated
@@ -1503,6 +1579,7 @@ ORDER BY created_at;
 ### Phase 7: End-to-End Testing (3-4 hours)
 
 **Tasks:**
+
 1. Create test fixture: complete feature spec (DB+API+UI)
 2. Test success path (all layers generated, tests pass)
 3. Test DB failure path (migration fails → rollback → error)
@@ -1513,6 +1590,7 @@ ORDER BY created_at;
 8. Verify observability logs for each scenario
 
 **Deliverables:**
+
 - 7+ end-to-end test scenarios
 - All pass criteria validated
 - Integration with full orchestrator confirmed
@@ -1528,8 +1606,8 @@ ORDER BY created_at;
 **File:** `tests/unit/feature-orchestrator/spec-parser.test.ts`
 
 ```typescript
-describe('FeatureSpecParser', () => {
-  it('should parse database layer with tables and columns', () => {
+describe("FeatureSpecParser", () => {
+  it("should parse database layer with tables and columns", () => {
     const spec = `
 ## Database Layer
 ### Tables
@@ -1542,13 +1620,13 @@ describe('FeatureSpecParser', () => {
     const parsed = parser.parse(spec);
 
     expect(parsed.database.tables).toHaveLength(1);
-    expect(parsed.database.tables[0].name).toBe('users');
+    expect(parsed.database.tables[0].name).toBe("users");
     expect(parsed.database.tables[0].columns).toHaveLength(2);
-    expect(parsed.database.tables[0].columns[0].name).toBe('id');
-    expect(parsed.database.tables[0].columns[0].type).toBe('UUID');
+    expect(parsed.database.tables[0].columns[0].name).toBe("id");
+    expect(parsed.database.tables[0].columns[0].type).toBe("UUID");
   });
 
-  it('should parse API layer with endpoints', () => {
+  it("should parse API layer with endpoints", () => {
     const spec = `
 ## API Layer
 ### Endpoints
@@ -1561,8 +1639,8 @@ describe('FeatureSpecParser', () => {
     const parsed = parser.parse(spec);
 
     expect(parsed.api.endpoints).toHaveLength(1);
-    expect(parsed.api.endpoints[0].method).toBe('POST');
-    expect(parsed.api.endpoints[0].path).toBe('/api/auth/login');
+    expect(parsed.api.endpoints[0].method).toBe("POST");
+    expect(parsed.api.endpoints[0].path).toBe("/api/auth/login");
   });
 });
 ```
@@ -1572,26 +1650,26 @@ describe('FeatureSpecParser', () => {
 **File:** `tests/integration/feature-orchestrator/execution.test.ts`
 
 ```typescript
-describe('FeatureExecutionCoordinator', () => {
-  it('should execute all layers in correct order', async () => {
+describe("FeatureExecutionCoordinator", () => {
+  it("should execute all layers in correct order", async () => {
     const executionLog: string[] = [];
 
     const coordinator = new FeatureExecutionCoordinator({
       dbGenerator: {
         generate: async () => {
-          executionLog.push('db');
+          executionLog.push("db");
           return mockDbResult;
         },
       },
       apiGenerator: {
         generate: async () => {
-          executionLog.push('api');
+          executionLog.push("api");
           return mockApiResult;
         },
       },
       uiGenerator: {
         generate: async () => {
-          executionLog.push('ui');
+          executionLog.push("ui");
           return mockUiResult;
         },
       },
@@ -1601,29 +1679,29 @@ describe('FeatureExecutionCoordinator', () => {
 
     await coordinator.executeFeature(validFeatureSpec);
 
-    expect(executionLog).toEqual(['db', 'api', 'ui']);
+    expect(executionLog).toEqual(["db", "api", "ui"]);
   });
 
-  it('should rollback API on API failure', async () => {
+  it("should rollback API on API failure", async () => {
     const rollbackLog: string[] = [];
 
     const coordinator = new FeatureExecutionCoordinator({
       dbGenerator: successfulDbGenerator,
       apiGenerator: {
         generate: async () => {
-          throw new Error('API generation failed');
+          throw new Error("API generation failed");
         },
       },
       uiGenerator: mockUiGenerator,
       rollbackApi: async () => {
-        rollbackLog.push('api-rollback');
+        rollbackLog.push("api-rollback");
       },
     });
 
     const result = await coordinator.executeFeature(validFeatureSpec);
 
     expect(result.success).toBe(false);
-    expect(rollbackLog).toContain('api-rollback');
+    expect(rollbackLog).toContain("api-rollback");
   });
 });
 ```
@@ -1653,6 +1731,7 @@ describe('FeatureExecutionCoordinator', () => {
 **Question:** Should API and UI layer generation run in parallel (independent work) or serial (one after another)?
 
 **Options:**
+
 - **A:** Serial (simpler, easier debugging, predictable resource usage)
 - **B:** Parallel (faster, but more complex coordination)
 - **C:** Configurable (default serial, opt-in parallel)
@@ -1664,6 +1743,7 @@ describe('FeatureExecutionCoordinator', () => {
 **Question:** When integration tests fail but all layers generated successfully, should we rollback all code or mark for review?
 
 **Options:**
+
 - **A:** Rollback all (safe but wasteful, generated code might be 95% correct)
 - **B:** Mark for review (pragmatic, human reviews and fixes minor issues)
 - **C:** Retry with test feedback (autonomous, but may not fix integration issues)
@@ -1675,6 +1755,7 @@ describe('FeatureExecutionCoordinator', () => {
 **Question:** Should feature specs be markdown (readable) or JSON (structured)?
 
 **Options:**
+
 - **A:** Markdown (human-friendly, easy to write, requires parsing)
 - **B:** JSON (machine-friendly, schema-validated, harder for humans)
 - **C:** Both (markdown as input, parsed to JSON for processing)

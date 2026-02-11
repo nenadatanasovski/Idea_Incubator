@@ -1,23 +1,25 @@
 /**
  * Planning Agent System
- * 
+ *
  * Spawns a planning agent to analyze the codebase and create implementation tasks.
  * This is the brain of the autonomous system.
  */
 
-import { query, run, getOne } from '../db/index.js';
-import * as tasks from '../db/tasks.js';
-import * as spawner from '../spawner/index.js';
-import { notify } from '../telegram/index.js';
-import { v4 as uuidv4 } from 'uuid';
-import * as planCache from './plan-cache.js';
+import { query, run, getOne } from "../db/index.js";
+import * as tasks from "../db/tasks.js";
+import * as spawner from "../spawner/index.js";
+import { notify } from "../telegram/index.js";
+import { v4 as uuidv4 } from "uuid";
+import * as planCache from "./plan-cache.js";
 
-const CODEBASE_ROOT = process.env.CODEBASE_ROOT || '/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator';
+const CODEBASE_ROOT =
+  process.env.CODEBASE_ROOT ||
+  "/home/ned-atanasovski/Documents/Idea_Incubator/Idea_Incubator";
 
 export interface PlanningSession {
   id: string;
-  type: 'daily' | 'weekly' | 'incident' | 'optimization' | 'initial';
-  status: 'planning' | 'completed' | 'cancelled';
+  type: "daily" | "weekly" | "incident" | "optimization" | "initial";
+  status: "planning" | "completed" | "cancelled";
   input_data: string;
   analysis: string | null;
   recommendations: string | null;
@@ -28,7 +30,8 @@ export interface PlanningSession {
 
 // Ensure planning table exists
 function ensurePlanningTable(): void {
-  run(`
+  run(
+    `
     CREATE TABLE IF NOT EXISTS planning_sessions (
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL,
@@ -40,7 +43,9 @@ function ensurePlanningTable(): void {
       created_at TEXT DEFAULT (datetime('now')),
       completed_at TEXT
     )
-  `, []);
+  `,
+    [],
+  );
 }
 
 ensurePlanningTable();
@@ -187,30 +192,36 @@ export function parseStrategicPlan(output: string): {
 } | null {
   const startMatch = output.match(/### STRATEGIC_PLAN_START ###/);
   const endMatch = output.match(/### STRATEGIC_PLAN_END ###/);
-  
+
   if (!startMatch) {
-    console.warn('⚠️ Could not find strategic plan start marker');
+    console.warn("⚠️ Could not find strategic plan start marker");
     return null;
   }
 
   // End marker is optional - use it if found, otherwise take everything after start
-  const planSection = endMatch 
+  const planSection = endMatch
     ? output.slice(startMatch.index! + startMatch[0].length, endMatch.index!)
     : output.slice(startMatch.index! + startMatch[0].length);
-  
+
   console.log(`📋 Parsing strategic plan (${planSection.length} chars)`);
-  
+
   // Parse vision
-  const visionMatch = planSection.match(/## VISION SUMMARY\n([\s\S]*?)(?=## CURRENT STATE|$)/);
-  const visionSummary = visionMatch?.[1]?.trim() || '';
+  const visionMatch = planSection.match(
+    /## VISION SUMMARY\n([\s\S]*?)(?=## CURRENT STATE|$)/,
+  );
+  const visionSummary = visionMatch?.[1]?.trim() || "";
 
   // Parse current state
-  const stateMatch = planSection.match(/## CURRENT STATE ASSESSMENT\n([\s\S]*?)(?=## RECOMMENDED APPROACH|$)/);
-  const currentState = stateMatch?.[1]?.trim() || '';
+  const stateMatch = planSection.match(
+    /## CURRENT STATE ASSESSMENT\n([\s\S]*?)(?=## RECOMMENDED APPROACH|$)/,
+  );
+  const currentState = stateMatch?.[1]?.trim() || "";
 
   // Parse approach
-  const approachMatch = planSection.match(/## RECOMMENDED APPROACH\n([\s\S]*?)(?=### PHASE:|$)/);
-  const approach = approachMatch?.[1]?.trim() || '';
+  const approachMatch = planSection.match(
+    /## RECOMMENDED APPROACH\n([\s\S]*?)(?=### PHASE:|$)/,
+  );
+  const approach = approachMatch?.[1]?.trim() || "";
 
   // Parse phases - try multiple formats
   const phases: Array<{
@@ -223,13 +234,15 @@ export function parseStrategicPlan(output: string): {
   }> = [];
 
   // Try strict format first
-  let phaseMatches = planSection.matchAll(/### PHASE:\s*(.+)\nGOAL:\s*(.+)\nPRIORITY:\s*(P\d)\nESTIMATED_EFFORT:\s*(\w+)\nDEPENDENCIES:\s*(.+)\nKEY_DELIVERABLES:\n([\s\S]*?)(?=---|### PHASE:|### STRATEGIC_PLAN_END|$)/g);
+  let phaseMatches = planSection.matchAll(
+    /### PHASE:\s*(.+)\nGOAL:\s*(.+)\nPRIORITY:\s*(P\d)\nESTIMATED_EFFORT:\s*(\w+)\nDEPENDENCIES:\s*(.+)\nKEY_DELIVERABLES:\n([\s\S]*?)(?=---|### PHASE:|### STRATEGIC_PLAN_END|$)/g,
+  );
 
   for (const match of phaseMatches) {
     const deliverables = match[6]
-      .split('\n')
-      .map(line => line.replace(/^[-*]\s*/, '').trim())
-      .filter(line => line.length > 0);
+      .split("\n")
+      .map((line) => line.replace(/^[-*]\s*/, "").trim())
+      .filter((line) => line.length > 0);
 
     phases.push({
       name: match[1].trim(),
@@ -243,33 +256,44 @@ export function parseStrategicPlan(output: string): {
 
   // If no phases found with strict format, try looser patterns
   if (phases.length === 0) {
-    console.log('📋 Trying alternative phase format...');
+    console.log("📋 Trying alternative phase format...");
     // Try format: ### Phase N: Name or ### PHASE N: Name
-    const altPhaseMatches = planSection.matchAll(/###\s*(?:PHASE|Phase)\s*\d*:?\s*(.+?)(?:\n|\r\n)([\s\S]*?)(?=###\s*(?:PHASE|Phase)|### STRATEGIC_PLAN_END|$)/gi);
-    
+    const altPhaseMatches = planSection.matchAll(
+      /###\s*(?:PHASE|Phase)\s*\d*:?\s*(.+?)(?:\n|\r\n)([\s\S]*?)(?=###\s*(?:PHASE|Phase)|### STRATEGIC_PLAN_END|$)/gi,
+    );
+
     let phaseNum = 1;
     for (const match of altPhaseMatches) {
       const phaseContent = match[2];
       // Extract goal, priority etc from content if present
-      const goalMatch = phaseContent.match(/(?:GOAL|Goal|Objective)[:\s]*(.+?)(?:\n|$)/i);
-      const priorityMatch = phaseContent.match(/(?:PRIORITY|Priority)[:\s]*(P\d)/i);
-      const effortMatch = phaseContent.match(/(?:EFFORT|Effort|Estimated)[:\s]*(\w+)/i);
-      
+      const goalMatch = phaseContent.match(
+        /(?:GOAL|Goal|Objective)[:\s]*(.+?)(?:\n|$)/i,
+      );
+      const priorityMatch = phaseContent.match(
+        /(?:PRIORITY|Priority)[:\s]*(P\d)/i,
+      );
+      const effortMatch = phaseContent.match(
+        /(?:EFFORT|Effort|Estimated)[:\s]*(\w+)/i,
+      );
+
       // Get deliverables from bullet points
       const deliverables = phaseContent
-        .split('\n')
-        .filter(line => line.match(/^[-*•]\s/))
-        .map(line => line.replace(/^[-*•]\s*/, '').trim())
-        .filter(line => line.length > 0)
+        .split("\n")
+        .filter((line) => line.match(/^[-*•]\s/))
+        .map((line) => line.replace(/^[-*•]\s*/, "").trim())
+        .filter((line) => line.length > 0)
         .slice(0, 5);
 
       phases.push({
         name: match[1].trim(),
         goal: goalMatch?.[1]?.trim() || `Complete phase ${phaseNum}`,
-        priority: priorityMatch?.[1] || 'P1',
-        effort: effortMatch?.[1]?.toLowerCase() || 'medium',
-        dependencies: phaseNum === 1 ? 'none' : `Phase ${phaseNum - 1}`,
-        deliverables: deliverables.length > 0 ? deliverables : ['Complete phase objectives'],
+        priority: priorityMatch?.[1] || "P1",
+        effort: effortMatch?.[1]?.toLowerCase() || "medium",
+        dependencies: phaseNum === 1 ? "none" : `Phase ${phaseNum - 1}`,
+        deliverables:
+          deliverables.length > 0
+            ? deliverables
+            : ["Complete phase objectives"],
       });
       phaseNum++;
     }
@@ -303,11 +327,14 @@ function parseTasksWithWaves(output: string): Array<{
 
   const startMatch = output.match(/### TASK_LIST_START ###/);
   const endMatch = output.match(/### TASK_LIST_END ###/);
-  
+
   if (!startMatch || !endMatch) return tasks;
 
-  const taskSection = output.slice(startMatch.index! + startMatch[0].length, endMatch.index!);
-  const taskBlocks = taskSection.split('---').filter(b => b.trim());
+  const taskSection = output.slice(
+    startMatch.index! + startMatch[0].length,
+    endMatch.index!,
+  );
+  const taskBlocks = taskSection.split("---").filter((b) => b.trim());
 
   for (const block of taskBlocks) {
     const titleMatch = block.match(/TASK:\s*(.+)/);
@@ -321,27 +348,28 @@ function parseTasksWithWaves(output: string): Array<{
     if (titleMatch) {
       const passCriteria: string[] = [];
       if (criteriaMatch) {
-        const criteriaLines = criteriaMatch[1].split('\n');
+        const criteriaLines = criteriaMatch[1].split("\n");
         for (const line of criteriaLines) {
-          const cleaned = line.replace(/^[-*]\s*/, '').trim();
-          if (cleaned && !cleaned.startsWith('TASK:')) {
+          const cleaned = line.replace(/^[-*]\s*/, "").trim();
+          if (cleaned && !cleaned.startsWith("TASK:")) {
             passCriteria.push(cleaned);
           }
         }
       }
 
-      const dependsOnRaw = dependsMatch?.[1]?.trim() || 'none';
-      const dependsOn = dependsOnRaw.toLowerCase() === 'none' 
-        ? [] 
-        : dependsOnRaw.split(',').map(d => d.trim());
+      const dependsOnRaw = dependsMatch?.[1]?.trim() || "none";
+      const dependsOn =
+        dependsOnRaw.toLowerCase() === "none"
+          ? []
+          : dependsOnRaw.split(",").map((d) => d.trim());
 
       tasks.push({
         title: titleMatch[1].trim(),
-        category: categoryMatch?.[1]?.toLowerCase() || 'improvement',
-        priority: priorityMatch?.[1] || 'P2',
-        wave: parseInt(waveMatch?.[1] || '1', 10),
+        category: categoryMatch?.[1]?.toLowerCase() || "improvement",
+        priority: priorityMatch?.[1] || "P2",
+        wave: parseInt(waveMatch?.[1] || "1", 10),
         dependsOn,
-        description: descMatch?.[1]?.trim() || '',
+        description: descMatch?.[1]?.trim() || "",
         passCriteria: passCriteria.slice(0, 5),
       });
     }
@@ -371,9 +399,9 @@ function parseTasksFromOutput(output: string): Array<{
   // Find task list section
   const startMatch = output.match(/### TASK_LIST_START ###/);
   const endMatch = output.match(/### TASK_LIST_END ###/);
-  
+
   if (!startMatch || !endMatch) {
-    console.warn('⚠️ Could not find task list markers in planning output');
+    console.warn("⚠️ Could not find task list markers in planning output");
     return tasks;
   }
 
@@ -382,7 +410,7 @@ function parseTasksFromOutput(output: string): Array<{
   const taskSection = output.slice(startIdx, endIdx);
 
   // Split by task delimiter
-  const taskBlocks = taskSection.split('---').filter(b => b.trim());
+  const taskBlocks = taskSection.split("---").filter((b) => b.trim());
 
   for (const block of taskBlocks) {
     const titleMatch = block.match(/TASK:\s*(.+)/);
@@ -394,10 +422,10 @@ function parseTasksFromOutput(output: string): Array<{
     if (titleMatch) {
       const passCriteria: string[] = [];
       if (criteriaMatch) {
-        const criteriaLines = criteriaMatch[1].split('\n');
+        const criteriaLines = criteriaMatch[1].split("\n");
         for (const line of criteriaLines) {
-          const cleaned = line.replace(/^[-*]\s*/, '').trim();
-          if (cleaned && !cleaned.startsWith('TASK:')) {
+          const cleaned = line.replace(/^[-*]\s*/, "").trim();
+          if (cleaned && !cleaned.startsWith("TASK:")) {
             passCriteria.push(cleaned);
           }
         }
@@ -405,9 +433,9 @@ function parseTasksFromOutput(output: string): Array<{
 
       tasks.push({
         title: titleMatch[1].trim(),
-        category: categoryMatch?.[1]?.toLowerCase() || 'improvement',
-        priority: priorityMatch?.[1] || 'P2',
-        description: descMatch?.[1]?.trim() || '',
+        category: categoryMatch?.[1]?.toLowerCase() || "improvement",
+        priority: priorityMatch?.[1] || "P2",
+        description: descMatch?.[1]?.trim() || "",
         passCriteria: passCriteria.slice(0, 5), // Max 5 criteria
       });
     }
@@ -427,23 +455,23 @@ async function createTaskFromPlan(
     priority: string;
     description: string;
     passCriteria: string[];
-  }
+  },
 ): Promise<tasks.Task> {
   // Generate display ID
   const lastTask = getOne<{ display_id: string }>(
-    "SELECT display_id FROM tasks ORDER BY created_at DESC LIMIT 1"
+    "SELECT display_id FROM tasks ORDER BY created_at DESC LIMIT 1",
   );
-  const lastNum = lastTask?.display_id 
-    ? parseInt(lastTask.display_id.replace('TASK-', ''), 10) 
+  const lastNum = lastTask?.display_id
+    ? parseInt(lastTask.display_id.replace("TASK-", ""), 10)
     : 0;
-  const displayId = `TASK-${String(lastNum + 1).padStart(3, '0')}`;
+  const displayId = `TASK-${String(lastNum + 1).padStart(3, "0")}`;
 
   return tasks.createTask({
     display_id: displayId,
     title: plan.title,
     description: plan.description || undefined,
     category: plan.category || undefined,
-    priority: (plan.priority || 'P2') as tasks.Task['priority'],
+    priority: (plan.priority || "P2") as tasks.Task["priority"],
     task_list_id: taskListId,
     pass_criteria: plan.passCriteria,
   });
@@ -453,14 +481,17 @@ async function createTaskFromPlan(
  * Create planning session record
  */
 export function createPlanningSession(
-  type: PlanningSession['type'],
-  inputData: object
+  type: PlanningSession["type"],
+  inputData: object,
 ): PlanningSession {
   const id = uuidv4();
-  run(`
+  run(
+    `
     INSERT INTO planning_sessions (id, type, input_data)
     VALUES (?, ?, ?)
-  `, [id, type, JSON.stringify(inputData)]);
+  `,
+    [id, type, JSON.stringify(inputData)],
+  );
   return getPlanningSession(id)!;
 }
 
@@ -471,9 +502,10 @@ export function completePlanningSession(
   sessionId: string,
   analysis: string,
   recommendations: string[],
-  createdTaskIds: string[]
+  createdTaskIds: string[],
 ): PlanningSession | undefined {
-  run(`
+  run(
+    `
     UPDATE planning_sessions 
     SET status = 'completed',
         analysis = ?,
@@ -481,12 +513,14 @@ export function completePlanningSession(
         tasks_created = ?,
         completed_at = datetime('now')
     WHERE id = ?
-  `, [
-    analysis,
-    JSON.stringify(recommendations),
-    JSON.stringify(createdTaskIds),
-    sessionId,
-  ]);
+  `,
+    [
+      analysis,
+      JSON.stringify(recommendations),
+      JSON.stringify(createdTaskIds),
+      sessionId,
+    ],
+  );
   return getPlanningSession(sessionId);
 }
 
@@ -494,73 +528,97 @@ export function completePlanningSession(
  * Get planning session
  */
 export function getPlanningSession(id: string): PlanningSession | undefined {
-  return getOne<PlanningSession>('SELECT * FROM planning_sessions WHERE id = ?', [id]);
+  return getOne<PlanningSession>(
+    "SELECT * FROM planning_sessions WHERE id = ?",
+    [id],
+  );
 }
 
 /**
  * Run the planning agent
  */
-export async function runDailyPlanning(taskListId: string): Promise<PlanningSession> {
-  console.log('🧠 Starting planning agent...');
-  
+export async function runDailyPlanning(
+  taskListId: string,
+): Promise<PlanningSession> {
+  console.log("🧠 Starting planning agent...");
+
   // Create session record
-  const session = createPlanningSession('daily', { taskListId });
-  
+  const session = createPlanningSession("daily", { taskListId });
+
   // Notify via Telegram that planning is starting
   await notify.planningStarted().catch(() => {});
 
   // Check if spawner is available
   if (!spawner.isEnabled()) {
-    console.warn('⚠️ Spawner not available, skipping planning agent');
-    await notify.agentError('planning', 'Spawner not available').catch(() => {});
-    completePlanningSession(session.id, 'Spawner not available', [], []);
+    console.warn("⚠️ Spawner not available, skipping planning agent");
+    await notify
+      .agentError("planning", "Spawner not available")
+      .catch(() => {});
+    completePlanningSession(session.id, "Spawner not available", [], []);
     return getPlanningSession(session.id)!;
   }
 
   // Spawn the planning agent with custom prompt
   const prompt = buildPlanningPrompt();
-  
+
   const result = await spawner.spawnWithPrompt(prompt, {
-    model: 'haiku',
+    model: "haiku",
     timeout: 600, // 10 minutes for thorough analysis
-    label: 'planning',
+    label: "planning",
   });
 
   if (!result.success || !result.output) {
-    console.error('❌ Planning agent failed:', result.error);
-    await notify.agentError('planning', result.error || 'Planning failed').catch(() => {});
-    completePlanningSession(session.id, result.error || 'Planning failed', [], []);
+    console.error("❌ Planning agent failed:", result.error);
+    await notify
+      .agentError("planning", result.error || "Planning failed")
+      .catch(() => {});
+    completePlanningSession(
+      session.id,
+      result.error || "Planning failed",
+      [],
+      [],
+    );
     return getPlanningSession(session.id)!;
   }
 
   // Parse tasks from output
   const plannedTasks = parseTasksFromOutput(result.output);
-  console.log(`📋 Planning agent created ${plannedTasks.length} task proposals`);
+  console.log(
+    `📋 Planning agent created ${plannedTasks.length} task proposals`,
+  );
 
   // Create tasks and send each to Telegram for approval
   const createdTaskIds: string[] = [];
   for (const plan of plannedTasks) {
     try {
-      console.log(`   📝 Creating task: ${plan.title} (category: ${plan.category}, priority: ${plan.priority})`);
+      console.log(
+        `   📝 Creating task: ${plan.title} (category: ${plan.category}, priority: ${plan.priority})`,
+      );
       const task = await createTaskFromPlan(taskListId, plan);
       createdTaskIds.push(task.id);
       console.log(`   ✅ Created: ${task.display_id} - ${task.title}`);
-      
+
       // Send task proposal to Telegram for human approval
-      await notify.taskProposed(
-        task.display_id,
-        task.title,
-        plan.description || 'No description',
-        plan.priority,
-        plan.passCriteria
-      ).catch(() => {});
-      
+      await notify
+        .taskProposed(
+          task.display_id,
+          task.title,
+          plan.description || "No description",
+          plan.priority,
+          plan.passCriteria,
+        )
+        .catch(() => {});
+
       // Small delay between messages to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (err) {
       console.error(`   ⚠️ Failed to create task: ${plan.title}`);
-      console.error(`      Error: ${err instanceof Error ? err.message : String(err)}`);
-      console.error(`      Stack: ${err instanceof Error ? err.stack?.split('\n')[1] : ''}`);
+      console.error(
+        `      Error: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      console.error(
+        `      Stack: ${err instanceof Error ? err.stack?.split("\n")[1] : ""}`,
+      );
     }
   }
 
@@ -568,14 +626,16 @@ export async function runDailyPlanning(taskListId: string): Promise<PlanningSess
   completePlanningSession(
     session.id,
     `Planning complete: ${createdTaskIds.length} tasks proposed`,
-    plannedTasks.map(t => t.title),
-    createdTaskIds
+    plannedTasks.map((t) => t.title),
+    createdTaskIds,
   );
 
   // Notify completion
   await notify.planningComplete(createdTaskIds.length).catch(() => {});
 
-  console.log(`🧠 Planning complete: ${createdTaskIds.length} tasks proposed for approval`);
+  console.log(
+    `🧠 Planning complete: ${createdTaskIds.length} tasks proposed for approval`,
+  );
 
   return getPlanningSession(session.id)!;
 }
@@ -590,18 +650,23 @@ export function analyzePerformance(): {
   bottlenecks: string[];
   recommendations: string[];
 } {
-  const taskStats = getOne<{ total: number; completed: number; failed: number }>(
+  const taskStats = getOne<{
+    total: number;
+    completed: number;
+    failed: number;
+  }>(
     `SELECT 
       COUNT(*) as total,
       SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
       SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
     FROM tasks 
-    WHERE created_at > datetime('now', '-7 days')`
+    WHERE created_at > datetime('now', '-7 days')`,
   );
 
-  const successRate = taskStats && taskStats.total > 0
-    ? (taskStats.completed / taskStats.total) * 100
-    : 100;
+  const successRate =
+    taskStats && taskStats.total > 0
+      ? (taskStats.completed / taskStats.total) * 100
+      : 100;
 
   return {
     successRate,
@@ -614,7 +679,7 @@ export function analyzePerformance(): {
 
 /**
  * Run STRATEGIC planning - creates high-level plan for clarification
- * 
+ *
  * Checks for cached approved plan first to avoid redundant token usage.
  */
 export async function runStrategicPlanning(taskListId: string): Promise<{
@@ -625,55 +690,69 @@ export async function runStrategicPlanning(taskListId: string): Promise<{
   // Check for cached approved plan first
   const cached = planCache.loadPlanFromCache();
   if (cached && cached.taskListId === taskListId) {
-    console.log('✅ Using cached approved plan - skipping strategic planning agent');
-    
+    console.log(
+      "✅ Using cached approved plan - skipping strategic planning agent",
+    );
+
     // Create a session record for tracking
-    const session = createPlanningSession('initial', { taskListId, type: 'strategic', fromCache: true });
+    const session = createPlanningSession("initial", {
+      taskListId,
+      type: "strategic",
+      fromCache: true,
+    });
     completePlanningSession(
       session.id,
       JSON.stringify(cached),
-      cached.phases.map(p => p.name),
-      []
+      cached.phases.map((p) => p.name),
+      [],
     );
-    
-    return { 
-      session: getPlanningSession(session.id)!, 
+
+    return {
+      session: getPlanningSession(session.id)!,
       plan: cached,
       fromCache: true,
     };
   }
 
-  console.log('🧠 Starting STRATEGIC planning agent...');
-  
-  const session = createPlanningSession('initial', { taskListId, type: 'strategic' });
-  
+  console.log("🧠 Starting STRATEGIC planning agent...");
+
+  const session = createPlanningSession("initial", {
+    taskListId,
+    type: "strategic",
+  });
+
   await notify.planningStarted().catch(() => {});
 
   if (!spawner.isEnabled()) {
-    console.warn('⚠️ Spawner not available');
-    completePlanningSession(session.id, 'Spawner not available', [], []);
+    console.warn("⚠️ Spawner not available");
+    completePlanningSession(session.id, "Spawner not available", [], []);
     return { session: getPlanningSession(session.id)!, plan: null };
   }
 
   const prompt = buildStrategicPlanningPrompt();
-  
+
   const result = await spawner.spawnWithPrompt(prompt, {
-    model: 'haiku',
+    model: "haiku",
     timeout: 900, // 15 minutes for strategic analysis
-    label: 'strategic-planning',
+    label: "strategic-planning",
   });
 
   if (!result.success || !result.output) {
-    console.error('❌ Strategic planning failed:', result.error);
-    completePlanningSession(session.id, result.error || 'Planning failed', [], []);
+    console.error("❌ Strategic planning failed:", result.error);
+    completePlanningSession(
+      session.id,
+      result.error || "Planning failed",
+      [],
+      [],
+    );
     return { session: getPlanningSession(session.id)!, plan: null };
   }
 
   const plan = parseStrategicPlan(result.output);
-  
+
   if (!plan) {
-    console.error('❌ Could not parse strategic plan');
-    completePlanningSession(session.id, 'Could not parse plan', [], []);
+    console.error("❌ Could not parse strategic plan");
+    completePlanningSession(session.id, "Could not parse plan", [], []);
     return { session: getPlanningSession(session.id)!, plan: null };
   }
 
@@ -683,8 +762,8 @@ export async function runStrategicPlanning(taskListId: string): Promise<{
   completePlanningSession(
     session.id,
     JSON.stringify(plan),
-    plan.phases.map(p => p.name),
-    []
+    plan.phases.map((p) => p.name),
+    [],
   );
 
   return { session: getPlanningSession(session.id)!, plan };
@@ -695,7 +774,7 @@ export async function runStrategicPlanning(taskListId: string): Promise<{
  */
 export function cacheApprovedPlan(
   plan: ReturnType<typeof parseStrategicPlan>,
-  taskListId: string
+  taskListId: string,
 ): void {
   if (!plan) return;
   planCache.savePlanToCache(plan, taskListId);
@@ -712,33 +791,41 @@ export function clearPlanCache(): void {
  * Run TACTICAL planning - breaks approved plan into atomic tasks
  */
 export async function runTacticalPlanning(
-  taskListId: string, 
-  approvedPlan: string
+  taskListId: string,
+  approvedPlan: string,
 ): Promise<{
   session: PlanningSession;
   tasks: ReturnType<typeof parseTasksWithWaves>;
 }> {
-  console.log('🔧 Starting TACTICAL planning agent...');
-  
-  const session = createPlanningSession('daily', { taskListId, type: 'tactical' });
+  console.log("🔧 Starting TACTICAL planning agent...");
+
+  const session = createPlanningSession("daily", {
+    taskListId,
+    type: "tactical",
+  });
 
   if (!spawner.isEnabled()) {
-    console.warn('⚠️ Spawner not available');
-    completePlanningSession(session.id, 'Spawner not available', [], []);
+    console.warn("⚠️ Spawner not available");
+    completePlanningSession(session.id, "Spawner not available", [], []);
     return { session: getPlanningSession(session.id)!, tasks: [] };
   }
 
   const prompt = buildTacticalPlanningPrompt(approvedPlan);
-  
+
   const result = await spawner.spawnWithPrompt(prompt, {
-    model: 'haiku',
+    model: "haiku",
     timeout: 600,
-    label: 'tactical-planning',
+    label: "tactical-planning",
   });
 
   if (!result.success || !result.output) {
-    console.error('❌ Tactical planning failed:', result.error);
-    completePlanningSession(session.id, result.error || 'Planning failed', [], []);
+    console.error("❌ Tactical planning failed:", result.error);
+    completePlanningSession(
+      session.id,
+      result.error || "Planning failed",
+      [],
+      [],
+    );
     return { session: getPlanningSession(session.id)!, tasks: [] };
   }
 
@@ -751,26 +838,28 @@ export async function runTacticalPlanning(
     try {
       // Generate display ID
       const lastTask = getOne<{ display_id: string }>(
-        "SELECT display_id FROM tasks ORDER BY created_at DESC LIMIT 1"
+        "SELECT display_id FROM tasks ORDER BY created_at DESC LIMIT 1",
       );
-      const lastNum = lastTask?.display_id 
-        ? parseInt(lastTask.display_id.replace('TASK-', ''), 10) 
+      const lastNum = lastTask?.display_id
+        ? parseInt(lastTask.display_id.replace("TASK-", ""), 10)
         : 0;
-      const displayId = `TASK-${String(lastNum + 1).padStart(3, '0')}`;
+      const displayId = `TASK-${String(lastNum + 1).padStart(3, "0")}`;
 
       const task = tasks.createTask({
         display_id: displayId,
         title: plan.title,
         description: plan.description || undefined,
         category: plan.category || undefined,
-        priority: (plan.priority || 'P2') as tasks.Task['priority'],
+        priority: (plan.priority || "P2") as tasks.Task["priority"],
         task_list_id: taskListId,
         pass_criteria: plan.passCriteria,
         wave_number: plan.wave,
       });
 
       createdTaskIds.push(task.id);
-      console.log(`   ✅ Created: ${displayId} (Wave ${plan.wave}) - ${plan.title}`);
+      console.log(
+        `   ✅ Created: ${displayId} (Wave ${plan.wave}) - ${plan.title}`,
+      );
     } catch (err) {
       console.error(`   ⚠️ Failed to create task: ${plan.title}`, err);
     }
@@ -778,9 +867,9 @@ export async function runTacticalPlanning(
 
   completePlanningSession(
     session.id,
-    `Created ${createdTaskIds.length} tasks across ${Math.max(...plannedTasks.map(t => t.wave))} waves`,
-    plannedTasks.map(t => t.title),
-    createdTaskIds
+    `Created ${createdTaskIds.length} tasks across ${Math.max(...plannedTasks.map((t) => t.wave))} waves`,
+    plannedTasks.map((t) => t.title),
+    createdTaskIds,
   );
 
   return { session: getPlanningSession(session.id)!, tasks: plannedTasks };

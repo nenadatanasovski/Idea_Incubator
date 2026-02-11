@@ -23,6 +23,7 @@ Rate limiting and budget control infrastructure **already exists** but is **not 
 #### 1. **Rate Limiting Infrastructure** (`server/middleware/rate-limiter.ts`)
 
 **Capabilities:**
+
 - In-memory rate limiting with configurable windows (default: 60s)
 - Per-IP tracking with X-Forwarded-For support
 - Named limiters with isolated counters
@@ -30,6 +31,7 @@ Rate limiting and budget control infrastructure **already exists** but is **not 
 - Automatic cleanup of expired entries
 
 **Pre-configured Limiters:**
+
 - `apiRateLimiter`: 100 req/min (general API)
 - `strictRateLimiter`: 10 req/min (expensive operations)
 - `authRateLimiter`: 5 req/min (authentication)
@@ -37,6 +39,7 @@ Rate limiting and budget control infrastructure **already exists** but is **not 
 - `searchRateLimiter`: 15 req/min (web search)
 
 **Current Usage:**
+
 ```typescript
 // Applied to API routes in server/api.ts
 import { apiRateLimiter, strictRateLimiter } from './middleware/rate-limiter.js';
@@ -51,6 +54,7 @@ app.post('/api/ideas/:slug/evaluate', strictRateLimiter, ...);
 #### 2. **Parent Harness Budget System** (`parent-harness/orchestrator/src/budget/index.ts`)
 
 **Capabilities:**
+
 - Token usage tracking per agent, session, task
 - Daily and monthly cost limits ($50/day, $500/month defaults)
 - Real-time cost calculation with model-specific pricing
@@ -67,6 +71,7 @@ app.post('/api/ideas/:slug/evaluate', strictRateLimiter, ...);
 | Claude Haiku 3.5 | $0.25 | $1.25 |
 
 **API Endpoints:**
+
 - `GET /api/budget/status` - Current daily/monthly usage
 - `GET /api/budget/daily` - Daily usage breakdown
 - `GET /api/budget/monthly` - Monthly usage breakdown
@@ -75,6 +80,7 @@ app.post('/api/ideas/:slug/evaluate', strictRateLimiter, ...);
 - `POST /api/budget/record` - Record token usage
 
 **Budget Enforcement:**
+
 ```typescript
 // Automatically checks after each recordUsage() call
 export function recordUsage(agentId, model, inputTokens, outputTokens) {
@@ -87,6 +93,7 @@ export function recordUsage(agentId, model, inputTokens, outputTokens) {
 #### 3. **Idea Incubator Cost Tracking** (`utils/cost-tracker.ts`)
 
 **Capabilities:**
+
 - Per-evaluation budget enforcement
 - Token usage tracking (input/output separate)
 - Cost estimation before evaluation runs
@@ -95,6 +102,7 @@ export function recordUsage(agentId, model, inputTokens, outputTokens) {
 - Unlimited mode for critical operations
 
 **Usage in Evaluation:**
+
 ```typescript
 // scripts/evaluate.ts
 const costTracker = new CostTracker(budget, unlimited, undefined, config.model);
@@ -113,12 +121,14 @@ console.log(`Budget Remaining: $${costReport.budgetRemaining.toFixed(2)}`);
 ```
 
 **Default Budget:**
+
 - Per-evaluation: $15 (configurable via `--budget` flag)
 - Max budget cap: $50 (config/default.ts)
 
 #### 4. **Configuration System** (`config/default.ts`)
 
 **Budget Settings:**
+
 ```typescript
 budget: {
   default: 15.0,  // Per-evaluation default
@@ -131,11 +141,13 @@ budget: {
 #### 1. **Unified Budget Enforcement**
 
 **Problem:** Three separate budget systems don't talk to each other:
+
 - Parent Harness tracks agent operations
 - Idea Incubator tracks evaluation operations
 - No shared daily/monthly quotas
 
 **Impact:** User could trigger:
+
 - $40 in Parent Harness agent tasks
 - $30 in Idea Incubator evaluations
 - Total: $70 (exceeds any reasonable daily limit)
@@ -145,11 +157,13 @@ budget: {
 **Problem:** Budget checks happen **after** API calls, not before.
 
 **Current Flow:**
+
 ```
 API Call → Record Tokens → Check Budget → (Too late, money spent)
 ```
 
 **Needed Flow:**
+
 ```
 Request → Estimate Cost → Check Budget → Block if Exceeded → API Call
 ```
@@ -161,6 +175,7 @@ Request → Estimate Cost → Check Budget → Block if Exceeded → API Call
 **Problem:** Rate limiters are per-API-endpoint, not per-user or per-project.
 
 **Gaps:**
+
 - No global "evaluations per day" limit
 - No "agent operations per hour" limit
 - No user-specific quotas (multi-tenant support)
@@ -171,6 +186,7 @@ Request → Estimate Cost → Check Budget → Block if Exceeded → API Call
 **Problem:** Rate limiters count requests, not token cost.
 
 **Example:**
+
 ```
 User A: 10 requests × 1K tokens each = 10K tokens ($0.03)
 User B: 10 requests × 100K tokens each = 1M tokens ($3.00)
@@ -183,6 +199,7 @@ Both hit the same rate limit, but User B costs 100× more.
 **Problem:** Rate limiter uses in-memory storage.
 
 **Impact:**
+
 - Server restart → all rate limits reset
 - No audit trail of rate limit violations
 - Can't analyze abuse patterns
@@ -192,6 +209,7 @@ Both hit the same rate limit, but User B costs 100× more.
 **Problem:** No tracking of Anthropic's API rate limits.
 
 **Anthropic Limits (Claude API):**
+
 - Tier 1: 50 req/min, 40K tokens/min
 - Tier 2: 1000 req/min, 80K tokens/min
 - Tier 3: 2000 req/min, 160K tokens/min
@@ -204,6 +222,7 @@ Both hit the same rate limit, but User B costs 100× more.
 **Problem:** No way to instantly halt all operations when budget exceeded.
 
 **Needed:** Global "circuit breaker" that:
+
 - Stops accepting new evaluation requests
 - Pauses Parent Harness task queue
 - Shows user-friendly "budget exceeded" message
@@ -218,16 +237,19 @@ Both hit the same rate limit, but User B costs 100× more.
 **Approach:** Connect Parent Harness budget system to Idea Incubator, add predictive controls.
 
 **Pros:**
+
 - ✅ Leverages existing infrastructure
 - ✅ Minimal code changes
 - ✅ Maintains separation of concerns
 - ✅ Fast to implement (2-3 days)
 
 **Cons:**
+
 - ⚠️ Still two separate databases (ideas.db vs harness.db)
 - ⚠️ Requires IPC or HTTP between systems
 
 **Implementation:**
+
 1. Create `BudgetClient` in Idea Incubator that calls Parent Harness API
 2. Before evaluation: `GET /api/budget/status` → check remaining budget
 3. After evaluation: `POST /api/budget/record` → record actual cost
@@ -245,18 +267,21 @@ Both hit the same rate limit, but User B costs 100× more.
 **Approach:** Create standalone budget service that both systems use.
 
 **Pros:**
+
 - ✅ Single source of truth
 - ✅ Easy to add multi-tenant support later
 - ✅ Clean architecture
 - ✅ Scalable to multiple projects
 
 **Cons:**
+
 - ❌ Requires significant refactoring
 - ❌ Another service to manage
 - ❌ Complex deployment
 - ❌ 1-2 weeks implementation time
 
 **Implementation:**
+
 1. Extract budget logic to `/budget-service/`
 2. Create REST API for budget operations
 3. Update Parent Harness to call service
@@ -275,16 +300,19 @@ Both hit the same rate limit, but User B costs 100× more.
 **Approach:** Migrate Parent Harness budget tables into main ideas.db.
 
 **Pros:**
+
 - ✅ Single database = simpler queries
 - ✅ Transaction safety
 - ✅ No IPC/HTTP overhead
 
 **Cons:**
+
 - ❌ Couples Idea Incubator and Parent Harness
 - ❌ Breaks Parent Harness modularity
 - ❌ Migration risk
 
 **Implementation:**
+
 1. Move budget tables to `database/schema.sql`
 2. Import budget module into server/api.ts
 3. Update evaluation script to use same database
@@ -299,12 +327,14 @@ Both hit the same rate limit, but User B costs 100× more.
 ## Recommendation: Option 1 (Integrate Existing Systems)
 
 **Rationale:**
+
 1. **Speed:** Can implement in 2-3 days vs 1-2 weeks for Option 2
 2. **Low Risk:** No major refactoring, builds on proven code
 3. **Good Enough:** Handles single-user, single-project use case (current need)
 4. **Future-Proof:** Can migrate to Option 2 later if multi-tenant needed
 
 **Critical Path:**
+
 1. Add predictive cost estimation (before API calls)
 2. Connect Idea Incubator to Parent Harness budget API
 3. Implement circuit breaker for budget exceeded
@@ -320,31 +350,38 @@ Both hit the same rate limit, but User B costs 100× more.
 **Goal:** Never exceed budget, even by one API call.
 
 **Tasks:**
+
 1. **Pre-flight Budget Checks**
+
    ```typescript
    // In agents/evaluator.ts, before each API call
    async function callAnthropicWithBudgetCheck(prompt, estimatedTokens) {
-     const estimatedCost = CostTracker.estimateCost(estimatedTokens, estimatedTokens);
-     const budgetStatus = await fetch('http://localhost:3333/api/budget/status');
+     const estimatedCost = CostTracker.estimateCost(
+       estimatedTokens,
+       estimatedTokens,
+     );
+     const budgetStatus = await fetch(
+       "http://localhost:3333/api/budget/status",
+     );
      const { daily } = await budgetStatus.json();
 
      if (daily.percentUsed >= 100) {
-       throw new BudgetExceededError('Daily budget exhausted');
+       throw new BudgetExceededError("Daily budget exhausted");
      }
 
      if (daily.totalCostUsd + estimatedCost > daily.config.dailyLimitUsd) {
-       throw new BudgetExceededError('Insufficient budget for operation');
+       throw new BudgetExceededError("Insufficient budget for operation");
      }
 
      // Proceed with API call
      const result = await callAnthropic(prompt);
 
      // Record actual usage
-     await fetch('http://localhost:3333/api/budget/record', {
-       method: 'POST',
+     await fetch("http://localhost:3333/api/budget/record", {
+       method: "POST",
        body: JSON.stringify({
-         agentId: 'evaluator',
-         model: 'claude-sonnet-4-5',
+         agentId: "evaluator",
+         model: "claude-sonnet-4-5",
          inputTokens: result.usage.input_tokens,
          outputTokens: result.usage.output_tokens,
        }),
@@ -355,6 +392,7 @@ Both hit the same rate limit, but User B costs 100× more.
    ```
 
 2. **Evaluation-Level Budget Reservation**
+
    ```typescript
    // In scripts/evaluate.ts, before evaluation starts
    const costEstimate = estimateEvaluationCost();
@@ -371,10 +409,11 @@ Both hit the same rate limit, but User B costs 100× more.
    ```
 
 3. **Create Budget Client Module**
+
    ```typescript
    // utils/budget-client.ts
    export class BudgetClient {
-     private baseUrl = 'http://localhost:3333/api/budget';
+     private baseUrl = "http://localhost:3333/api/budget";
 
      async checkAvailable(estimatedCostUsd: number): Promise<boolean>;
      async reserve(estimatedCostUsd: number): Promise<BudgetReservation>;
@@ -393,26 +432,28 @@ Both hit the same rate limit, but User B costs 100× more.
 **Goal:** Instantly halt all operations when budget exceeded.
 
 **Tasks:**
+
 1. **Budget Circuit Breaker Middleware**
+
    ```typescript
    // server/middleware/budget-guard.ts
-   import { budgetClient } from '../utils/budget-client.js';
+   import { budgetClient } from "../utils/budget-client.js";
 
    export async function budgetGuard(req, res, next) {
      const status = await budgetClient.getStatus();
 
      if (status.daily.percentUsed >= 100) {
        return res.status(503).json({
-         error: 'Daily budget exceeded',
-         message: 'API operations are paused until tomorrow',
+         error: "Daily budget exceeded",
+         message: "API operations are paused until tomorrow",
          resetAt: status.daily.resetAt,
-         status: 'budget_exceeded',
+         status: "budget_exceeded",
        });
      }
 
      if (status.daily.percentUsed >= 90) {
-       res.setHeader('X-Budget-Warning', 'true');
-       res.setHeader('X-Budget-Remaining', status.daily.remaining);
+       res.setHeader("X-Budget-Warning", "true");
+       res.setHeader("X-Budget-Remaining", status.daily.remaining);
      }
 
      next();
@@ -420,6 +461,7 @@ Both hit the same rate limit, but User B costs 100× more.
    ```
 
 2. **Apply to Critical Endpoints**
+
    ```typescript
    // server/api.ts
    import { budgetGuard } from './middleware/budget-guard.js';
@@ -430,14 +472,15 @@ Both hit the same rate limit, but User B costs 100× more.
    ```
 
 3. **Parent Harness Task Queue Integration**
+
    ```typescript
    // parent-harness/orchestrator/src/orchestrator/index.ts
    async function processTasks() {
      const budgetStatus = await budget.isWithinBudget();
 
      if (!budgetStatus.daily) {
-       events.orchestratorPaused('budget_exceeded');
-       console.warn('⏸️ Task queue paused: daily budget exceeded');
+       events.orchestratorPaused("budget_exceeded");
+       console.warn("⏸️ Task queue paused: daily budget exceeded");
        return; // Skip this tick
      }
 
@@ -455,7 +498,9 @@ Both hit the same rate limit, but User B costs 100× more.
 **Goal:** Stay within Anthropic's rate limits, not just budget limits.
 
 **Tasks:**
+
 1. **Anthropic Quota Tracker**
+
    ```typescript
    // parent-harness/orchestrator/src/budget/anthropic-quotas.ts
    export class AnthropicQuotaTracker {
@@ -464,11 +509,11 @@ Both hit the same rate limit, but User B costs 100× more.
 
      async checkQuota(estimatedTokens: number): Promise<void> {
        if (!this.requestsPerMinute.tryAcquire()) {
-         throw new QuotaExceededError('Anthropic requests/min limit');
+         throw new QuotaExceededError("Anthropic requests/min limit");
        }
 
        if (!this.tokensPerMinute.tryAcquire(estimatedTokens)) {
-         throw new QuotaExceededError('Anthropic tokens/min limit');
+         throw new QuotaExceededError("Anthropic tokens/min limit");
        }
      }
 
@@ -479,6 +524,7 @@ Both hit the same rate limit, but User B costs 100× more.
    ```
 
 2. **Add Quota Config**
+
    ```typescript
    // config/default.ts
    anthropic: {
@@ -495,7 +541,9 @@ Both hit the same rate limit, but User B costs 100× more.
    // Before each Anthropic API call
    await anthropicQuotas.checkQuota(estimatedTokens);
    const result = await callAnthropic(prompt);
-   anthropicQuotas.recordUsage(result.usage.input_tokens + result.usage.output_tokens);
+   anthropicQuotas.recordUsage(
+     result.usage.input_tokens + result.usage.output_tokens,
+   );
    ```
 
 **Timeline:** 1 day
@@ -508,7 +556,9 @@ Both hit the same rate limit, but User B costs 100× more.
 **Goal:** Survive server restarts, provide audit trail.
 
 **Tasks:**
+
 1. **Migrate Rate Limiter to Database**
+
    ```typescript
    // parent-harness/orchestrator/src/db/rate-limits.ts
    CREATE TABLE rate_limits (
@@ -525,6 +575,7 @@ Both hit the same rate limit, but User B costs 100× more.
    ```
 
 2. **Update Rate Limiter Implementation**
+
    ```typescript
    // server/middleware/rate-limiter.ts
    export function createRateLimiter(config) {
@@ -540,7 +591,7 @@ Both hit the same rate limit, but User B costs 100× more.
        await incrementRateLimitEntry(entry.id);
 
        if (entry.count >= config.maxRequests) {
-         return res.status(429).json({ error: 'Rate limit exceeded' });
+         return res.status(429).json({ error: "Rate limit exceeded" });
        }
 
        next();
@@ -564,22 +615,29 @@ Both hit the same rate limit, but User B costs 100× more.
 **Goal:** Limit by token cost, not just request count.
 
 **Tasks:**
+
 1. **Token Budget Rate Limiter**
+
    ```typescript
    // New limiter type
    export const tokenBudgetLimiter = createTokenRateLimiter({
-     name: 'token-budget',
+     name: "token-budget",
      windowMs: 60 * 1000, // 1 minute
      maxTokens: 50000, // 50K tokens/min
-     model: 'claude-sonnet-4-5',
+     model: "claude-sonnet-4-5",
    });
    ```
 
 2. **Hybrid Limiter (Requests + Tokens)**
+
    ```typescript
    export function createHybridRateLimiter(config) {
-     const requestLimiter = createRateLimiter({ maxRequests: config.maxRequests });
-     const tokenLimiter = createTokenRateLimiter({ maxTokens: config.maxTokens });
+     const requestLimiter = createRateLimiter({
+       maxRequests: config.maxRequests,
+     });
+     const tokenLimiter = createTokenRateLimiter({
+       maxTokens: config.maxTokens,
+     });
 
      return async (req, res, next) => {
        await requestLimiter(req, res, async () => {
@@ -632,48 +690,48 @@ Both hit the same rate limit, but User B costs 100× more.
 ### Unit Tests (20 tests)
 
 ```typescript
-describe('BudgetClient', () => {
-  it('checks available budget before operation');
-  it('reserves budget for long operations');
-  it('rolls back reservation on error');
-  it('records actual usage after completion');
+describe("BudgetClient", () => {
+  it("checks available budget before operation");
+  it("reserves budget for long operations");
+  it("rolls back reservation on error");
+  it("records actual usage after completion");
 });
 
-describe('BudgetGuard', () => {
-  it('allows request when budget available');
-  it('blocks request when daily budget exceeded');
-  it('adds warning headers at 90% budget');
-  it('checks budget on each request');
+describe("BudgetGuard", () => {
+  it("allows request when budget available");
+  it("blocks request when daily budget exceeded");
+  it("adds warning headers at 90% budget");
+  it("checks budget on each request");
 });
 
-describe('AnthropicQuotaTracker', () => {
-  it('respects requests per minute limit');
-  it('respects tokens per minute limit');
-  it('resets window after 60 seconds');
-  it('throws error when quota exceeded');
+describe("AnthropicQuotaTracker", () => {
+  it("respects requests per minute limit");
+  it("respects tokens per minute limit");
+  it("resets window after 60 seconds");
+  it("throws error when quota exceeded");
 });
 
-describe('CostAwareRateLimiter', () => {
-  it('limits by token count not request count');
-  it('charges different costs for different models');
-  it('combines request and token limits');
+describe("CostAwareRateLimiter", () => {
+  it("limits by token count not request count");
+  it("charges different costs for different models");
+  it("combines request and token limits");
 });
 ```
 
 ### Integration Tests (10 tests)
 
 ```typescript
-describe('Budget Integration', () => {
-  it('evaluation respects Parent Harness budget');
-  it('agent operation records to shared budget');
-  it('circuit breaker stops both systems');
-  it('budget resets at midnight UTC');
+describe("Budget Integration", () => {
+  it("evaluation respects Parent Harness budget");
+  it("agent operation records to shared budget");
+  it("circuit breaker stops both systems");
+  it("budget resets at midnight UTC");
 });
 
-describe('Multi-System Flow', () => {
-  it('runs 5 evaluations + 10 agent tasks within $50 budget');
-  it('blocks 6th evaluation when budget exceeded');
-  it('resumes operations after budget reset');
+describe("Multi-System Flow", () => {
+  it("runs 5 evaluations + 10 agent tasks within $50 budget");
+  it("blocks 6th evaluation when budget exceeded");
+  it("resumes operations after budget reset");
 });
 ```
 
@@ -697,6 +755,7 @@ describe('Multi-System Flow', () => {
 **Problem:** Estimated cost != actual cost → budget exceeded anyway
 
 **Mitigation:**
+
 - Add 20% safety buffer to estimates
 - Track estimation accuracy, adjust multiplier
 - Reserve budget = estimate × 1.2
@@ -706,6 +765,7 @@ describe('Multi-System Flow', () => {
 **Problem:** HTTP calls to budget API add latency
 
 **Mitigation:**
+
 - Cache budget status for 10 seconds
 - Use fast-path for "plenty of budget" case
 - Async budget recording (don't block)
@@ -715,6 +775,7 @@ describe('Multi-System Flow', () => {
 **Problem:** Many agents recording usage simultaneously → locks
 
 **Mitigation:**
+
 - Batch budget records (write every 5 seconds)
 - Use WAL mode for SQLite (already enabled)
 - Connection pool with retry logic
@@ -724,6 +785,7 @@ describe('Multi-System Flow', () => {
 **Problem:** User upgrades to Tier 2, but config still says Tier 1
 
 **Mitigation:**
+
 - Add `/api/budget/config` endpoint to update tier
 - Detect 429 errors from Anthropic, adjust tier automatically
 - Document tier configuration in README
@@ -735,28 +797,34 @@ describe('Multi-System Flow', () => {
 ### User-Facing
 
 **README.md Section: Budget and Rate Limiting**
+
 ```markdown
 ## Budget Controls
 
 The Idea Incubator includes comprehensive budget controls to prevent unexpected costs:
 
 ### Daily Budget
+
 - Default: $50/day
 - Configure: `PATCH /api/budget/config` or env var `DAILY_BUDGET_USD`
 - Resets: Midnight UTC
 
 ### Per-Evaluation Budget
+
 - Default: $15/evaluation
 - Override: `npm run evaluate <slug> --budget 20`
 - Max: $50 (prevents runaway costs)
 
 ### Rate Limits
+
 - General API: 100 requests/minute
 - Evaluations: 10/minute
 - Web Search: 15/minute
 
 ### Budget Exceeded
+
 When daily budget is exhausted:
+
 - New evaluations blocked with 503 error
 - In-progress operations complete
 - Dashboard shows "Budget Exceeded" banner
@@ -766,21 +834,25 @@ When daily budget is exhausted:
 ### Developer Documentation
 
 **docs/BUDGET_SYSTEM.md**
+
 ```markdown
 # Budget System Architecture
 
 ## Components
+
 1. Budget Client (utils/budget-client.ts) - HTTP client for budget API
 2. Budget Guard (middleware/budget-guard.ts) - Circuit breaker middleware
 3. Parent Harness Budget Service - Centralized tracking
 4. Anthropic Quota Tracker - API rate limit enforcement
 
 ## Flow Diagrams
+
 [Predictive Budget Check Flow]
 [Cross-Platform Budget Tracking]
 [Circuit Breaker State Machine]
 
 ## Integration Guide
+
 [How to add budget checks to new endpoints]
 [How to record token usage]
 [How to test budget controls]
@@ -790,21 +862,23 @@ When daily budget is exhausted:
 
 ## Timeline and Effort
 
-| Phase | Tasks | Effort | Priority |
-|-------|-------|--------|----------|
-| 1. Predictive Controls | Budget client, pre-flight checks, reservations | 1 day | P0 |
-| 2. Circuit Breaker | Middleware, task queue integration | 0.5 days | P0 |
-| 3. Anthropic Quotas | Quota tracker, config | 1 day | P1 |
-| 4. Persistent Rate Limits | Database migration, analytics | 1 day | P2 |
-| 5. Cost-Aware Limiting | Token-based limiter | 0.5 days | P2 |
-| **Testing** | Unit, integration, E2E | 1 day | P0 |
-| **Documentation** | User guide, dev docs | 0.5 days | P1 |
-| **TOTAL** | | **5.5 days** | |
+| Phase                     | Tasks                                          | Effort       | Priority |
+| ------------------------- | ---------------------------------------------- | ------------ | -------- |
+| 1. Predictive Controls    | Budget client, pre-flight checks, reservations | 1 day        | P0       |
+| 2. Circuit Breaker        | Middleware, task queue integration             | 0.5 days     | P0       |
+| 3. Anthropic Quotas       | Quota tracker, config                          | 1 day        | P1       |
+| 4. Persistent Rate Limits | Database migration, analytics                  | 1 day        | P2       |
+| 5. Cost-Aware Limiting    | Token-based limiter                            | 0.5 days     | P2       |
+| **Testing**               | Unit, integration, E2E                         | 1 day        | P0       |
+| **Documentation**         | User guide, dev docs                           | 0.5 days     | P1       |
+| **TOTAL**                 |                                                | **5.5 days** |          |
 
 **Dependencies:**
+
 - None (all infrastructure exists)
 
 **Risks:**
+
 - Low (building on proven code)
 
 ---
@@ -812,6 +886,7 @@ When daily budget is exhausted:
 ## Success Metrics
 
 ### Before Implementation
+
 - ❌ Budget can be exceeded by cost of final operation
 - ❌ Idea Incubator and Parent Harness track separately
 - ❌ Rate limits reset on server restart
@@ -819,6 +894,7 @@ When daily budget is exhausted:
 - ⚠️ Budget checks happen after API call
 
 ### After Implementation
+
 - ✅ Budget never exceeded (pre-flight checks)
 - ✅ Unified budget across all operations
 - ✅ Rate limits persist across restarts
@@ -832,6 +908,7 @@ When daily budget is exhausted:
 ## Action Items
 
 ### Immediate (P0 - Complete Before Production)
+
 1. ✅ Review and approve this specification
 2. ⏳ Implement Phase 1: Predictive Controls
 3. ⏳ Implement Phase 2: Circuit Breaker
@@ -839,11 +916,13 @@ When daily budget is exhausted:
 5. ⏳ Update documentation
 
 ### Short-Term (P1 - Complete Within 1 Week)
+
 6. ⏳ Implement Phase 3: Anthropic Quotas
 7. ⏳ Add budget dashboard widget
 8. ⏳ Configure production budget limits
 
 ### Medium-Term (P2 - Complete Within 2 Weeks)
+
 9. ⏳ Implement Phase 4: Persistent Rate Limits
 10. ⏳ Implement Phase 5: Cost-Aware Limiting
 11. ⏳ Add budget analytics and reporting
@@ -853,6 +932,7 @@ When daily budget is exhausted:
 ## Conclusion
 
 **Current Status:** 🟡 50% Complete
+
 - ✅ Rate limiting infrastructure exists
 - ✅ Budget tracking in Parent Harness works
 - ✅ Per-evaluation cost tracking works
@@ -861,11 +941,13 @@ When daily budget is exhausted:
 - ❌ No circuit breaker
 
 **Recommended Path:** Option 1 (Integrate Existing Systems)
+
 - **Timeline:** 5.5 days
 - **Risk:** Low
 - **Impact:** High (prevents cost overruns)
 
 **Next Steps:**
+
 1. Get stakeholder approval for Option 1
 2. Assign to Build Agent for Phase 1-2 implementation
 3. QA Agent validates after each phase

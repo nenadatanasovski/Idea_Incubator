@@ -1,5 +1,5 @@
-import { query, getOne, run } from './index.js';
-import { v4 as uuidv4 } from 'uuid';
+import { query, getOne, run } from "./index.js";
+import { v4 as uuidv4 } from "uuid";
 
 export interface ObservabilityEvent {
   id: number;
@@ -8,7 +8,7 @@ export interface ObservabilityEvent {
   agent_id: string;
   session_id: string | null;
   task_id: string | null;
-  severity: 'debug' | 'info' | 'warning' | 'error';
+  severity: "debug" | "info" | "warning" | "error";
   created_at: string;
 }
 
@@ -18,7 +18,7 @@ export interface CreateEventInput {
   agentId?: string;
   sessionId?: string;
   taskId?: string;
-  severity?: ObservabilityEvent['severity'];
+  severity?: ObservabilityEvent["severity"];
   metadata?: object;
 }
 
@@ -30,47 +30,48 @@ export function getEvents(filters?: {
   agentId?: string;
   sessionId?: string;
   taskId?: string;
-  severity?: ObservabilityEvent['severity'];
+  severity?: ObservabilityEvent["severity"];
   since?: string;
   limit?: number;
   offset?: number;
 }): ObservabilityEvent[] {
-  let sql = 'SELECT id, timestamp as created_at, event_type as type, message, agent_id, session_id, task_id, severity FROM observability_events WHERE 1=1';
+  let sql =
+    "SELECT id, timestamp as created_at, event_type as type, message, agent_id, session_id, task_id, severity FROM observability_events WHERE 1=1";
   const params: unknown[] = [];
 
   if (filters?.type) {
-    sql += ' AND event_type = ?';
+    sql += " AND event_type = ?";
     params.push(filters.type);
   }
   if (filters?.agentId) {
-    sql += ' AND agent_id = ?';
+    sql += " AND agent_id = ?";
     params.push(filters.agentId);
   }
   if (filters?.sessionId) {
-    sql += ' AND session_id = ?';
+    sql += " AND session_id = ?";
     params.push(filters.sessionId);
   }
   if (filters?.taskId) {
-    sql += ' AND task_id = ?';
+    sql += " AND task_id = ?";
     params.push(filters.taskId);
   }
   if (filters?.severity) {
-    sql += ' AND severity = ?';
+    sql += " AND severity = ?";
     params.push(filters.severity);
   }
   if (filters?.since) {
-    sql += ' AND timestamp >= ?';
+    sql += " AND timestamp >= ?";
     params.push(filters.since);
   }
 
-  sql += ' ORDER BY timestamp DESC';
+  sql += " ORDER BY timestamp DESC";
 
   if (filters?.limit) {
-    sql += ' LIMIT ?';
+    sql += " LIMIT ?";
     params.push(filters.limit);
   }
   if (filters?.offset) {
-    sql += ' OFFSET ?';
+    sql += " OFFSET ?";
     params.push(filters.offset);
   }
 
@@ -82,8 +83,8 @@ export function getEvents(filters?: {
  */
 export function getEvent(id: string): ObservabilityEvent | undefined {
   return getOne<ObservabilityEvent>(
-    'SELECT id, timestamp as created_at, event_type as type, message, agent_id, session_id, task_id, severity FROM observability_events WHERE id = ?', 
-    [id]
+    "SELECT id, timestamp as created_at, event_type as type, message, agent_id, session_id, task_id, severity FROM observability_events WHERE id = ?",
+    [id],
   );
 }
 
@@ -91,24 +92,27 @@ export function getEvent(id: string): ObservabilityEvent | undefined {
  * Create a new event
  */
 export function createEvent(input: CreateEventInput): ObservabilityEvent {
-  run(`
+  run(
+    `
     INSERT INTO observability_events (
       event_type, message, agent_id, session_id, task_id, severity, payload
     )
     VALUES (?, ?, ?, ?, ?, ?, ?)
-  `, [
-    input.type,
-    input.message,
-    input.agentId ?? 'system',
-    input.sessionId ?? null,
-    input.taskId ?? null,
-    input.severity ?? 'info',
-    input.metadata ? JSON.stringify(input.metadata) : null,
-  ]);
+  `,
+    [
+      input.type,
+      input.message,
+      input.agentId ?? "system",
+      input.sessionId ?? null,
+      input.taskId ?? null,
+      input.severity ?? "info",
+      input.metadata ? JSON.stringify(input.metadata) : null,
+    ],
+  );
 
   // Get the last inserted row
   const result = query<ObservabilityEvent>(
-    'SELECT id, timestamp as created_at, event_type as type, message, agent_id, session_id, task_id, severity FROM observability_events ORDER BY id DESC LIMIT 1'
+    "SELECT id, timestamp as created_at, event_type as type, message, agent_id, session_id, task_id, severity FROM observability_events ORDER BY id DESC LIMIT 1",
   );
   return result[0];
 }
@@ -121,10 +125,10 @@ export const events = {
     taskId: string,
     agentId: string,
     taskTitle: string,
-    metadata: Record<string, unknown> = {}
+    metadata: Record<string, unknown> = {},
   ) =>
     createEvent({
-      type: 'task:assigned',
+      type: "task:assigned",
       message: `Task assigned to ${agentId}: ${taskTitle}`,
       taskId,
       agentId,
@@ -138,14 +142,14 @@ export const events = {
     taskId: string,
     agentId: string,
     taskTitle: string,
-    metadata: Record<string, unknown> = {}
+    metadata: Record<string, unknown> = {},
   ) =>
     createEvent({
-      type: 'task:completed',
+      type: "task:completed",
       message: `Task completed: ${taskTitle}`,
       taskId,
       agentId,
-      severity: 'info',
+      severity: "info",
       metadata: {
         taskTitle,
         ...metadata,
@@ -157,14 +161,14 @@ export const events = {
     agentId: string,
     taskTitle: string,
     error: string,
-    metadata: Record<string, unknown> = {}
+    metadata: Record<string, unknown> = {},
   ) =>
     createEvent({
-      type: 'task:failed',
+      type: "task:failed",
       message: `Task failed: ${taskTitle} - ${error}`,
       taskId,
       agentId,
-      severity: 'error',
+      severity: "error",
       metadata: {
         taskTitle,
         error,
@@ -174,7 +178,7 @@ export const events = {
 
   agentStarted: (agentId: string, sessionId: string) =>
     createEvent({
-      type: 'agent:started',
+      type: "agent:started",
       message: `Agent ${agentId} started session`,
       agentId,
       sessionId,
@@ -182,40 +186,50 @@ export const events = {
 
   agentIdle: (agentId: string) =>
     createEvent({
-      type: 'agent:idle',
+      type: "agent:idle",
       message: `Agent ${agentId} is now idle`,
       agentId,
     }),
 
   agentError: (agentId: string, error: string) =>
     createEvent({
-      type: 'agent:error',
+      type: "agent:error",
       message: `Agent ${agentId} error: ${error}`,
       agentId,
-      severity: 'error',
+      severity: "error",
     }),
 
-  toolStarted: (agentId: string, sessionId: string, toolName: string, args: string) =>
+  toolStarted: (
+    agentId: string,
+    sessionId: string,
+    toolName: string,
+    args: string,
+  ) =>
     createEvent({
-      type: 'tool:started',
+      type: "tool:started",
       message: `${toolName} → ${args}`,
       agentId,
       sessionId,
-      severity: 'debug',
+      severity: "debug",
     }),
 
-  toolCompleted: (agentId: string, sessionId: string, toolName: string, result: string) =>
+  toolCompleted: (
+    agentId: string,
+    sessionId: string,
+    toolName: string,
+    result: string,
+  ) =>
     createEvent({
-      type: 'tool:completed',
+      type: "tool:completed",
       message: `${toolName} completed: ${result}`,
       agentId,
       sessionId,
-      severity: 'debug',
+      severity: "debug",
     }),
 
   qaStarted: (taskId: string, agentId: string) =>
     createEvent({
-      type: 'qa:started',
+      type: "qa:started",
       message: `QA validation started`,
       taskId,
       agentId,
@@ -223,7 +237,7 @@ export const events = {
 
   qaPassed: (taskId: string, agentId: string) =>
     createEvent({
-      type: 'qa:passed',
+      type: "qa:passed",
       message: `QA validation passed`,
       taskId,
       agentId,
@@ -231,18 +245,18 @@ export const events = {
 
   qaFailed: (taskId: string, agentId: string, reason: string) =>
     createEvent({
-      type: 'qa:failed',
+      type: "qa:failed",
       message: `QA validation failed: ${reason}`,
       taskId,
       agentId,
-      severity: 'warning',
+      severity: "warning",
     }),
 
   cronTick: (
     tickNumber: number,
     workingCount: number,
     idleCount: number,
-    metadata: Record<string, unknown> = {}
+    metadata: Record<string, unknown> = {},
   ) => {
     try {
       run(
@@ -254,156 +268,186 @@ export const events = {
         `,
         [
           tickNumber,
-          typeof metadata.actionsTaken === 'string'
+          typeof metadata.actionsTaken === "string"
             ? metadata.actionsTaken
             : JSON.stringify(metadata),
           workingCount,
           idleCount,
           Number(metadata.tasksAssigned ?? 0),
           Number(metadata.qaCycle ?? 0),
-        ]
+        ],
       );
     } catch {
       // Keep event path resilient even if cron_ticks insert fails.
     }
     return createEvent({
-      type: 'cron:tick',
+      type: "cron:tick",
       message: `Tick #${tickNumber}: ${workingCount} agents working, ${idleCount} idle`,
-      severity: 'debug',
+      severity: "debug",
       metadata,
     });
   },
 
   planningCompleted: (cycleNumber: number, tasksCreated: number) =>
     createEvent({
-      type: 'planning:completed',
+      type: "planning:completed",
       message: `Planning cycle #${cycleNumber} complete: ${tasksCreated} tasks created`,
-      agentId: 'planning_agent',
-      severity: 'info',
+      agentId: "planning_agent",
+      severity: "info",
     }),
 
-  toolUse: (agentId: string, sessionId: string, toolName: string, args: Record<string, unknown>) =>
+  toolUse: (
+    agentId: string,
+    sessionId: string,
+    toolName: string,
+    args: Record<string, unknown>,
+  ) =>
     createEvent({
-      type: 'tool:use',
+      type: "tool:use",
       message: `🔧 ${toolName}: ${JSON.stringify(args).slice(0, 200)}`,
       agentId,
       sessionId,
-      severity: 'info',
+      severity: "info",
       metadata: { tool: toolName, args },
     }),
 
-  fileEdit: (agentId: string, sessionId: string, filePath: string, linesChanged: number) =>
+  fileEdit: (
+    agentId: string,
+    sessionId: string,
+    filePath: string,
+    linesChanged: number,
+  ) =>
     createEvent({
-      type: 'file:edit',
+      type: "file:edit",
       message: `✏️ File modified: ${filePath} (${linesChanged} lines)`,
       agentId,
       sessionId,
-      severity: 'info',
+      severity: "info",
       metadata: { filePath, linesChanged },
     }),
 
   // Budget events
-  budgetWarning: (threshold: number, currentPercent: number, tokensUsed: number, tokensLimit: number) =>
+  budgetWarning: (
+    threshold: number,
+    currentPercent: number,
+    tokensUsed: number,
+    tokensLimit: number,
+  ) =>
     createEvent({
-      type: 'budget:warning',
+      type: "budget:warning",
       message: `⚠️ Budget ${threshold}% threshold reached (${currentPercent.toFixed(1)}% used: ${tokensUsed.toLocaleString()} / ${tokensLimit.toLocaleString()} tokens)`,
-      agentId: 'system',
-      severity: 'warning',
+      agentId: "system",
+      severity: "warning",
       metadata: { threshold, currentPercent, tokensUsed, tokensLimit },
     }),
 
   budgetExceeded: (tokensUsed: number, tokensLimit: number) =>
     createEvent({
-      type: 'budget:exceeded',
+      type: "budget:exceeded",
       message: `🚫 Daily budget EXCEEDED (${tokensUsed.toLocaleString()} / ${tokensLimit.toLocaleString()} tokens)`,
-      agentId: 'system',
-      severity: 'error',
+      agentId: "system",
+      severity: "error",
       metadata: { tokensUsed, tokensLimit },
     }),
 
   budgetSpawnBlocked: (taskId: string, taskTitle: string, reason: string) =>
     createEvent({
-      type: 'budget:spawn_blocked',
+      type: "budget:spawn_blocked",
       message: `🛑 Spawn blocked for ${taskTitle}: ${reason}`,
-      agentId: 'system',
+      agentId: "system",
       taskId,
-      severity: 'error',
+      severity: "error",
       metadata: { reason },
     }),
 
   budgetReset: () =>
     createEvent({
-      type: 'budget:reset',
+      type: "budget:reset",
       message: `🔄 Daily budget reset`,
-      agentId: 'system',
-      severity: 'info',
+      agentId: "system",
+      severity: "info",
     }),
 
   // Config events
-  configChanged: (section: string, field: string, oldValue: unknown, newValue: unknown, source: string) =>
+  configChanged: (
+    section: string,
+    field: string,
+    oldValue: unknown,
+    newValue: unknown,
+    source: string,
+  ) =>
     createEvent({
-      type: 'config:changed',
+      type: "config:changed",
       message: `⚙️ Config changed: ${section}.${field} = ${JSON.stringify(newValue)} (was: ${JSON.stringify(oldValue)})`,
       agentId: source,
-      severity: 'info',
+      severity: "info",
       metadata: { section, field, oldValue, newValue },
     }),
 
-  // Retry events  
+  // Retry events
   retryExhausted: (taskId: string, taskTitle: string, attempts: number) =>
     createEvent({
-      type: 'retry:exhausted',
+      type: "retry:exhausted",
       message: `❌ Task blocked after ${attempts} failed attempts: ${taskTitle}`,
-      agentId: 'system',
+      agentId: "system",
       taskId,
-      severity: 'error',
+      severity: "error",
       metadata: { attempts },
     }),
 
   // Circuit breaker events
-  circuitOpened: (agentType: string, failureCount: number, windowMinutes: number) =>
+  circuitOpened: (
+    agentType: string,
+    failureCount: number,
+    windowMinutes: number,
+  ) =>
     createEvent({
-      type: 'circuit:opened',
+      type: "circuit:opened",
       message: `🔴 Circuit breaker OPEN for ${agentType}: ${failureCount} failures in ${windowMinutes}min`,
       agentId: agentType,
-      severity: 'error',
+      severity: "error",
       metadata: { failureCount, windowMinutes },
     }),
 
   circuitClosed: (agentType: string) =>
     createEvent({
-      type: 'circuit:closed',
+      type: "circuit:closed",
       message: `🟢 Circuit breaker CLOSED for ${agentType}: resuming normal operation`,
       agentId: agentType,
-      severity: 'info',
+      severity: "info",
     }),
 
   // System/Stability events
   systemError: (source: string, error: string) =>
     createEvent({
-      type: 'system:error',
+      type: "system:error",
       message: `🚨 System error in ${source}: ${error}`,
       agentId: source,
-      severity: 'error',
+      severity: "error",
       metadata: { source },
     }),
 
   systemRecovery: (source: string, message: string) =>
     createEvent({
-      type: 'system:recovery',
+      type: "system:recovery",
       message: `✅ System recovery: ${message}`,
       agentId: source,
-      severity: 'info',
+      severity: "info",
     }),
 
   // Model fallback events
-  modelFallback: (taskId: string, fromModel: string, toModel: string, reason: string) =>
+  modelFallback: (
+    taskId: string,
+    fromModel: string,
+    toModel: string,
+    reason: string,
+  ) =>
     createEvent({
-      type: 'model:fallback',
+      type: "model:fallback",
       message: `⚠️ Model fallback: ${fromModel} → ${toModel} (${reason})`,
-      agentId: 'system',
+      agentId: "system",
       taskId,
-      severity: 'warning',
+      severity: "warning",
       metadata: { fromModel, toModel, reason },
     }),
 };

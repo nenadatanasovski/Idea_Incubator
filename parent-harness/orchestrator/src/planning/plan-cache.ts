@@ -1,16 +1,22 @@
 /**
  * Plan Cache - Persists approved strategic plans to disk
- * 
+ *
  * Prevents re-running expensive planning on every restart.
  * Plans are cached for 24 hours by default.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'fs';
-import { join } from 'path';
-import { homedir } from 'os';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  unlinkSync,
+} from "fs";
+import { join } from "path";
+import { homedir } from "os";
 
-const CACHE_DIR = join(homedir(), '.harness');
-const CACHE_FILE = join(CACHE_DIR, 'approved-plan.json');
+const CACHE_DIR = join(homedir(), ".harness");
+const CACHE_FILE = join(CACHE_DIR, "approved-plan.json");
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export interface CachedPlan {
@@ -26,13 +32,13 @@ export interface CachedPlan {
     dependencies: string;
     deliverables: string[];
   }>;
-  
+
   // Metadata
   createdAt: string;
   approvedAt: string;
   expiresAt: string;
   taskListId: string;
-  
+
   // Execution state
   tacticalTasksCreated: boolean;
   waveRunId?: string;
@@ -56,13 +62,13 @@ export function savePlanToCache(
     visionSummary: string;
     currentState: string;
     approach: string;
-    phases: CachedPlan['phases'];
+    phases: CachedPlan["phases"];
   },
   taskListId: string,
-  ttlMs: number = DEFAULT_TTL_MS
+  ttlMs: number = DEFAULT_TTL_MS,
 ): CachedPlan {
   ensureCacheDir();
-  
+
   const now = new Date();
   const cached: CachedPlan = {
     ...plan,
@@ -72,10 +78,10 @@ export function savePlanToCache(
     taskListId,
     tacticalTasksCreated: false,
   };
-  
+
   writeFileSync(CACHE_FILE, JSON.stringify(cached, null, 2));
   console.log(`💾 Cached approved plan (expires: ${cached.expiresAt})`);
-  
+
   return cached;
 }
 
@@ -85,14 +91,14 @@ export function savePlanToCache(
  */
 export function loadPlanFromCache(): CachedPlan | null {
   if (!existsSync(CACHE_FILE)) {
-    console.log('📭 No cached plan found');
+    console.log("📭 No cached plan found");
     return null;
   }
-  
+
   try {
-    const data = readFileSync(CACHE_FILE, 'utf-8');
+    const data = readFileSync(CACHE_FILE, "utf-8");
     const cached: CachedPlan = JSON.parse(data);
-    
+
     // Check expiry
     const expiresAt = new Date(cached.expiresAt);
     if (expiresAt < new Date()) {
@@ -100,18 +106,20 @@ export function loadPlanFromCache(): CachedPlan | null {
       clearPlanCache();
       return null;
     }
-    
+
     // Validate required fields
     if (!cached.visionSummary || !cached.phases || cached.phases.length === 0) {
-      console.log('⚠️ Cached plan is incomplete');
+      console.log("⚠️ Cached plan is incomplete");
       clearPlanCache();
       return null;
     }
-    
-    console.log(`✅ Loaded cached plan (${cached.phases.length} phases, expires: ${cached.expiresAt})`);
+
+    console.log(
+      `✅ Loaded cached plan (${cached.phases.length} phases, expires: ${cached.expiresAt})`,
+    );
     return cached;
   } catch (err) {
-    console.error('⚠️ Failed to load cached plan:', err);
+    console.error("⚠️ Failed to load cached plan:", err);
     clearPlanCache();
     return null;
   }
@@ -127,21 +135,25 @@ export function hasCachedPlan(): boolean {
 /**
  * Update cache with execution state
  */
-export function updatePlanCache(updates: Partial<CachedPlan>): CachedPlan | null {
+export function updatePlanCache(
+  updates: Partial<CachedPlan>,
+): CachedPlan | null {
   const cached = loadPlanFromCache();
   if (!cached) return null;
-  
+
   const updated: CachedPlan = { ...cached, ...updates };
   writeFileSync(CACHE_FILE, JSON.stringify(updated, null, 2));
   console.log(`📝 Updated cached plan`);
-  
+
   return updated;
 }
 
 /**
  * Mark tactical tasks as created
  */
-export function markTacticalTasksCreated(waveRunId?: string): CachedPlan | null {
+export function markTacticalTasksCreated(
+  waveRunId?: string,
+): CachedPlan | null {
   return updatePlanCache({
     tacticalTasksCreated: true,
     waveRunId,
@@ -154,7 +166,7 @@ export function markTacticalTasksCreated(waveRunId?: string): CachedPlan | null 
 export function clearPlanCache(): void {
   if (existsSync(CACHE_FILE)) {
     unlinkSync(CACHE_FILE);
-    console.log('🗑️ Cleared plan cache');
+    console.log("🗑️ Cleared plan cache");
   }
 }
 

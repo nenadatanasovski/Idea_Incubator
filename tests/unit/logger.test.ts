@@ -68,7 +68,9 @@ describe("Logger", () => {
     expect(consoleSpy).toHaveBeenCalled();
     const callArgs = consoleSpy.mock.calls[0];
     expect(
-      callArgs.some((arg: unknown) => typeof arg === "string" && arg.includes("value")),
+      callArgs.some(
+        (arg: unknown) => typeof arg === "string" && arg.includes("value"),
+      ),
     ).toBe(true);
   });
 });

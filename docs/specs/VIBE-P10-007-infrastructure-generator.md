@@ -16,6 +16,7 @@ Build a comprehensive infrastructure requirements generator that analyzes archit
 ### Problem Statement
 
 **Current State:**
+
 - Architect Agent generates architecture documents with deployment strategies
 - Architecture documents include high-level deployment considerations
 - No automated generation of infrastructure-as-code templates
@@ -26,6 +27,7 @@ Build a comprehensive infrastructure requirements generator that analyzes archit
 - Inconsistent infrastructure patterns across projects
 
 **Desired State:**
+
 - `InfrastructureGenerator` class at `agents/architect/infrastructure-generator.ts`
 - Generates docker-compose.yml for local development
 - Generates GitHub Actions workflow templates
@@ -56,6 +58,7 @@ The Infrastructure Requirements Generator is the **"DevOps Automation Engine"** 
 #### FR-1: Infrastructure Generator Class
 
 **FR-1.1: Class Structure**
+
 - Create `InfrastructureGenerator` class at `agents/architect/infrastructure-generator.ts`
 - Class accepts `ArchitectureDoc` as input
 - Main method: `generate(options: GenerationOptions): Promise<InfrastructureOutput>`
@@ -63,10 +66,11 @@ The Infrastructure Requirements Generator is the **"DevOps Automation Engine"** 
 - Stateless generator (no instance state beyond constructor config)
 
 **FR-1.2: Generator Configuration**
+
 ```typescript
 interface GeneratorConfig {
-  targetProvider?: 'aws' | 'vercel' | 'railway' | 'cloudflare' | 'docker';
-  environments?: ('dev' | 'staging' | 'prod')[];
+  targetProvider?: "aws" | "vercel" | "railway" | "cloudflare" | "docker";
+  environments?: ("dev" | "staging" | "prod")[];
   includeCI?: boolean;
   includeCostEstimate?: boolean;
   projectName: string;
@@ -74,15 +78,22 @@ interface GeneratorConfig {
 ```
 
 **FR-1.3: Generation Options**
+
 ```typescript
 interface GenerationOptions {
-  outputFormat: 'terraform' | 'pulumi' | 'docker-compose' | 'github-actions' | 'all';
-  targetEnvironment?: 'dev' | 'staging' | 'prod';
+  outputFormat:
+    | "terraform"
+    | "pulumi"
+    | "docker-compose"
+    | "github-actions"
+    | "all";
+  targetEnvironment?: "dev" | "staging" | "prod";
   estimateLoad?: LoadProfile;
 }
 ```
 
 **FR-1.4: Infrastructure Output**
+
 ```typescript
 interface InfrastructureOutput {
   dockerCompose?: string;
@@ -103,6 +114,7 @@ interface InfrastructureOutput {
 #### FR-2: Docker Compose Generation
 
 **FR-2.1: Docker Compose Structure**
+
 - Generate valid `docker-compose.yml` (version 3.8+)
 - Create service definitions for each backend component
 - Create service definitions for databases
@@ -113,6 +125,7 @@ interface InfrastructureOutput {
 - Add restart policies
 
 **FR-2.2: Service Generation Logic**
+
 - Analyze `ArchitectureDoc.components` array
 - For each component with type 'backend' or 'service': create service
 - For each component with type 'database': create database service
@@ -121,8 +134,9 @@ interface InfrastructureOutput {
 - Set appropriate base images based on `techStack.backend.runtime`
 
 **FR-2.3: Docker Compose Features**
+
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   # Generated from backend components
@@ -153,7 +167,7 @@ services:
 
   # Generated from database components
   database:
-    image: postgres:16-alpine  # From techStack.database.engine
+    image: postgres:16-alpine # From techStack.database.engine
     container_name: ${PROJECT_NAME}-db
     environment:
       - POSTGRES_DB=${DB_NAME:-appdb}
@@ -179,6 +193,7 @@ volumes:
 ```
 
 **FR-2.4: Technology-Specific Base Images**
+
 - Node.js: `node:20-alpine`, `node:20-slim`
 - Python: `python:3.12-alpine`, `python:3.12-slim`
 - Go: `golang:1.21-alpine`
@@ -191,12 +206,14 @@ volumes:
 #### FR-3: Dockerfile Generation
 
 **FR-3.1: Multi-Stage Dockerfiles**
+
 - Generate Dockerfiles with multi-stage builds (builder + production)
 - Optimize layer caching for dependencies
 - Minimize final image size
 - Include security best practices (non-root user, minimal dependencies)
 
 **FR-3.2: Node.js Dockerfile Template**
+
 ```dockerfile
 # Build stage
 FROM node:20-alpine AS builder
@@ -257,6 +274,7 @@ CMD ["node", "dist/index.js"]
 ```
 
 **FR-3.3: Python Dockerfile Template**
+
 ```dockerfile
 # Build stage
 FROM python:3.12-slim AS builder
@@ -305,6 +323,7 @@ CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000
 #### FR-4: GitHub Actions CI/CD Pipeline
 
 **FR-4.1: Workflow Generation**
+
 - Generate `.github/workflows/deploy.yml`
 - Support multiple deployment targets (AWS, Vercel, Railway)
 - Include build, test, and deploy stages
@@ -313,6 +332,7 @@ CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000
 - Manual workflow dispatch option
 
 **FR-4.2: GitHub Actions Template Structure**
+
 ```yaml
 name: CI/CD Pipeline
 
@@ -324,7 +344,7 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: "20"
   # Add component-specific versions
 
 jobs:
@@ -340,7 +360,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -369,7 +389,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -444,6 +464,7 @@ jobs:
 ```
 
 **FR-4.3: Provider-Specific Deployment Steps**
+
 - **Vercel**: Use `amondnet/vercel-action` or `vercel deploy`
 - **Railway**: Use Railway CLI with `railway up`
 - **AWS**: Configure credentials, build Docker image, push to ECR, update ECS service
@@ -452,15 +473,17 @@ jobs:
 #### FR-5: Environment Configuration
 
 **FR-5.1: Multi-Environment Support**
+
 - Generate separate configs for dev, staging, production
 - Environment-specific resource sizing
 - Environment-specific feature flags
 - Environment-specific secrets management
 
 **FR-5.2: Environment Config Structure**
+
 ```typescript
 interface EnvironmentConfig {
-  name: 'dev' | 'staging' | 'prod';
+  name: "dev" | "staging" | "prod";
   description: string;
   resources: ResourceConfig;
   scaling: ScalingConfig;
@@ -477,7 +500,7 @@ interface ResourceConfig {
     cpu: string;
   };
   storage: {
-    type: 'ssd' | 'hdd' | 's3';
+    type: "ssd" | "hdd" | "s3";
     size: string;
     backups: boolean;
   };
@@ -487,13 +510,13 @@ interface ResourceConfig {
   };
   caching: {
     enabled: boolean;
-    engine?: 'redis' | 'memcached';
+    engine?: "redis" | "memcached";
     size?: string;
   };
 }
 
 interface ScalingConfig {
-  type: 'manual' | 'horizontal' | 'vertical' | 'auto';
+  type: "manual" | "horizontal" | "vertical" | "auto";
   min: number;
   max: number;
   targetCPU?: number;
@@ -505,13 +528,14 @@ interface SecretConfig {
   description: string;
   required: boolean;
   example?: string;
-  provider?: 'aws-secrets' | 'github-secrets' | 'env-file';
+  provider?: "aws-secrets" | "github-secrets" | "env-file";
 }
 ```
 
 **FR-5.3: Environment-Specific Defaults**
 
 **Development:**
+
 - Compute: 1 instance, 512MB RAM, 0.5 vCPU
 - Storage: 10GB SSD, no backups
 - Network: Basic bandwidth, no CDN
@@ -519,6 +543,7 @@ interface SecretConfig {
 - Cost target: < $10/month
 
 **Staging:**
+
 - Compute: 1-2 instances, 1GB RAM, 1 vCPU
 - Storage: 20GB SSD, daily backups
 - Network: Standard bandwidth, CDN enabled
@@ -526,6 +551,7 @@ interface SecretConfig {
 - Cost target: $20-50/month
 
 **Production:**
+
 - Compute: 2-5 instances, 2GB RAM, 2 vCPU
 - Storage: 50GB SSD, hourly backups + point-in-time recovery
 - Network: High bandwidth, global CDN
@@ -535,10 +561,11 @@ interface SecretConfig {
 #### FR-6: Cost Estimation
 
 **FR-6.1: Cost Estimation Function**
+
 ```typescript
 interface CostEstimate {
   provider: string;
-  currency: 'USD';
+  currency: "USD";
   breakdown: CostBreakdown;
   total: {
     hourly: number;
@@ -571,6 +598,7 @@ interface CostItem {
 ```
 
 **FR-6.2: Cost Estimation Logic**
+
 - Accept `LoadProfile` as input (expected requests/day, storage needs, users)
 - Use provider pricing APIs when available
 - Fall back to hardcoded pricing tables (updated quarterly)
@@ -580,6 +608,7 @@ interface CostItem {
 - Provide cost optimization recommendations
 
 **FR-6.3: Load Profile Input**
+
 ```typescript
 interface LoadProfile {
   requestsPerDay: number;
@@ -592,25 +621,26 @@ interface LoadProfile {
 ```
 
 **FR-6.4: Provider Pricing Tables**
+
 ```typescript
 // AWS EC2 pricing (us-east-1, as of 2026-01)
 const AWS_PRICING = {
   compute: {
-    't3.micro': 0.0104, // per hour
-    't3.small': 0.0208,
-    't3.medium': 0.0416,
-    't3.large': 0.0832,
+    "t3.micro": 0.0104, // per hour
+    "t3.small": 0.0208,
+    "t3.medium": 0.0416,
+    "t3.large": 0.0832,
   },
   storage: {
-    'gp3': 0.08, // per GB-month
-    'io2': 0.125,
+    gp3: 0.08, // per GB-month
+    io2: 0.125,
   },
   dataTransfer: {
     outbound: 0.09, // per GB (first 10TB)
   },
   rds: {
-    'db.t3.micro': 0.017, // per hour
-    'db.t3.small': 0.034,
+    "db.t3.micro": 0.017, // per hour
+    "db.t3.small": 0.034,
   },
 };
 
@@ -628,16 +658,17 @@ const RAILWAY_PRICING = {
   compute: 0.000231, // per vCPU-hour
   memory: 0.000231, // per GB-hour
   storage: 0.25, // per GB-month
-  bandwidth: 0.10, // per GB
+  bandwidth: 0.1, // per GB
 };
 ```
 
 **FR-6.5: Cost Calculation Example**
+
 ```typescript
 function estimateMonthlyCost(
   architecture: ArchitectureDoc,
-  environment: 'dev' | 'staging' | 'prod',
-  loadProfile: LoadProfile
+  environment: "dev" | "staging" | "prod",
+  loadProfile: LoadProfile,
 ): CostEstimate {
   const config = getEnvironmentConfig(architecture, environment);
 
@@ -645,13 +676,19 @@ function estimateMonthlyCost(
   const computeCost = calculateComputeCost(config.resources.compute);
 
   // Calculate storage costs
-  const storageCost = calculateStorageCost(config.resources.storage, loadProfile);
+  const storageCost = calculateStorageCost(
+    config.resources.storage,
+    loadProfile,
+  );
 
   // Calculate network costs
   const networkCost = calculateNetworkCost(loadProfile.dataTrasferPerMonth);
 
   // Calculate database costs
-  const databaseCost = calculateDatabaseCost(architecture.databaseSchema, config);
+  const databaseCost = calculateDatabaseCost(
+    architecture.databaseSchema,
+    config,
+  );
 
   // Calculate caching costs
   const cachingCost = config.resources.caching.enabled
@@ -659,17 +696,48 @@ function estimateMonthlyCost(
     : 0;
 
   // Sum all costs
-  const totalMonthly = computeCost + storageCost + networkCost + databaseCost + cachingCost;
+  const totalMonthly =
+    computeCost + storageCost + networkCost + databaseCost + cachingCost;
 
   return {
-    provider: 'AWS',
-    currency: 'USD',
+    provider: "AWS",
+    currency: "USD",
     breakdown: {
-      compute: { description: 't3.medium instance', quantity: 2, unit: 'instance', unitPrice: 30.05, monthlyTotal: 60.10 },
-      storage: { description: 'gp3 SSD', quantity: 50, unit: 'GB', unitPrice: 0.08, monthlyTotal: 4.00 },
-      network: { description: 'Data transfer', quantity: 100, unit: 'GB', unitPrice: 0.09, monthlyTotal: 9.00 },
-      database: { description: 'RDS db.t3.small', quantity: 1, unit: 'instance', unitPrice: 24.82, monthlyTotal: 24.82 },
-      caching: { description: 'ElastiCache Redis', quantity: 1, unit: 'node', unitPrice: 17.28, monthlyTotal: 17.28 },
+      compute: {
+        description: "t3.medium instance",
+        quantity: 2,
+        unit: "instance",
+        unitPrice: 30.05,
+        monthlyTotal: 60.1,
+      },
+      storage: {
+        description: "gp3 SSD",
+        quantity: 50,
+        unit: "GB",
+        unitPrice: 0.08,
+        monthlyTotal: 4.0,
+      },
+      network: {
+        description: "Data transfer",
+        quantity: 100,
+        unit: "GB",
+        unitPrice: 0.09,
+        monthlyTotal: 9.0,
+      },
+      database: {
+        description: "RDS db.t3.small",
+        quantity: 1,
+        unit: "instance",
+        unitPrice: 24.82,
+        monthlyTotal: 24.82,
+      },
+      caching: {
+        description: "ElastiCache Redis",
+        quantity: 1,
+        unit: "node",
+        unitPrice: 17.28,
+        monthlyTotal: 17.28,
+      },
     },
     total: {
       hourly: totalMonthly / 730,
@@ -678,16 +746,16 @@ function estimateMonthlyCost(
       yearly: totalMonthly * 12,
     },
     assumptions: [
-      'Assumes 730 hours per month',
-      'Pricing based on us-east-1 region',
-      'Does not include free tier benefits',
-      'Includes 100GB data transfer per month',
+      "Assumes 730 hours per month",
+      "Pricing based on us-east-1 region",
+      "Does not include free tier benefits",
+      "Includes 100GB data transfer per month",
     ],
     recommendations: [
-      'Consider Reserved Instances for 30% savings on compute',
-      'Enable auto-scaling to reduce costs during low traffic',
-      'Use S3 for static assets instead of EBS',
-      'Consider Aurora Serverless for variable workloads',
+      "Consider Reserved Instances for 30% savings on compute",
+      "Enable auto-scaling to reduce costs during low traffic",
+      "Use S3 for static assets instead of EBS",
+      "Consider Aurora Serverless for variable workloads",
     ],
   };
 }
@@ -696,6 +764,7 @@ function estimateMonthlyCost(
 #### FR-7: Terraform Configuration
 
 **FR-7.1: Terraform Module Structure**
+
 ```
 terraform/
 ├── main.tf           # Main configuration
@@ -714,6 +783,7 @@ terraform/
 ```
 
 **FR-7.2: Terraform Output Interface**
+
 ```typescript
 interface TerraformConfig {
   mainTf: string;
@@ -726,6 +796,7 @@ interface TerraformConfig {
 ```
 
 **FR-7.3: Basic Terraform Template**
+
 ```hcl
 # providers.tf
 terraform {
@@ -818,6 +889,7 @@ output "database_endpoint" {
 #### FR-8: Pulumi Configuration
 
 **FR-8.1: Pulumi Output Interface**
+
 ```typescript
 interface PulumiConfig {
   indexTs: string; // Pulumi program in TypeScript
@@ -828,6 +900,7 @@ interface PulumiConfig {
 ```
 
 **FR-8.2: Pulumi Template**
+
 ```typescript
 // index.ts
 import * as pulumi from "@pulumi/pulumi";
@@ -882,12 +955,14 @@ export const dbEndpoint = db.endpoint;
 ### Non-Functional Requirements
 
 **NFR-1: Output Validity**
+
 - All generated YAML/HCL must be syntactically valid
 - Docker Compose must pass `docker-compose config` validation
 - Terraform must pass `terraform validate`
 - GitHub Actions must pass YAML schema validation
 
 **NFR-2: Security Best Practices**
+
 - Non-root Docker users
 - Minimal base images (alpine where possible)
 - No hardcoded secrets in configs
@@ -897,17 +972,20 @@ export const dbEndpoint = db.endpoint;
 - Regular security updates in Dockerfiles
 
 **NFR-3: Performance**
+
 - Infrastructure generation completes within 10 seconds
 - Cost estimation completes within 2 seconds
 - Minimal memory footprint (< 50MB)
 
 **NFR-4: Extensibility**
+
 - Easy to add new cloud providers
 - Template system for custom infrastructure patterns
 - Pluggable cost estimation sources
 - Support for custom Dockerfile templates
 
 **NFR-5: Documentation**
+
 - Generated configs include inline comments
 - README files generated for infrastructure setup
 - Cost estimates include explanatory notes
@@ -955,6 +1033,7 @@ export const dbEndpoint = db.endpoint;
 ### Core Implementation
 
 See Implementation section for:
+
 - Type definitions
 - InfrastructureGenerator class
 - Docker generation functions
@@ -965,16 +1044,19 @@ See Implementation section for:
 ### Integration Points
 
 **1. Architect Agent Integration**
+
 - Location: `agents/architect/architect-agent.ts`
 - Usage: Call `InfrastructureGenerator.generate()` after architecture generation
 - Pattern: Import generator, instantiate with architecture doc, generate configs
 
 **2. Architecture Types**
+
 - Location: `agents/architect/types.ts`
 - Dependencies: `ArchitectureDoc`, `ComponentSpec`, `TechStackDecision`, `DatabaseSchema`
 - Pattern: Generator reads architecture types and generates infrastructure
 
 **3. File Output**
+
 - Location: `ideas/{ideaId}/infrastructure/`
 - Files: `docker-compose.yml`, `Dockerfile.*`, `.github/workflows/deploy.yml`, `terraform/`, `pulumi/`
 - Pattern: Generate directory structure, write files with proper formatting
@@ -992,19 +1074,24 @@ See Implementation section for:
  * Infrastructure Generator Types
  */
 
-import type { ArchitectureDoc } from './types.js';
+import type { ArchitectureDoc } from "./types.js";
 
 export interface GeneratorConfig {
-  targetProvider?: 'aws' | 'vercel' | 'railway' | 'cloudflare' | 'docker';
-  environments?: ('dev' | 'staging' | 'prod')[];
+  targetProvider?: "aws" | "vercel" | "railway" | "cloudflare" | "docker";
+  environments?: ("dev" | "staging" | "prod")[];
   includeCI?: boolean;
   includeCostEstimate?: boolean;
   projectName: string;
 }
 
 export interface GenerationOptions {
-  outputFormat: 'terraform' | 'pulumi' | 'docker-compose' | 'github-actions' | 'all';
-  targetEnvironment?: 'dev' | 'staging' | 'prod';
+  outputFormat:
+    | "terraform"
+    | "pulumi"
+    | "docker-compose"
+    | "github-actions"
+    | "all";
+  targetEnvironment?: "dev" | "staging" | "prod";
   estimateLoad?: LoadProfile;
 }
 
@@ -1033,7 +1120,7 @@ export interface LoadProfile {
 }
 
 export interface EnvironmentConfig {
-  name: 'dev' | 'staging' | 'prod';
+  name: "dev" | "staging" | "prod";
   description: string;
   resources: ResourceConfig;
   scaling: ScalingConfig;
@@ -1050,7 +1137,7 @@ export interface ResourceConfig {
     cpu: string;
   };
   storage: {
-    type: 'ssd' | 'hdd' | 's3';
+    type: "ssd" | "hdd" | "s3";
     size: string;
     backups: boolean;
   };
@@ -1060,13 +1147,13 @@ export interface ResourceConfig {
   };
   caching: {
     enabled: boolean;
-    engine?: 'redis' | 'memcached';
+    engine?: "redis" | "memcached";
     size?: string;
   };
 }
 
 export interface ScalingConfig {
-  type: 'manual' | 'horizontal' | 'vertical' | 'auto';
+  type: "manual" | "horizontal" | "vertical" | "auto";
   min: number;
   max: number;
   targetCPU?: number;
@@ -1078,7 +1165,7 @@ export interface SecretConfig {
   description: string;
   required: boolean;
   example?: string;
-  provider?: 'aws-secrets' | 'github-secrets' | 'env-file';
+  provider?: "aws-secrets" | "github-secrets" | "env-file";
 }
 
 export interface FeatureFlags {
@@ -1094,7 +1181,7 @@ export interface MonitoringConfig {
 
 export interface CostEstimate {
   provider: string;
-  currency: 'USD';
+  currency: "USD";
   breakdown: CostBreakdown;
   total: {
     hourly: number;
@@ -1158,7 +1245,7 @@ import type {
   ArchitectureDoc,
   ComponentSpec,
   TechStackDecision,
-} from './types.js';
+} from "./types.js";
 import type {
   GeneratorConfig,
   GenerationOptions,
@@ -1166,7 +1253,7 @@ import type {
   EnvironmentConfig,
   CostEstimate,
   LoadProfile,
-} from './infrastructure-types.js';
+} from "./infrastructure-types.js";
 
 export class InfrastructureGenerator {
   private architecture: ArchitectureDoc;
@@ -1175,7 +1262,7 @@ export class InfrastructureGenerator {
   constructor(architecture: ArchitectureDoc, config: GeneratorConfig) {
     this.architecture = architecture;
     this.config = {
-      environments: ['dev', 'staging', 'prod'],
+      environments: ["dev", "staging", "prod"],
       includeCI: true,
       includeCostEstimate: true,
       ...config,
@@ -1190,40 +1277,50 @@ export class InfrastructureGenerator {
       environmentConfigs: [],
       metadata: {
         generatedAt: new Date(),
-        generatorVersion: '1.0.0',
+        generatorVersion: "1.0.0",
         architectureVersion: this.architecture.version,
       },
     };
 
     // Generate environment configs
-    for (const env of this.config.environments || ['dev', 'staging', 'prod']) {
+    for (const env of this.config.environments || ["dev", "staging", "prod"]) {
       output.environmentConfigs.push(this.generateEnvironmentConfig(env));
     }
 
     // Generate Docker Compose
-    if (options.outputFormat === 'docker-compose' || options.outputFormat === 'all') {
+    if (
+      options.outputFormat === "docker-compose" ||
+      options.outputFormat === "all"
+    ) {
       output.dockerCompose = this.generateDockerCompose();
       output.dockerfile = this.generateDockerfiles();
     }
 
     // Generate CI/CD pipeline
-    if (this.config.includeCI && (options.outputFormat === 'github-actions' || options.outputFormat === 'all')) {
+    if (
+      this.config.includeCI &&
+      (options.outputFormat === "github-actions" ||
+        options.outputFormat === "all")
+    ) {
       output.githubActions = this.generateGitHubActions();
     }
 
     // Generate Terraform
-    if (options.outputFormat === 'terraform' || options.outputFormat === 'all') {
+    if (
+      options.outputFormat === "terraform" ||
+      options.outputFormat === "all"
+    ) {
       output.terraform = this.generateTerraform();
     }
 
     // Generate Pulumi
-    if (options.outputFormat === 'pulumi' || options.outputFormat === 'all') {
+    if (options.outputFormat === "pulumi" || options.outputFormat === "all") {
       output.pulumi = this.generatePulumi();
     }
 
     // Generate cost estimate
     if (this.config.includeCostEstimate && options.estimateLoad) {
-      const env = options.targetEnvironment || 'prod';
+      const env = options.targetEnvironment || "prod";
       output.costEstimate = this.estimateCost(env, options.estimateLoad);
     }
 
@@ -1233,7 +1330,9 @@ export class InfrastructureGenerator {
   /**
    * Generate environment-specific configuration
    */
-  private generateEnvironmentConfig(env: 'dev' | 'staging' | 'prod'): EnvironmentConfig {
+  private generateEnvironmentConfig(
+    env: "dev" | "staging" | "prod",
+  ): EnvironmentConfig {
     const baseConfig = this.getBaseResourceConfig(env);
 
     return {
@@ -1253,13 +1352,13 @@ export class InfrastructureGenerator {
   private generateDockerCompose(): string {
     const services: string[] = [];
     const volumes: string[] = [];
-    const networks = ['app-network'];
+    const networks = ["app-network"];
 
     // Generate service definitions
     for (const component of this.architecture.components) {
-      if (component.type === 'backend' || component.type === 'service') {
+      if (component.type === "backend" || component.type === "service") {
         services.push(this.generateServiceDefinition(component));
-      } else if (component.type === 'database') {
+      } else if (component.type === "database") {
         services.push(this.generateDatabaseService(component));
         volumes.push(`${component.id}-data`);
       }
@@ -1268,14 +1367,14 @@ export class InfrastructureGenerator {
     return `version: '3.8'
 
 services:
-${services.join('\n\n')}
+${services.join("\n\n")}
 
 networks:
   app-network:
     driver: bridge
 
 volumes:
-${volumes.map(v => `  ${v}:`).join('\n')}
+${volumes.map((v) => `  ${v}:`).join("\n")}
 `;
   }
 
@@ -1292,7 +1391,7 @@ ${volumes.map(v => `  ${v}:`).join('\n')}
       dockerfile: Dockerfile
     container_name: \${PROJECT_NAME:-app}-${serviceName}
     ports:
-      - "\${${serviceName.toUpperCase().replace(/-/g, '_')}_PORT:-${port}}:${port}"
+      - "\${${serviceName.toUpperCase().replace(/-/g, "_")}_PORT:-${port}}:${port}"
     environment:
       - NODE_ENV=\${NODE_ENV:-development}
       - DATABASE_URL=\${DATABASE_URL}
@@ -1315,7 +1414,7 @@ ${volumes.map(v => `  ${v}:`).join('\n')}
    * Generate database service definition
    */
   private generateDatabaseService(component: ComponentSpec): string {
-    const dbEngine = this.architecture.databaseSchema?.engine || 'postgres';
+    const dbEngine = this.architecture.databaseSchema?.engine || "postgres";
     const image = this.getDatabaseImage(dbEngine);
     const healthCheck = this.getDatabaseHealthCheck(dbEngine);
 
@@ -1342,7 +1441,11 @@ ${volumes.map(v => `  ${v}:`).join('\n')}
     const dockerfiles: Record<string, string> = {};
 
     for (const component of this.architecture.components) {
-      if (component.type === 'backend' || component.type === 'service' || component.type === 'frontend') {
+      if (
+        component.type === "backend" ||
+        component.type === "service" ||
+        component.type === "frontend"
+      ) {
         const runtime = this.inferRuntime(component);
         dockerfiles[component.id] = this.generateDockerfile(component, runtime);
       }
@@ -1354,10 +1457,13 @@ ${volumes.map(v => `  ${v}:`).join('\n')}
   /**
    * Generate Dockerfile for a component
    */
-  private generateDockerfile(component: ComponentSpec, runtime: string): string {
-    if (runtime.includes('node')) {
+  private generateDockerfile(
+    component: ComponentSpec,
+    runtime: string,
+  ): string {
+    if (runtime.includes("node")) {
       return this.generateNodeDockerfile();
-    } else if (runtime.includes('python')) {
+    } else if (runtime.includes("python")) {
       return this.generatePythonDockerfile();
     }
 
@@ -1481,7 +1587,7 @@ CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000
    * Generate GitHub Actions workflow
    */
   private generateGitHubActions(): string {
-    const provider = this.config.targetProvider || 'docker';
+    const provider = this.config.targetProvider || "docker";
     const deploySteps = this.generateDeploymentSteps(provider);
 
     return `name: CI/CD Pipeline
@@ -1555,7 +1661,7 @@ ${deploySteps}
    * Generate deployment steps for GitHub Actions
    */
   private generateDeploymentSteps(provider: string): string {
-    if (provider === 'vercel') {
+    if (provider === "vercel") {
       return `  deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
@@ -1576,7 +1682,7 @@ ${deploySteps}
           vercel-org-id: \${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: \${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prod'`;
-    } else if (provider === 'railway') {
+    } else if (provider === "railway") {
       return `  deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
@@ -1619,10 +1725,10 @@ ${deploySteps}
   private generateTerraform(): any {
     // Placeholder for Terraform generation
     return {
-      mainTf: '# Terraform main configuration\n',
-      variablesTf: '# Terraform variables\n',
-      outputsTf: '# Terraform outputs\n',
-      providersTf: '# Terraform providers\n',
+      mainTf: "# Terraform main configuration\n",
+      variablesTf: "# Terraform variables\n",
+      outputsTf: "# Terraform outputs\n",
+      providersTf: "# Terraform providers\n",
       modules: {},
       environmentOverrides: {},
     };
@@ -1634,9 +1740,9 @@ ${deploySteps}
   private generatePulumi(): any {
     // Placeholder for Pulumi generation
     return {
-      indexTs: '// Pulumi program\n',
-      packageJson: '{}',
-      pulumiYaml: '# Pulumi config\n',
+      indexTs: "// Pulumi program\n",
+      packageJson: "{}",
+      pulumiYaml: "# Pulumi config\n",
       stackConfigs: {},
     };
   }
@@ -1644,45 +1750,51 @@ ${deploySteps}
   /**
    * Estimate monthly cost
    */
-  private estimateCost(environment: string, loadProfile: LoadProfile): CostEstimate {
+  private estimateCost(
+    environment: string,
+    loadProfile: LoadProfile,
+  ): CostEstimate {
     const config = this.generateEnvironmentConfig(environment as any);
 
     // Simple cost calculation
     const computeCost = this.calculateComputeCost(config.resources.compute);
-    const storageCost = this.calculateStorageCost(config.resources.storage, loadProfile);
+    const storageCost = this.calculateStorageCost(
+      config.resources.storage,
+      loadProfile,
+    );
     const networkCost = loadProfile.dataTrasferPerMonth * 0.09;
 
     const totalMonthly = computeCost + storageCost + networkCost;
 
     return {
-      provider: this.config.targetProvider || 'AWS',
-      currency: 'USD',
+      provider: this.config.targetProvider || "AWS",
+      currency: "USD",
       breakdown: {
         compute: {
           description: `${config.resources.compute.instanceType} instance`,
           quantity: config.resources.compute.instanceCount,
-          unit: 'instance',
+          unit: "instance",
           unitPrice: computeCost / config.resources.compute.instanceCount,
           monthlyTotal: computeCost,
         },
         storage: {
           description: `${config.resources.storage.type.toUpperCase()} storage`,
           quantity: parseInt(config.resources.storage.size),
-          unit: 'GB',
+          unit: "GB",
           unitPrice: 0.08,
           monthlyTotal: storageCost,
         },
         network: {
-          description: 'Data transfer',
+          description: "Data transfer",
           quantity: loadProfile.dataTrasferPerMonth,
-          unit: 'GB',
+          unit: "GB",
           unitPrice: 0.09,
           monthlyTotal: networkCost,
         },
         database: {
-          description: 'Managed database',
+          description: "Managed database",
           quantity: 1,
-          unit: 'instance',
+          unit: "instance",
           unitPrice: 25,
           monthlyTotal: 25,
         },
@@ -1694,14 +1806,14 @@ ${deploySteps}
         yearly: totalMonthly * 12,
       },
       assumptions: [
-        'Pricing based on us-east-1 region',
-        'Assumes 730 hours per month',
-        'Does not include free tier benefits',
+        "Pricing based on us-east-1 region",
+        "Assumes 730 hours per month",
+        "Does not include free tier benefits",
       ],
       recommendations: [
-        'Consider Reserved Instances for long-term savings',
-        'Enable auto-scaling to optimize costs',
-        'Use S3 for static asset storage',
+        "Consider Reserved Instances for long-term savings",
+        "Enable auto-scaling to optimize costs",
+        "Use S3 for static asset storage",
       ],
     };
   }
@@ -1710,22 +1822,37 @@ ${deploySteps}
   private getBaseResourceConfig(env: string): any {
     const configs = {
       dev: {
-        compute: { instanceType: 't3.micro', instanceCount: 1, memory: '512MB', cpu: '0.5' },
-        storage: { type: 'ssd', size: '10GB', backups: false },
-        network: { bandwidth: 'basic', cdn: false },
+        compute: {
+          instanceType: "t3.micro",
+          instanceCount: 1,
+          memory: "512MB",
+          cpu: "0.5",
+        },
+        storage: { type: "ssd", size: "10GB", backups: false },
+        network: { bandwidth: "basic", cdn: false },
         caching: { enabled: false },
       },
       staging: {
-        compute: { instanceType: 't3.small', instanceCount: 1, memory: '1GB', cpu: '1' },
-        storage: { type: 'ssd', size: '20GB', backups: true },
-        network: { bandwidth: 'standard', cdn: true },
-        caching: { enabled: true, engine: 'redis', size: '512MB' },
+        compute: {
+          instanceType: "t3.small",
+          instanceCount: 1,
+          memory: "1GB",
+          cpu: "1",
+        },
+        storage: { type: "ssd", size: "20GB", backups: true },
+        network: { bandwidth: "standard", cdn: true },
+        caching: { enabled: true, engine: "redis", size: "512MB" },
       },
       prod: {
-        compute: { instanceType: 't3.medium', instanceCount: 2, memory: '2GB', cpu: '2' },
-        storage: { type: 'ssd', size: '50GB', backups: true },
-        network: { bandwidth: 'high', cdn: true },
-        caching: { enabled: true, engine: 'redis', size: '2GB' },
+        compute: {
+          instanceType: "t3.medium",
+          instanceCount: 2,
+          memory: "2GB",
+          cpu: "2",
+        },
+        storage: { type: "ssd", size: "50GB", backups: true },
+        network: { bandwidth: "high", cdn: true },
+        caching: { enabled: true, engine: "redis", size: "2GB" },
       },
     };
 
@@ -1733,55 +1860,55 @@ ${deploySteps}
   }
 
   private getScalingConfig(env: string): any {
-    if (env === 'prod') {
-      return { type: 'auto', min: 2, max: 10, targetCPU: 70, targetMemory: 80 };
-    } else if (env === 'staging') {
-      return { type: 'horizontal', min: 1, max: 3 };
+    if (env === "prod") {
+      return { type: "auto", min: 2, max: 10, targetCPU: 70, targetMemory: 80 };
+    } else if (env === "staging") {
+      return { type: "horizontal", min: 1, max: 3 };
     }
-    return { type: 'manual', min: 1, max: 1 };
+    return { type: "manual", min: 1, max: 1 };
   }
 
   private generateSecretsConfig(): any[] {
     return [
       {
-        name: 'DATABASE_URL',
-        description: 'Database connection string',
+        name: "DATABASE_URL",
+        description: "Database connection string",
         required: true,
-        example: 'postgresql://user:pass@host:5432/dbname',
-        provider: 'env-file',
+        example: "postgresql://user:pass@host:5432/dbname",
+        provider: "env-file",
       },
       {
-        name: 'JWT_SECRET',
-        description: 'Secret for JWT token signing',
+        name: "JWT_SECRET",
+        description: "Secret for JWT token signing",
         required: true,
-        provider: 'aws-secrets',
+        provider: "aws-secrets",
       },
     ];
   }
 
   private getFeatureFlags(env: string): Record<string, boolean> {
     return {
-      enableAnalytics: env === 'prod',
-      enableDebugLogging: env === 'dev',
-      enableRateLimiting: env !== 'dev',
+      enableAnalytics: env === "prod",
+      enableDebugLogging: env === "dev",
+      enableRateLimiting: env !== "dev",
     };
   }
 
   private getMonitoringConfig(env: string): any {
     return {
-      enabled: env !== 'dev',
-      metricsProvider: env === 'prod' ? 'Datadog' : undefined,
-      loggingProvider: 'CloudWatch',
-      tracingProvider: env === 'prod' ? 'AWS X-Ray' : undefined,
+      enabled: env !== "dev",
+      metricsProvider: env === "prod" ? "Datadog" : undefined,
+      loggingProvider: "CloudWatch",
+      tracingProvider: env === "prod" ? "AWS X-Ray" : undefined,
     };
   }
 
   private calculateComputeCost(compute: any): number {
     const pricing: Record<string, number> = {
-      't3.micro': 7.59,
-      't3.small': 15.18,
-      't3.medium': 30.37,
-      't3.large': 60.74,
+      "t3.micro": 7.59,
+      "t3.small": 15.18,
+      "t3.medium": 30.37,
+      "t3.large": 60.74,
     };
 
     return (pricing[compute.instanceType] || 30) * compute.instanceCount;
@@ -1789,48 +1916,53 @@ ${deploySteps}
 
   private calculateStorageCost(storage: any, load: LoadProfile): number {
     const sizeGB = parseInt(storage.size);
-    const costPerGB = storage.type === 'ssd' ? 0.08 : 0.045;
+    const costPerGB = storage.type === "ssd" ? 0.08 : 0.045;
     return sizeGB * costPerGB;
   }
 
   private toKebabCase(str: string): string {
-    return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+    return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
   }
 
   private inferPort(component: ComponentSpec): number {
-    if (component.name.toLowerCase().includes('api')) return 3000;
-    if (component.name.toLowerCase().includes('web')) return 8080;
+    if (component.name.toLowerCase().includes("api")) return 3000;
+    if (component.name.toLowerCase().includes("web")) return 8080;
     return 3000;
   }
 
   private inferRuntime(component: ComponentSpec): string {
     const tech = this.architecture.techStack;
     if (tech?.backend?.runtime) return tech.backend.runtime;
-    if (component.technologies.some(t => t.toLowerCase().includes('node'))) return 'node';
-    if (component.technologies.some(t => t.toLowerCase().includes('python'))) return 'python';
-    return 'node';
+    if (component.technologies.some((t) => t.toLowerCase().includes("node")))
+      return "node";
+    if (component.technologies.some((t) => t.toLowerCase().includes("python")))
+      return "python";
+    return "node";
   }
 
   private getDatabaseImage(engine: string): string {
     const images: Record<string, string> = {
-      'postgres': 'postgres:16-alpine',
-      'postgresql': 'postgres:16-alpine',
-      'mysql': 'mysql:8.0',
-      'mongodb': 'mongo:7.0',
-      'redis': 'redis:7.2-alpine',
+      postgres: "postgres:16-alpine",
+      postgresql: "postgres:16-alpine",
+      mysql: "mysql:8.0",
+      mongodb: "mongo:7.0",
+      redis: "redis:7.2-alpine",
     };
 
-    return images[engine.toLowerCase()] || 'postgres:16-alpine';
+    return images[engine.toLowerCase()] || "postgres:16-alpine";
   }
 
   private getDatabaseHealthCheck(engine: string): string {
     const checks: Record<string, string> = {
-      'postgres': 'test: ["CMD-SHELL", "pg_isready -U appuser"]\n      interval: 10s\n      timeout: 5s\n      retries: 5',
-      'mysql': 'test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]\n      interval: 10s\n      timeout: 5s\n      retries: 5',
-      'mongodb': 'test: ["CMD", "mongo", "--eval", "db.adminCommand(\'ping\')"]\n      interval: 10s\n      timeout: 5s\n      retries: 5',
+      postgres:
+        'test: ["CMD-SHELL", "pg_isready -U appuser"]\n      interval: 10s\n      timeout: 5s\n      retries: 5',
+      mysql:
+        'test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]\n      interval: 10s\n      timeout: 5s\n      retries: 5',
+      mongodb:
+        'test: ["CMD", "mongo", "--eval", "db.adminCommand(\'ping\')"]\n      interval: 10s\n      timeout: 5s\n      retries: 5',
     };
 
-    return checks[engine.toLowerCase()] || checks['postgres'];
+    return checks[engine.toLowerCase()] || checks["postgres"];
   }
 }
 
@@ -1839,7 +1971,7 @@ ${deploySteps}
  */
 export function createInfrastructureGenerator(
   architecture: ArchitectureDoc,
-  config: GeneratorConfig
+  config: GeneratorConfig,
 ): InfrastructureGenerator {
   return new InfrastructureGenerator(architecture, config);
 }
@@ -1929,16 +2061,19 @@ export function createInfrastructureGenerator(
 ## Dependencies
 
 ### Required
+
 - ✅ TypeScript compiler (exists in project)
 - ✅ Architect Agent types (`agents/architect/types.ts`)
 - ✅ Architecture document interface
 
 ### Optional
+
 - Docker CLI (for testing generated configs)
 - Terraform CLI (for validating Terraform)
 - GitHub CLI (for validating workflows)
 
 ### Blocked By
+
 - None (can be implemented independently)
 
 ---
@@ -1946,6 +2081,7 @@ export function createInfrastructureGenerator(
 ## Implementation Notes
 
 ### File Creation Order
+
 1. Create `infrastructure-types.ts` with all TypeScript interfaces
 2. Create `infrastructure-generator.ts` with main class
 3. Implement Docker generation methods first (most critical)
@@ -1955,28 +2091,32 @@ export function createInfrastructureGenerator(
 7. Test with sample architecture documents
 
 ### Testing Strategy
+
 - Unit tests for each generation method
 - Integration tests with real architecture documents
 - Validation tests for generated configs (docker-compose config, YAML linting)
 - Cost estimation accuracy tests
 
 ### Usage Example
-```typescript
-import { InfrastructureGenerator } from './infrastructure-generator.js';
-import type { ArchitectureDoc } from './types.js';
 
-const architecture: ArchitectureDoc = { /* ... */ };
+```typescript
+import { InfrastructureGenerator } from "./infrastructure-generator.js";
+import type { ArchitectureDoc } from "./types.js";
+
+const architecture: ArchitectureDoc = {
+  /* ... */
+};
 
 const generator = new InfrastructureGenerator(architecture, {
-  projectName: 'my-app',
-  targetProvider: 'aws',
+  projectName: "my-app",
+  targetProvider: "aws",
   includeCI: true,
   includeCostEstimate: true,
 });
 
 const output = await generator.generate({
-  outputFormat: 'all',
-  targetEnvironment: 'prod',
+  outputFormat: "all",
+  targetEnvironment: "prod",
   estimateLoad: {
     requestsPerDay: 100000,
     concurrentUsers: 500,
@@ -1986,8 +2126,8 @@ const output = await generator.generate({
   },
 });
 
-console.log('Docker Compose:', output.dockerCompose);
-console.log('Cost Estimate:', output.costEstimate);
+console.log("Docker Compose:", output.dockerCompose);
+console.log("Cost Estimate:", output.costEstimate);
 ```
 
 ---
@@ -1995,6 +2135,7 @@ console.log('Cost Estimate:', output.costEstimate);
 ## Future Enhancements
 
 ### Phase 2
+
 - Kubernetes manifest generation
 - Helm chart generation
 - AWS CDK support
@@ -2002,6 +2143,7 @@ console.log('Cost Estimate:', output.costEstimate);
 - Google Cloud Deployment Manager
 
 ### Advanced Features
+
 - Infrastructure drift detection
 - Cost optimization recommendations
 - Security vulnerability scanning in generated Dockerfiles
@@ -2014,6 +2156,7 @@ console.log('Cost Estimate:', output.costEstimate);
 ## Success Metrics
 
 ### Implementation Success
+
 - ✅ All 8 "Must Pass" criteria verified
 - ✅ TypeScript compilation clean
 - ✅ Generated Docker Compose passes validation
@@ -2021,6 +2164,7 @@ console.log('Cost Estimate:', output.costEstimate);
 - ✅ Cost estimates are reasonable and accurate
 
 ### Quality Metrics
+
 - Generated configs follow best practices
 - Security measures implemented (non-root users, minimal images)
 - Cost estimates within 20% of actual costs
@@ -2031,11 +2175,13 @@ console.log('Cost Estimate:', output.costEstimate);
 ## References
 
 ### Related Tasks
+
 - VIBE-P10-001: Architect Agent Base
 - VIBE-P10-002: Architecture Template System
 - VIBE-P10-003: Tech Stack Decision Tree
 
 ### External References
+
 - Docker Compose specification: https://docs.docker.com/compose/compose-file/
 - Dockerfile best practices: https://docs.docker.com/develop/develop-images/dockerfile_best-practices/
 - GitHub Actions documentation: https://docs.github.com/en/actions

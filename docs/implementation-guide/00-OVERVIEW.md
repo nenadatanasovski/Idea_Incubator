@@ -13,16 +13,16 @@ Vibe is **~55% complete** for end-to-end functionality. Individual components (i
 
 ### Current State
 
-| Component | Completion | Status |
-|-----------|------------|--------|
-| Ideation Agent | 90% | ✅ Functional, minor polish |
-| Evaluation Pipeline | 85% | ✅ Fixed, working |
-| Spec Agent | 70% | ⚠️ Core exists, not wired |
-| Build Agent | 60% | ⚠️ Task execution works, loop incomplete |
-| Pipeline Orchestrator | 20% | 🔴 Critical gap |
-| SIA (Self-Improvement) | 40% | ⚠️ Exists but not integrated |
-| Frontend UI | 75% | ⚠️ Disjointed components |
-| Network Pillar | 0% | 🔴 Not started |
+| Component              | Completion | Status                                   |
+| ---------------------- | ---------- | ---------------------------------------- |
+| Ideation Agent         | 90%        | ✅ Functional, minor polish              |
+| Evaluation Pipeline    | 85%        | ✅ Fixed, working                        |
+| Spec Agent             | 70%        | ⚠️ Core exists, not wired                |
+| Build Agent            | 60%        | ⚠️ Task execution works, loop incomplete |
+| Pipeline Orchestrator  | 20%        | 🔴 Critical gap                          |
+| SIA (Self-Improvement) | 40%        | ⚠️ Exists but not integrated             |
+| Frontend UI            | 75%        | ⚠️ Disjointed components                 |
+| Network Pillar         | 0%         | 🔴 Not started                           |
 
 ### Critical Path to MVP
 
@@ -31,11 +31,11 @@ graph LR
     A[Ideation] -->|Handoff| B[Spec Agent]
     B -->|Brief| C[Build Agent]
     C -->|Loop| D[Deployed App]
-    
+
     E[Pipeline Orchestrator] -.->|Manages| A
     E -.->|Manages| B
     E -.->|Manages| C
-    
+
     F[SIA] -.->|Helps| C
 ```
 
@@ -47,15 +47,15 @@ graph LR
 
 This implementation guide is split into focused documents:
 
-| Document | Focus | Priority |
-|----------|-------|----------|
-| [01-UI-ARCHITECTURE.md](./01-UI-ARCHITECTURE.md) | Cohesive UI design, chat-as-left-panel | High |
-| [02-PIPELINE-ORCHESTRATION.md](./02-PIPELINE-ORCHESTRATION.md) | Phase handoffs and orchestration | **Critical** |
-| [03-SPEC-AGENT-COMPLETION.md](./03-SPEC-AGENT-COMPLETION.md) | Finishing the spec agent | High |
-| [04-BUILD-AGENT-LOOP.md](./04-BUILD-AGENT-LOOP.md) | Build agent Ralph loop | High |
-| [05-SIA-INTEGRATION.md](./05-SIA-INTEGRATION.md) | Self-improvement agent wiring | Medium |
-| [06-TESTING-CRITERIA.md](./06-TESTING-CRITERIA.md) | Verification tests per task | **Critical** |
-| [07-NETWORK-PILLAR.md](./07-NETWORK-PILLAR.md) | Future: Collaboration features | Deferred |
+| Document                                                       | Focus                                  | Priority     |
+| -------------------------------------------------------------- | -------------------------------------- | ------------ |
+| [01-UI-ARCHITECTURE.md](./01-UI-ARCHITECTURE.md)               | Cohesive UI design, chat-as-left-panel | High         |
+| [02-PIPELINE-ORCHESTRATION.md](./02-PIPELINE-ORCHESTRATION.md) | Phase handoffs and orchestration       | **Critical** |
+| [03-SPEC-AGENT-COMPLETION.md](./03-SPEC-AGENT-COMPLETION.md)   | Finishing the spec agent               | High         |
+| [04-BUILD-AGENT-LOOP.md](./04-BUILD-AGENT-LOOP.md)             | Build agent Ralph loop                 | High         |
+| [05-SIA-INTEGRATION.md](./05-SIA-INTEGRATION.md)               | Self-improvement agent wiring          | Medium       |
+| [06-TESTING-CRITERIA.md](./06-TESTING-CRITERIA.md)             | Verification tests per task            | **Critical** |
+| [07-NETWORK-PILLAR.md](./07-NETWORK-PILLAR.md)                 | Future: Collaboration features         | Deferred     |
 
 ---
 
@@ -114,12 +114,12 @@ A user can:
 
 ### Success Criteria
 
-| Criterion | Metric |
-|-----------|--------|
-| E2E completion rate | >30% of started sessions reach deployed app |
-| Phase transition success | >90% automatic handoffs work |
-| Build agent success rate | >70% of tasks complete without SIA |
-| Time to first deployed app | <2 hours from start |
+| Criterion                  | Metric                                      |
+| -------------------------- | ------------------------------------------- |
+| E2E completion rate        | >30% of started sessions reach deployed app |
+| Phase transition success   | >90% automatic handoffs work                |
+| Build agent success rate   | >70% of tasks complete without SIA          |
+| Time to first deployed app | <2 hours from start                         |
 
 ---
 
@@ -167,32 +167,32 @@ A user can:
 
 ### Backend
 
-| File | Purpose |
-|------|---------|
+| File                              | Purpose                    |
+| --------------------------------- | -------------------------- |
 | `agents/ideation/orchestrator.ts` | Ideation conversation loop |
-| `agents/specification/core.ts` | Spec generation |
-| `agents/build/core.ts` | Build task execution |
-| `agents/sia/` | Self-improvement agent |
-| `server/routes/` | API endpoints |
+| `agents/specification/core.ts`    | Spec generation            |
+| `agents/build/core.ts`            | Build task execution       |
+| `agents/sia/`                     | Self-improvement agent     |
+| `server/routes/`                  | API endpoints              |
 
 ### Frontend
 
-| File | Purpose |
-|------|---------|
-| `frontend/src/pages/IdeaDetailPhased.tsx` | Main idea detail view |
-| `frontend/src/components/ideation/` | Chat components |
-| `frontend/src/components/graph/` | Memory graph visualization |
-| `frontend/src/pages/IdeationPage.tsx` | Ideation session page |
+| File                                      | Purpose                    |
+| ----------------------------------------- | -------------------------- |
+| `frontend/src/pages/IdeaDetailPhased.tsx` | Main idea detail view      |
+| `frontend/src/components/ideation/`       | Chat components            |
+| `frontend/src/components/graph/`          | Memory graph visualization |
+| `frontend/src/pages/IdeationPage.tsx`     | Ideation session page      |
 
 ### Database
 
-| Table | Purpose |
-|-------|---------|
-| `idea_sessions` | Ideation conversations |
-| `spec_sessions` | Specification sessions |
-| `build_sessions` | Build execution state |
-| `task_definitions` | Generated tasks |
-| `task_executions` | Execution history |
+| Table              | Purpose                |
+| ------------------ | ---------------------- |
+| `idea_sessions`    | Ideation conversations |
+| `spec_sessions`    | Specification sessions |
+| `build_sessions`   | Build execution state  |
+| `task_definitions` | Generated tasks        |
+| `task_executions`  | Execution history      |
 
 ---
 
@@ -216,4 +216,4 @@ These need decisions before implementation:
 
 ---
 
-*This is a living document. Update as implementation progresses.*
+_This is a living document. Update as implementation progresses._

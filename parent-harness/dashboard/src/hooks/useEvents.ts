@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import api from '../api/client';
-import type { ObservabilityEvent } from '../api/types';
+import { useState, useEffect, useCallback } from "react";
+import api from "../api/client";
+import type { ObservabilityEvent } from "../api/types";
 
 interface UseEventsResult {
   events: ObservabilityEvent[];
@@ -18,10 +18,12 @@ export function useEvents(limit = 50): UseEventsResult {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.get<ObservabilityEvent[]>(`/api/events?limit=${limit}`);
+      const data = await api.get<ObservabilityEvent[]>(
+        `/api/events?limit=${limit}`,
+      );
       setEvents(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch events');
+      setError(err instanceof Error ? err.message : "Failed to fetch events");
     } finally {
       setLoading(false);
     }

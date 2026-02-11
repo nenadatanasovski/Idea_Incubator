@@ -7,11 +7,11 @@
  * Endpoint: GET /api/introspection/:agentId
  */
 
-import { Router } from 'express';
-import * as sessions from '../db/sessions.js';
-import { createEvent } from '../db/events.js';
-import { calculateRelevance } from '../introspection/relevance.js';
-import type { AgentSession } from '../db/sessions.js';
+import { Router } from "express";
+import * as sessions from "../db/sessions.js";
+import { createEvent } from "../db/events.js";
+import { calculateRelevance } from "../introspection/relevance.js";
+import type { AgentSession } from "../db/sessions.js";
 
 export const introspectionRouter = Router();
 
@@ -27,20 +27,20 @@ export const introspectionRouter = Router();
  *   includeIterations - Include iteration logs (default: false)
  *   includeFailures   - Include failed/terminated sessions (default: false)
  */
-introspectionRouter.get('/:agentId', (req, res) => {
+introspectionRouter.get("/:agentId", (req, res) => {
   const { agentId } = req.params;
   const {
     taskSignature,
-    limit = '10',
-    minRelevance = '0.3',
-    includeIterations = 'false',
-    includeFailures = 'false',
+    limit = "10",
+    minRelevance = "0.3",
+    includeIterations = "false",
+    includeFailures = "false",
   } = req.query;
 
   const parsedLimit = Math.min(parseInt(limit as string, 10) || 10, 100);
   const parsedMinRelevance = parseFloat(minRelevance as string) || 0.3;
-  const wantIterations = includeIterations === 'true';
-  const wantFailures = includeFailures === 'true';
+  const wantIterations = includeIterations === "true";
+  const wantFailures = includeFailures === "true";
 
   // Get all sessions for this agent (pre-filter to 100 for scoring efficiency)
   const allSessions = sessions.getSessions({
@@ -53,11 +53,16 @@ introspectionRouter.get('/:agentId', (req, res) => {
   if (wantFailures) {
     filtered = allSessions;
   } else {
-    filtered = allSessions.filter(s => s.status === 'completed' || s.status === 'running' || s.status === 'paused');
+    filtered = allSessions.filter(
+      (s) =>
+        s.status === "completed" ||
+        s.status === "running" ||
+        s.status === "paused",
+    );
   }
 
   // Calculate relevance scores
-  const scored = filtered.map(session => {
+  const scored = filtered.map((session) => {
     const relevance = calculateRelevance(session, {
       taskSignature: taskSignature as string | undefined,
       currentTime: Date.now(),
@@ -67,7 +72,7 @@ introspectionRouter.get('/:agentId', (req, res) => {
 
   // Filter by minimum relevance and sort descending
   const relevant = scored
-    .filter(s => s.relevance >= parsedMinRelevance)
+    .filter((s) => s.relevance >= parsedMinRelevance)
     .sort((a, b) => b.relevance - a.relevance)
     .slice(0, parsedLimit);
 
@@ -94,10 +99,10 @@ introspectionRouter.get('/:agentId', (req, res) => {
   // Log the introspection query for observability
   try {
     createEvent({
-      type: 'introspection:query',
+      type: "introspection:query",
       message: `Introspection query by ${agentId}: ${results.length} results (min relevance: ${parsedMinRelevance})`,
       agentId,
-      severity: 'info',
+      severity: "info",
       metadata: {
         taskSignature: taskSignature || null,
         limit: parsedLimit,
@@ -129,14 +134,16 @@ introspectionRouter.get('/:agentId', (req, res) => {
  *
  * Get a high-level performance summary for an agent.
  */
-introspectionRouter.get('/:agentId/summary', (req, res) => {
+introspectionRouter.get("/:agentId/summary", (req, res) => {
   const { agentId } = req.params;
 
   const allSessions = sessions.getSessions({ agentId, limit: 200 });
 
-  const completed = allSessions.filter(s => s.status === 'completed').length;
-  const failed = allSessions.filter(s => s.status === 'failed').length;
-  const terminated = allSessions.filter(s => s.status === 'terminated').length;
+  const completed = allSessions.filter((s) => s.status === "completed").length;
+  const failed = allSessions.filter((s) => s.status === "failed").length;
+  const terminated = allSessions.filter(
+    (s) => s.status === "terminated",
+  ).length;
   const total = allSessions.length;
   const successRate = total > 0 ? completed / total : 0;
 
@@ -145,14 +152,16 @@ introspectionRouter.get('/:agentId/summary', (req, res) => {
   let durationCount = 0;
   for (const s of allSessions) {
     if (s.completed_at && s.started_at) {
-      const duration = new Date(s.completed_at).getTime() - new Date(s.started_at).getTime();
+      const duration =
+        new Date(s.completed_at).getTime() - new Date(s.started_at).getTime();
       if (duration > 0) {
         totalDurationMs += duration;
         durationCount++;
       }
     }
   }
-  const avgDurationMs = durationCount > 0 ? Math.round(totalDurationMs / durationCount) : 0;
+  const avgDurationMs =
+    durationCount > 0 ? Math.round(totalDurationMs / durationCount) : 0;
 
   res.json({
     agent_id: agentId,
@@ -169,23 +178,23 @@ introspectionRouter.get('/:agentId/summary', (req, res) => {
  * Extract a concise summary from a session's output or metadata.
  */
 function extractSummary(session: AgentSession): string {
-  let output = session.output || '';
+  let output = session.output || "";
 
   // Try to extract from metadata if output is empty
   if (!output && session.metadata) {
     try {
       const meta = JSON.parse(session.metadata);
-      output = meta.output || meta.result || '';
+      output = meta.output || meta.result || "";
     } catch {
       // Invalid metadata JSON
     }
   }
 
-  if (!output) return '';
+  if (!output) return "";
 
   // Truncate to 200 chars
   if (output.length > 200) {
-    return output.substring(0, 197) + '...';
+    return output.substring(0, 197) + "...";
   }
   return output;
 }

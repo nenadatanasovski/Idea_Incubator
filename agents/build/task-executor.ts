@@ -33,7 +33,11 @@ export interface ExecutionProgress {
 }
 
 export interface GitIntegrationInterface {
-  commit(taskId: string, filePath: string, description?: string): Promise<{
+  commit(
+    taskId: string,
+    filePath: string,
+    description?: string,
+  ): Promise<{
     success: boolean;
     commitHash?: string;
     error?: string;
@@ -48,7 +52,7 @@ export interface SIAInterventionRequest {
 }
 
 export interface SIAInterventionResult {
-  type: 'fixed' | 'decomposed' | 'giveup';
+  type: "fixed" | "decomposed" | "giveup";
   modifiedTask?: AtomicTask;
   subtasks?: AtomicTask[];
   reason?: string;
@@ -104,7 +108,11 @@ export class TaskExecutor {
   private onProgress?: (progress: ExecutionProgress) => void;
   private onTaskComplete?: (result: ExecutionResult) => void;
   private onTaskFailed?: (taskId: string, error: Error) => void;
-  private onSiaNeeded?: (taskId: string, attempts: number, error: string) => void;
+  private onSiaNeeded?: (
+    taskId: string,
+    attempts: number,
+    error: string,
+  ) => void;
   private codeGenerator?: CodeGeneratorInterface;
   private fileWriter?: FileWriterInterface;
   private validationRunner?: ValidationRunnerInterface;
@@ -281,10 +289,12 @@ export class TaskExecutor {
             const commitResult = await this.gitIntegration.commit(
               currentTask.id,
               currentTask.file,
-              `Complete task: ${currentTask.phase} - ${currentTask.action}`
+              `Complete task: ${currentTask.phase} - ${currentTask.action}`,
             );
             if (commitResult.success) {
-              console.log(`[TaskExecutor] Git commit: ${commitResult.commitHash}`);
+              console.log(
+                `[TaskExecutor] Git commit: ${commitResult.commitHash}`,
+              );
             }
           } catch (err) {
             console.warn(`[TaskExecutor] Git commit failed:`, err);
@@ -302,9 +312,15 @@ export class TaskExecutor {
 
     // All retries exhausted - try SIA intervention
     if (this.siaAgent && lastResult) {
-      console.log(`[TaskExecutor] Triggering SIA intervention for task ${task.id}`);
-      this.onSiaNeeded?.(task.id, this.maxRetries, lastResult.error || "Max retries exceeded");
-      
+      console.log(
+        `[TaskExecutor] Triggering SIA intervention for task ${task.id}`,
+      );
+      this.onSiaNeeded?.(
+        task.id,
+        this.maxRetries,
+        lastResult.error || "Max retries exceeded",
+      );
+
       try {
         const siaResult = await this.siaAgent.intervene({
           task: currentTask,
@@ -313,40 +329,52 @@ export class TaskExecutor {
           context,
         });
 
-        if (siaResult.type === 'fixed' && siaResult.modifiedTask) {
+        if (siaResult.type === "fixed" && siaResult.modifiedTask) {
           // SIA provided a fixed task - retry with modified task
           console.log(`[TaskExecutor] SIA fixed task ${task.id}, retrying...`);
-          const fixedResult = await this.executeOne(siaResult.modifiedTask, context);
-          
-          if (fixedResult.state === "done" && this.autoCommit && this.gitIntegration) {
+          const fixedResult = await this.executeOne(
+            siaResult.modifiedTask,
+            context,
+          );
+
+          if (
+            fixedResult.state === "done" &&
+            this.autoCommit &&
+            this.gitIntegration
+          ) {
             try {
               await this.gitIntegration.commit(
                 siaResult.modifiedTask.id,
                 siaResult.modifiedTask.file,
-                `Complete task (SIA-fixed): ${siaResult.modifiedTask.phase} - ${siaResult.modifiedTask.action}`
+                `Complete task (SIA-fixed): ${siaResult.modifiedTask.phase} - ${siaResult.modifiedTask.action}`,
               );
             } catch (err) {
-              console.warn(`[TaskExecutor] Git commit failed after SIA fix:`, err);
+              console.warn(
+                `[TaskExecutor] Git commit failed after SIA fix:`,
+                err,
+              );
             }
           }
-          
+
           return fixedResult;
         }
-        
-        if (siaResult.type === 'decomposed' && siaResult.subtasks) {
+
+        if (siaResult.type === "decomposed" && siaResult.subtasks) {
           // SIA decomposed the task - this needs to be handled at a higher level
           // Return a special result that indicates decomposition
           return {
             taskId: task.id,
             state: "failed",
-            error: `DECOMPOSED:${JSON.stringify(siaResult.subtasks.map(t => t.id))}`,
+            error: `DECOMPOSED:${JSON.stringify(siaResult.subtasks.map((t) => t.id))}`,
             duration: lastResult?.duration || 0,
             attempt: this.maxRetries,
           };
         }
-        
+
         // SIA gave up
-        console.log(`[TaskExecutor] SIA gave up on task ${task.id}: ${siaResult.reason}`);
+        console.log(
+          `[TaskExecutor] SIA gave up on task ${task.id}: ${siaResult.reason}`,
+        );
       } catch (siaError) {
         console.error(`[TaskExecutor] SIA intervention failed:`, siaError);
       }

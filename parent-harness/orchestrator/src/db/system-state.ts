@@ -1,4 +1,4 @@
-import { getOne, run } from './index.js';
+import { getOne, run } from "./index.js";
 
 interface SystemStateRow {
   value: string;
@@ -6,26 +6,26 @@ interface SystemStateRow {
 
 export function getSystemFlag(key: string): string | null {
   const row = getOne<SystemStateRow>(
-    'SELECT value FROM system_state WHERE key = ?',
-    [key]
+    "SELECT value FROM system_state WHERE key = ?",
+    [key],
   );
   return row?.value ?? null;
 }
 
 export function isSystemFlagEnabled(key: string): boolean {
-  return getSystemFlag(key) === 'true';
+  return getSystemFlag(key) === "true";
 }
 
 export function setSystemFlag(key: string, value: string): void {
   run(
     `INSERT OR REPLACE INTO system_state (key, value, updated_at)
      VALUES (?, ?, datetime('now'))`,
-    [key, value]
+    [key, value],
   );
 }
 
 export function clearSystemFlag(key: string): void {
-  run('DELETE FROM system_state WHERE key = ?', [key]);
+  run("DELETE FROM system_state WHERE key = ?", [key]);
 }
 
 export default {
@@ -34,4 +34,3 @@ export default {
   setSystemFlag,
   clearSystemFlag,
 };
-

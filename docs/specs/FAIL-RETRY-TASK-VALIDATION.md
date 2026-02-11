@@ -56,29 +56,29 @@ The validation is implemented in the E2E test suite:
 **File:** `parent-harness/orchestrator/tests/e2e/honest-validation.test.ts`
 
 ```typescript
-test('task can flow: pending → in_progress → failed (with retry tracking)', () => {
+test("task can flow: pending → in_progress → failed (with retry tracking)", () => {
   // Create task
   const task = tasks.createTask({
     display_id: `test_fail_${Date.now()}`,
-    title: 'Fail Test Task',
-    category: 'test',
-    priority: 'P2',
-    status: 'pending',
+    title: "Fail Test Task",
+    category: "test",
+    priority: "P2",
+    status: "pending",
   });
   createdTaskIds.push(task.id);
 
   // Assign
-  tasks.assignTask(task.id, 'test_agent_001');
+  tasks.assignTask(task.id, "test_agent_001");
 
   // Fail (1st attempt)
   tasks.failTask(task.id);
   let updated = tasks.getTask(task.id);
-  expect(updated!.status).toBe('failed');
+  expect(updated!.status).toBe("failed");
   expect(updated!.retry_count).toBe(1);
 
   // Retry (re-queue as pending)
-  tasks.updateTask(task.id, { status: 'pending' });
-  tasks.assignTask(task.id, 'test_agent_001');
+  tasks.updateTask(task.id, { status: "pending" });
+  tasks.assignTask(task.id, "test_agent_001");
 
   // Fail again (2nd attempt)
   tasks.failTask(task.id);
@@ -90,6 +90,7 @@ test('task can flow: pending → in_progress → failed (with retry tracking)', 
 ### Database Layer
 
 The `tasks.failTask()` function in `parent-harness/orchestrator/src/db/tasks.ts` handles:
+
 - Status transition to `failed`
 - Retry count increment via `retry_count = retry_count + 1`
 - Updated timestamp for `updated_at`
@@ -122,13 +123,13 @@ The `tasks.failTask()` function in `parent-harness/orchestrator/src/db/tasks.ts`
 
 **PASS** when ALL of the following are true:
 
-| # | Criterion | How to Verify |
-|---|-----------|---------------|
-| 1 | Task can be marked failed | `failTask(id)` sets `status: 'failed'` |
-| 2 | First failure sets retry_count to 1 | `task.retry_count === 1` after first `failTask()` |
-| 3 | Second failure increments to 2 | `task.retry_count === 2` after second `failTask()` |
-| 4 | Failed task can be re-queued | `updateTask(id, {status: 'pending'})` succeeds |
-| 5 | Re-queued task preserves retry_count | Retry count remains 2 after re-queue to pending |
+| #   | Criterion                            | How to Verify                                      |
+| --- | ------------------------------------ | -------------------------------------------------- |
+| 1   | Task can be marked failed            | `failTask(id)` sets `status: 'failed'`             |
+| 2   | First failure sets retry_count to 1  | `task.retry_count === 1` after first `failTask()`  |
+| 3   | Second failure increments to 2       | `task.retry_count === 2` after second `failTask()` |
+| 4   | Failed task can be re-queued         | `updateTask(id, {status: 'pending'})` succeeds     |
+| 5   | Re-queued task preserves retry_count | Retry count remains 2 after re-queue to pending    |
 
 **FAIL** if any criterion is not met.
 
@@ -144,31 +145,31 @@ cd parent-harness/orchestrator && npx vitest run tests/e2e/honest-validation.tes
 
 ### Depends On
 
-| Dependency | Description |
-|------------|-------------|
-| `parent-harness/orchestrator/src/db/tasks.ts` | Task CRUD and `failTask()` implementation |
-| `parent-harness/database/schema.sql` | Tasks table with `retry_count` column |
-| Task state machine | Valid transitions between pending/in_progress/failed |
+| Dependency                                    | Description                                          |
+| --------------------------------------------- | ---------------------------------------------------- |
+| `parent-harness/orchestrator/src/db/tasks.ts` | Task CRUD and `failTask()` implementation            |
+| `parent-harness/database/schema.sql`          | Tasks table with `retry_count` column                |
+| Task state machine                            | Valid transitions between pending/in_progress/failed |
 
 ### Affects
 
-| Component | Impact |
-|-----------|--------|
-| Retry scheduler | Uses `retry_count` to implement exponential backoff |
-| Task scanners | Must filter out failed tasks (status='failed') from queue |
-| Dashboard UI | Displays retry count in task detail view |
+| Component       | Impact                                                       |
+| --------------- | ------------------------------------------------------------ |
+| Retry scheduler | Uses `retry_count` to implement exponential backoff          |
+| Task scanners   | Must filter out failed tasks (status='failed') from queue    |
+| Dashboard UI    | Displays retry count in task detail view                     |
 | Alerting system | Triggers alerts when retry_count exceeds threshold (e.g., 3) |
 
 ---
 
 ## 6. Open Questions
 
-| # | Question | Status | Resolution |
-|---|----------|--------|------------|
-| 1 | Should there be a max retry limit enforced by failTask()? | Open | Recommended: Add a config value `MAX_RETRIES` (default 5) and transition to `status: 'blocked'` when exceeded, preventing infinite retry loops. |
-| 2 | Should failTask() accept a reason parameter for debugging? | Open | Yes, recommended. Add optional `reason: string` parameter that gets stored in a `failure_reason` column or in the retry_guidance JSON field. |
-| 3 | Should retry_count reset on task completion? | Open | No - preserve retry_count for metrics/debugging. A completed task with retry_count=3 shows it succeeded after 3 failures, which is valuable operational data. |
-| 4 | Should test cleanup mark tasks as 'completed' or delete them? | Resolved | Current implementation marks as 'completed' in afterAll(). This is correct - preserves test execution history while preventing scanner re-processing. |
+| #   | Question                                                      | Status   | Resolution                                                                                                                                                    |
+| --- | ------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Should there be a max retry limit enforced by failTask()?     | Open     | Recommended: Add a config value `MAX_RETRIES` (default 5) and transition to `status: 'blocked'` when exceeded, preventing infinite retry loops.               |
+| 2   | Should failTask() accept a reason parameter for debugging?    | Open     | Yes, recommended. Add optional `reason: string` parameter that gets stored in a `failure_reason` column or in the retry_guidance JSON field.                  |
+| 3   | Should retry_count reset on task completion?                  | Open     | No - preserve retry_count for metrics/debugging. A completed task with retry_count=3 shows it succeeded after 3 failures, which is valuable operational data. |
+| 4   | Should test cleanup mark tasks as 'completed' or delete them? | Resolved | Current implementation marks as 'completed' in afterAll(). This is correct - preserves test execution history while preventing scanner re-processing.         |
 
 ---
 
@@ -176,14 +177,15 @@ cd parent-harness/orchestrator && npx vitest run tests/e2e/honest-validation.tes
 
 The `test_fail_1770449804291` task experienced retry failures because agents attempted to "complete" the test artifact rather than recognizing it as test infrastructure. Root cause analysis:
 
-| Issue | Explanation |
-|-------|-------------|
-| **Ambiguous task title** | "Fail Test Task" sounds like a request to fail a task, not a test artifact name |
-| **Missing description** | The task description contained only retry guidance, not a clear "This is a test artifact" statement |
-| **Agent type mismatch** | Spec agent was assigned to a test infrastructure task, which has no specification requirements |
-| **Test artifact confusion** | Agents did not recognize the `test_fail_*` display_id pattern or `category: 'test'` marker |
+| Issue                       | Explanation                                                                                         |
+| --------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Ambiguous task title**    | "Fail Test Task" sounds like a request to fail a task, not a test artifact name                     |
+| **Missing description**     | The task description contained only retry guidance, not a clear "This is a test artifact" statement |
+| **Agent type mismatch**     | Spec agent was assigned to a test infrastructure task, which has no specification requirements      |
+| **Test artifact confusion** | Agents did not recognize the `test_fail_*` display_id pattern or `category: 'test'` marker          |
 
 **Recommendation:** Test-generated tasks should include a description field that explicitly states:
+
 ```
 "Automated test artifact for validating task failure/retry flow.
 This task is intentionally created and failed by the E2E test suite.
@@ -196,12 +198,12 @@ This would prevent the orchestrator from assigning agents to complete test infra
 
 ## Related Documents
 
-| Document | Description |
-|----------|-------------|
-| [CONCURRENT-TASK-VALIDATION.md](./CONCURRENT-TASK-VALIDATION.md) | Concurrent task creation validation |
-| [LINKED-ENTITY-VALIDATION.md](./LINKED-ENTITY-VALIDATION.md) | Agent-session-task-event linking validation |
-| [TEST-TASK-SESSION-SPEC.md](./TEST-TASK-SESSION-SPEC.md) | Test task session pattern specification |
+| Document                                                         | Description                                 |
+| ---------------------------------------------------------------- | ------------------------------------------- |
+| [CONCURRENT-TASK-VALIDATION.md](./CONCURRENT-TASK-VALIDATION.md) | Concurrent task creation validation         |
+| [LINKED-ENTITY-VALIDATION.md](./LINKED-ENTITY-VALIDATION.md)     | Agent-session-task-event linking validation |
+| [TEST-TASK-SESSION-SPEC.md](./TEST-TASK-SESSION-SPEC.md)         | Test task session pattern specification     |
 
 ---
 
-_This specification documents the task failure and retry tracking validation infrastructure. Tasks with `display_id` matching `test_fail_*` are test artifacts, not user-facing features._
+_This specification documents the task failure and retry tracking validation infrastructure. Tasks with `display_id` matching `test_fail_\*` are test artifacts, not user-facing features.\_

@@ -16,12 +16,14 @@ This specification defines an automated SSL/TLS certificate management system fo
 ### Context
 
 The Parent Harness platform requires secure HTTPS connections for:
+
 1. **Dashboard Access** - Web UI at `dashboard.vibe.ai` or custom domains
 2. **API Endpoints** - WebSocket and REST API at `api.vibe.ai`
 3. **Webhook Receivers** - Telegram, GitHub, external integrations
 4. **Multi-tenant Deployments** - Custom domains per customer (e.g., `customer.vibe.ai`)
 
 Manual certificate management is error-prone, time-consuming, and risks service downtime if certificates expire. Automated SSL management ensures:
+
 - **Security**: Always-valid certificates prevent browser warnings
 - **Reliability**: Auto-renewal prevents expiration-related outages
 - **Scalability**: Support for wildcard and multi-domain certificates
@@ -30,12 +32,14 @@ Manual certificate management is error-prone, time-consuming, and risks service 
 ### Current State
 
 **Existing Infrastructure**:
+
 - ✅ Docker Compose orchestration (`parent-harness/docker-compose.yml`)
 - ✅ Nginx-ready configuration (port 3333 for orchestrator, 3334 for dashboard)
 - ✅ Health check endpoints (`/health`)
 - ✅ Environment variable configuration system
 
 **Missing Components** (this task):
+
 - ❌ SSLManager class for certificate lifecycle management
 - ❌ ACME protocol integration for Let's Encrypt
 - ❌ Certificate storage and retrieval system
@@ -51,6 +55,7 @@ Manual certificate management is error-prone, time-consuming, and risks service 
 ### Functional Requirements
 
 **FR-1: SSLManager Class**
+
 - Centralized certificate lifecycle management
 - Methods: `provision()`, `renew()`, `revoke()`, `getCertificate()`, `listCertificates()`
 - Support for single domain, multi-domain (SAN), and wildcard certificates
@@ -59,6 +64,7 @@ Manual certificate management is error-prone, time-consuming, and risks service 
 - Integration with secrets management for private key storage
 
 **FR-2: ACME Protocol Integration**
+
 - Let's Encrypt integration via `acme-client` npm package
 - Support HTTP-01 challenge (port 80 challenge response)
 - Support DNS-01 challenge (for wildcard certificates)
@@ -67,6 +73,7 @@ Manual certificate management is error-prone, time-consuming, and risks service 
 - Rate limit awareness (5 certificates per domain per week)
 
 **FR-3: Certificate Provisioning**
+
 - Command-line tool: `npm run ssl:provision -- --domain example.com`
 - API endpoint: `POST /api/ssl/provision { domain, type, challenge }`
 - Support provisioning during Docker deployment
@@ -77,6 +84,7 @@ Manual certificate management is error-prone, time-consuming, and risks service 
 - Emit WebSocket event: `ssl:provisioned`
 
 **FR-4: Auto-Renewal Scheduling**
+
 - Cron-based renewal check (daily at 2 AM)
 - Renew certificates expiring within 30 days
 - Retry failed renewals with exponential backoff
@@ -86,6 +94,7 @@ Manual certificate management is error-prone, time-consuming, and risks service 
 - Emit WebSocket event: `ssl:renewed`
 
 **FR-5: Certificate Storage and Retrieval**
+
 - Store certificates in `/app/data/ssl/certs/{domain}/` directory structure
 - Private keys stored separately in `/app/data/ssl/private/{domain}/`
 - File permissions: `0600` for private keys, `0644` for certificates
@@ -95,6 +104,7 @@ Manual certificate management is error-prone, time-consuming, and risks service 
 - Environment variable override: `SSL_STORAGE_PATH`
 
 **FR-6: Wildcard Certificate Support**
+
 - DNS-01 challenge required for `*.example.com`
 - Integration with DNS providers (Cloudflare, Route53, DigitalOcean)
 - DNS provider API key configuration via environment variables
@@ -102,6 +112,7 @@ Manual certificate management is error-prone, time-consuming, and risks service 
 - Support for multiple subdomains with single wildcard cert
 
 **FR-7: Platform-Specific Configuration**
+
 - **Nginx**: Generate `nginx-ssl.conf` with certificate paths
 - **Traefik**: Generate `traefik-ssl.yml` with certificate resolvers
 - **Docker**: Volume mount certificates into containers
@@ -112,6 +123,7 @@ Manual certificate management is error-prone, time-consuming, and risks service 
 ### Non-Functional Requirements
 
 **NFR-1: Security**
+
 - Private keys never logged or transmitted
 - Private keys encrypted at rest (optional: gpg encryption)
 - Certificate files accessible only by orchestrator service
@@ -120,6 +132,7 @@ Manual certificate management is error-prone, time-consuming, and risks service 
 - Support for Hardware Security Modules (HSM) in future
 
 **NFR-2: Reliability**
+
 - Certificate renewal attempts 3 times before alerting
 - Graceful degradation if ACME service unavailable
 - Fallback to self-signed certificates for development
@@ -128,6 +141,7 @@ Manual certificate management is error-prone, time-consuming, and risks service 
 - Zero-downtime certificate rotation
 
 **NFR-3: Performance**
+
 - Certificate provisioning completes in <5 minutes
 - Renewal cron completes in <10 minutes for 10 domains
 - No performance impact on main orchestrator loop
@@ -135,6 +149,7 @@ Manual certificate management is error-prone, time-consuming, and risks service 
 - Certificate cache to avoid repeated file reads
 
 **NFR-4: Observability**
+
 - All SSL operations logged with timestamps
 - Certificate expiry dates tracked in database
 - Dashboard widget showing certificate status
@@ -143,6 +158,7 @@ Manual certificate management is error-prone, time-consuming, and risks service 
 - Health endpoint includes SSL status: `GET /health?ssl=true`
 
 **NFR-5: Developer Experience**
+
 - One-command provisioning: `npm run ssl:provision`
 - Clear error messages for ACME failures
 - Development mode uses self-signed certificates
@@ -242,17 +258,17 @@ CREATE INDEX idx_ssl_certs_expires ON ssl_certificates(expires_at);
 **File**: `parent-harness/orchestrator/src/ssl/manager.ts`
 
 ```typescript
-import { ACME } from './acme-client.js';
-import { CertificateStorage } from './storage.js';
-import { db } from '../db/index.js';
-import { events } from '../db/events.js';
+import { ACME } from "./acme-client.js";
+import { CertificateStorage } from "./storage.js";
+import { db } from "../db/index.js";
+import { events } from "../db/events.js";
 
 export interface CertificateOptions {
   domain: string;
-  type: 'single' | 'wildcard' | 'multi';
-  challengeType: 'http-01' | 'dns-01';
+  type: "single" | "wildcard" | "multi";
+  challengeType: "http-01" | "dns-01";
   altNames?: string[]; // For multi-domain certificates
-  dnsProvider?: 'cloudflare' | 'route53' | 'digitalocean';
+  dnsProvider?: "cloudflare" | "route53" | "digitalocean";
 }
 
 export interface Certificate {
@@ -273,9 +289,10 @@ export class SSLManager {
 
   constructor() {
     this.acme = new ACME({
-      directoryUrl: process.env.ACME_DIRECTORY_URL ||
-        'https://acme-v02.api.letsencrypt.org/directory',
-      accountEmail: process.env.ACME_ACCOUNT_EMAIL || '',
+      directoryUrl:
+        process.env.ACME_DIRECTORY_URL ||
+        "https://acme-v02.api.letsencrypt.org/directory",
+      accountEmail: process.env.ACME_ACCOUNT_EMAIL || "",
     });
     this.storage = new CertificateStorage();
   }
@@ -348,14 +365,14 @@ export class SSLManager {
 
     for (const cert of certs) {
       const daysUntilExpiry = Math.floor(
-        (cert.expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        (cert.expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
       );
 
       if (daysUntilExpiry <= 0) {
-        await this.updateStatus(cert.domain, 'expired');
+        await this.updateStatus(cert.domain, "expired");
         events.sslCertExpired?.(cert.domain);
       } else if (daysUntilExpiry <= 7) {
-        await this.updateStatus(cert.domain, 'expiring_soon');
+        await this.updateStatus(cert.domain, "expiring_soon");
         events.sslCertExpiringSoon?.(cert.domain, daysUntilExpiry);
       }
     }
@@ -372,7 +389,7 @@ export class SSLManager {
 **File**: `parent-harness/orchestrator/src/ssl/acme-client.ts`
 
 ```typescript
-import * as acme from 'acme-client';
+import * as acme from "acme-client";
 
 export interface ACMEOptions {
   directoryUrl: string;
@@ -394,7 +411,7 @@ export class ACME {
 
   async completeHTTPChallenge(
     domain: string,
-    challenge: acme.Challenge
+    challenge: acme.Challenge,
   ): Promise<void> {
     // Create challenge response file
     // Serve via /.well-known/acme-challenge/
@@ -403,7 +420,7 @@ export class ACME {
   async completeDNSChallenge(
     domain: string,
     challenge: acme.Challenge,
-    provider: string
+    provider: string,
   ): Promise<void> {
     // Create DNS TXT record via provider API
     // Wait for DNS propagation
@@ -413,7 +430,7 @@ export class ACME {
   async requestCertificate(
     csr: Buffer,
     domain: string,
-    challengeType: string
+    challengeType: string,
   ): Promise<{ cert: string; chain: string }> {
     // Submit CSR to Let's Encrypt
     // Complete challenges
@@ -432,31 +449,31 @@ export class ACME {
 **File**: `parent-harness/orchestrator/src/ssl/storage.ts`
 
 ```typescript
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from "fs/promises";
+import * as path from "path";
 
 export class CertificateStorage {
   private baseDir: string;
 
   constructor() {
-    this.baseDir = process.env.SSL_STORAGE_PATH || '/app/data/ssl';
+    this.baseDir = process.env.SSL_STORAGE_PATH || "/app/data/ssl";
   }
 
   async saveCertificate(
     domain: string,
     cert: string,
     privateKey: string,
-    chain: string
+    chain: string,
   ): Promise<{ certPath: string; keyPath: string; chainPath: string }> {
-    const certDir = path.join(this.baseDir, 'certs', domain);
-    const keyDir = path.join(this.baseDir, 'private', domain);
+    const certDir = path.join(this.baseDir, "certs", domain);
+    const keyDir = path.join(this.baseDir, "private", domain);
 
     await fs.mkdir(certDir, { recursive: true });
     await fs.mkdir(keyDir, { recursive: true, mode: 0o700 });
 
-    const certPath = path.join(certDir, 'fullchain.pem');
-    const keyPath = path.join(keyDir, 'privkey.pem');
-    const chainPath = path.join(certDir, 'chain.pem');
+    const certPath = path.join(certDir, "fullchain.pem");
+    const keyPath = path.join(keyDir, "privkey.pem");
+    const chainPath = path.join(certDir, "chain.pem");
 
     await fs.writeFile(certPath, cert, { mode: 0o644 });
     await fs.writeFile(keyPath, privateKey, { mode: 0o600 });
@@ -532,7 +549,7 @@ export class TraefikSSLConfig {
     return `
 http:
   routers:
-    ${domain.replace(/\./g, '-')}:
+    ${domain.replace(/\./g, "-")}:
       rule: "Host(\`${domain}\`)"
       service: orchestrator
       tls:
@@ -555,9 +572,9 @@ certificatesResolvers:
 **File**: `parent-harness/orchestrator/src/ssl/renewal-scheduler.ts`
 
 ```typescript
-import { CronJob } from 'cron';
-import { SSLManager } from './manager.js';
-import * as telegram from '../telegram/index.js';
+import { CronJob } from "cron";
+import { SSLManager } from "./manager.js";
+import * as telegram from "../telegram/index.js";
 
 export class RenewalScheduler {
   private manager: SSLManager;
@@ -569,15 +586,15 @@ export class RenewalScheduler {
 
   start(): void {
     // Run daily at 2 AM
-    this.job = new CronJob('0 2 * * *', async () => {
+    this.job = new CronJob("0 2 * * *", async () => {
       await this.checkAndRenew();
     });
     this.job.start();
-    console.log('🔐 SSL renewal scheduler started (daily at 2 AM)');
+    console.log("🔐 SSL renewal scheduler started (daily at 2 AM)");
   }
 
   async checkAndRenew(): Promise<void> {
-    console.log('🔐 Checking certificates for renewal...');
+    console.log("🔐 Checking certificates for renewal...");
 
     const certificates = await this.manager.listCertificates({
       expiringInDays: 30,
@@ -590,20 +607,20 @@ export class RenewalScheduler {
 
         telegram.send(
           `✅ SSL certificate renewed for ${cert.domain}\n` +
-          `New expiry: ${cert.expiresAt.toISOString().split('T')[0]}`
+            `New expiry: ${cert.expiresAt.toISOString().split("T")[0]}`,
         );
       } catch (error) {
         console.error(`❌ Failed to renew ${cert.domain}:`, error);
 
         telegram.send(
           `⚠️ SSL renewal failed for ${cert.domain}\n` +
-          `Error: ${error.message}\n` +
-          `Manual intervention required!`
+            `Error: ${error.message}\n` +
+            `Manual intervention required!`,
         );
       }
     }
 
-    console.log('🔐 Certificate renewal check complete');
+    console.log("🔐 Certificate renewal check complete");
   }
 
   stop(): void {
@@ -617,8 +634,8 @@ export class RenewalScheduler {
 **File**: `parent-harness/orchestrator/src/api/ssl.ts`
 
 ```typescript
-import { Router } from 'express';
-import { SSLManager } from '../ssl/manager.js';
+import { Router } from "express";
+import { SSLManager } from "../ssl/manager.js";
 
 export const sslRouter = Router();
 const manager = new SSLManager();
@@ -627,7 +644,7 @@ const manager = new SSLManager();
  * GET /api/ssl/certificates
  * List all certificates
  */
-sslRouter.get('/certificates', async (req, res) => {
+sslRouter.get("/certificates", async (req, res) => {
   const filters = {
     status: req.query.status as string,
     expiringInDays: req.query.expiringInDays
@@ -643,10 +660,10 @@ sslRouter.get('/certificates', async (req, res) => {
  * GET /api/ssl/certificates/:domain
  * Get certificate by domain
  */
-sslRouter.get('/certificates/:domain', async (req, res) => {
+sslRouter.get("/certificates/:domain", async (req, res) => {
   const cert = await manager.getCertificate(req.params.domain);
   if (!cert) {
-    return res.status(404).json({ error: 'Certificate not found' });
+    return res.status(404).json({ error: "Certificate not found" });
   }
   res.json(cert);
 });
@@ -655,7 +672,7 @@ sslRouter.get('/certificates/:domain', async (req, res) => {
  * POST /api/ssl/provision
  * Provision new certificate
  */
-sslRouter.post('/provision', async (req, res) => {
+sslRouter.post("/provision", async (req, res) => {
   const { domain, type, challengeType, altNames, dnsProvider } = req.body;
 
   try {
@@ -684,13 +701,13 @@ sslRouter.post('/provision', async (req, res) => {
  * POST /api/ssl/renew/:domain
  * Manually trigger certificate renewal
  */
-sslRouter.post('/renew/:domain', async (req, res) => {
+sslRouter.post("/renew/:domain", async (req, res) => {
   try {
     const cert = await manager.renew(req.params.domain);
     res.json({
       success: true,
       certificate: cert,
-      message: 'Certificate renewed successfully',
+      message: "Certificate renewed successfully",
     });
   } catch (error) {
     res.status(500).json({
@@ -704,14 +721,14 @@ sslRouter.post('/renew/:domain', async (req, res) => {
  * DELETE /api/ssl/certificates/:domain
  * Revoke certificate
  */
-sslRouter.delete('/certificates/:domain', async (req, res) => {
+sslRouter.delete("/certificates/:domain", async (req, res) => {
   const { reason } = req.body;
 
   try {
     await manager.revoke(req.params.domain, reason);
     res.json({
       success: true,
-      message: 'Certificate revoked successfully',
+      message: "Certificate revoked successfully",
     });
   } catch (error) {
     res.status(500).json({
@@ -728,19 +745,30 @@ sslRouter.delete('/certificates/:domain', async (req, res) => {
 
 ```typescript
 #!/usr/bin/env node
-import { SSLManager } from '../ssl/manager.js';
-import { Command } from 'commander';
+import { SSLManager } from "../ssl/manager.js";
+import { Command } from "commander";
 
 const program = new Command();
 
 program
-  .name('ssl-provision')
-  .description('Provision SSL certificates via Let\'s Encrypt')
-  .requiredOption('-d, --domain <domain>', 'Domain name')
-  .option('-t, --type <type>', 'Certificate type (single|wildcard|multi)', 'single')
-  .option('-c, --challenge <type>', 'Challenge type (http-01|dns-01)', 'http-01')
-  .option('--alt-names <names>', 'Alternative domain names (comma-separated)')
-  .option('--dns-provider <provider>', 'DNS provider (cloudflare|route53|digitalocean)')
+  .name("ssl-provision")
+  .description("Provision SSL certificates via Let's Encrypt")
+  .requiredOption("-d, --domain <domain>", "Domain name")
+  .option(
+    "-t, --type <type>",
+    "Certificate type (single|wildcard|multi)",
+    "single",
+  )
+  .option(
+    "-c, --challenge <type>",
+    "Challenge type (http-01|dns-01)",
+    "http-01",
+  )
+  .option("--alt-names <names>", "Alternative domain names (comma-separated)")
+  .option(
+    "--dns-provider <provider>",
+    "DNS provider (cloudflare|route53|digitalocean)",
+  )
   .action(async (options) => {
     const manager = new SSLManager();
 
@@ -751,17 +779,17 @@ program
         domain: options.domain,
         type: options.type,
         challengeType: options.challenge,
-        altNames: options.altNames?.split(','),
+        altNames: options.altNames?.split(","),
         dnsProvider: options.dnsProvider,
       });
 
-      console.log('✅ Certificate provisioned successfully!');
+      console.log("✅ Certificate provisioned successfully!");
       console.log(`   Domain: ${cert.domain}`);
       console.log(`   Expires: ${cert.expiresAt.toISOString()}`);
       console.log(`   Cert: ${cert.certPath}`);
       console.log(`   Key: ${cert.privateKeyPath}`);
     } catch (error) {
-      console.error('❌ Provisioning failed:', error.message);
+      console.error("❌ Provisioning failed:", error.message);
       process.exit(1);
     }
   });
@@ -770,6 +798,7 @@ program.parse();
 ```
 
 **Package.json script**:
+
 ```json
 {
   "scripts": {
@@ -786,16 +815,16 @@ Add SSL certificate health to `/health` endpoint:
 
 ```typescript
 // In parent-harness/orchestrator/src/api/health.ts
-app.get('/health', async (req, res) => {
+app.get("/health", async (req, res) => {
   const sslManager = new SSLManager();
   const sslHealth = await sslManager.listCertificates({ expiringInDays: 7 });
 
   res.json({
-    status: 'healthy',
+    status: "healthy",
     timestamp: new Date().toISOString(),
     ssl: {
       certificates_expiring_soon: sslHealth.length,
-      certificates: sslHealth.map(c => ({
+      certificates: sslHealth.map((c) => ({
         domain: c.domain,
         daysUntilExpiry: c.daysUntilExpiry,
       })),
@@ -842,28 +871,28 @@ Add SSL events to WebSocket broadcaster:
 export const events = {
   sslProvisioned: (domain: string, expiresAt: Date) => {
     broadcast({
-      type: 'ssl:provisioned',
+      type: "ssl:provisioned",
       data: { domain, expiresAt },
     });
   },
 
   sslRenewed: (domain: string, oldExpiry: Date, newExpiry: Date) => {
     broadcast({
-      type: 'ssl:renewed',
+      type: "ssl:renewed",
       data: { domain, oldExpiry, newExpiry },
     });
   },
 
   sslExpiringSoon: (domain: string, daysRemaining: number) => {
     broadcast({
-      type: 'ssl:expiring_soon',
+      type: "ssl:expiring_soon",
       data: { domain, daysRemaining },
     });
   },
 
   sslExpired: (domain: string) => {
     broadcast({
-      type: 'ssl:expired',
+      type: "ssl:expired",
       data: { domain },
     });
   },
@@ -874,15 +903,15 @@ export const events = {
 
 ## Pass Criteria
 
-| # | Criterion | Validation Method | Status |
-|---|-----------|-------------------|--------|
-| 1 | SSLManager class exists | Class exported from `src/ssl/manager.ts` | ⏳ Pending |
-| 2 | ACME protocol integration for Let's Encrypt | `acme-client` package used, account registration works | ⏳ Pending |
-| 3 | Certificate provisioning workflow complete | CLI tool provisions certificate successfully | ⏳ Pending |
-| 4 | Auto-renewal scheduling implemented | Cron job runs daily, renews expiring certificates | ⏳ Pending |
-| 5 | Secure certificate storage mechanism | Private keys stored with 0600 permissions, certs in database | ⏳ Pending |
-| 6 | Wildcard certificate support | DNS-01 challenge works for `*.example.com` | ⏳ Pending |
-| 7 | SSL config generation for Nginx/Traefik | Config files generated and applied successfully | ⏳ Pending |
+| #   | Criterion                                   | Validation Method                                            | Status     |
+| --- | ------------------------------------------- | ------------------------------------------------------------ | ---------- |
+| 1   | SSLManager class exists                     | Class exported from `src/ssl/manager.ts`                     | ⏳ Pending |
+| 2   | ACME protocol integration for Let's Encrypt | `acme-client` package used, account registration works       | ⏳ Pending |
+| 3   | Certificate provisioning workflow complete  | CLI tool provisions certificate successfully                 | ⏳ Pending |
+| 4   | Auto-renewal scheduling implemented         | Cron job runs daily, renews expiring certificates            | ⏳ Pending |
+| 5   | Secure certificate storage mechanism        | Private keys stored with 0600 permissions, certs in database | ⏳ Pending |
+| 6   | Wildcard certificate support                | DNS-01 challenge works for `*.example.com`                   | ⏳ Pending |
+| 7   | SSL config generation for Nginx/Traefik     | Config files generated and applied successfully              | ⏳ Pending |
 
 ### Validation Commands
 
@@ -916,29 +945,29 @@ cat parent-harness/data/ssl/nginx/test.vibe.ai.conf
 
 ### External Dependencies
 
-| Dependency | Version | Purpose | Installation |
-|------------|---------|---------|--------------|
-| `acme-client` | ^5.0.0 | ACME protocol client for Let's Encrypt | `npm install acme-client` |
-| `node-forge` | ^1.3.1 | Cryptography for CSR generation | `npm install node-forge` |
-| `cron` | ^3.0.0 | Renewal scheduler | `npm install cron` |
-| `@types/node-forge` | ^1.3.0 | TypeScript types | `npm install -D @types/node-forge` |
+| Dependency          | Version | Purpose                                | Installation                       |
+| ------------------- | ------- | -------------------------------------- | ---------------------------------- |
+| `acme-client`       | ^5.0.0  | ACME protocol client for Let's Encrypt | `npm install acme-client`          |
+| `node-forge`        | ^1.3.1  | Cryptography for CSR generation        | `npm install node-forge`           |
+| `cron`              | ^3.0.0  | Renewal scheduler                      | `npm install cron`                 |
+| `@types/node-forge` | ^1.3.0  | TypeScript types                       | `npm install -D @types/node-forge` |
 
 ### DNS Provider SDKs (Optional)
 
-| Provider | Package | Purpose |
-|----------|---------|---------|
-| Cloudflare | `cloudflare` | DNS-01 challenge automation |
-| AWS Route53 | `@aws-sdk/client-route53` | DNS-01 challenge automation |
-| DigitalOcean | `do-wrapper` | DNS-01 challenge automation |
+| Provider     | Package                   | Purpose                     |
+| ------------ | ------------------------- | --------------------------- |
+| Cloudflare   | `cloudflare`              | DNS-01 challenge automation |
+| AWS Route53  | `@aws-sdk/client-route53` | DNS-01 challenge automation |
+| DigitalOcean | `do-wrapper`              | DNS-01 challenge automation |
 
 ### Internal Dependencies
 
-| Module | Purpose |
-|--------|---------|
-| `src/db/events.ts` | WebSocket event broadcasting |
-| `src/telegram/index.ts` | Alert notifications |
-| `src/config/index.ts` | Configuration management |
-| `docker-compose.yml` | Container orchestration |
+| Module                  | Purpose                      |
+| ----------------------- | ---------------------------- |
+| `src/db/events.ts`      | WebSocket event broadcasting |
+| `src/telegram/index.ts` | Alert notifications          |
+| `src/config/index.ts`   | Configuration management     |
+| `docker-compose.yml`    | Container orchestration      |
 
 ---
 
@@ -1086,17 +1115,18 @@ ssl_provisioning_duration_seconds{domain="example.com"} 23.5
 
 ### Common Issues
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| "Rate limit exceeded" | Too many requests to Let's Encrypt | Wait 1 week or use staging environment |
-| "DNS challenge failed" | DNS provider API error | Check API credentials, verify DNS propagation |
-| "HTTP challenge failed" | Port 80 not accessible | Check firewall, verify nginx configuration |
-| "Certificate expired" | Renewal cron not running | Restart orchestrator, check cron logs |
-| "Permission denied" | Incorrect file permissions | Run `chmod 0600` on private keys |
+| Issue                   | Cause                              | Solution                                      |
+| ----------------------- | ---------------------------------- | --------------------------------------------- |
+| "Rate limit exceeded"   | Too many requests to Let's Encrypt | Wait 1 week or use staging environment        |
+| "DNS challenge failed"  | DNS provider API error             | Check API credentials, verify DNS propagation |
+| "HTTP challenge failed" | Port 80 not accessible             | Check firewall, verify nginx configuration    |
+| "Certificate expired"   | Renewal cron not running           | Restart orchestrator, check cron logs         |
+| "Permission denied"     | Incorrect file permissions         | Run `chmod 0600` on private keys              |
 
 ### Debug Mode
 
 Enable verbose logging:
+
 ```bash
 export SSL_DEBUG=true
 npm run ssl:provision -- --domain example.com

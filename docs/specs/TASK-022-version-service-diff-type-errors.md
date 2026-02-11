@@ -41,11 +41,11 @@ This correctly accesses `diff.changes` as an array and iterates with `.some()` t
 
 ## Pass Criteria Verification
 
-| # | Criterion | Status | Evidence |
-|---|-----------|--------|----------|
-| 1 | diff property either changed to methods or tests updated to access as properties | PASS | Tests updated to access `diff.changes` as property array (lines 204-206) |
-| 2 | TypeScript compilation passes for task-version-service.test.ts | PASS | `npx tsc --noEmit` produces zero errors for this file |
-| 3 | All version service tests pass successfully | PARTIAL | Tests compile but fail at runtime due to missing `task_versions` table (database schema migration issue, out of scope for TASK-022) |
+| #   | Criterion                                                                        | Status  | Evidence                                                                                                                            |
+| --- | -------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | diff property either changed to methods or tests updated to access as properties | PASS    | Tests updated to access `diff.changes` as property array (lines 204-206)                                                            |
+| 2   | TypeScript compilation passes for task-version-service.test.ts                   | PASS    | `npx tsc --noEmit` produces zero errors for this file                                                                               |
+| 3   | All version service tests pass successfully                                      | PARTIAL | Tests compile but fail at runtime due to missing `task_versions` table (database schema migration issue, out of scope for TASK-022) |
 
 ## Technical Details
 

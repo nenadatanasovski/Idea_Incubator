@@ -16,6 +16,7 @@ Build a comprehensive Knowledge Base system that enables agents to learn from pa
 **Problem:** Agents currently operate with limited memory - basic short-term context exists (`parent-harness/orchestrator/src/memory/index.ts`) but there's no systematic capture of learnings across sessions. When an agent encounters an error, solves it, and completes a task, that knowledge is lost. Future agents encountering similar issues must rediscover solutions, wasting time and tokens. The existing SIA knowledge-writer (`agents/sia/knowledge-writer.ts`) provides a foundation but is isolated to the Idea Incubator subsystem and not integrated with Parent Harness orchestrator.
 
 **Solution:** Extend the Parent Harness with a unified Knowledge Base system that:
+
 1. Captures patterns, gotchas, and decisions from all agent executions
 2. Stores error recovery strategies with confidence tracking
 3. Provides similarity matching to retrieve relevant knowledge for current tasks
@@ -87,6 +88,7 @@ Build a comprehensive Knowledge Base system that enables agents to learn from pa
 ### Functional Requirements
 
 **FR-1: Knowledge Entry Storage**
+
 - MUST store three types of knowledge entries:
   - **Gotchas**: Specific pitfalls with file patterns, action types, fixes
   - **Patterns**: Reusable code templates with usage examples
@@ -99,6 +101,7 @@ Build a comprehensive Knowledge Base system that enables agents to learn from pa
 - SHOULD support tagging for categorization
 
 **FR-2: Error Recovery Strategy Tracking**
+
 - MUST record error pattern + recovery technique pairs
 - MUST track success/failure outcomes for each technique
 - MUST calculate technique effectiveness (success_rate = successes / total_attempts)
@@ -109,6 +112,7 @@ Build a comprehensive Knowledge Base system that enables agents to learn from pa
 - SHOULD auto-escalate after N failed attempts with same technique
 
 **FR-3: Task Signature Matching**
+
 - MUST generate task signature hash from: title, category, file patterns, dependencies
 - MUST support similarity search for "similar tasks I've done before"
 - MUST retrieve relevant knowledge based on task signature
@@ -117,6 +121,7 @@ Build a comprehensive Knowledge Base system that enables agents to learn from pa
 - SHOULD support semantic matching (not just exact match)
 
 **FR-4: Cross-Agent Knowledge Sharing**
+
 - MUST make knowledge entries available to ALL agents (not per-agent silos)
 - MUST track which agent contributed each learning
 - MUST support agent-specific preferences (e.g., "build_agent prefers X pattern")
@@ -124,6 +129,7 @@ Build a comprehensive Knowledge Base system that enables agents to learn from pa
 - SHOULD track knowledge reuse (which agents used which entries)
 
 **FR-5: Confidence Management**
+
 - MUST calculate initial confidence based on:
   - Source reliability (human > QA agent > build agent)
   - Prevention vs. reactive (prevented error = higher confidence)
@@ -140,6 +146,7 @@ Build a comprehensive Knowledge Base system that enables agents to learn from pa
 - MUST support manual confidence override for critical learnings
 
 **FR-6: Knowledge Promotion**
+
 - MUST identify promotion candidates: confidence ≥ 0.8 AND occurrences ≥ 3
 - MUST generate CLAUDE.md proposals with markdown formatting
 - MUST support approval workflow (pending → approved → rejected)
@@ -149,6 +156,7 @@ Build a comprehensive Knowledge Base system that enables agents to learn from pa
 - SHOULD support rollback (remove promoted entry if it causes issues)
 
 **FR-7: Knowledge Query & Retrieval**
+
 - MUST support query filters: type, file pattern, action type, min confidence
 - MUST support full-text search across content
 - MUST support "recent entries" view (last 20)
@@ -158,6 +166,7 @@ Build a comprehensive Knowledge Base system that enables agents to learn from pa
 - SHOULD support export to JSON for backup
 
 **FR-8: Integration with Agent Memory**
+
 - MUST bridge agent_memory (short-term) with knowledge_base (long-term)
 - MUST auto-promote validated learnings from memory to knowledge base
 - MUST preserve agent-specific context while sharing patterns globally
@@ -167,6 +176,7 @@ Build a comprehensive Knowledge Base system that enables agents to learn from pa
 ### Non-Functional Requirements
 
 **NFR-1: Performance**
+
 - Knowledge query MUST complete in <100ms for typical queries (10-50 results)
 - Similarity matching MUST complete in <500ms for task signature lookup
 - Database writes MUST NOT block agent execution (async)
@@ -174,6 +184,7 @@ Build a comprehensive Knowledge Base system that enables agents to learn from pa
 - MUST support 1000+ knowledge entries without degradation
 
 **NFR-2: Data Integrity**
+
 - Knowledge entries MUST be immutable (append-only, no edits to original)
 - Confidence updates MUST be atomic (no race conditions)
 - Occurrence increments MUST be transactional
@@ -181,6 +192,7 @@ Build a comprehensive Knowledge Base system that enables agents to learn from pa
 - MUST validate JSON schemas for properties field
 
 **NFR-3: Observability**
+
 - MUST log all knowledge writes with entry ID, agent, timestamp
 - MUST track knowledge reuse metrics (queries, retrievals, applications)
 - MUST expose metrics endpoint: `/api/knowledge/metrics`
@@ -188,6 +200,7 @@ Build a comprehensive Knowledge Base system that enables agents to learn from pa
 - SHOULD track token savings from reusing patterns
 
 **NFR-4: Maintainability**
+
 - Database schema MUST use migrations (no direct schema edits)
 - Knowledge types MUST be extensible (easy to add new types)
 - Confidence formulas MUST be configurable (constants in config file)
@@ -318,12 +331,12 @@ CREATE TABLE IF NOT EXISTS knowledge_promotions (
 Adapts Idea Incubator's knowledge-writer for Parent Harness:
 
 ```typescript
-import { v4 as uuid } from 'uuid';
-import { query, run, getOne } from '../db/index.js';
+import { v4 as uuid } from "uuid";
+import { query, run, getOne } from "../db/index.js";
 
 export interface KnowledgeEntry {
   id: string;
-  type: 'gotcha' | 'pattern' | 'decision';
+  type: "gotcha" | "pattern" | "decision";
   content: string;
   file_patterns: string[];
   action_types: string[];
@@ -352,8 +365,8 @@ export async function writeGotcha(params: {
 }): Promise<KnowledgeEntry> {
   // Check for duplicates using similarity
   const existing = query<KnowledgeEntry>(
-    'SELECT * FROM knowledge_entries WHERE type = ?',
-    ['gotcha']
+    "SELECT * FROM knowledge_entries WHERE type = ?",
+    ["gotcha"],
   );
 
   const duplicate = findSimilar(params.fix, existing);
@@ -366,11 +379,11 @@ export async function writeGotcha(params: {
   // Create new entry
   const entry: KnowledgeEntry = {
     id: uuid(),
-    type: 'gotcha',
+    type: "gotcha",
     content: params.fix,
     file_patterns: [params.filePattern],
     action_types: [params.actionType],
-    confidence: calculateInitialConfidence('gotcha', params),
+    confidence: calculateInitialConfidence("gotcha", params),
     occurrences: 1,
     source_execution_id: params.executionId,
     source_task_id: params.taskId,
@@ -379,19 +392,28 @@ export async function writeGotcha(params: {
     updated_at: new Date().toISOString(),
   };
 
-  run(`
+  run(
+    `
     INSERT INTO knowledge_entries
     (id, type, content, file_patterns, action_types, confidence, occurrences,
      source_execution_id, source_task_id, source_agent_id, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `, [
-    entry.id, entry.type, entry.content,
-    JSON.stringify(entry.file_patterns),
-    JSON.stringify(entry.action_types),
-    entry.confidence, entry.occurrences,
-    entry.source_execution_id, entry.source_task_id, entry.source_agent_id,
-    entry.created_at, entry.updated_at
-  ]);
+  `,
+    [
+      entry.id,
+      entry.type,
+      entry.content,
+      JSON.stringify(entry.file_patterns),
+      JSON.stringify(entry.action_types),
+      entry.confidence,
+      entry.occurrences,
+      entry.source_execution_id,
+      entry.source_task_id,
+      entry.source_agent_id,
+      entry.created_at,
+      entry.updated_at,
+    ],
+  );
 
   return entry;
 }
@@ -411,8 +433,8 @@ export async function writePattern(params: {
 
   // Similar duplicate detection + merge logic
   const existing = query<KnowledgeEntry>(
-    'SELECT * FROM knowledge_entries WHERE type = ?',
-    ['pattern']
+    "SELECT * FROM knowledge_entries WHERE type = ?",
+    ["pattern"],
   );
 
   const duplicate = findSimilar(content, existing);
@@ -438,7 +460,10 @@ export async function writeDecision(params: {
 /**
  * Find similar entries using Jaccard similarity
  */
-function findSimilar(content: string, entries: KnowledgeEntry[]): KnowledgeEntry | null {
+function findSimilar(
+  content: string,
+  entries: KnowledgeEntry[],
+): KnowledgeEntry | null {
   for (const entry of entries) {
     const similarity = calculateJaccardSimilarity(content, entry.content);
     if (similarity > 0.8) return entry;
@@ -453,13 +478,20 @@ function mergeEntry(existing: KnowledgeEntry, newData: any): KnowledgeEntry {
   const newOccurrences = existing.occurrences + 1;
   const newConfidence = Math.min(0.95, existing.confidence + 0.05);
 
-  run(`
+  run(
+    `
     UPDATE knowledge_entries
     SET occurrences = ?, confidence = ?, updated_at = datetime('now')
     WHERE id = ?
-  `, [newOccurrences, newConfidence, existing.id]);
+  `,
+    [newOccurrences, newConfidence, existing.id],
+  );
 
-  return { ...existing, occurrences: newOccurrences, confidence: newConfidence };
+  return {
+    ...existing,
+    occurrences: newOccurrences,
+    confidence: newConfidence,
+  };
 }
 
 /**
@@ -469,10 +501,10 @@ function calculateInitialConfidence(type: string, params: any): number {
   let confidence = 0.5; // Base
 
   // Boost for QA agent (more reliable than build agent)
-  if (params.agentId === 'qa_agent') confidence += 0.1;
+  if (params.agentId === "qa_agent") confidence += 0.1;
 
   // Boost for patterns (more structured than gotchas)
-  if (type === 'pattern') confidence += 0.05;
+  if (type === "pattern") confidence += 0.05;
 
   // Boost if fix was applied (not just theoretical)
   if (params.fixApplied) confidence += 0.1;
@@ -486,7 +518,7 @@ function calculateInitialConfidence(type: string, params: any): number {
 function calculateJaccardSimilarity(a: string, b: string): number {
   const wordsA = new Set(a.toLowerCase().split(/\s+/));
   const wordsB = new Set(b.toLowerCase().split(/\s+/));
-  const intersection = new Set([...wordsA].filter(x => wordsB.has(x)));
+  const intersection = new Set([...wordsA].filter((x) => wordsB.has(x)));
   const union = new Set([...wordsA, ...wordsB]);
   return intersection.size / union.size;
 }
@@ -495,8 +527,8 @@ function calculateJaccardSimilarity(a: string, b: string): number {
 #### 2. Error Recovery Tracker (`parent-harness/orchestrator/src/knowledge/error-recovery.ts`)
 
 ```typescript
-import { query, run } from '../db/index.js';
-import { v4 as uuid } from 'uuid';
+import { query, run } from "../db/index.js";
+import { v4 as uuid } from "uuid";
 
 export interface RecoveryStrategy {
   id: string;
@@ -524,17 +556,30 @@ export function recordRecoverySuccess(params: {
 }): void {
   const strategy = findOrCreateStrategy(params);
 
-  run(`
+  run(
+    `
     UPDATE error_recovery_strategies
     SET success_count = success_count + 1, updated_at = datetime('now')
     WHERE id = ?
-  `, [strategy.id]);
+  `,
+    [strategy.id],
+  );
 
   // Record attempt
-  run(`
+  run(
+    `
     INSERT INTO strategy_attempts (id, strategy_id, task_id, session_id, agent_id, error_message, outcome)
     VALUES (?, ?, ?, ?, ?, ?, 'success')
-  `, [uuid(), strategy.id, params.taskId, params.sessionId, params.agentId, params.errorMessage]);
+  `,
+    [
+      uuid(),
+      strategy.id,
+      params.taskId,
+      params.sessionId,
+      params.agentId,
+      params.errorMessage,
+    ],
+  );
 }
 
 /**
@@ -550,30 +595,49 @@ export function recordRecoveryFailure(params: {
 }): void {
   const strategy = findOrCreateStrategy(params);
 
-  run(`
+  run(
+    `
     UPDATE error_recovery_strategies
     SET failure_count = failure_count + 1, updated_at = datetime('now')
     WHERE id = ?
-  `, [strategy.id]);
+  `,
+    [strategy.id],
+  );
 
   // Record attempt with notes
-  run(`
+  run(
+    `
     INSERT INTO strategy_attempts (id, strategy_id, task_id, agent_id, error_message, outcome, notes)
     VALUES (?, ?, ?, ?, ?, 'failure', ?)
-  `, [uuid(), strategy.id, params.taskId, params.agentId, params.errorMessage, params.notes]);
+  `,
+    [
+      uuid(),
+      strategy.id,
+      params.taskId,
+      params.agentId,
+      params.errorMessage,
+      params.notes,
+    ],
+  );
 }
 
 /**
  * Get recommended strategy for an error
  */
-export function getRecommendedStrategy(errorMessage: string, errorType: string): RecoveryStrategy | null {
+export function getRecommendedStrategy(
+  errorMessage: string,
+  errorType: string,
+): RecoveryStrategy | null {
   // Find strategies matching error pattern
-  const strategies = query<RecoveryStrategy>(`
+  const strategies = query<RecoveryStrategy>(
+    `
     SELECT * FROM error_recovery_strategies
     WHERE error_type = ? AND effectiveness > 0.5
     ORDER BY effectiveness DESC, success_count DESC
     LIMIT 1
-  `, [errorType]);
+  `,
+    [errorType],
+  );
 
   return strategies.length > 0 ? strategies[0] : null;
 }
@@ -586,34 +650,46 @@ function findOrCreateStrategy(params: any): RecoveryStrategy {
   const errorPattern = params.errorMessage.substring(0, 50);
 
   // Check if strategy exists
-  const existing = getOne<RecoveryStrategy>(`
+  const existing = getOne<RecoveryStrategy>(
+    `
     SELECT * FROM error_recovery_strategies
     WHERE error_pattern = ? AND recovery_technique = ?
-  `, [errorPattern, params.technique]);
+  `,
+    [errorPattern, params.technique],
+  );
 
   if (existing) return existing;
 
   // Create new strategy
   const id = uuid();
-  run(`
+  run(
+    `
     INSERT INTO error_recovery_strategies
     (id, error_pattern, error_type, recovery_technique, steps, context)
     VALUES (?, ?, ?, ?, ?, ?)
-  `, [
-    id, errorPattern, params.errorType, params.technique,
-    JSON.stringify(params.steps || []),
-    JSON.stringify({ agent_type: params.agentId })
-  ]);
+  `,
+    [
+      id,
+      errorPattern,
+      params.errorType,
+      params.technique,
+      JSON.stringify(params.steps || []),
+      JSON.stringify({ agent_type: params.agentId }),
+    ],
+  );
 
-  return getOne<RecoveryStrategy>('SELECT * FROM error_recovery_strategies WHERE id = ?', [id])!;
+  return getOne<RecoveryStrategy>(
+    "SELECT * FROM error_recovery_strategies WHERE id = ?",
+    [id],
+  )!;
 }
 ```
 
 #### 3. Task Signature Matcher (`parent-harness/orchestrator/src/knowledge/task-matcher.ts`)
 
 ```typescript
-import crypto from 'crypto';
-import { query, run } from '../db/index.js';
+import crypto from "crypto";
+import { query, run } from "../db/index.js";
 
 export interface TaskSignature {
   id: string;
@@ -640,8 +716,11 @@ export function generateTaskSignature(task: {
   const depCount = task.dependencies?.length || 0;
 
   // Hash combines title + category + file patterns
-  const hashInput = `${titleNorm}|${task.category}|${filePatterns.join(',')}`;
-  const signatureHash = crypto.createHash('sha256').update(hashInput).digest('hex');
+  const hashInput = `${titleNorm}|${task.category}|${filePatterns.join(",")}`;
+  const signatureHash = crypto
+    .createHash("sha256")
+    .update(hashInput)
+    .digest("hex");
 
   const signature: TaskSignature = {
     id: crypto.randomUUID(),
@@ -653,15 +732,22 @@ export function generateTaskSignature(task: {
     dependency_count: depCount,
   };
 
-  run(`
+  run(
+    `
     INSERT OR REPLACE INTO task_signatures
     (id, task_id, signature_hash, title_normalized, category, file_patterns, dependency_count)
     VALUES (?, ?, ?, ?, ?, ?, ?)
-  `, [
-    signature.id, signature.task_id, signature.signature_hash,
-    signature.title_normalized, signature.category,
-    JSON.stringify(signature.file_patterns), signature.dependency_count
-  ]);
+  `,
+    [
+      signature.id,
+      signature.task_id,
+      signature.signature_hash,
+      signature.title_normalized,
+      signature.category,
+      JSON.stringify(signature.file_patterns),
+      signature.dependency_count,
+    ],
+  );
 
   return signature;
 }
@@ -669,30 +755,39 @@ export function generateTaskSignature(task: {
 /**
  * Find similar tasks based on signature
  */
-export function findSimilarTasks(taskId: string, limit: number = 5): TaskSignature[] {
+export function findSimilarTasks(
+  taskId: string,
+  limit: number = 5,
+): TaskSignature[] {
   const current = query<TaskSignature>(
-    'SELECT * FROM task_signatures WHERE task_id = ?',
-    [taskId]
+    "SELECT * FROM task_signatures WHERE task_id = ?",
+    [taskId],
   )[0];
 
   if (!current) return [];
 
   // Find exact hash matches first
-  const exactMatches = query<TaskSignature>(`
+  const exactMatches = query<TaskSignature>(
+    `
     SELECT * FROM task_signatures
     WHERE signature_hash = ? AND task_id != ?
     LIMIT ?
-  `, [current.signature_hash, taskId, limit]);
+  `,
+    [current.signature_hash, taskId, limit],
+  );
 
   if (exactMatches.length >= limit) return exactMatches;
 
   // Find category + file pattern overlaps
-  const similar = query<TaskSignature>(`
+  const similar = query<TaskSignature>(
+    `
     SELECT * FROM task_signatures
     WHERE category = ? AND task_id != ?
     ORDER BY dependency_count DESC
     LIMIT ?
-  `, [current.category, taskId, limit - exactMatches.length]);
+  `,
+    [current.category, taskId, limit - exactMatches.length],
+  );
 
   return [...exactMatches, ...similar];
 }
@@ -700,16 +795,20 @@ export function findSimilarTasks(taskId: string, limit: number = 5): TaskSignatu
 /**
  * Get knowledge entries relevant to a task signature
  */
-export function getRelevantKnowledge(taskId: string, minConfidence: number = 0.5): any[] {
+export function getRelevantKnowledge(
+  taskId: string,
+  minConfidence: number = 0.5,
+): any[] {
   const signature = query<TaskSignature>(
-    'SELECT * FROM task_signatures WHERE task_id = ?',
-    [taskId]
+    "SELECT * FROM task_signatures WHERE task_id = ?",
+    [taskId],
   )[0];
 
   if (!signature) return [];
 
   // Find knowledge entries matching file patterns
-  return query(`
+  return query(
+    `
     SELECT k.* FROM knowledge_entries k
     WHERE k.confidence >= ?
       AND (
@@ -718,29 +817,39 @@ export function getRelevantKnowledge(taskId: string, minConfidence: number = 0.5
       )
     ORDER BY k.confidence DESC, k.occurrences DESC
     LIMIT 10
-  `, [minConfidence, signature.category, signature.category]);
+  `,
+    [minConfidence, signature.category, signature.category],
+  );
 }
 ```
 
 #### 4. Knowledge API (`parent-harness/orchestrator/src/api/knowledge.ts`)
 
 ```typescript
-import { Router } from 'express';
-import { query, run } from '../db/index.js';
-import { writeGotcha, writePattern, writeDecision } from '../knowledge/writer.js';
-import { getRecommendedStrategy } from '../knowledge/error-recovery.js';
-import { getRelevantKnowledge } from '../knowledge/task-matcher.js';
+import { Router } from "express";
+import { query, run } from "../db/index.js";
+import {
+  writeGotcha,
+  writePattern,
+  writeDecision,
+} from "../knowledge/writer.js";
+import { getRecommendedStrategy } from "../knowledge/error-recovery.js";
+import { getRelevantKnowledge } from "../knowledge/task-matcher.js";
 
 export const knowledgeRouter = Router();
 
 /**
  * POST /api/knowledge/gotcha - Record a gotcha
  */
-knowledgeRouter.post('/gotcha', async (req, res) => {
+knowledgeRouter.post("/gotcha", async (req, res) => {
   const { fix, filePattern, actionType, taskId, agentId } = req.body;
 
   const entry = await writeGotcha({
-    fix, filePattern, actionType, taskId, agentId
+    fix,
+    filePattern,
+    actionType,
+    taskId,
+    agentId,
   });
 
   res.json(entry);
@@ -749,11 +858,23 @@ knowledgeRouter.post('/gotcha', async (req, res) => {
 /**
  * POST /api/knowledge/pattern - Record a pattern
  */
-knowledgeRouter.post('/pattern', async (req, res) => {
-  const { description, codeTemplate, filePattern, actionType, taskId, agentId } = req.body;
+knowledgeRouter.post("/pattern", async (req, res) => {
+  const {
+    description,
+    codeTemplate,
+    filePattern,
+    actionType,
+    taskId,
+    agentId,
+  } = req.body;
 
   const entry = await writePattern({
-    description, codeTemplate, filePattern, actionType, taskId, agentId
+    description,
+    codeTemplate,
+    filePattern,
+    actionType,
+    taskId,
+    agentId,
   });
 
   res.json(entry);
@@ -762,7 +883,7 @@ knowledgeRouter.post('/pattern', async (req, res) => {
 /**
  * GET /api/knowledge/relevant/:taskId - Get knowledge for task
  */
-knowledgeRouter.get('/relevant/:taskId', (req, res) => {
+knowledgeRouter.get("/relevant/:taskId", (req, res) => {
   const { taskId } = req.params;
   const minConfidence = parseFloat(req.query.minConfidence as string) || 0.5;
 
@@ -773,20 +894,21 @@ knowledgeRouter.get('/relevant/:taskId', (req, res) => {
 /**
  * GET /api/knowledge/strategy/:errorType - Get recovery strategy
  */
-knowledgeRouter.get('/strategy/:errorType', (req, res) => {
+knowledgeRouter.get("/strategy/:errorType", (req, res) => {
   const { errorType } = req.params;
-  const errorMessage = req.query.message as string || '';
+  const errorMessage = (req.query.message as string) || "";
 
   const strategy = getRecommendedStrategy(errorMessage, errorType);
-  res.json(strategy || { message: 'No known strategy for this error' });
+  res.json(strategy || { message: "No known strategy for this error" });
 });
 
 /**
  * GET /api/knowledge/stats - Get knowledge base statistics
  */
-knowledgeRouter.get('/stats', (req, res) => {
+knowledgeRouter.get("/stats", (req, res) => {
   const stats = {
-    total_entries: query('SELECT COUNT(*) as count FROM knowledge_entries')[0].count,
+    total_entries: query("SELECT COUNT(*) as count FROM knowledge_entries")[0]
+      .count,
     by_type: query(`
       SELECT type, COUNT(*) as count
       FROM knowledge_entries
@@ -816,17 +938,20 @@ When spawning agents, inject relevant knowledge:
 
 ```typescript
 // In parent-harness/orchestrator/src/spawner/index.ts
-import { getRelevantKnowledge } from '../knowledge/task-matcher.js';
+import { getRelevantKnowledge } from "../knowledge/task-matcher.js";
 
-export async function spawnAgent(taskId: string, agentType: string): Promise<void> {
+export async function spawnAgent(
+  taskId: string,
+  agentType: string,
+): Promise<void> {
   // Get relevant knowledge for task
   const knowledge = getRelevantKnowledge(taskId, 0.7);
 
   // Inject into agent context
   const context = {
     task_id: taskId,
-    relevant_gotchas: knowledge.filter(k => k.type === 'gotcha'),
-    relevant_patterns: knowledge.filter(k => k.type === 'pattern'),
+    relevant_gotchas: knowledge.filter((k) => k.type === "gotcha"),
+    relevant_patterns: knowledge.filter((k) => k.type === "pattern"),
   };
 
   // Spawn with enriched context
@@ -840,9 +965,12 @@ After task completion, extract learnings:
 
 ```typescript
 // In parent-harness/orchestrator/src/qa/index.ts
-import { writeGotcha, writePattern } from '../knowledge/writer.js';
+import { writeGotcha, writePattern } from "../knowledge/writer.js";
 
-export async function validateTaskCompletion(taskId: string, sessionId: string): Promise<void> {
+export async function validateTaskCompletion(
+  taskId: string,
+  sessionId: string,
+): Promise<void> {
   // Get session logs
   const logs = await getSessionLogs(sessionId);
 
@@ -854,9 +982,9 @@ export async function validateTaskCompletion(taskId: string, sessionId: string):
       description: pattern.description,
       codeTemplate: pattern.code,
       filePattern: pattern.filePattern,
-      actionType: 'CREATE',
+      actionType: "CREATE",
       taskId,
-      agentId: 'qa_agent',
+      agentId: "qa_agent",
     });
   }
 
@@ -869,7 +997,7 @@ export async function validateTaskCompletion(taskId: string, sessionId: string):
       filePattern: gotcha.filePattern,
       actionType: gotcha.actionType,
       taskId,
-      agentId: 'qa_agent',
+      agentId: "qa_agent",
     });
   }
 }
@@ -881,15 +1009,26 @@ When errors occur, suggest recovery strategies:
 
 ```typescript
 // In parent-harness/orchestrator/src/events/stuck-agent-handler.ts
-import { getRecommendedStrategy, recordRecoverySuccess, recordRecoveryFailure } from '../knowledge/error-recovery.js';
+import {
+  getRecommendedStrategy,
+  recordRecoverySuccess,
+  recordRecoveryFailure,
+} from "../knowledge/error-recovery.js";
 
-export async function handleStuckAgent(sessionId: string, error: any): Promise<void> {
+export async function handleStuckAgent(
+  sessionId: string,
+  error: any,
+): Promise<void> {
   const errorType = error.constructor.name;
   const strategy = getRecommendedStrategy(error.message, errorType);
 
   if (strategy) {
-    console.log(`[StuckAgent] Attempting known recovery: ${strategy.recovery_technique}`);
-    console.log(`[StuckAgent] Effectiveness: ${(strategy.effectiveness * 100).toFixed(1)}%`);
+    console.log(
+      `[StuckAgent] Attempting known recovery: ${strategy.recovery_technique}`,
+    );
+    console.log(
+      `[StuckAgent] Effectiveness: ${(strategy.effectiveness * 100).toFixed(1)}%`,
+    );
 
     try {
       await applyRecoveryStrategy(sessionId, strategy);
@@ -898,7 +1037,7 @@ export async function handleStuckAgent(sessionId: string, error: any): Promise<v
         errorType,
         technique: strategy.recovery_technique,
         steps: strategy.steps,
-        agentId: 'system',
+        agentId: "system",
         sessionId,
       });
     } catch (recoveryError) {
@@ -906,7 +1045,7 @@ export async function handleStuckAgent(sessionId: string, error: any): Promise<v
         errorMessage: error.message,
         errorType,
         technique: strategy.recovery_technique,
-        agentId: 'system',
+        agentId: "system",
         notes: recoveryError.message,
       });
     }
@@ -968,15 +1107,18 @@ export async function handleStuckAgent(sessionId: string, error: any): Promise<v
 ## Dependencies
 
 **Upstream (Must Complete First):**
+
 - ✅ PHASE2-TASK-01: Database schema foundation
 - ✅ PHASE3-TASK-01: Task queue persistence
 - ✅ Agent memory system (EXISTS: `parent-harness/orchestrator/src/memory/index.ts`)
 
 **Downstream (Depends on This):**
+
 - PHASE4-TASK-02: Planning Agent (uses knowledge base for improvement suggestions)
 - PHASE6-TASK-01: Self-improvement loop (promotes validated knowledge to CLAUDE.md)
 
 **Parallel Work (Can Develop Concurrently):**
+
 - PHASE4-TASK-03: Technique effectiveness dashboard
 - PHASE5-TASK-02: Pattern recognition ML model
 
@@ -985,6 +1127,7 @@ export async function handleStuckAgent(sessionId: string, error: any): Promise<v
 ## Implementation Plan
 
 ### Phase 1: Database Schema & Migrations (3 hours)
+
 1. Create migration file: `002_knowledge_base.sql`
 2. Define all 6 tables with indexes
 3. Write rollback script
@@ -992,6 +1135,7 @@ export async function handleStuckAgent(sessionId: string, error: any): Promise<v
 5. Seed with sample entries for testing
 
 ### Phase 2: Knowledge Writer Module (4 hours)
+
 6. Implement `writer.ts`: writeGotcha, writePattern, writeDecision
 7. Implement duplicate detection with Jaccard similarity
 8. Implement confidence calculation logic
@@ -999,30 +1143,35 @@ export async function handleStuckAgent(sessionId: string, error: any): Promise<v
 10. Unit test all functions
 
 ### Phase 3: Error Recovery Tracker (3 hours)
+
 11. Implement `error-recovery.ts`: recordSuccess, recordFailure
 12. Implement getRecommendedStrategy with effectiveness ranking
 13. Add findOrCreateStrategy logic
 14. Test with realistic error scenarios
 
 ### Phase 4: Task Signature Matcher (3 hours)
+
 15. Implement `task-matcher.ts`: generateTaskSignature
 16. Implement findSimilarTasks with hash + category matching
 17. Implement getRelevantKnowledge with file pattern matching
 18. Test similarity matching accuracy
 
 ### Phase 5: Knowledge API (2 hours)
+
 19. Create `api/knowledge.ts` router
 20. Implement POST /gotcha, /pattern, /decision
 21. Implement GET /relevant/:taskId, /strategy/:errorType, /stats
 22. Add input validation and error handling
 
 ### Phase 6: Integration (4 hours)
+
 23. Integrate with spawner (inject relevant knowledge)
 24. Integrate with QA agent (extract patterns post-completion)
 25. Integrate with error handler (suggest recovery strategies)
 26. Bridge agent_memory with knowledge_entries
 
 ### Phase 7: Testing & Documentation (3 hours)
+
 27. Write unit tests for all modules
 28. Write integration test: error → recovery → knowledge → reuse
 29. Load test with 1000+ entries
@@ -1093,39 +1242,41 @@ describe('Error Recovery Tracker', () => {
 
 ```typescript
 // integration/knowledge-flow.test.ts
-describe('Knowledge Base Integration', () => {
-  test('complete flow: error → recovery → knowledge → reuse', async () => {
+describe("Knowledge Base Integration", () => {
+  test("complete flow: error → recovery → knowledge → reuse", async () => {
     // 1. Task encounters error
     const error = new TypeError('Cannot read property "x" of undefined');
 
     // 2. Recovery attempted and succeeds
     recordRecoverySuccess({
       errorMessage: error.message,
-      errorType: 'TypeError',
-      technique: 'Add null check',
-      steps: ['if (obj) { ... }'],
-      agentId: 'build_agent',
-      taskId: 'task-1',
+      errorType: "TypeError",
+      technique: "Add null check",
+      steps: ["if (obj) { ... }"],
+      agentId: "build_agent",
+      taskId: "task-1",
     });
 
     // 3. Knowledge entry created
     const gotcha = await writeGotcha({
-      fix: 'Always check for null before accessing nested properties',
-      filePattern: '*.ts',
-      actionType: 'UPDATE',
-      taskId: 'task-1',
-      agentId: 'build_agent',
+      fix: "Always check for null before accessing nested properties",
+      filePattern: "*.ts",
+      actionType: "UPDATE",
+      taskId: "task-1",
+      agentId: "build_agent",
     });
 
     expect(gotcha.confidence).toBeGreaterThan(0.5);
 
     // 4. Later task spawns and retrieves knowledge
-    const knowledge = getRelevantKnowledge('task-2', 0.5);
-    expect(knowledge).toContainEqual(expect.objectContaining({ id: gotcha.id }));
+    const knowledge = getRelevantKnowledge("task-2", 0.5);
+    expect(knowledge).toContainEqual(
+      expect.objectContaining({ id: gotcha.id }),
+    );
 
     // 5. Strategy recommended for similar error
-    const strategy = getRecommendedStrategy(error.message, 'TypeError');
-    expect(strategy?.recovery_technique).toBe('Add null check');
+    const strategy = getRecommendedStrategy(error.message, "TypeError");
+    expect(strategy?.recovery_technique).toBe("Add null check");
   });
 });
 ```
@@ -1157,17 +1308,20 @@ describe('Knowledge Base Integration', () => {
 ## Success Metrics
 
 **Operational:**
+
 - Knowledge base contains 50+ entries after 1 week
 - 80%+ of duplicate entries correctly merged
 - Error recovery strategies have 60%+ average effectiveness
 - Task signature matching finds similar tasks in <500ms
 
 **Agent Performance:**
+
 - Agents reuse knowledge 30%+ of the time when available
 - Time to fix known errors reduces by 50% (knowledge vs. no knowledge)
 - Agent failure rate decreases by 20% after 100+ knowledge entries
 
 **Quality:**
+
 - 90%+ of promoted knowledge validated as useful by human review
 - Confidence scores correlate with actual success (Pearson r > 0.7)
 - No duplicate entries with >0.8 similarity

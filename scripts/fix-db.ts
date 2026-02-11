@@ -23,14 +23,14 @@ const DEPENDENCY_ERRORS = [
 ];
 
 function isRecoverableError(msg: string): boolean {
-  return RECOVERABLE_ERRORS.some(pattern => 
-    new RegExp(pattern, "i").test(msg)
+  return RECOVERABLE_ERRORS.some((pattern) =>
+    new RegExp(pattern, "i").test(msg),
   );
 }
 
 function isDependencyError(msg: string): boolean {
-  return DEPENDENCY_ERRORS.some(pattern => 
-    new RegExp(pattern, "i").test(msg)
+  return DEPENDENCY_ERRORS.some((pattern) =>
+    new RegExp(pattern, "i").test(msg),
   );
 }
 
@@ -39,13 +39,14 @@ async function fixDatabase() {
     console.log("Initializing database...");
     const db = await getDb();
     console.log("Database initialized successfully");
-    
+
     // Run migrations manually
     const migrationsDir = path.join(__dirname, "../database/migrations");
-    const migrations = fs.readdirSync(migrationsDir)
-      .filter(f => f.endsWith(".sql"))
+    const migrations = fs
+      .readdirSync(migrationsDir)
+      .filter((f) => f.endsWith(".sql"))
       .sort();
-    
+
     // Create migrations tracking table
     db.run(`
       CREATE TABLE IF NOT EXISTS _migrations (
@@ -54,23 +55,23 @@ async function fixDatabase() {
         applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    
+
     // Get applied migrations
     const applied = db.exec("SELECT name FROM _migrations");
-    const appliedSet = new Set(applied[0]?.values.map(row => row[0]) || []);
-    
+    const appliedSet = new Set(applied[0]?.values.map((row) => row[0]) || []);
+
     const deferred: string[] = [];
     let successCount = 0;
     let failCount = 0;
-    
+
     // First pass: apply all migrations, defer those with dependency issues
     for (const migration of migrations) {
       if (appliedSet.has(migration)) {
         continue;
       }
-      
+
       const sql = fs.readFileSync(path.join(migrationsDir, migration), "utf-8");
-      
+
       try {
         db.exec(sql);
         db.run("INSERT INTO _migrations (name) VALUES (?)", [migration]);
@@ -84,7 +85,9 @@ async function fixDatabase() {
           successCount++;
         } else if (isDependencyError(e.message)) {
           // Missing dependency - defer for second pass
-          console.log(`⏳ ${migration} (deferred: ${e.message.substring(0, 50)})`);
+          console.log(
+            `⏳ ${migration} (deferred: ${e.message.substring(0, 50)})`,
+          );
           deferred.push(migration);
         } else {
           console.error(`✗ ${migration}: ${e.message}`);
@@ -93,15 +96,18 @@ async function fixDatabase() {
         }
       }
     }
-    
+
     // Second pass: retry deferred migrations (dependencies might exist now)
     if (deferred.length > 0) {
       console.log("\nRetrying deferred migrations...");
       for (const migration of deferred) {
         if (appliedSet.has(migration)) continue;
-        
-        const sql = fs.readFileSync(path.join(migrationsDir, migration), "utf-8");
-        
+
+        const sql = fs.readFileSync(
+          path.join(migrationsDir, migration),
+          "utf-8",
+        );
+
         try {
           db.exec(sql);
           db.run("INSERT INTO _migrations (name) VALUES (?)", [migration]);
@@ -121,11 +127,12 @@ async function fixDatabase() {
         }
       }
     }
-    
+
     await saveDb();
     await closeDb();
-    console.log(`\n✓ Database setup complete: ${successCount} applied, ${failCount} with issues`);
-    
+    console.log(
+      `\n✓ Database setup complete: ${successCount} applied, ${failCount} with issues`,
+    );
   } catch (e) {
     console.error("Error:", e);
     process.exit(1);

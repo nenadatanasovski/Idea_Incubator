@@ -14,6 +14,7 @@ The sync command already includes `development.md` in content hash calculation (
 ## QA Verification Failure Analysis
 
 **Reported Error:**
+
 ```
 Failed checks:
 - Tests: Command failed: npm test -- --pool=forks --poolOptions.forks.maxForks=1 2>&1 || echo "No test script"
@@ -22,6 +23,7 @@ Failed checks:
 **Root Cause:** Database corruption (`DatabaseError: database disk image is malformed`), NOT missing implementation.
 
 The error occurred during global test setup when running migrations:
+
 ```
 ⎯ Error during global setup ⎯⎯
 DatabaseError: Database error during exec: database disk image is malformed
@@ -34,6 +36,7 @@ DatabaseError: Database error during exec: database disk image is malformed
 **Resolution:** Removed corrupted database file (`data/db.sqlite`).
 
 **Verification:** Fresh test run with clean database:
+
 ```bash
 Test Files  106 passed (106)
      Tests  1773 passed | 4 skipped (1777)
@@ -98,23 +101,23 @@ CREATE TABLE idea_answers (
 
 ### Functional Requirements
 
-| ID | Requirement | Status |
-|----|-------------|--------|
+| ID   | Requirement                                                          | Status         |
+| ---- | -------------------------------------------------------------------- | -------------- |
 | FR-1 | Parse Q&A pairs from `development.md` using multiple format patterns | ✅ Implemented |
-| FR-2 | Classify parsed questions to YAML question IDs via keyword matching | ✅ Implemented |
+| FR-2 | Classify parsed questions to YAML question IDs via keyword matching  | ✅ Implemented |
 | FR-3 | Save classified answers to `idea_answers` table with `source='user'` | ✅ Implemented |
-| FR-4 | Include `development.md` in content hash for staleness detection | ✅ Implemented |
-| FR-5 | Skip LLM fallback during sync to avoid unexpected API costs | ✅ Implemented |
-| FR-6 | Report sync statistics (synced count, failed count) | ✅ Implemented |
+| FR-4 | Include `development.md` in content hash for staleness detection     | ✅ Implemented |
+| FR-5 | Skip LLM fallback during sync to avoid unexpected API costs          | ✅ Implemented |
+| FR-6 | Report sync statistics (synced count, failed count)                  | ✅ Implemented |
 
 ### Non-Functional Requirements
 
-| ID | Requirement | Status |
-|----|-------------|--------|
+| ID    | Requirement                                                     | Status         |
+| ----- | --------------------------------------------------------------- | -------------- |
 | NFR-1 | Sync operation must be idempotent (re-run without side effects) | ✅ Implemented |
-| NFR-2 | Failed question classifications should not block sync process | ✅ Implemented |
-| NFR-3 | Parser should handle malformed markdown gracefully | ✅ Implemented |
-| NFR-4 | Performance: Parse and sync 50 Q&A pairs in <2 seconds | ✅ Implemented |
+| NFR-2 | Failed question classifications should not block sync process   | ✅ Implemented |
+| NFR-3 | Parser should handle malformed markdown gracefully              | ✅ Implemented |
+| NFR-4 | Performance: Parse and sync 50 Q&A pairs in <2 seconds          | ✅ Implemented |
 
 ## Technical Design
 
@@ -149,19 +152,23 @@ CREATE TABLE idea_answers (
 **Purpose:** Extract Q&A pairs from markdown using pattern matching.
 
 **Implementation:**
+
 - Uses 5 regex patterns to detect different Q&A formats
 - Deduplicates questions by normalized text
 - Validates question/answer length (min 10 chars)
 - Returns `ParsedQA[]` with confidence 0.9
 
 **Supported Formats:**
+
 ```markdown
 Format 1: **Q:** / **A:**
 **Q:** What is your target market?
 **A:** Tech professionals aged 25-45
 
 Format 2: Heading-based
+
 ### What is your competitive moat?
+
 We use proprietary TinyML algorithms...
 
 Format 3: Simple Q:/A:
@@ -169,8 +176,9 @@ Q: How much time can you dedicate?
 A: 60+ hours per week
 
 Format 4: Numbered
+
 1. What validation have you done?
-I have conducted 47 customer interviews...
+   I have conducted 47 customer interviews...
 
 Format 5: Bold question
 **What is your timeline to MVP?**
@@ -182,6 +190,7 @@ Format 5: Bold question
 **Purpose:** Map free-form questions to structured YAML question IDs.
 
 **Implementation:**
+
 - Tests question against 80+ regex patterns
 - Organized by category (Problem, Solution, Market, Feasibility, Risk, Fit)
 - Returns first match or null
@@ -195,6 +204,7 @@ Format 5: Bold question
 **Purpose:** Persist answer to database and recalculate readiness.
 
 **Implementation:**
+
 - Checks for existing answer via `UNIQUE(idea_id, question_id)`
 - Updates if exists, inserts if new
 - Sets `answer_source='user'` for manual answers
@@ -206,6 +216,7 @@ Format 5: Bold question
 **Purpose:** Orchestrate Q&A parsing and syncing for one idea.
 
 **Implementation:**
+
 ```typescript
 async function syncDevelopmentAnswers(
   ideaId: string,
@@ -221,7 +232,8 @@ async function syncDevelopmentAnswers(
   // Parse Q&A (skip LLM fallback during sync)
   const qaPairs = await parseDevlopmentMd(content, undefined, false);
 
-  let synced = 0, failed = 0;
+  let synced = 0,
+    failed = 0;
   for (const { question, answer, confidence } of qaPairs) {
     const questionId = classifyQuestionToId(question);
 
@@ -247,6 +259,7 @@ async function syncDevelopmentAnswers(
 ### Data Flow
 
 1. **User runs sync:**
+
    ```bash
    npm run sync
    ```
@@ -261,6 +274,7 @@ async function syncDevelopmentAnswers(
      - Recalculate readiness scores
 
 3. **Output:**
+
    ```
    Sync Summary:
    =============
@@ -287,14 +301,14 @@ async function syncDevelopmentAnswers(
 
 ### Code References
 
-| Component | File | Lines |
-|-----------|------|-------|
-| Content hashing | `scripts/sync.ts` | 42-64 |
-| Q&A sync orchestration | `scripts/sync.ts` | 70-113 |
-| Pattern-based parsing | `questions/parser.ts` | 27-83 |
-| LLM fallback (optional) | `questions/parser.ts` | 93-148 |
-| Question classification | `questions/classifier.ts` | 19-558 |
-| Answer persistence | `questions/readiness.ts` | 109-166 |
+| Component               | File                      | Lines   |
+| ----------------------- | ------------------------- | ------- |
+| Content hashing         | `scripts/sync.ts`         | 42-64   |
+| Q&A sync orchestration  | `scripts/sync.ts`         | 70-113  |
+| Pattern-based parsing   | `questions/parser.ts`     | 27-83   |
+| LLM fallback (optional) | `questions/parser.ts`     | 93-148  |
+| Question classification | `questions/classifier.ts` | 19-558  |
+| Answer persistence      | `questions/readiness.ts`  | 109-166 |
 
 ## Pass Criteria
 
@@ -335,22 +349,27 @@ Test Files  106 passed (106)
 **Status:** PASS ✅ (zero errors)
 
 ### ✅ PC-4: parseQAFromMarkdown() Function Exists
+
 **Location:** `questions/parser.ts:27-83`
 **Verification:** Function exported and used by `parseDevlopmentMd()`
 
 ### ✅ PC-5: Extracts Q&A Pairs from **Q:**/**A:** Format
+
 **Implementation:** Supports 5 formats including `**Q:**/**A:**`
 **Verification:** Pattern 1 regex at line 32-33
 
 ### ✅ PC-6: classifyQuestionToId() Maps Questions to YAML IDs
+
 **Location:** `questions/classifier.ts:546-558`
 **Verification:** Tests against 80+ patterns, returns question ID or null
 
 ### ✅ PC-7: Answers Saved to idea_answers Table
+
 **Location:** `questions/readiness.ts:109-166`
 **Verification:** `saveAnswer()` inserts to `idea_answers` with `source='user'`
 
 ### ✅ PC-8: development.md Included in Content Hash
+
 **Location:** `scripts/sync.ts:42-64`
 **Verification:** Line 45 explicitly includes `development.md` in `filesToHash` array
 
@@ -360,23 +379,23 @@ Test Files  106 passed (106)
 
 ```typescript
 // Test parseQAFromMarkdown()
-describe('parseQAFromMarkdown', () => {
-  it('should parse **Q:**/**A:** format', () => {
-    const content = '**Q:** What is X?\n\n**A:** Y is the answer';
+describe("parseQAFromMarkdown", () => {
+  it("should parse **Q:**/**A:** format", () => {
+    const content = "**Q:** What is X?\n\n**A:** Y is the answer";
     const result = parseQAFromMarkdown(content);
     expect(result).toHaveLength(1);
-    expect(result[0].question).toBe('What is X?');
-    expect(result[0].answer).toBe('Y is the answer');
+    expect(result[0].question).toBe("What is X?");
+    expect(result[0].answer).toBe("Y is the answer");
     expect(result[0].confidence).toBe(0.9);
   });
 
-  it('should skip questions/answers under 10 chars', () => {
-    const content = '**Q:** X?\n\n**A:** Y';
+  it("should skip questions/answers under 10 chars", () => {
+    const content = "**Q:** X?\n\n**A:** Y";
     const result = parseQAFromMarkdown(content);
     expect(result).toHaveLength(0);
   });
 
-  it('should deduplicate questions', () => {
+  it("should deduplicate questions", () => {
     const content = `
       **Q:** What is X?
       **A:** Answer 1
@@ -390,14 +409,14 @@ describe('parseQAFromMarkdown', () => {
 });
 
 // Test classifyQuestionToId()
-describe('classifyQuestionToId', () => {
-  it('should map target market questions to M1_TAM', () => {
-    expect(classifyQuestionToId('What is your target market?')).toBe('M1_TAM');
-    expect(classifyQuestionToId('How large is the market?')).toBe('M1_TAM');
+describe("classifyQuestionToId", () => {
+  it("should map target market questions to M1_TAM", () => {
+    expect(classifyQuestionToId("What is your target market?")).toBe("M1_TAM");
+    expect(classifyQuestionToId("How large is the market?")).toBe("M1_TAM");
   });
 
-  it('should return null for unmapped questions', () => {
-    expect(classifyQuestionToId('Random unrelated question')).toBeNull();
+  it("should return null for unmapped questions", () => {
+    expect(classifyQuestionToId("Random unrelated question")).toBeNull();
   });
 });
 ```
@@ -405,21 +424,21 @@ describe('classifyQuestionToId', () => {
 ### Integration Tests
 
 ```typescript
-describe('syncDevelopmentAnswers', () => {
-  it('should sync Q&A from development.md to database', async () => {
-    const ideaId = 'test-idea-123';
-    const folderPath = '/path/to/idea';
+describe("syncDevelopmentAnswers", () => {
+  it("should sync Q&A from development.md to database", async () => {
+    const ideaId = "test-idea-123";
+    const folderPath = "/path/to/idea";
 
     // Mock development.md with Q&A
     fs.writeFileSync(
-      path.join(folderPath, 'development.md'),
+      path.join(folderPath, "development.md"),
       `
       **Q:** What is your target market?
       **A:** Tech professionals aged 25-45
 
       **Q:** How much time can you dedicate?
       **A:** 60+ hours per week
-      `
+      `,
     );
 
     const result = await syncDevelopmentAnswers(ideaId, folderPath);
@@ -429,14 +448,14 @@ describe('syncDevelopmentAnswers', () => {
     // Verify answers in database
     const answers = await getAnswersForIdea(ideaId);
     expect(answers.length).toBeGreaterThan(0);
-    expect(answers[0].answerSource).toBe('user');
+    expect(answers[0].answerSource).toBe("user");
   });
 
-  it('should skip empty or short development.md files', async () => {
-    const ideaId = 'test-idea-123';
-    const folderPath = '/path/to/idea';
+  it("should skip empty or short development.md files", async () => {
+    const ideaId = "test-idea-123";
+    const folderPath = "/path/to/idea";
 
-    fs.writeFileSync(path.join(folderPath, 'development.md'), '# Empty');
+    fs.writeFileSync(path.join(folderPath, "development.md"), "# Empty");
 
     const result = await syncDevelopmentAnswers(ideaId, folderPath);
     expect(result.skipped).toBe(1);
@@ -484,22 +503,23 @@ SQL
 
 ### Internal Dependencies
 
-| Dependency | Location | Purpose |
-|------------|----------|---------|
-| parseMarkdown | `utils/parser.ts` | Parse README.md frontmatter |
-| database functions | `database/db.ts` | Database operations |
-| logger | `utils/logger.ts` | Logging utilities |
+| Dependency         | Location          | Purpose                     |
+| ------------------ | ----------------- | --------------------------- |
+| parseMarkdown      | `utils/parser.ts` | Parse README.md frontmatter |
+| database functions | `database/db.ts`  | Database operations         |
+| logger             | `utils/logger.ts` | Logging utilities           |
 
 ### External Dependencies
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| glob | ^10.x | Find idea files |
-| uuid | ^9.x | Generate IDs |
+| Package | Version | Purpose         |
+| ------- | ------- | --------------- |
+| glob    | ^10.x   | Find idea files |
+| uuid    | ^9.x    | Generate IDs    |
 
 ### Database Schema
 
 Requires migration `008_dynamic_questioning.sql` to be applied:
+
 - `question_bank` table
 - `idea_answers` table
 - `idea_readiness` table
@@ -542,12 +562,12 @@ try {
 
 ### Benchmarks
 
-| Operation | Target | Current |
-|-----------|--------|---------|
-| Parse 50 Q&A pairs | <500ms | ~200ms |
-| Classify 50 questions | <1s | ~500ms |
-| Save 50 answers | <2s | ~1.5s |
-| Total sync (50 Q&A) | <3s | ~2.2s |
+| Operation             | Target | Current |
+| --------------------- | ------ | ------- |
+| Parse 50 Q&A pairs    | <500ms | ~200ms  |
+| Classify 50 questions | <1s    | ~500ms  |
+| Save 50 answers       | <2s    | ~1.5s   |
+| Total sync (50 Q&A)   | <3s    | ~2.2s   |
 
 ### Optimizations
 
@@ -596,6 +616,7 @@ try {
 **Current Strategy:** Investigate QA failure, verify implementation completeness
 
 **Findings:**
+
 - QA failure was infrastructure issue (corrupted database), not code issue
 - All functionality is fully implemented and working
 - All 1773 tests pass with clean database
@@ -609,6 +630,7 @@ try {
 **Date:** 2026-02-08 15:13
 
 All pass criteria are met in the current codebase:
+
 - ✅ All tests pass (1773/1777 passing, 4 skipped)
 - ✅ Build succeeds (TypeScript compilation with zero errors)
 - ✅ TypeScript compiles without errors

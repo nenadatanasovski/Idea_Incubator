@@ -1,16 +1,16 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { Dashboard } from './pages/Dashboard'
-import { Tasks } from './pages/Tasks'
-import { Sessions } from './pages/Sessions'
-import { Config } from './pages/Config'
-import { Agents } from './pages/Agents'
-import { AgentRegistry } from './pages/AgentRegistry'
-import { Telegram } from './pages/Telegram'
-import { Cron } from './pages/Cron'
-import { EventBus } from './pages/EventBus'
-import { EventSystem } from './pages/EventSystem'
-import { AgentActivity } from './pages/AgentActivity'
-import { Waves } from './pages/Waves'
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Dashboard } from "./pages/Dashboard";
+import { Tasks } from "./pages/Tasks";
+import { Sessions } from "./pages/Sessions";
+import { Config } from "./pages/Config";
+import { Agents } from "./pages/Agents";
+import { AgentRegistry } from "./pages/AgentRegistry";
+import { Telegram } from "./pages/Telegram";
+import { Cron } from "./pages/Cron";
+import { EventBus } from "./pages/EventBus";
+import { EventSystem } from "./pages/EventSystem";
+import { AgentActivity } from "./pages/AgentActivity";
+import { Waves } from "./pages/Waves";
 
 function App() {
   return (
@@ -30,7 +30,7 @@ function App() {
         <Route path="/config" element={<Config />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;

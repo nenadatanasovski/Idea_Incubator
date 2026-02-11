@@ -3,6 +3,7 @@
 Dashboard for monitoring and controlling the Parent Harness.
 
 ## Tech Stack
+
 - React + TypeScript
 - Vite
 - Tailwind CSS
@@ -11,25 +12,33 @@ Dashboard for monitoring and controlling the Parent Harness.
 ## Pages
 
 ### 1. Main Dashboard (`/`)
+
 Three-column layout:
+
 - **Left:** Agent Status Cards
 - **Center:** Event Stream (live)
 - **Right:** Task Queue / Active Work
 
 ### 2. Task Board (`/tasks`)
+
 Kanban-style board:
+
 - Columns: Backlog | Ready | In Progress | QA | Done | Failed
 - Drag-and-drop task movement
 - Filter by: agent, priority, wave, lane
 
 ### 3. Sessions View (`/sessions`)
+
 Grouped by execution run:
+
 - Expandable: Run → Wave → Lane → Task → Session → Iterations
 - Each iteration shows QA status
 - Click to view full log
 
 ### 4. Log Viewer (`/logs/:sessionId`)
+
 Full iteration log with:
+
 - Tool calls highlighted
 - File modifications
 - Git commits
@@ -39,7 +48,9 @@ Full iteration log with:
 ## Components
 
 ### AgentStatusCard
+
 Shows per-agent:
+
 - Status badge (idle/working/error/stuck)
 - Current task (if any)
 - Iteration count
@@ -47,14 +58,18 @@ Shows per-agent:
 - Link to Telegram channel
 
 ### EventStream
+
 Real-time scrolling feed:
+
 - Filter by: agent, event type, severity
 - Color-coded by type
 - Auto-scroll toggle
 - Search
 
 ### TaskCard
+
 Compact task display:
+
 - Display ID (e.g., TASK-042)
 - Title
 - Priority badge
@@ -63,7 +78,9 @@ Compact task display:
 - Wave/Lane badges
 
 ### IterationRow
+
 Shows one iteration:
+
 - Iteration number
 - Duration
 - Tasks completed/failed
@@ -71,7 +88,9 @@ Shows one iteration:
 - Expand for log preview
 
 ### WaveProgress
+
 Visual wave indicator:
+
 - Wave number
 - Task count
 - Progress bar
@@ -82,24 +101,31 @@ Visual wave indicator:
 Connect to: `ws://localhost:3333/ws`
 
 ### Inbound Events (server → client)
+
 ```typescript
-type WSEvent = 
-  | { type: 'agent:status'; agentId: string; status: string }
-  | { type: 'task:updated'; task: Task }
-  | { type: 'iteration:started'; sessionId: string; iteration: number }
-  | { type: 'iteration:completed'; sessionId: string; iteration: number; qaResult: string }
-  | { type: 'event:new'; event: ObservabilityEvent }
-  | { type: 'wave:started'; runId: string; waveNumber: number }
-  | { type: 'wave:completed'; runId: string; waveNumber: number }
+type WSEvent =
+  | { type: "agent:status"; agentId: string; status: string }
+  | { type: "task:updated"; task: Task }
+  | { type: "iteration:started"; sessionId: string; iteration: number }
+  | {
+      type: "iteration:completed";
+      sessionId: string;
+      iteration: number;
+      qaResult: string;
+    }
+  | { type: "event:new"; event: ObservabilityEvent }
+  | { type: "wave:started"; runId: string; waveNumber: number }
+  | { type: "wave:completed"; runId: string; waveNumber: number };
 ```
 
 ### Outbound Events (client → server)
+
 ```typescript
 type WSCommand =
-  | { type: 'subscribe'; channels: string[] }
-  | { type: 'task:assign'; taskId: string; agentId: string }
-  | { type: 'session:terminate'; sessionId: string }
-  | { type: 'qa:trigger'; iterationId: string }
+  | { type: "subscribe"; channels: string[] }
+  | { type: "task:assign"; taskId: string; agentId: string }
+  | { type: "session:terminate"; sessionId: string }
+  | { type: "qa:trigger"; iterationId: string };
 ```
 
 ## API Endpoints (consumed by frontend)
@@ -107,6 +133,7 @@ type WSCommand =
 See `BACKEND.md` for full API spec.
 
 Key endpoints:
+
 - `GET /api/agents` - All agents with status
 - `GET /api/tasks` - Tasks with filters
 - `GET /api/sessions` - Sessions grouped by run
